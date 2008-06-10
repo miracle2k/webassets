@@ -21,7 +21,7 @@ from optparse import make_option
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django import template
-from djutils.features.assets.templatetags.assets import AssetsNode, create_merged
+from django_assets.templatetags.assets import AssetsNode, create_merged
 
 def _shortpath(abspath):
     """Make an absolute path relative to the project's settings module,

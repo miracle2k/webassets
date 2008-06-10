@@ -8,16 +8,16 @@ Assets are defined inline in templates:
     {% assets filter="jsmin" output="packed.js" common/file1.js common/file2.js cadmin/file3.js %}
         <script type="text/javascript" src="{{ ASSET_URL }}"></script>
     {% endassets %}
-    
-Apart from any number of source files, the following keyword-like 
+
+Apart from any number of source files, the following keyword-like
 arguments can be passed to the template tag:
 
  * output:
-     Name/path of the output file. All source files will be merged and the 
+     Name/path of the output file. All source files will be merged and the
      result stored at this location.
 
  * filter:
-     The filter to apply to the merged file. Currently, the following filters 
+     The filter to apply to the merged file. Currently, the following filters
      are supported:
 	    * jsmin
 		* jspacker
@@ -29,28 +29,28 @@ arguments can be passed to the template tag:
 		* cssrewrite
 	 If the filter argument is missing, none will be applied (merge only).
 	 Multiple filters are supported as well (separate with commas).
-			
+
 Note that all filenames/paths must be relative to MEDIA_URL and MEDIA_ROOT.
-	
-The templatetag will usually render it's contents once for the final output 
-file, but can output links to the unmodified source file themselves (see the 
+
+The templatetag will usually render it's contents once for the final output
+file, but can output links to the unmodified source file themselves (see the
 ASSETS_DEBUG setting). All urls are prefixed with MEDIA_URL.
 
 --------------------
 How assets are built
 --------------------
 
-Assets can be updated automatically, or built manually using a management 
+Assets can be updated automatically, or built manually using a management
 command.
 
-By default, if the filesystem modification date of any of the source files 
+By default, if the filesystem modification date of any of the source files
 exceeds the target file's, the target will be recreated. This behaviour can
 be disabled or changed using the ASSETS_UPDATER setting.
 
 The management command for a manual rebuild is used like this:
-	
+
 	./manage.py assets rebuild --parse-templates
-	
+
 This will go through all the templates in your project and tries to find all
 assets you have in use. It will then create or recreate them.
 
@@ -58,7 +58,7 @@ assets you have in use. It will then create or recreate them.
 Rewriting CSS relative url
 --------------------------
 
-If your output file is stored at a path different from any of the original 
+If your output file is stored at a path different from any of the original
 source file, relative URLs within CSS will likely become invalid. To avoid
 this, apply the "cssrewrite" filter which will fix url() instructions.
 
@@ -67,40 +67,44 @@ Settings
 --------
 
 ASSETS_DEBUG can be used to switch off or modify asset functionality during
-debugging. Apart from False, supported values "nomerge" and "nofilter", the 
+debugging. Apart from False, supported values "nomerge" and "nofilter", the
 latter only disabling the application of filters, the former causing the
 unmodified source files to be given out.
 You can make the value of this dependent on your DEBUG setting.
 
 ASSETS_UPDATER modifies the auto-rebuild behaviour. By default, this is set
 to "timestamp", e.g. assets will be updated when a change can be determined
-via the filesystem modification dates. Currently, the only other usuable 
+via the filesystem modification dates. Currently, the only other usuable
 values are "always" and "never", the former only recommended during debugging,
 the latter useful if you want to limit yourself to manual building.
 
-ASSETS_EXPIRE is needed if you send your assets to the client using a far 
-future expires header. Unless set to False, it will modify the asset url 
-using it's modification timestamp, so that browsers will reload the file 
-when necessary. Possible values are "querystring" (asset.js?1212592199) and 
+ASSETS_EXPIRE is needed if you send your assets to the client using a far
+future expires header. Unless set to False, it will modify the asset url
+using it's modification timestamp, so that browsers will reload the file
+when necessary. Possible values are "querystring" (asset.js?1212592199) and
 "filename" (asset.1212592199.js). The latter might work better with certain
-proxies or exotic browers, but will require you to rewrite those modified 
+proxies or exotic browers, but will require you to rewrite those modified
 filenames via your webserver.
 
 ------------
 Future TODOs
 ------------
 
- * Maybe an alternative way to define assets within Python might make sense 
+ * Maybe an alternative way to define assets within Python might make sense
    after all, e.g. say assets.register() calls, by convention in app/assets.py.
-   
- * Automatically create (and delete, i.e. manage) symlinks to make the 
+
+ * Automatically create (and delete, i.e. manage) symlinks to make the
    ASSETS_EXPIRE="filename" option work without server rewrites.
-   
+
  * Support functionality for applying a filter directly within a template, i.e.
    pack inline scripts; also, if the output argument to {%assets%} is missing,
    the result could be piped directly into the template.
-   
+
  * Should be provide features for normalizing encodings?
+
+ * Handle far future expires for images: add a new templatetag that can output
+   image urls with timestamps; the cssrewrite filter could modify urls within
+   CSS files when ASSETS_EXPIRE is enabled.
 
 Bugs:
 

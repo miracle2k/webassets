@@ -1,8 +1,8 @@
-"""An "updater" determines when assets should be automatically recreated.
+"""An "updater" determines when assets should automatically be recreated.
 """
 
 import os
-from djutils.features.assets.conf import settings
+from django_assets.conf import settings
 
 def get_updater(name=None):
     """Return a callable(output, sources) that returns True if the file

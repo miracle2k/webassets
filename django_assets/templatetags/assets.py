@@ -3,10 +3,10 @@ import tokenize
 import cStringIO as StringIO
 import urlparse
 from django import template
-from djutils.features.assets.conf import settings
-from djutils.features.assets.updater import get_updater
-from djutils.features.assets.filter import get_filter
-from djutils.features.assets.tracker import get_tracker
+from django_assets.conf import settings
+from django_assets.updater import get_updater
+from django_assets.filter import get_filter
+from django_assets.tracker import get_tracker
 
 def _absurl(fragment):
     """Create an absolute url based on MEDIA_URL."""
