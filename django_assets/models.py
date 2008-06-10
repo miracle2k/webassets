@@ -1,4 +1,4 @@
-from djutils.features.assets.conf import settings
+from django_assets.conf import settings
 
 if settings.TRACK_ASSETS == 'model':
     from django.db import models

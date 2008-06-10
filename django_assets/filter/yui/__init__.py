@@ -16,7 +16,7 @@ For more information, see:
 """
 
 import os, subprocess
-from djutils.features.assets.conf import settings
+from django_assets.conf import settings
 
 def _get_yui_path():
     path = getattr(settings, 'YUI_COMPRESSOR_PATH', None)

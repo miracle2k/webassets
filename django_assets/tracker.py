@@ -13,7 +13,7 @@ update. For instance:
       information could be tracked and then be used to detect changes.
 """
 
-from djutils.features.assets.conf import settings
+from django_assets.conf import settings
 
 def get_tracker(name=None):
     """Return a callable(output, sources) that returns True if the file
