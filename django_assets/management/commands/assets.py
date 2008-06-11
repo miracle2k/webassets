@@ -61,7 +61,7 @@ class Command(BaseCommand):
         for output, data in assets.items():
             print "building asset: %s" % output
             try:
-                create_merged(data['sources'], output, data['filter'], force=True)
+                create_merged(data['sources'], output, data['filter'])
             except Exception, e:
                 print "\tfailed, error was: %s" % e
 
