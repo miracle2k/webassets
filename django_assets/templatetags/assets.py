@@ -47,7 +47,7 @@ def create_merged(sources, output, filter):
     # cause trouble? how would we avoid this?
     open_output = lambda: open(output_path, 'wb')
 
-    # If no output filters is used, we can write directly to the
+    # If no output filters are used, we can write directly to the
     # disk for improved performance.
     buf = (output_filters) and StringIO.StringIO() or open_output()
     try:
