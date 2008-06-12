@@ -90,7 +90,7 @@ class Command(BaseCommand):
                             except template.TemplateSyntaxError, e:
                                 print self.style.ERROR('\tfailed, error was: %s'%e)
                             else:
-                                for node in t:
+                                def _recurse_node(node):
                                     if isinstance(node, AssetsNode):
                                         # try to resolve this node's data; if we fail,
                                         # then it depends on view data and we cannot
@@ -106,6 +106,13 @@ class Command(BaseCommand):
                                                     'sources': files,
                                                     'filter': filter,
                                                 }
+                                    # see Django #7430
+                                    for subnode in hasattr(node, 'nodelist') \
+                                        and node.nodelist\
+                                        or []:
+                                            _recurse_node(subnode)
+                                for node in t:  # don't move into _recurse_node, ``Template`` has a .nodelist attribute
+                                    _recurse_node(node)
                         finally:
                             file.close()
         return found_assets
