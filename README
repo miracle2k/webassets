@@ -54,9 +54,9 @@ The management command for a manual rebuild is used like this:
 This will go through all the templates in your project and tries to find all
 assets you have in use. It will then create or recreate them.
 
---------------------------
-Rewriting CSS relative url
---------------------------
+---------------------------
+Rewriting CSS relative urls
+---------------------------
 
 If your output file is stored at a path different from any of the original
 source file, relative URLs within CSS will likely become invalid. To avoid
@@ -74,7 +74,7 @@ You can make the value of this dependent on your DEBUG setting.
 
 ASSETS_UPDATER modifies the auto-rebuild behaviour. By default, this is set
 to "timestamp", e.g. assets will be updated when a change can be determined
-via the filesystem modification dates. Currently, the only other usuable
+via the filesystem modification dates. Currently, the only other usable
 values are "always" and "never", the former only recommended during debugging,
 the latter useful if you want to limit yourself to manual building.
 
