@@ -119,3 +119,5 @@ Future TODOs
    server error. This would probably most simply be accomplished by having
    AssetsNode catch exceptions in create_merged() and redirect to
    render_sources. We probably want to activate this only in production mode.
+
+ * Support asset deployment to services like Amazon S3.
