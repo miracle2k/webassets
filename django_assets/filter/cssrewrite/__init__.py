@@ -35,7 +35,7 @@ def apply(_in, out, source_path, output_path):
     def _rewrite(m):
         # get the regex matches; note how we maintain the exact
         # whitespace around the actual url; we'll indeed only
-        # replace the url itselfl
+        # replace the url itself
         text_before = m.groups()[0]
         url = m.groups()[1]
         text_after = m.groups()[2]
