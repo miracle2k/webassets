@@ -1,0 +1,4 @@
+build
+dist
+django_assets.egg-info
+MANIFEST
