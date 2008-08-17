@@ -1,6 +1,5 @@
-***************************
 Asset management for Django
-***************************
+===========================
 
 Assets are defined inline in templates:
 
@@ -36,7 +35,7 @@ The templatetag will usually render it's contents once for the final output
 file, but can output links to the unmodified source file themselves (see the
 ASSETS_DEBUG setting). All urls are prefixed with MEDIA_URL.
 
---------------------
+
 How assets are built
 --------------------
 
@@ -54,7 +53,7 @@ The management command for a manual rebuild is used like this:
 This will go through all the templates in your project and tries to find all
 assets you have in use. It will then create or recreate them.
 
----------------------------
+
 Rewriting CSS relative urls
 ---------------------------
 
@@ -62,7 +61,7 @@ If your output file is stored at a path different from any of the original
 source file, relative URLs within CSS will likely become invalid. To avoid
 this, apply the "cssrewrite" filter which will fix url() instructions.
 
---------
+
 Settings
 --------
 
@@ -91,7 +90,7 @@ when necessary. Possible values are "querystring" (asset.js?1212592199) and
 proxies or exotic browers, but will require you to rewrite those modified
 filenames via your webserver.
 
-------------
+
 Future TODOs
 ------------
 
