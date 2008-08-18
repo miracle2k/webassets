@@ -20,7 +20,6 @@ arguments can be passed to the template tag:
      are supported:
 	    * jsmin
 		* jspacker
-		* csstidy
 		* cssutils
 		* yui_js
 		* yui_css
