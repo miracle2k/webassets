@@ -26,6 +26,7 @@ arguments can be passed to the template tag:
 		* yui_css
 		* gzip
 		* cssrewrite
+		* clevercss
 	 If the filter argument is missing, none will be applied (merge only).
 	 Multiple filters are supported as well (separate with commas).
 
