@@ -15,6 +15,7 @@ update. For instance:
 
 from django_assets.conf import settings
 
+
 def get_tracker(name=None):
     """Return a callable(output, sources) that returns True if the file
     ``output``, based on the files in the list ``sources`` needs to be
@@ -27,16 +28,14 @@ def get_tracker(name=None):
 
     try:
         return {
-            None: do_not_track,
-            False: do_not_track,
+            None: None,
+            False: None,
             "model": track_via_model,
             "cache": track_via_cache,
             }[name]
     except KeyError:
         raise ValueError('Tracking option "%s" is not valid.' % name)
 
-def do_not_track(*args, **kwargs):
-    return None
 
 def track_via_model(sourcefiles, outputfile, filter_name):
     raise NotImplementedError()
@@ -47,6 +46,7 @@ def track_via_model(sourcefiles, outputfile, filter_name):
         asset.filter_name = filter_name
         asset.touched_mtime = touched_time
         asset.save()"""
+
 
 def track_via_cache(sourcefiles, outputfile, filter_name):
     raise NotImplementedError()

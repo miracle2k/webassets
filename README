@@ -48,7 +48,7 @@ be disabled or changed using the ASSETS_UPDATER setting.
 
 The management command for a manual rebuild is used like this:
 
-	./manage.py assets rebuild --parse-templates
+	./manage.py assets rebuild
 
 This will go through all the templates in your project and tries to find all
 assets you have in use. It will then create or recreate them.

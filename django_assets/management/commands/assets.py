@@ -22,6 +22,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django import template
 from django_assets.templatetags.assets import AssetsNode, create_merged
+from django_assets.tracker import get_tracker
+
 
 def _shortpath(abspath):
     """Make an absolute path relative to the project's settings module,
@@ -29,6 +31,7 @@ def _shortpath(abspath):
     b = os.path.dirname(os.path.normpath(os.sys.modules[settings.SETTINGS_MODULE].__file__))
     p = os.path.normpath(abspath)
     return p[len(os.path.commonprefix([b, p])):]
+
 
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
@@ -48,7 +51,7 @@ class Command(BaseCommand):
             command = args[0]
 
         if command == 'rebuild':
-            if options.get('parse_templates'):
+            if options.get('parse_templates') or not get_tracker():
                 assets = self._parse_templates()
             else:
                 assets = dict()
