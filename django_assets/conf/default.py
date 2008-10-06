@@ -40,6 +40,7 @@ ASSETS_AUTO_CREATE = True
 #                       this may work better with certain proxies/browsers,
 #                       but requires you to configure your webserver to
 #                       rewrite those modified filenames to the originals.
+#						see also: http://www.stevesouders.com/blog/2008/08/23/revving-filenames-dont-use-querystring/
 ASSETS_EXPIRE = False
 
 # Certain features require (or work better with) knowledge of used assets.
