@@ -62,6 +62,32 @@ source file, relative URLs within CSS will likely become invalid. To avoid
 this, apply the "cssrewrite" filter which will fix url() instructions.
 
 
+Jinja support
+-------------
+
+django-assets strives to also offer full support for Jinja (version 2). An
+extension is available in:
+
+    ``django_assets.jinja.extension.assets``
+
+It will provide a {% assets %} tag that functions pretty much like the
+Django template version, except inheriting the more expressive syntax of
+Jinja. For example, filters may be specified as tuples:
+
+    {% assets filter=("jsmin", "gzip") ... %}
+
+There is a minor catch if you intend to use the management command to
+manually rebuild assets: Since that step involves parsing your templates,
+the command needs to know what extensions you are using. Because there is
+no "one way" to integrate Jinja and Django, it can't do so by itself.
+Instead, it expects you to specify the ``ASSETS_JINJA2_EXTENSIONS``
+setting. In most cases, you would simply to something like
+
+    ASSETS_JINJA2_EXTENSIONS = JINJA2_EXTENSIONS
+
+i.e. aliasing it to the actual setting you are using.
+
+
 Settings
 --------
 
@@ -89,6 +115,10 @@ when necessary. Possible values are "querystring" (asset.js?1212592199) and
 "filename" (asset.1212592199.js). The latter might work better with certain
 proxies or exotic browers, but will require you to rewrite those modified
 filenames via your webserver.
+
+ASSETS_JINJA2_EXTENSIONS is needed in some cases if you want to use
+django-assets within the Jinja template system. For more information, see
+the "Jinja support" section.
 
 
 Dependencies
