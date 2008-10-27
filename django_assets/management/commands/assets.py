@@ -19,11 +19,25 @@ Usage:
 import os
 from optparse import make_option
 from django.core.management.base import BaseCommand, CommandError
-from django.conf import settings
 from django import template
+from django_assets.conf import settings
 from django_assets.templatetags.assets import AssetsNode
 from django_assets.merge import merge
 from django_assets.tracker import get_tracker
+
+try:
+    import jinja2
+except:
+    jinja2 = None
+else:
+    from django_assets.jinja.extension import AssetsExtension
+    # Prepare a Jinja2 environment we can later use for parsing.
+    # If not specified by the user, put in there at least our own
+    # extension, which we will need most definitely to achieve anything.
+    _jinja2_extensions = getattr(settings, 'ASSETS_JINJA2_EXTENSIONS')
+    if not _jinja2_extensions:
+        _jinja2_extensions = [AssetsExtension.identifier]
+    jinja2_env = jinja2.Environment(extensions=_jinja2_extensions)
 
 
 def _shortpath(abspath):
@@ -103,17 +117,17 @@ class Command(BaseCommand):
         return found_assets
 
     def _parse_template(self, options, tmpl_path, found_assets):
-        if options.get('verbosity') >= 2:
-            print "Parsing template: %s" % _shortpath(tmpl_path)
-        file = open(tmpl_path, 'rb')
-        try:
+
+        def try_django(contents):
             # parse the template for asset nodes
             try:
-                t = template.Template(file.read())
+                t = template.Template(contents)
             except template.TemplateSyntaxError, e:
                 if options.get('verbosity') >= 2:
-                    print self.style.ERROR('\tfailed, error was: %s'%e)
+                    print self.style.ERROR('\tdjango parser failed, error was: %s'%e)
+                return False
             else:
+                result = []
                 def _recurse_node(node):
                     if isinstance(node, AssetsNode):
                         # try to resolve this node's data; if we fail,
@@ -125,13 +139,7 @@ class Command(BaseCommand):
                             if options.get('verbosity') >= 2:
                                 print self.style.ERROR('\tskipping asset %s, depends on runtime data.' % node.output)
                         else:
-                            if not output in found_assets:
-                                if options.get('verbosity') >= 2:
-                                    print self.style.NOTICE('\tfound asset: %s' % output)
-                                found_assets[output] = {
-                                    'sources': files,
-                                    'filter': filter,
-                                }
+                            result.append((output, files, filter,))
                     # see Django #7430
                     for subnode in hasattr(node, 'nodelist') \
                         and node.nodelist\
@@ -139,5 +147,47 @@ class Command(BaseCommand):
                             _recurse_node(subnode)
                 for node in t:  # don't move into _recurse_node, ``Template`` has a .nodelist attribute
                     _recurse_node(node)
+                return result
+
+        def try_jinja(contents):
+            try:
+                t = jinja2_env.parse(contents.decode(settings.DEFAULT_CHARSET))
+            except jinja2.exceptions.TemplateSyntaxError, e:
+                if options.get('verbosity') >= 2:
+                    print self.style.ERROR('\tjinja parser failed, error was: %s'%e)
+                return False
+            else:
+                result = []
+                def _recurse_node(node):
+                    for node in node.iter_child_nodes():
+                        if isinstance(node, jinja2.nodes.Call):
+                            if isinstance(node.node, jinja2.nodes.ExtensionAttribute)\
+                               and node.node.identifier == AssetsExtension.identifier:
+                                filter, output, files = node.args
+                                result.append((output.as_const(),
+                                               files.as_const(),
+                                               filter.as_const()))
+                for node in t.iter_child_nodes():
+                    _recurse_node(node)
+                return result
+
+        if options.get('verbosity') >= 2:
+            print "Parsing template: %s" % _shortpath(tmpl_path)
+        file = open(tmpl_path, 'rb')
+        try:
+            contents = file.read()
         finally:
             file.close()
+
+        result = try_django(contents)
+        if result is False and jinja2:
+            result = try_jinja(contents)
+        if result:
+            for output, files, filter in result:
+                if not output in found_assets:
+                    if options.get('verbosity') >= 2:
+                        print self.style.NOTICE('\tfound asset: %s' % output)
+                    found_assets[output] = {
+                        'sources': files,
+                        'filter': filter,
+                    }

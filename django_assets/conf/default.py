@@ -51,3 +51,9 @@ ASSETS_EXPIRE = False
 #       "cache"         using Django's caching framework
 #       "model"         using a dedicated model for this purpose
 TRACK_ASSETS = False
+
+# If you are using django-assets with Jinja *and* want to the the "parse
+# templates" functionality of the management command, then you need to
+# specify which extensions you are using (since there is no "one way" to
+# integrate Jinja with Django, this cannot be determined automatically).
+ASSETS_JINJA2_EXTENSIONS = []
