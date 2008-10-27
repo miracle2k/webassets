@@ -91,6 +91,14 @@ proxies or exotic browers, but will require you to rewrite those modified
 filenames via your webserver.
 
 
+Dependencies
+------------
+
+Nose is required to run the tests:
+
+    http://somethingaboutorange.com/mrl/projects/nose/
+
+
 Future TODOs
 ------------
 
