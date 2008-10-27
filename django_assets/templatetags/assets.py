@@ -60,6 +60,14 @@ def assets(parser, token):
     # parse the arguments
     args = token.split_contents()[1:]
     for arg in args:
+        # Handle separating comma; for backwards-compatibility
+        # reasons, this is currently optional, but is enforced by
+        # the Jinja extension already.
+        if arg[-1] == ',':
+            arg = arg[:-1]
+            if not arg:
+                continue
+
         # determine if keyword or positional argument
         arg = arg.split('=', 1)
         if len(arg) == 1:

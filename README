@@ -4,7 +4,7 @@ Asset management for Django
 Assets are defined inline in templates:
 
     {% load assets %}
-    {% assets filter="jsmin" output="packed.js" "common/file1.js" "common/file2.js" "cadmin/file3.js" %}
+    {% assets filter="jsmin", output="packed.js", "common/file1.js", "common/file2.js", "cadmin/file3.js" %}
         <script type="text/javascript" src="{{ ASSET_URL }}"></script>
     {% endassets %}
 
