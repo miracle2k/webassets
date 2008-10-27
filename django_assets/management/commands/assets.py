@@ -21,7 +21,8 @@ from optparse import make_option
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django import template
-from django_assets.templatetags.assets import AssetsNode, create_merged
+from django_assets.templatetags.assets import AssetsNode
+from django_assets.merge import merge
 from django_assets.tracker import get_tracker
 
 
@@ -36,7 +37,8 @@ def _shortpath(abspath):
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--parse-templates', action='store_true',
-            help='Rebuild assets found by parsing project templates instead of using the tracking database.'),
+            help='Rebuild assets found by parsing project templates '
+                 'instead of using the tracking database.'),
     )
     help = 'Manage assets.'
     args = 'subcommand'
@@ -46,7 +48,8 @@ class Command(BaseCommand):
         if len(args) == 0:
             raise CommandError('You need to specify a subcommand')
         elif len(args) > 1:
-            raise CommandError('Invalid number of subcommands passed: %s' % ", ".join(args))
+            raise CommandError('Invalid number of subcommands passed: %s' %
+                ", ".join(args))
         else:
             command = args[0]
 
@@ -64,7 +67,7 @@ class Command(BaseCommand):
         for output, data in assets.items():
             print "building asset: %s" % output
             try:
-                create_merged(data['sources'], output, data['filter'])
+                merge(data['sources'], output, data['filter'])
             except Exception, e:
                 print "\tfailed, error was: %s" % e
 
