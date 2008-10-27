@@ -29,6 +29,8 @@ def apply(_in, out, source_path, output_path):
     # based urls (e.g. the following code will consider them absolute
     # within a filesystem chrooted into MEDIA_URL).
     root = settings.MEDIA_ROOT
+    if root and root[-1] != os.path.sep:
+        root += os.path.sep  # so it will be matched by commonprefix()
     source_path = source_path[len(os.path.commonprefix([root, source_path])):]
     output_path = output_path[len(os.path.commonprefix([root, output_path])):]
 
