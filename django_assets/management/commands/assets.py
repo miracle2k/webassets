@@ -39,6 +39,9 @@ class Command(BaseCommand):
         make_option('--parse-templates', action='store_true',
             help='Rebuild assets found by parsing project templates '
                  'instead of using the tracking database.'),
+        make_option('--verbosity', action='store', dest='verbosity',
+            default='1', type='choice', choices=['0', '1', '2'],
+            help='Verbosity level; 0=minimal output, 1=normal output, 2=all output'),
     )
     help = 'Manage assets.'
     args = 'subcommand'
@@ -53,25 +56,27 @@ class Command(BaseCommand):
         else:
             command = args[0]
 
+        options['verbosity'] = int(options['verbosity'])
+
         if command == 'rebuild':
             if options.get('parse_templates') or not get_tracker():
-                assets = self._parse_templates()
+                assets = self._parse_templates(options)
             else:
                 assets = dict()
-
-            self._rebuild_assets(assets)
+            self._rebuild_assets(options, assets)
         else:
             raise CommandError('Unknown subcommand: %s' % command)
 
-    def _rebuild_assets(self, assets):
+    def _rebuild_assets(self, options, assets):
         for output, data in assets.items():
-            print "building asset: %s" % output
+            if options.get('verbosity') >= 1:
+                print "Building asset: %s" % output
             try:
                 merge(data['sources'], output, data['filter'])
             except Exception, e:
-                print "\tfailed, error was: %s" % e
+                print self.style.ERROR("Failed, error was: %s" % e)
 
-    def _parse_templates(self):
+    def _parse_templates(self, options):
         # build a list of template directories based on configured loaders
         template_dirs = []
         if 'django.template.loaders.filesystem.load_template_source' in settings.TEMPLATE_LOADERS:
@@ -82,43 +87,57 @@ class Command(BaseCommand):
 
         found_assets = {}
         # find all template files
+        if options.get('verbosity') >= 1:
+            print "Searching templates..."
+        total_count = 0
         for template_dir in template_dirs:
             for directory, _ds, files in os.walk(template_dir):
                 for filename in files:
                     if filename.endswith('.html'):
+                        total_count += 1
                         tmpl_path = os.path.join(directory, filename)
-                        print "parsing template: %s" % _shortpath(tmpl_path)
-                        file = open(tmpl_path, 'rb')
-                        try:
-                            # parse the template for asset nodes
-                            try:
-                                t = template.Template(file.read())
-                            except template.TemplateSyntaxError, e:
-                                print self.style.ERROR('\tfailed, error was: %s'%e)
-                            else:
-                                def _recurse_node(node):
-                                    if isinstance(node, AssetsNode):
-                                        # try to resolve this node's data; if we fail,
-                                        # then it depends on view data and we cannot
-                                        # manually rebuild it.
-                                        try:
-                                            output, files, filter = node.resolve()
-                                        except template.VariableDoesNotExist:
-                                            print self.style.ERROR('\tskipping asset %s, depends on runtime data.' % node.output)
-                                        else:
-                                            if not output in found_assets:
-                                                print self.style.NOTICE('\tfound asset: %s' % output)
-                                                found_assets[output] = {
-                                                    'sources': files,
-                                                    'filter': filter,
-                                                }
-                                    # see Django #7430
-                                    for subnode in hasattr(node, 'nodelist') \
-                                        and node.nodelist\
-                                        or []:
-                                            _recurse_node(subnode)
-                                for node in t:  # don't move into _recurse_node, ``Template`` has a .nodelist attribute
-                                    _recurse_node(node)
-                        finally:
-                            file.close()
+                        self._parse_template(options, tmpl_path, found_assets)
+        if options.get('verbosity') >= 1:
+            print "Parsed %d templates, found %d valid assets." % (
+                total_count, len(found_assets))
         return found_assets
+
+    def _parse_template(self, options, tmpl_path, found_assets):
+        if options.get('verbosity') >= 2:
+            print "Parsing template: %s" % _shortpath(tmpl_path)
+        file = open(tmpl_path, 'rb')
+        try:
+            # parse the template for asset nodes
+            try:
+                t = template.Template(file.read())
+            except template.TemplateSyntaxError, e:
+                if options.get('verbosity') >= 2:
+                    print self.style.ERROR('\tfailed, error was: %s'%e)
+            else:
+                def _recurse_node(node):
+                    if isinstance(node, AssetsNode):
+                        # try to resolve this node's data; if we fail,
+                        # then it depends on view data and we cannot
+                        # manually rebuild it.
+                        try:
+                            output, files, filter = node.resolve()
+                        except template.VariableDoesNotExist:
+                            if options.get('verbosity') >= 2:
+                                print self.style.ERROR('\tskipping asset %s, depends on runtime data.' % node.output)
+                        else:
+                            if not output in found_assets:
+                                if options.get('verbosity') >= 2:
+                                    print self.style.NOTICE('\tfound asset: %s' % output)
+                                found_assets[output] = {
+                                    'sources': files,
+                                    'filter': filter,
+                                }
+                    # see Django #7430
+                    for subnode in hasattr(node, 'nodelist') \
+                        and node.nodelist\
+                        or []:
+                            _recurse_node(subnode)
+                for node in t:  # don't move into _recurse_node, ``Template`` has a .nodelist attribute
+                    _recurse_node(node)
+        finally:
+            file.close()
