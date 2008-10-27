@@ -41,7 +41,10 @@ def merge(sources, output, filter):
     if settings.ASSETS_DEBUG == 'nofilter':
         filters = []
     else:
-        filters = filter and filter.split(',') or []
+        if isinstance(filter, basestring):
+            filters = filter.split(',')
+        else:
+            filters = filter and filter or []
         filters = [get_filter(f) for f in filters]
     # split between output and source filters
     source_attr = 'is_source_filter'
