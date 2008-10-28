@@ -21,7 +21,8 @@ from optparse import make_option
 from django.core.management.base import BaseCommand, CommandError
 from django import template
 from django_assets.conf import settings
-from django_assets.templatetags.assets import AssetsNode
+from django_assets.templatetags.assets import AssetsNode as AssetsNodeOriginal
+from django.templatetags.assets import AssetsNode as AssetsNodeMapped
 from django_assets.merge import merge
 from django_assets.tracker import get_tracker
 
@@ -129,7 +130,10 @@ class Command(BaseCommand):
             else:
                 result = []
                 def _recurse_node(node):
-                    if isinstance(node, AssetsNode):
+                    # depending on whether the template tag is added to
+                    # builtins, or loaded via {% load %}, it will be
+                    # available in a different module
+                    if isinstance(node, (AssetsNodeMapped, AssetsNodeOriginal,)):
                         # try to resolve this node's data; if we fail,
                         # then it depends on view data and we cannot
                         # manually rebuild it.
