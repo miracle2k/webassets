@@ -26,7 +26,7 @@ def abspath(filename):
     """
     if os.path.isabs(filename):
         return filename
-    return os.path.join(settings.MEDIA_ROOT, filename)
+    return os.path.abspath(os.path.join(settings.MEDIA_ROOT, filename))
 
 
 def merge(sources, output, filter):
