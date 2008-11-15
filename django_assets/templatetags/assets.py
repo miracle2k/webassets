@@ -30,7 +30,7 @@ class AssetsNode(template.Node):
         output, files, filter = self.resolve(context)
 
         if not settings.ASSETS_DEBUG:
-            merged_url = get_merged_url(files)
+            merged_url = get_merged_url(files, output, filter)
             if merged_url:
                 context.update({'ASSET_URL': merged_url})
                 try:
