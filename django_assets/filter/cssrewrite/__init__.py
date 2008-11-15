@@ -31,8 +31,11 @@ def apply(_in, out, source_path, output_path):
     root = settings.MEDIA_ROOT
     if root and root[-1] != os.path.sep:
         root += os.path.sep  # so it will be matched by commonprefix()
-    source_path = source_path[len(os.path.commonprefix([root, source_path])):]
-    output_path = output_path[len(os.path.commonprefix([root, output_path])):]
+    output_url = output_path[len(os.path.commonprefix([root, output_path])):]
+    source_url = source_path[len(os.path.commonprefix([root, source_path])):]
+    if os.name == 'nt':
+        output_url = output_url.replace('\\', '/')
+        source_url = source_url.replace('\\', '/')
 
     def _rewrite(m):
         # get the regex matches; note how we maintain the exact
@@ -54,11 +57,12 @@ def apply(_in, out, source_path, output_path):
         if not url.startswith('/') and not url.startswith('http://'):
             # rewritten url: relative path from new location (output)
             # to location of referenced file (source + current url)
-            url = urlpath.relpath(output_path,
-                                  urlparse.urljoin(source_path, url))
+            url = urlpath.relpath(output_url,
+                                  urlparse.urljoin(source_url, url))
 
-        return 'url(%s%s%s%s%s)' % (
+        result = 'url(%s%s%s%s%s)' % (
                     text_before, quotes_used, url, quotes_used, text_after)
+        return result
 
     out.write(urltag_re.sub(_rewrite, _in.read()))
 
