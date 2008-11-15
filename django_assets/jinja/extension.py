@@ -67,7 +67,7 @@ class AssetsExtension(Extension):
         # ``get_merged_url`` returned False, in both cases we render
         # the source assets.
         result = u""
-        for source in get_source_urls(files):
+        for f in get_source_urls(files):
             result += caller(f)
         return result
 
