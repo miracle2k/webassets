@@ -54,9 +54,6 @@ class Command(BaseCommand):
         make_option('--parse-templates', action='store_true',
             help='Rebuild assets found by parsing project templates '
                  'instead of using the tracking database.'),
-        make_option('--verbosity', action='store', dest='verbosity',
-            default='1', type='choice', choices=['0', '1', '2'],
-            help='Verbosity level; 0=minimal output, 1=normal output, 2=all output'),
     )
     help = 'Manage assets.'
     args = 'subcommand'
