@@ -1,4 +1,7 @@
-build
-dist
-django_assets.egg-info
-MANIFEST
+/build
+/dist
+/django_assets.egg-info
+/MANIFEST
+
+
+*.~*
