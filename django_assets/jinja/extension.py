@@ -54,7 +54,7 @@ class AssetsExtension(Extension):
         return nodes.CallBlock(
                 self.call_method('_render_assets',
                                  args=[filter, output, nodes.List(files)]),
-                [nodes.Name('ASSETS_URL', 'store')], [], body).\
+                [nodes.Name('ASSET_URL', 'store')], [], body).\
                     set_lineno(lineno)
 
     def _render_assets(self, filter, output, files, caller=None):
