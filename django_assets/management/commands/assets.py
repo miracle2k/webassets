@@ -167,8 +167,8 @@ class Command(BaseCommand):
                         print self.style.ERROR('\tjinja parser (env %d) failed, error was: %s'% (i, e))                    
                 else:
                     result = []
-                    def _recurse_node(node):
-                        for node in node.iter_child_nodes():
+                    def _recurse_node(node_to_search):
+                        for node in node_to_search.iter_child_nodes():
                             if isinstance(node, jinja2.nodes.Call):
                                 if isinstance(node.node, jinja2.nodes.ExtensionAttribute)\
                                    and node.node.identifier == AssetsExtension.identifier:
@@ -176,6 +176,8 @@ class Command(BaseCommand):
                                     result.append((output.as_const(),
                                                    files.as_const(),
                                                    filter.as_const()))
+                            else:
+                                _recurse_node(node)
                     for node in t.iter_child_nodes():
                         _recurse_node(node)
                     return result
