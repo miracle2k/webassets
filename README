@@ -62,7 +62,7 @@ source file, relative URLs within CSS will likely become invalid. To avoid
 this, apply the "cssrewrite" filter which will fix url() instructions.
 
 
-Jinja support
+Jinja2 support
 -------------
 
 django-assets strives to also offer full support for Jinja (version 2). An
@@ -86,6 +86,9 @@ setting. In most cases, you would simply to something like
     ASSETS_JINJA2_EXTENSIONS = JINJA2_EXTENSIONS
 
 i.e. aliasing it to the actual setting you are using.
+
+If you are using Coffin for Django/Jinja integration, you can skip the 
+previous step: django-assets will automatically use your Coffin environment.
 
 
 Settings

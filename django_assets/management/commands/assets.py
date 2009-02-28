@@ -31,6 +31,7 @@ try:
 except:
     jinja2 = None
 else:
+    jinja2_envs = []
     from django_assets.jinja.extension import AssetsExtension
     # Prepare a Jinja2 environment we can later use for parsing.
     # If not specified by the user, put in there at least our own
@@ -38,7 +39,14 @@ else:
     _jinja2_extensions = getattr(settings, 'ASSETS_JINJA2_EXTENSIONS')
     if not _jinja2_extensions:
         _jinja2_extensions = [AssetsExtension.identifier]
-    jinja2_env = jinja2.Environment(extensions=_jinja2_extensions)
+    jinja2_envs.append(jinja2.Environment(extensions=_jinja2_extensions))
+    
+    try:
+        from coffin.common import get_env as get_coffin_env
+    except:
+        pass
+    else:
+        jinja2_envs.append(get_coffin_env())
 
 
 def _shortpath(abspath):
@@ -151,26 +159,27 @@ class Command(BaseCommand):
                 return result
 
         def try_jinja(contents):
-            try:
-                t = jinja2_env.parse(contents.decode(settings.DEFAULT_CHARSET))
-            except jinja2.exceptions.TemplateSyntaxError, e:
-                if options.get('verbosity') >= 2:
-                    print self.style.ERROR('\tjinja parser failed, error was: %s'%e)
-                return False
-            else:
-                result = []
-                def _recurse_node(node):
-                    for node in node.iter_child_nodes():
-                        if isinstance(node, jinja2.nodes.Call):
-                            if isinstance(node.node, jinja2.nodes.ExtensionAttribute)\
-                               and node.node.identifier == AssetsExtension.identifier:
-                                filter, output, files = node.args
-                                result.append((output.as_const(),
-                                               files.as_const(),
-                                               filter.as_const()))
-                for node in t.iter_child_nodes():
-                    _recurse_node(node)
-                return result
+            for i, env in enumerate(jinja2_envs):
+                try:
+                    t = env.parse(contents.decode(settings.DEFAULT_CHARSET))
+                except jinja2.exceptions.TemplateSyntaxError, e:
+                    if options.get('verbosity') >= 2:
+                        print self.style.ERROR('\tjinja parser (env %d) failed, error was: %s'% (i, e))                    
+                else:
+                    result = []
+                    def _recurse_node(node):
+                        for node in node.iter_child_nodes():
+                            if isinstance(node, jinja2.nodes.Call):
+                                if isinstance(node.node, jinja2.nodes.ExtensionAttribute)\
+                                   and node.node.identifier == AssetsExtension.identifier:
+                                    filter, output, files = node.args
+                                    result.append((output.as_const(),
+                                                   files.as_const(),
+                                                   filter.as_const()))
+                    for node in t.iter_child_nodes():
+                        _recurse_node(node)
+                    return result
+            return False
 
         if options.get('verbosity') >= 2:
             print "Parsing template: %s" % _shortpath(tmpl_path)
