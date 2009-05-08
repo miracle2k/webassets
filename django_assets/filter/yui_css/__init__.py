@@ -1,6 +1,6 @@
 """Minify CSS using YUI Compressor.
 
-See the 'yui' filter for more information.
+See the ``yui`` filter for more information.
 """
 
 from django_assets.filter import yui

@@ -2,6 +2,6 @@
 /dist
 /django_assets.egg-info
 /MANIFEST
-
+/docs/_build/*
 
 *.~*

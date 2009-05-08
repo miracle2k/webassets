@@ -1,7 +1,8 @@
-"""Minify Javascript assets (removes whitespace, comments, etc).
+"""Minifies Javascript by removing whitespace, comments, etc.
 
-Based on Baruch Even's port of Douglas Crockford's JSMin:
-    http://www.crockford.com/javascript/jsmin.html
+Based on Baruch Even's port of Douglas Crockford's `JSMin 
+<http://www.crockford.com/javascript/jsmin.html>`_, which is 
+included, so no external dependancy is required.
 """
 
 from jsmin import JavascriptMinify

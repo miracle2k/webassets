@@ -1,6 +1,9 @@
 import os
 from distutils.core import setup
 
+import django_assets
+
+
 def find_packages(root):
     # so we don't depend on setuptools; from the Storm ORM setup.py
     packages = []
@@ -9,9 +12,10 @@ def find_packages(root):
             packages.append(directory.replace(os.sep, '.'))
     return packages
 
+
 setup(
     name = 'django-assets',
-    version = '0.1',
+    version=".".join(map(str, django_assets.__version__)),
     description = 'Media asset management for the Django web framework.',
     long_description = 'Merges, minifies and compresses Javascript and '
         'CSS files, supporting a variety of different filters, including '

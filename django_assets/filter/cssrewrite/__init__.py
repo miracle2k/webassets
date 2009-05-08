@@ -1,4 +1,14 @@
 """Source filter that rewrites relative urls in CSS files.
+
+CSS allows you to specify urls relative to the location of the CSS file.
+However, you may want to store your compressed assets in a different place
+than source files, or merge source files from different locations. This 
+would then break these relative CSS references, since the base URL changed.
+
+This filter transparently rewrites CSS ``url()`` instructions in the source 
+files to make them relative to the location of the output path. It works as
+a *source filter*, i.e. it is applied individually to each source file 
+before they are merged. No configuration is necessary.
 """
 
 import os, re, urlparse
