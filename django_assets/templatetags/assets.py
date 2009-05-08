@@ -97,5 +97,16 @@ def assets(parser, token):
     return AssetsNode(filter, output, files, childnodes)
 
 
-register = template.Library()
+
+# if Coffin is installed, expose the Jinja2 extension
+try:
+    from coffin.template import Library as CoffinLibrary
+except ImportError:
+    register = template.Library()
+else:
+    register = CoffinLibrary()
+    from django_assets.jinja2.extension import AssetsExtension
+    register.tag(AssetsExtension)
+
+# expose the default Django tag
 register.tag('assets', assets)

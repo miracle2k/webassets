@@ -73,12 +73,3 @@ class AssetsExtension(Extension):
 
 
 assets = AssetsExtension  # nicer import name
-
-
-try:
-    from coffin.template import Library
-except ImportError:
-    pass
-else:
-    register = Library()
-    register.tag(assets)
