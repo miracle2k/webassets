@@ -1,5 +1,6 @@
 import os
 from distutils.core import setup
+from sphinx.setup_command import BuildDoc
 
 import django_assets
 
@@ -37,4 +38,6 @@ setup(
         'Topic :: Software Development :: Libraries',
         ],
     packages = find_packages('django_assets'),
+    
+    cmdclass={'build_sphinx': BuildDoc},
 )
