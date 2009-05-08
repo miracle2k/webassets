@@ -32,7 +32,7 @@ except:
     jinja2 = None
 else:
     jinja2_envs = []
-    from django_assets.jinja.extension import AssetsExtension
+    from django_assets.jinja2.extension import AssetsExtension
     # Prepare a Jinja2 environment we can later use for parsing.
     # If not specified by the user, put in there at least our own
     # extension, which we will need most definitely to achieve anything.
