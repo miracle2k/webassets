@@ -20,16 +20,10 @@ Included Filters
 .. automodule:: django_assets.filter.cssutils
 
 
-``yui_js``
-~~~~~~~~~~
-
-.. automodule:: django_assets.filter.yui_js
-
-
-``yui_css``
+``yui``
 ~~~~~~~~~~~
 
-.. automodule:: django_assets.filter.yui_css
+.. automodule:: django_assets.filter.yui
 
 
 ``gzip``

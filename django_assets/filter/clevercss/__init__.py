@@ -1,10 +1,8 @@
-﻿"""Converts CleverCSS markup to real CSS.
+﻿"""Converts `CleverCSS <http://sandbox.pocoo.org/clevercss/>`_ markup to 
+real CSS.
 
-If you want to combine this with other CSS filters, make sure this
-one runs first.
-
-For more information about CleverCSS, see:
-    http://sandbox.pocoo.org/clevercss/
+If you want to combine it with other CSS filters, make sure this one runs 
+first.
 """
 
 import clevercss

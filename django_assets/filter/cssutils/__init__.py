@@ -1,10 +1,8 @@
-"""Minifies CSS by removing whitespace, comments etc.
+"""Minifies CSS by removing whitespace, comments etc., using the Python 
+`cssutils <http://cthedot.de/cssutils/>`_ library.
 
-Based on the cssutils library from:
-    http://cthedot.de/cssutils/
-
-Like csstidy, it works as a parser on the syntax level, so
-invalid CSS input can potentially result in data loss.
+Note that since this works as a parser on the syntax level, so invalid CSS 
+input could potentially result in data loss.
 """
 
 import cssutils
