@@ -49,7 +49,7 @@ copyright = u'2009, Michael Elsdörfer'
 # built documents.
 #
 # The short X.Y version.
-version = ".".join(map(str, django_assets.__version__)),
+version = ".".join(map(str, django_assets.__version__))
 # The full version, including alpha/beta/rc tags.
 release = version
 
