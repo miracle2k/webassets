@@ -1,3 +1,5 @@
+/.project
+/.pydevproject
 /build
 /dist
 /django_assets.egg-info
