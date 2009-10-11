@@ -122,7 +122,7 @@ def get_merged_url(files, output, filter):
     Various settings effect how this is determined.
 
     Also depending on the active Django settings, the returned url will
-    contain an identifer to break any possible "far future expires"
+    contain an identifier to break any possible "far future expires"
     headers.
 
     Note that in certain circumstances the return value can be
