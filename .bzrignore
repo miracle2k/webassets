@@ -4,4 +4,7 @@
 /MANIFEST
 /docs/_build/*
 
+/.pydevproject
+/.project
+
 *.~*
