@@ -37,6 +37,7 @@ def apply(_in, out):
         outtemp_name = os.path.join(tempfile.gettempdir(),
                                     'assets_temp_%d.css' % int(time.time()))
     	intemp.write(_in.read())
+        intemp.file.flush()
 
     	proc = subprocess.Popen([less, intemp.name, outtemp_name],
                                 stdout=subprocess.PIPE,
