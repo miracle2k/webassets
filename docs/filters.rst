@@ -44,3 +44,9 @@ Included Filters
 ~~~~~~~~~~~~~
 
 .. automodule:: django_assets.filter.clevercss
+
+
+``less``
+~~~~~~~~
+
+.. automodule:: django_assets.filter.less
