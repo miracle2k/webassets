@@ -8,8 +8,16 @@ class Bundle(object):
     Bundles can be nested.
     """
 
-    def __init__(output=None, filters=None, *contents):
+    def __init__(self, *contents, **options):
         self.contents = contents
-        self.output = output
-        self.filters = filters
+        self.output = options.get('output')
+        self.filters = options.get('filters')
         self.extra_data = {}
+
+
+    def __repr__(self):
+        return "<Bundle output=%s, filters=%s, contents=%s>" % (
+            self.output,
+            self.filters,
+            self.contents,
+        )

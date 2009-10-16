@@ -57,7 +57,10 @@ def apply(_in, out, source_path, output_path):
 
     proc = subprocess.Popen([less, source_path, outtemp_name],
                             stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
+                            stderr=subprocess.PIPE,
+                            # shell: necessary on windows to execute
+                            # ruby files.
+                            shell=True)
     stdout, stderr = proc.communicate()
 
     # less only writes to stdout, as noted in the method doc, but
