@@ -1,26 +1,26 @@
- * Maybe an alternative way to define assets within Python might make sense
-   after all, e.g. say assets.register() calls, by convention in app/assets.py.
+ Maybe an alternative way to define assets within Python might make sense
+ after all, e.g. say assets.register() calls, by convention in app/assets.py.
 
- * Automatically create (and delete, i.e. manage) symlinks to make the
-   ASSETS_EXPIRE="filename" option work without server rewrites.
+ Automatically create (and delete, i.e. manage) symlinks to make the
+ ASSETS_EXPIRE="filename" option work without server rewrites.
 
- * Support functionality for applying a filter directly within a template, i.e.
-   pack inline scripts; also, if the output argument to {%assets%} is missing,
-   the result could be piped directly into the template.
+ Support functionality for applying a filter directly within a template, i.e.
+ pack inline scripts; also, if the output argument to {%assets%} is missing,
+ the result could be piped directly into the template.
 
- * Should be provide features for normalizing encodings?
+ Should be provide features for normalizing encodings?
 
- * Handle far future expires for images: add a new templatetag that can output
-   image urls with timestamps; the cssrewrite filter could modify urls within
-   CSS files when ASSETS_EXPIRE is enabled.
+Handle far future expires for images: add a new templatetag that can output
+image urls with timestamps; the cssrewrite filter could modify urls within
+CSS files when ASSETS_EXPIRE is enabled.
 
- * Find a good solution to making filter debug/log information available in a
-   standardized way across the board.
+Find a good solution to making filter debug/log information available in a
+standardized way across the board.
 
- * Allow an option to fall back to rendering source files in case asset
-   building fails for some reason. Right now, the user would get to see a
-   server error. This would probably most simply be accomplished by having
-   AssetsNode catch exceptions in create_merged() and redirect to
-   render_sources. We probably want to activate this only in production mode.
+Allow an option to fall back to rendering source files in case asset
+building fails for some reason. Right now, the user would get to see a
+server error. This would probably most simply be accomplished by having
+AssetsNode catch exceptions in create_merged() and redirect to
+render_sources. We probably want to activate this only in production mode.
 
- * Support asset deployment to services like Amazon S3.
+Support asset deployment to services like Amazon S3.
