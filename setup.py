@@ -38,6 +38,6 @@ setup(
         'Topic :: Software Development :: Libraries',
         ],
     packages = find_packages('django_assets'),
-    
+
     cmdclass={'build_sphinx': BuildDoc},
 )
