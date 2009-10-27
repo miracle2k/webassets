@@ -1,7 +1,13 @@
 import os
 from distutils.core import setup
-from sphinx.setup_command import BuildDoc
-
+try:
+    from sphinx.setup_command import BuildDoc
+    cmdclass = {'build_sphinx': BuildDoc}
+except ImportError:
+    print "Sphinx not installed--needed to build documentation"
+    # default cmdclass to None to avoid 
+    cmdclass = {}
+    
 import django_assets
 
 
@@ -39,5 +45,5 @@ setup(
         ],
     packages = find_packages('django_assets'),
     
-    cmdclass={'build_sphinx': BuildDoc},
+    cmdclass=cmdclass,
 )
