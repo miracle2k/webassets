@@ -24,7 +24,6 @@ from django_assets.conf import settings
 from django_assets.templatetags.assets import AssetsNode as AssetsNodeOriginal
 from django.templatetags.assets import AssetsNode as AssetsNodeMapped
 from django_assets.merge import merge
-from django_assets.tracker import get_tracker
 
 try:
     import jinja2
@@ -79,7 +78,7 @@ class Command(BaseCommand):
         options['verbosity'] = int(options['verbosity'])
 
         if command == 'rebuild':
-            if options.get('parse_templates') or not get_tracker():
+            if options.get('parse_templates'):
                 assets = self._parse_templates(options)
             else:
                 assets = dict()
