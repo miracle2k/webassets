@@ -6,4 +6,6 @@
 /MANIFEST
 /docs/_build/*
 
+/BRANCH_TODO
+
 *.~*
