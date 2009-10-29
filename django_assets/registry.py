@@ -4,33 +4,55 @@ template tags."""
 from bundle import Bundle
 
 
-__all__ = ('register',)
+__all__ = ('register', 'RegistryError', 'reset')
 
 
 _REGISTRY = {}
 
 
-def register(name, *args):
+class RegistryError(Exception):
+    pass
+
+
+def register(name, *args, **kwargs):
     """Register a bundle with the given name.
 
     There are two possible ways to call this:
 
-      - With a single argument:
+      - With a single ``Bundle`` instance argument:
 
           register('jquery', jquery_bundle)
 
-      - With multiple arguments, automatically creating a new
-        bundle inline:
+      - With one or multiple arguments, automatically creating a
+        new bundle inline:
 
           register('all.js', jquery_bundle, 'common.js', output='packed.js')
     """
     if len(args) == 0:
         raise TypeError('at least two arguments are required')
     else:
-        if len(args) == 1:
+        if len(args) == 1 and not kwargs and isinstance(args[0], Bundle):
             bundle = args[0]
         else:
-            bundle = Bundle(args)
+            bundle = Bundle(*args, **kwargs)
 
         global _REGISTRY
-        _REGISTRY[name] = bundle
+        if name in _REGISTRY:
+            if _REGISTRY[name] == bundle:
+                pass  # ignore
+            else:
+                raise RegistryError('Another bundle is already registered '+
+                                    'as "%s": %s' % (name, _REGISTRY[name]))
+        else:
+            _REGISTRY[name] = bundle
+
+
+def iter():
+    return _REGISTRY.iteritems()
+
+
+def reset():
+    """Clear the registry, start over.
+    """
+    global _REGISTRY
+    _REGISTRY.clear()

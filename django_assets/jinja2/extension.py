@@ -1,7 +1,8 @@
 from jinja2.ext import Extension
 from jinja2 import nodes
 from django_assets.conf import settings
-from django_assets.merge import get_merged_url, get_source_urls
+from django_assets.merge import process
+from django_assets.bundle import Bundle
 
 
 __all__ = ('assets')
@@ -58,16 +59,9 @@ class AssetsExtension(Extension):
                     set_lineno(lineno)
 
     def _render_assets(self, filter, output, files, caller=None):
-        if not settings.ASSETS_DEBUG:
-            merged_url = get_merged_url(files, output, filter)
-            if merged_url:
-                return caller(merged_url)
-
-        # At this point, either ASSETS_DEBUG is enabled, or
-        # ``get_merged_url`` returned False, in both cases we render
-        # the source assets.
         result = u""
-        for f in get_source_urls(files):
+        urls = process(Bundle(*files, **{'output': output, 'filters': filter}))
+        for f in urls:
             result += caller(f)
         return result
 

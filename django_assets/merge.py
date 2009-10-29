@@ -8,9 +8,14 @@ import urlparse
 from django_assets.conf import settings
 from django_assets.updater import get_updater
 from django_assets.filter import get_filter
+from django_assets.bundle import Bundle, BundleError
 
 
-__all__ = ('get_source_urls', 'get_merged_url',)
+__all__ = ('process',)
+
+
+class MergeError(Exception):
+    pass
 
 
 def absurl(fragment):
@@ -29,39 +34,109 @@ def abspath(filename):
     return os.path.abspath(os.path.join(settings.MEDIA_ROOT, filename))
 
 
-def merge(sources, output, filter):
-    """Merge multiple source files into the output file, while applying
-    the specified filter. Uses an existing output file whenever possible.
+def process(bundle):
+    """Process the given bundle; this includes merging the files
+    together and applying filters as appropriate.
 
-    The ``output_path`` and ``source_paths`` arguments can be relative, or
-    absolute, we handle both.
+    Depending on the given bundle and it's sub-bundles contents,
+    as well as the debug setting, the result can be a list of
+    urls pointing to source files, urls pointing to generated
+    output files, or be stream of in-memory content that contains
+    merged/filtered data.
     """
 
-    # fail early by resolving filters now (there can be multiple)
-    if settings.ASSETS_DEBUG == 'nofilter':
-        filters = []
-    else:
-        if isinstance(filter, basestring):
-            filters = filter.split(',')
+    # STEP 1) Convert into a list of files to generate.
+    joblist = bundle_to_joblist(bundle)
+
+    # STEP 2) Optimize that list.
+    simplify_jobs(joblist)
+
+    # STEP 3) Ensure all the assets exist, return urls.
+    result = []
+    for output_path, work in joblist.iteritems():
+        if isinstance(work, (tuple, list)):
+            build(output_path, work)
+            result.append(make_url(output_path))
         else:
-            filters = filter and filter or []
-        filters = [get_filter(f) for f in filters]
+            result.append(make_url(output_path))
+    return result
+
+
+def build(output, worklist):
+    """Given the ``output`` target and the list of things to do,
+    first determine if any action is necessary at all (i.e. resource
+    may already be built), and if so, build or rebuild the asset.
+    """
+    # a) Get all files involved (regardless of filters), as absolute paths.
+    output_path = abspath(output)
+    source_paths = []
+    for f, files in worklist:
+        source_paths.extend(map(abspath, files))
+
+    # b) Check if the output file needs to be (re)created.
+    if not os.path.exists(output_path):
+        if not settings.ASSETS_AUTO_CREATE:
+            raise MergeError('\'%s\' needs to be created, but '
+                             'ASSETS_AUTO_CREATE is disabled' % output)
+        else:
+            update_needed = True
+    else:
+        update_needed = get_updater()(output_path, source_paths)
+
+    # c) If an update is required, build the asset.
+    if update_needed or True:
+        output = output_path
+        try:
+            for filters, files in worklist:
+                output = merge(map(abspath, files), output, filters, close=False)
+        finally:
+            # might still be a string object.
+            if hasattr(output, 'close'):
+                output.close()
+
+
+def merge(sources, output, filter, close=True):
+    """The low-level function that actually takes a bunch of files,
+    applies filters and merges them together into an output file.
+
+    ``output`` may be a (relative or absolute) path, or a stream.
+
+    Tries to be efficient by minimizing the number of times the data
+    needs to be piped from one stream into another.
+
+    If ``close`` is disabled, returns the output file it is writing to
+    without closing it first. The caller can use the received value
+    and pass it into the next call to ``merge``, if it needs to place
+    multiple pieces of content here.
+    """
+
+    # Fail early by resolving filters now (there can be multiple)
+    # TODO: This actually needs to happen earlier in the process.
+    if isinstance(filter, basestring):
+        filters = filter.split(',')
+    else:
+        filters = filter and filter or []
+    filters = [get_filter(f) for f in filters]
+
     # split between output and source filters
     source_attr = 'is_source_filter'
     output_filters = [f for f in filters if not getattr(f, source_attr, False)]
     source_filters = [f for f in filters if getattr(f, source_attr, False)]
 
     # make paths absolute (they might already be, we can't be sure)
-    output_path = abspath(output)
+    output_path = abspath(output) if not hasattr(output, 'write') else None
     source_paths = [abspath(s) for s in sources]
 
+    # Either open the output file, or simply use the file object
+    # that was passed into this function.
     # TODO: is it possible that another simultaneous request might
     # cause trouble? how would we avoid this?
-    open_output = lambda: open(output_path, 'wb')
+    open_output = lambda: open(output_path, 'wb') if output_path else output
 
     # If no output filters are used, we can write directly to the
-    # disk for improved performance.
+    # given target for improved performance.
     buf = (output_filters) and StringIO.StringIO() or open_output()
+    result = None
     try:
         try:
             for source in source_paths:
@@ -100,9 +175,19 @@ def merge(sources, output, filter):
                     for filter in output_filters[-1:]:
                         filter.apply(buf, out)
                 finally:
-                    out.close()
+                    # "out" is the final output file we want to return.
+                    result = out
+                    if close:
+                        out.close()
         finally:
-            buf.close()
+            # If a result has not been set yet, then "buf" is the
+            # final output file.
+            if not result:
+                result = buf
+                if close:
+                    buf.close()
+            else:
+                buf.close()
     except Exception:
         # If there was an error above make sure we delete a possibly
         # partly created output file, or it might be considered "done"
@@ -111,68 +196,213 @@ def merge(sources, output, filter):
             os.remove(output_path)
         raise
 
+    return result
 
-def get_merged_url(files, output, filter):
-    """Return a URL to the merged and filtered version of the given
-    files. In certain cases, the return value can also be ``False``.
 
-    If necessary, this will merge ``files``, and apply ``filters``. If
-    possible, an existing resource will be reused, so that the asset is
-    only rebuild, for example, if any of the source files has changed.
-    Various settings effect how this is determined.
-
-    Also depending on the active Django settings, the returned url will
-    contain an identifier to break any possible "far future expires"
-    headers.
-
-    Note that in certain circumstances the return value can be
-    ``False``. This happens when the asset has never been previously
-    created and ASSETS_AUTO_CREATE is not enabled. The caller will need
-    to handle this situation, possible by falling back to working with
-    the individual source files.
+def make_url(filename):
+    """Return a output url, modified for expire header handling.
     """
-
-    # make paths absolute
-    output_path = abspath(output)
-    source_paths = [abspath(s) for s in files]
-
-    # check if the asset should be (re)created
-    if not os.path.exists(output_path):
-        if not settings.ASSETS_AUTO_CREATE:
-            return False
-        else:
-            update_needed = True
-    else:
-        update_needed = get_updater()(output_path, source_paths)
-
-    if update_needed:
-        merge(source_paths, output_path, filter)
-
-    # return a output url, modified for expire header handling
-    last_modified = os.stat(output_path).st_mtime
+    path = abspath(filename)
+    last_modified = os.stat(path).st_mtime
     if settings.ASSETS_EXPIRE == 'querystring':
-        result = "%s?%d" % (output, last_modified)
+        result = "%s?%d" % (filename, last_modified)
     elif settings.ASSETS_EXPIRE == 'filename':
-        name = output.rsplit('.', 1)
+        name = filename.rsplit('.', 1)
         if len(name) > 1:
             result = "%s.%d.%s" % (name[0], last_modified, name[1])
         else:
             result = "%s.%d" % (name, last_modified)
     elif not settings.ASSETS_EXPIRE:
-        result = output
+        result = filename
     else:
         raise ValueError('Unknown value for ASSETS_EXPIRE option: %s' %
                             settings.ASSETS_EXPIRE)
     return absurl(result)
 
 
-def get_source_urls(files):
-    """Return URLs to the source files given in ``files``.
+def merge_filters(filters1, filters2):
+    """Merge two filter lists into one.
 
-    This is a sibling to ``get_merged_url`` and would be used in
-    debug scenarios where asset management is supposed to be disabled.
+    Duplicate filters are removed. Since filter order is important,
+    the order of the arguments to this function also matter. Duplicates
+    are always removed from the second filter set if they exist in the
+    first.
+
+    TODO: We need to deal with resolved filters vs strings.
     """
-    result = []
-    for f in files:
-        result.append(absurl(f))
+    result = filters1[:]
+    for f in filters2:
+        if not f in result:
+            result.append(f)
     return result
+
+
+def resolve_action(bundle, default_debug=None):
+    """Decide what needs to be done for the given bundle.
+
+    Specifically, whether to apply filters and whether to merge. This
+    depends on both the global settings (here represented by the
+    ``default_debug`` argument), as well as modifiers given by the bundle.
+
+    Returns a 2-tuple of (merge, filter).
+    """
+    if not settings.DEBUG:
+        return True, True
+
+    if default_debug is None:
+        default_debug = settings.ASSETS_DEBUG
+
+    debug = bundle.debug if bundle.debug is not None else default_debug
+
+    if debug == 'merge':
+        return True, False
+    elif debug is True:
+        return False, False
+    elif debug is False:
+        return True, True
+    else:
+        raise ValueError('Invalid debug value: %s' % debug)
+
+
+def bundle_to_joblist(bundle):
+    """Convert the bundle hierarchy into a "job list".
+
+    Each job represents one output url; often there will be only
+    a single job, if nested bundles insist on not being merged
+    into their parents, there may be multiple ones; direct output
+    to memory is a special case of a job.
+
+    After multiple different tries, this "job list" approach
+    is the best one I found yet; the most important aspect is that
+    when we merge and filter, we always know the final output file,
+    and all the source files ultimately involved, even when they
+    are handled in a different pass. We need this information for
+    example to determine when we need to regenerate at all, or
+    when applying source filters.
+
+    Example return:
+        'output.js': (
+                (('js'), ('file1', 'file2', 'file3', 'file4',)),
+                (('js', 'sass'), ('foo', 'bar',)),
+                ((), ('no', 'filters', 'applied',)),
+            ),
+        'link-to-source.js': 'js/link-to-source.js',
+    }
+
+    TODO: Consider that the tree:
+        csspack (files)
+            sass (files
+        csspack (files)
+    could be more processed with less filter-applications as
+        "csspack(files + sass(files) + files))"
+    Currently we are in fact doing:
+        "csspack(files) + csspack(sass(files)) + csspack(files)"
+    """
+
+    jobs = {}
+
+    def handle(bundle, work_list=[], parent_filters=[], output=False, debug=None):
+        do_merge, do_filters = resolve_action(bundle, debug)
+
+        # Merge filtersets with parent.
+        sum_filters = parent_filters
+        if do_filters and bundle.filters:
+            sum_filters = merge_filters(bundle.filters, parent_filters)
+
+        # Determine whether we need to create a new job for this bundle,
+        # and if so, where to output to.
+        create_needed = False
+        if not do_merge:
+            output = False
+            # This will cause all of this Bundle's contents to end up as
+            # their own job, same as if no output were specified.
+        elif not output:
+            output = bundle.output
+            create_needed = True
+        else:
+            pass # keep
+
+        _files = []
+
+        for c in bundle.contents:
+            # Item is a file reference.
+            if not isinstance(c, Bundle):
+                if not do_merge:
+                    # Source the file (add as it's own job)
+                    jobs[c] = c
+                else:
+                    # Collect the file for later.
+                    _files.append(c)
+
+            # Item is a Bundle.
+            else:
+                # Determine how to inherit the debug flat to sub-bundles.
+                this_debug = bundle.debug if bundle.debug != None else debug
+
+                if do_merge:
+                    # Be sure to process the part of our own content files
+                    # that we have collected so far. The subbundle might
+                    # need different filters applied, but still needs to
+                    # be merged in the proper order.
+                    if _files:
+                        work_list.append((sum_filters, _files))
+                    _files = []
+                    # Process the subbundle recursively.
+                    handle(c, work_list, sum_filters, output, this_debug)
+                else:
+                    # Call ourselves recursively without specifying an
+                    # output, which will ensure the call creates a new job.
+                    handle(c, [], sum_filters, None, this_debug)
+
+        # Process (the rest?) of our collected files.
+        if _files:
+            work_list.append((sum_filters, _files))
+
+        # If an output job is requested, create one.
+        if create_needed:
+            if output:
+                if output in jobs:
+                    raise BundleError('Bundle %s targets the same output file '
+                                      'as another bundle: %s' % (bundle, output))
+                jobs[output] = work_list[:]
+                del work_list[:]
+            elif not output and work_list:
+                raise BundleError('No output target found for %s' % bundle)
+
+    handle(bundle)
+    return jobs
+
+
+def simplify_jobs(joblist):
+    """Take the output of ``bundle_to_joblist``, and further simplify
+    it may collapsing multiple steps of a job into a single one
+    where possible.
+
+    Why is this necessary? Bundles may be nested inside each other
+    without limit. Yet we want to make sure we process a bundle as
+    efficiently as possible.
+
+    For example, imagine multiple levels of bundles all applying the
+    same filters, with the same settings. It would be a waste of time
+    to do this in multiple steps; rather, it makes sense to apply the
+    filters in one go to the sum of all content.
+
+    This is not possible if a sub-bundle uses different filters as the
+    parent bundle, for example.
+
+    Therefore, what this function does is take the given bundle
+    structure and collapse bundles where possible.
+
+    TODO: Implement this. It could also try to partially collapse
+    bundles, e.g. a sub-bundle may contain files that can be collapsed,
+    but also other bundles that cannot be. Pay attention to ordering
+    though: All bundle contents need to add up in the output in the same
+    result as in the input. Alternatively, we could add an "unordered"
+    attribute to the Bundle class to indicate so. We could have CSSBundle
+    and JSBundle subclasses, with the appropriate behavior, respectively.
+    Just some ideas, some of this is probably overkill.
+
+    TODO: Do the filters need to match in order? => Probably; maybe
+    filters can export that information.
+    """
+    pass

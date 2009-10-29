@@ -1,4 +1,8 @@
-__all__ = ('Bundle',)
+__all__ = ('Bundle', 'BundleError',)
+
+
+class BundleError(Exception):
+    pass
 
 
 class Bundle(object):
@@ -12,6 +16,7 @@ class Bundle(object):
         self.contents = contents
         self.output = options.get('output')
         self.filters = options.get('filters')
+        self.debug = options.get('debug')
         self.extra_data = {}
 
 

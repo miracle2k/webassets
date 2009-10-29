@@ -16,14 +16,18 @@ Usage:
         database will be replaced by the newly found assets.
 """
 
-import os
+import os, imp
 from optparse import make_option
+
 from django.core.management.base import BaseCommand, CommandError
 from django import template
+from django.utils.importlib import import_module
+
 from django_assets.conf import settings
 from django_assets.templatetags.assets import AssetsNode as AssetsNodeOriginal
 from django.templatetags.assets import AssetsNode as AssetsNodeMapped
-from django_assets.merge import merge
+from django_assets.merge import process
+from django_assets import registry
 
 try:
     import jinja2
@@ -39,7 +43,7 @@ else:
     if not _jinja2_extensions:
         _jinja2_extensions = [AssetsExtension.identifier]
     jinja2_envs.append(jinja2.Environment(extensions=_jinja2_extensions))
-    
+
     try:
         from coffin.common import get_env as get_coffin_env
     except:
@@ -78,22 +82,81 @@ class Command(BaseCommand):
         options['verbosity'] = int(options['verbosity'])
 
         if command == 'rebuild':
+            # Start with the bundles that are defined in code.
+            self._autodiscover(options)
+            bundles = [v for k, v in registry.iter()]
+
+            # If requested, search the templates too.
             if options.get('parse_templates'):
-                assets = self._parse_templates(options)
+                bundles += self._parse_templates(options)
             else:
-                assets = dict()
-            self._rebuild_assets(options, assets)
+                if not bundles:
+                    raise CommandError('No asset bundles were found. '
+                        'If you are defining assets directly within your '
+                        'templates, you want to use the --parse-templates '
+                        'option.')
+
+            self._rebuild_assets(options, bundles)
         else:
             raise CommandError('Unknown subcommand: %s' % command)
 
-    def _rebuild_assets(self, options, assets):
-        for output, data in assets.items():
+    def _rebuild_assets(self, options, bundles):
+        for bundle in bundles:
             if options.get('verbosity') >= 1:
-                print "Building asset: %s" % output
+                print "Building asset: %s" % bundle.output
             try:
-                merge(data['sources'], output, data['filter'])
-            except Exception, e:
+                process(bundle)
+            except ValueError, e:
+                # TODO: It would be cool if we could only capture those
+                # exceptions actually related to merging.
                 print self.style.ERROR("Failed, error was: %s" % e)
+
+    def _autodiscover(self, options):
+        """Find assets by looking for an ``assets`` module within each
+        installed application, similar to how, e.g., the admin autodiscover
+        process works. This is were this code has been adapted from, too.
+
+        After this function ran, look in the registry for the bundles
+        found.
+        """
+        if options.get('verbosity') > 1:
+            print "Looking for bundles defined in code..."
+        for app in settings.INSTALLED_APPS:
+            # For each app, we need to look for an assets.py inside that
+            # app's package. We can't use os.path here -- recall that
+            # modules may be imported different ways (think zip files) --
+            # so we need to get the app's __path__ and look for
+            # admin.py on that path.
+            if options.get('verbosity') > 1:
+                print "\t%s..." % app,
+
+            # Step 1: find out the app's __path__ Import errors here will
+            # (and should) bubble up, but a missing __path__ (which is
+            # legal, but weird) fails silently -- apps that do weird things
+            # with __path__ might need to roll their own registration.
+            try:
+                app_path = import_module(app).__path__
+            except AttributeError:
+                if options.get('verbosity') > 1:
+                    print "cannot inspect app"
+                continue
+
+            # Step 2: use imp.find_module to find the app's assets.py.
+            # For some reason imp.find_module raises ImportError if the
+            # app can't be found but doesn't actually try to import the
+            # module. So skip this app if its assetse.py doesn't exist
+            try:
+                imp.find_module('assets', app_path)
+            except ImportError:
+                if options.get('verbosity') > 1:
+                    print "no assets module"
+                continue
+
+            # Step 3: import the app's assets file. If this has errors we
+            # want them to bubble up.
+            import_module("%s.assets" % app)
+            if options.get('verbosity') > 1:
+                print "assets module loaded"
 
     def _parse_templates(self, options):
         # build a list of template directories based on configured loaders
@@ -104,7 +167,7 @@ class Command(BaseCommand):
             from django.template.loaders.app_directories import app_template_dirs
             template_dirs.extend(app_template_dirs)
 
-        found_assets = {}
+        found_assets = []
         # find all template files
         if options.get('verbosity') >= 1:
             print "Searching templates..."
@@ -142,12 +205,12 @@ class Command(BaseCommand):
                         # then it depends on view data and we cannot
                         # manually rebuild it.
                         try:
-                            output, files, filter = node.resolve()
+                            bundle = node.resolve()
                         except template.VariableDoesNotExist:
                             if options.get('verbosity') >= 2:
                                 print self.style.ERROR('\tskipping asset %s, depends on runtime data.' % node.output)
                         else:
-                            result.append((output, files, filter,))
+                            result.append(bundle)
                     # see Django #7430
                     for subnode in hasattr(node, 'nodelist') \
                         and node.nodelist\
@@ -163,7 +226,7 @@ class Command(BaseCommand):
                     t = env.parse(contents.decode(settings.DEFAULT_CHARSET))
                 except jinja2.exceptions.TemplateSyntaxError, e:
                     if options.get('verbosity') >= 2:
-                        print self.style.ERROR('\tjinja parser (env %d) failed, error was: %s'% (i, e))                    
+                        print self.style.ERROR('\tjinja parser (env %d) failed, error was: %s'% (i, e))
                 else:
                     result = []
                     def _recurse_node(node_to_search):
@@ -172,9 +235,11 @@ class Command(BaseCommand):
                                 if isinstance(node.node, jinja2.nodes.ExtensionAttribute)\
                                    and node.node.identifier == AssetsExtension.identifier:
                                     filter, output, files = node.args
-                                    result.append((output.as_const(),
-                                                   files.as_const(),
-                                                   filter.as_const()))
+                                    bundle = Bundle(
+                                        *files.as_const(), **{
+                                            'output': output.as_const(),
+                                            'filters': filter.as_const()})
+                                    result.append(bundle)
                             else:
                                 _recurse_node(node)
                     for node in t.iter_child_nodes():
@@ -194,11 +259,7 @@ class Command(BaseCommand):
         if result is False and jinja2:
             result = try_jinja(contents)
         if result:
-            for output, files, filter in result:
-                if not output in found_assets:
-                    if options.get('verbosity') >= 2:
-                        print self.style.NOTICE('\tfound asset: %s' % output)
-                    found_assets[output] = {
-                        'sources': files,
-                        'filter': filter,
-                    }
+            for bundle in result:
+                if options.get('verbosity') >= 2:
+                    print self.style.NOTICE('\tfound asset: %s' % bundle.output)
+                found_assets.append(bundle)

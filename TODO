@@ -1,18 +1,29 @@
- Maybe an alternative way to define assets within Python might make sense
- after all, e.g. say assets.register() calls, by convention in app/assets.py.
+Refactor filter system to support custom filters more easily.
 
- Automatically create (and delete, i.e. manage) symlinks to make the
- ASSETS_EXPIRE="filename" option work without server rewrites.
+Automatically create (and delete, i.e. manage) symlinks to make the
+ASSETS_EXPIRE="filename" option work without server rewrites.
 
- Support functionality for applying a filter directly within a template, i.e.
- pack inline scripts; also, if the output argument to {%assets%} is missing,
- the result could be piped directly into the template.
+(a) Support functionality for applying a filter directly within a template,
+i.e. pack inline scripts. (b) On the other end, allow piping an assets
+directly into the template.
 
- Should be provide features for normalizing encodings?
+(c) Support a "apply filter but do not merge" mode in which every source
+file is written to a corresponding file in a given output directory;
+without having to explicitly create a separate bundle for each file. How
+would this behave in a nested scenario?
+
+With respect to (b) and (b), it will be challenging to support all those
+combinations from within the Django template tag, with it's limited syntax.
+Note that the two features do overlap: Both deal with how to output an
+asset.
+
+Should be provide features for normalizing encodings?
 
 Handle far future expires for images: add a new templatetag that can output
 image urls with timestamps; the cssrewrite filter could modify urls within
 CSS files when ASSETS_EXPIRE is enabled.
+
+Support image sprites like django-media-bundler does.
 
 Find a good solution to making filter debug/log information available in a
 standardized way across the board.
@@ -24,3 +35,27 @@ AssetsNode catch exceptions in create_merged() and redirect to
 render_sources. We probably want to activate this only in production mode.
 
 Support asset deployment to services like Amazon S3.
+
+In the beginning, there was this idea of "tracking" assets in a model, to
+avoid having to parse templates. Now that we conceptually moved towards
+defining Bundles in code, that's no longer necessary. Still, there could
+still be some uses for it; note enough probably to justify the feature, but
+let's note them anyway:
+	- The model could store things like the bundle hash, allowing a
+	  hash-based update mechanism, even when using say a timestamp cache
+	  buster, or no cache buster at all.
+    - Right now, if asset properties like the applied filters or the list
+      of source files change, without causing the source timestamp to
+      change, the update will not be automatically picked up. That kind of
+      information could be tracked and used to detect changes better.
+
+Support more expiration/cache busting options (e.g. append hash, use hash
+instead of filename, ...); Allow custom code as well.
+
+Add support for Bundle subclasses to customize behavior on a
+bundle-by-bundle basis:
+	- The merging of filtersets.
+    - Determining when an update is necessary.
+    - How to expire assets
+ Basically, all the settings should be customizable this way, with the
+ settings themselves only serving as a default.

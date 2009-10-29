@@ -2,7 +2,8 @@ import tokenize
 
 from django import template
 from django_assets.conf import settings
-from django_assets.merge import get_merged_url, get_source_urls
+from django_assets.merge import process
+from django_assets.bundle import Bundle
 
 
 class AssetsNode(template.Node):
@@ -24,27 +25,15 @@ class AssetsNode(template.Node):
                 return None
             else:
                 return template.Variable(x).resolve(context)
-        return _(self.output), [_(f) for f in self.files], _(self.filter)
+        return Bundle(*[_(f) for f in self.files],
+                      **{'output': _(self.output), 'filters': _(self.filter)})
 
     def render(self, context):
-        output, files, filter = self.resolve(context)
+        bundle = self.resolve(context)
 
-        if not settings.ASSETS_DEBUG:
-            merged_url = get_merged_url(files, output, filter)
-            if merged_url:
-                context.update({'ASSET_URL': merged_url})
-                try:
-                    result = self.childnodes.render(context)
-                finally:
-                    context.pop()
-                return result
-
-        # At this point, either ASSETS_DEBUG is enabled, or
-        # ``get_merged_url`` returned False, in both cases we render
-        # the source assets.
         result = u""
-        for source in get_source_urls(files):
-            context.update({'ASSET_URL': source})
+        for url in process(bundle):
+            context.update({'ASSET_URL': url})
             try:
                 result += self.childnodes.render(context)
             finally:

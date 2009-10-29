@@ -1,9 +1,9 @@
-# Controls the output of the 'assets' templatetag.
+# Controls how to behave if Django is in DEBUG mode.
 # Possible values are:
-#       ``False``       full production mode
-#       "nomerge"       output all source assets separately
-#       "nofilter"      merge the source asset, but do not apply filters
-ASSETS_DEBUG = False
+#       ``True``        disable, output the source files.
+#       ``False``       ignore debug mode, work as normal.
+#       "merge"         merge the source files, but do not apply filters.
+ASSETS_DEBUG = True
 
 # Controls when an already cached asset should be recreated.
 # Possible values are:
@@ -23,7 +23,7 @@ ASSETS_UPDATER = 'timestamp'
 # Even if you disable automatic rebuilding of your assets via the
 # ASSETS_UPDATER option, when an asset is found to be not (yet) existing,
 # it would normally be created. You can set this option to ``False`` to
-# disable the behaviour (and of the source files be rendered instead, as
+# disable the behavior (and of the source files be rendered instead, as
 # in ASSETS_DEBUG mode.
 ASSETS_AUTO_CREATE = True
 
@@ -42,15 +42,6 @@ ASSETS_AUTO_CREATE = True
 #                       rewrite those modified filenames to the originals.
 #						see also: http://www.stevesouders.com/blog/2008/08/23/revving-filenames-dont-use-querystring/
 ASSETS_EXPIRE = False
-
-# Certain features require (or work better with) knowledge of used assets.
-# Using this option, the assets templatetag will attempt to keep track and
-# log all assets currently in use by your project.
-# Possible values are:
-#       ``False``       do not track assets
-#       "cache"         using Django's caching framework
-#       "model"         using a dedicated model for this purpose
-TRACK_ASSETS = False
 
 # If you are using django-assets with Jinja *and* want to the the "parse
 # templates" functionality of the management command, then you need to
