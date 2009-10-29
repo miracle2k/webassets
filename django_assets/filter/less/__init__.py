@@ -59,8 +59,8 @@ def apply(_in, out, source_path, output_path):
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
                             # shell: necessary on windows to execute
-                            # ruby files.
-                            shell=True)
+                            # ruby files, but doesn't work on linux.
+                            shell=(os.name == 'nt'))
     stdout, stderr = proc.communicate()
 
     # less only writes to stdout, as noted in the method doc, but
