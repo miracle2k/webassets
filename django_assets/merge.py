@@ -5,6 +5,8 @@ import os
 import cStringIO as StringIO
 import urlparse
 
+from django.utils.datastructures import SortedDict
+
 from django_assets.conf import settings
 from django_assets.updater import get_updater
 from django_assets.filter import get_filter
@@ -299,7 +301,7 @@ def bundle_to_joblist(bundle):
         "csspack(files) + csspack(sass(files)) + csspack(files)"
     """
 
-    jobs = {}
+    jobs = SortedDict()
 
     def handle(bundle, work_list=[], parent_filters=[], output=False, debug=None):
         do_merge, do_filters = resolve_action(bundle, debug)
