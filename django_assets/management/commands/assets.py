@@ -27,7 +27,7 @@ from django_assets.conf import settings
 from django_assets.templatetags.assets import AssetsNode as AssetsNodeOriginal
 from django.templatetags.assets import AssetsNode as AssetsNodeMapped
 from django_assets.merge import process
-from django_assets import registry
+from django_assets import registry, Bundle
 
 try:
     import jinja2
