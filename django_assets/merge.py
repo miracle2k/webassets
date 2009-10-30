@@ -86,7 +86,7 @@ def build(output, worklist):
         update_needed = get_updater()(output_path, source_paths)
 
     # c) If an update is required, build the asset.
-    if update_needed or True:
+    if update_needed:
         output = output_path
         try:
             for filters, files in worklist:
