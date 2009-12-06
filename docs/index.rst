@@ -7,7 +7,7 @@ Overview
 ========
 
 Assets are defined inline in templates, except rather than referring to them
-in a static manner, as you probably did so far, you are using the template 
+in a static manner, as you probably did so far, you are using the template
 tag provided by this application:
 
 .. code-block:: django
@@ -27,26 +27,26 @@ arguments can be passed to the template tag:
 * ``filter``:
     One or multiple filters to apply. This argument is optional - if no
     filters are specified, the source files will merely be merged into the
-    output file. Separate multiple fileters by commas.
+    output file. Separate multiple filters by commas.
 
-Note that all currently all filenames and paths are considered to be 
+Note that all currently all filenames and paths are considered to be
 relative to Django's ``MEDIA_ROOT`` setting.
 
-The template will usually render it's contents once, for the given 
-``output`` file, though in debugging mode (see the ``ASSETS_URL`` setting), 
-it can render multiple times and generate references to the original source 
+The template will usually render it's contents once, for the given
+``output`` file, though in debugging mode (see the ``ASSETS_URL`` setting),
+it can render multiple times and generate references to the original source
 files. All urls are prefixed with ``MEDIA_URL``.
 
 
 How assets are built
 --------------------
 
-Assets can be regenerated automatically, or built manually using a 
+Assets can be regenerated automatically, or built manually using a
 management command.
 
 By default, if the filesystem modification date of any of the source files
-exceeds the target file's modification date, the target will be recreated. 
-This behaviour can be disabled or changed using the ``ASSETS_UPDATER`` 
+exceeds the target file's modification date, the target will be recreated.
+This behaviour can be disabled or changed using the ``ASSETS_UPDATER``
 setting.
 
 The management command for a manual rebuild is used like this::
@@ -62,11 +62,11 @@ More Information
 
 .. toctree::
    :maxdepth: 1
-   
+
    installation
    filters
    settings
    jinja2
    faq
-   
+
 * :ref:`search`
