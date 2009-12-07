@@ -339,7 +339,7 @@ def bundle_to_joblist(bundle):
 
             # Item is a Bundle.
             else:
-                # Determine how to inherit the debug flat to sub-bundles.
+                # Determine how to inherit the debug flag to sub-bundles.
                 this_debug = bundle.debug if bundle.debug != None else debug
 
                 if do_merge:
