@@ -10,11 +10,6 @@ from django.conf import settings
 __all__ = ('Filter', 'CallableFilter',)
 
 
-# Convert a name from "InitialCaps" to "initialcaps" - adapted from
-# Django's automatic verbose_name generation.
-get_name = lambda class_name: re.sub('(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', '\\1', class_name).lower().strip()
-
-
 class NameGeneratingMeta(type):
     """Metaclass that will generate a "name" attribute based on the
     class name if non is given.
@@ -30,8 +25,8 @@ class NameGeneratingMeta(type):
             if not 'name' in attrs:
                 filter_name = name
                 if name.endswith('Filter'):
-                    filter_name = get_name(filter_name[:-6])
-                filter_name = get_name(filter_name)
+                    filter_name = filter_name[:-6]
+                filter_name = filter_name.lower()
                 attrs['name'] = filter_name
         return type.__new__(cls, name, bases, attrs)
 
