@@ -1,3 +1,6 @@
+from django_assets.filter import get_filter
+
+
 __all__ = ('Bundle', 'BundleError',)
 
 
@@ -26,3 +29,20 @@ class Bundle(object):
             self.filters,
             self.contents,
         )
+
+
+    def _get_filters(self):
+        return self._filters
+    def _set_filters(self, value):
+        """Filters may be specified in a variety of different ways,
+        including by giving their name; we need to make sure we resolve
+        everything to an actual filter instance.
+        """
+        if isinstance(value, basestring):
+            filters = value.split(',')
+        elif isinstance(value, (list, tuple)):
+            filters = value
+        else:
+            filters = [value]
+        self._filters = [get_filter(f) for f in filters]
+    filters = property(_get_filters, _set_filters)

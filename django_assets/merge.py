@@ -9,7 +9,6 @@ from django.utils.datastructures import SortedDict
 
 from django_assets.conf import settings
 from django_assets.updater import get_updater
-from django_assets.filter import get_filter
 from django_assets.bundle import Bundle, BundleError
 
 
@@ -111,14 +110,6 @@ def merge(sources, output, filter, close=True):
     and pass it into the next call to ``merge``, if it needs to place
     multiple pieces of content here.
     """
-
-    # Fail early by resolving filters now (there can be multiple)
-    # TODO: This actually needs to happen earlier in the process.
-    if isinstance(filter, basestring):
-        filters = filter.split(',')
-    else:
-        filters = filter and filter or []
-    filters = [get_filter(f) for f in filters]
 
     # split between output and source filters
     source_attr = 'is_source_filter'
