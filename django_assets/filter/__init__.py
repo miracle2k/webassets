@@ -7,7 +7,7 @@ import inspect
 from django.conf import settings
 
 
-__all__ = ('BaseFilter',)
+__all__ = ('BaseFilter', 'CallableFilter',)
 
 
 # Convert a name from "InitialCaps" to "initialcaps" - adapted from
@@ -113,6 +113,21 @@ class BaseFilter(object):
         raise NotImplementError()
 
 
+class CallableFilter(BaseFilter):
+    """Helper class that create a simple filter wrapping around
+    callable.
+    """
+
+    def __init__(self, callable):
+        self.callable = callable
+
+    def unique(self):
+        return self.callable
+
+    def apply(self, _in, out):
+        return self.callable(_in, out)
+
+
 _FILTERS = {}
 
 
@@ -130,10 +145,10 @@ def get_filter(f):
             klass = _FILTERS[f]
         else:
             raise ValueError('No filter \'%s\'' % f)
-    elif types.isclass(f) and issubclass(f, BaseFilter):
+    elif inspect.isclass(f) and issubclass(f, BaseFilter):
         klass = f
     elif callable(f):
-        return CompatFilter(f)
+        return CallableFilter(f)
     else:
         raise ValueError('Unable to resolve to a filter: %s' % f)
 
