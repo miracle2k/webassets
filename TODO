@@ -65,5 +65,22 @@ bundle-by-bundle basis:
 	- The merging of filtersets.
     - Determining when an update is necessary.
     - How to expire assets
- Basically, all the settings should be customizable this way, with the
- settings themselves only serving as a default.
+Basically, all the settings should be customizable this way, with the
+settings themselves only serving as a default.
+
+Currently, the docs claim that in a case like this:
+	Bundle(filter='cssutils', ...),       # (1)
+	Bundle(filter='less,cssutils', ...),  # (2)
+	Bundle(filter='cssutils', ...),       # (3)
+django-assets cannot apply those filters in two steps. Truth is, we're
+just not smart enough; ``less`` COULD be applied first, and then cssutils
+over the rest.
+
+How do we currently handle something like this?
+    less = Bundle('css/base.less', 'css/forms.less', filters='less',
+                  output='gen/less.css',
+                  debug=False)
+    register('all-css', less, 'css/jquery.calendar.css',
+             filters='yui_css', output="gen/all.css",
+             debug="merge")   # <- !!!!
+It seems like this should be a single file, but it probably isn't.
