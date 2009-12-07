@@ -64,7 +64,8 @@ More Information
    :maxdepth: 1
 
    installation
-   filters
+   builtin_filters
+   custom_filters
    settings
    jinja2
    faq
