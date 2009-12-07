@@ -4,6 +4,10 @@ Since running an external tool is not uncommon for a filter, the Filter
 base class could support a helper function that simplifies the calls to
 the subprocess module.
 
+Our updates currently only consider the timestamps, not the assets settings;
+that is, adding a new filter or file to a bundle will not cause it to be
+recreated automatically.
+
 Automatically create (and delete, i.e. manage) symlinks to make the
 ASSETS_EXPIRE="filename" option work without server rewrites.
 
