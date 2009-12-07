@@ -1,12 +1,12 @@
 import os, subprocess
 
-from django_assets.filter import BaseFilter
+from django_assets.filter import Filter
 
 
 __all__ = ('YUIJSFilter', 'YUICSSFilter',)
 
 
-class YUIBase(BaseFilter):
+class YUIBase(Filter):
     """Minify Javascript and CSS with
     `YUI Compressor <http://developer.yahoo.com/yui/compressor/>`_.
 

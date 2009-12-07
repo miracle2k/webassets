@@ -9,7 +9,7 @@ from django_assets import Bundle
 from django_assets.bundle import BundleError
 from django_assets.merge import bundle_to_joblist
 from django_assets.conf import settings
-from django_assets.filter import BaseFilter
+from django_assets.filter import Filter
 
 
 def with_config(**options):
@@ -30,7 +30,7 @@ def with_config(**options):
 
 
 # Dummy filter funcs to use during these tests.
-class DummyFilter(BaseFilter):
+class DummyFilter(Filter):
     def __init__(self, name):
         self.name = name
     def unique(self):

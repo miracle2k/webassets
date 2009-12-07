@@ -1,20 +1,20 @@
 from nose.tools import assert_raises
 from django_assets import Bundle
-from django_assets.filter import BaseFilter
+from django_assets.filter import Filter
 
 
 def test_filter_assign():
     """Test the different ways we can assign filters to the bundle.
     """
 
-    class TestFilter(BaseFilter):
+    class TestFilter(Filter):
         pass
 
     def _assert(list, length):
         """Confirm that everything in the list is a filter instance, and
         that the list as the required length."""
         assert len(list) == length
-        assert bool([f for f in list if isinstance(f, BaseFilter)])
+        assert bool([f for f in list if isinstance(f, Filter)])
 
     # Comma-separated string.
     b = Bundle(filters='jsmin,cssutils')

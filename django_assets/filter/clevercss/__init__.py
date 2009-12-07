@@ -1,10 +1,10 @@
-﻿from django_assets.filter import BaseFilter
+﻿from django_assets.filter import Filter
 
 
 __all__ = ('CleverCSSFilter',)
 
 
-class CleverCSSFilter(BaseFilter):
+class CleverCSSFilter(Filter):
 	"""Converts `CleverCSS <http://sandbox.pocoo.org/clevercss/>`_ markup
 	to real CSS.
 

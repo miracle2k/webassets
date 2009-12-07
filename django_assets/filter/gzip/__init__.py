@@ -1,11 +1,11 @@
 import gzip
-from django_assets.filter import BaseFilter
+from django_assets.filter import Filter
 
 
 __all__ = ('GZipFilter',)
 
 
-class GZipFilter(BaseFilter):
+class GZipFilter(Filter):
     """Applies gzip compression to the content given.
 
     This can be used if you are unable to let the webserver do the

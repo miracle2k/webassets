@@ -2,7 +2,7 @@ import os, re, urlparse
 from django.conf import settings
 import urlpath
 
-from django_assets.filter import BaseFilter
+from django_assets.filter import Filter
 
 
 __all__ = ('CSSRewriteFilter',)
@@ -25,7 +25,7 @@ url\(
 """, re.VERBOSE)
 
 
-class CSSRewriteFilter(BaseFilter):
+class CSSRewriteFilter(Filter):
     """Source filter that rewrites relative urls in CSS files.
 
     CSS allows you to specify urls relative to the location of the CSS

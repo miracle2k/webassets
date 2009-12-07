@@ -230,7 +230,7 @@ def merge_filters(filters1, filters2):
     first.
 
     This function presumes that all the given filters inherit from
-    ``BaseFilter``, which properly implements operators to determine
+    ``Filter``, which properly implements operators to determine
     duplicate filters.
     """
     result = filters1[:]

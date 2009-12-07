@@ -7,7 +7,7 @@ import inspect
 from django.conf import settings
 
 
-__all__ = ('BaseFilter', 'CallableFilter',)
+__all__ = ('Filter', 'CallableFilter',)
 
 
 # Convert a name from "InitialCaps" to "initialcaps" - adapted from
@@ -22,7 +22,7 @@ class NameGeneratingMeta(type):
 
     def __new__(cls, name, bases, attrs):
         try:
-            BaseFilter
+            Filter
         except NameError:
             # Don't generate a name for the baseclass itself.
             pass
@@ -36,7 +36,7 @@ class NameGeneratingMeta(type):
         return type.__new__(cls, name, bases, attrs)
 
 
-class BaseFilter(object):
+class Filter(object):
     """Base class for a filter.
 
     Subclasses should allow the creation of an instance without any
@@ -58,7 +58,7 @@ class BaseFilter(object):
         return self.id()
 
     def __cmp__(self, other):
-        if isinstance(other, BaseFilter):
+        if isinstance(other, Filter):
             return cmp(self.id(), other.id())
         return NotImplemented
 
@@ -136,7 +136,7 @@ class BaseFilter(object):
         raise NotImplementError()
 
 
-class CallableFilter(BaseFilter):
+class CallableFilter(Filter):
     """Helper class that create a simple filter wrapping around
     callable.
     """
@@ -160,7 +160,7 @@ def get_filter(f):
     Different ways of specifying a filter are supported, for example by
     giving the class, or a filter name.
     """
-    if isinstance(f, BaseFilter):
+    if isinstance(f, Filter):
         # Don't need to do anything.
         return f
     elif isinstance(f, basestring):
@@ -168,7 +168,7 @@ def get_filter(f):
             klass = _FILTERS[f]
         else:
             raise ValueError('No filter \'%s\'' % f)
-    elif inspect.isclass(f) and issubclass(f, BaseFilter):
+    elif inspect.isclass(f) and issubclass(f, Filter):
         klass = f
     elif callable(f):
         return CallableFilter(f)
@@ -194,7 +194,7 @@ def load_builtin_filters():
             else:
                 for attr_name in dir(module):
                     attr = getattr(module, attr_name)
-                    if inspect.isclass(attr) and issubclass(attr, BaseFilter):
+                    if inspect.isclass(attr) and issubclass(attr, Filter):
                         if not attr.name:
                             # Skip if filter has no name; those are
                             # considered abstract base classes.

@@ -1,29 +1,29 @@
 import os
 from nose.tools import assert_raises
 from django.conf import settings
-from django_assets.filter import BaseFilter, get_filter
+from django_assets.filter import Filter, get_filter
 
 # TODO: Add tests for all the builtin filters.
 
 
-class TestBaseFilter:
-    """Test the API ``BaseFilter`` provides to descendants.
+class TestFilter:
+    """Test the API ``Filter`` provides to descendants.
     """
 
     def test_auto_name(self):
         """Test the automatic generation of the filter name.
         """
-        assert type('Foo', (BaseFilter,), {}).name == 'foo'
-        assert type('FooFilter', (BaseFilter,), {}).name == 'foo'
-        assert type('FooBarFilter', (BaseFilter,), {}).name == 'foobar'
+        assert type('Foo', (Filter,), {}).name == 'foo'
+        assert type('FooFilter', (Filter,), {}).name == 'foo'
+        assert type('FooBarFilter', (Filter,), {}).name == 'foobar'
 
-        assert type('Foo', (BaseFilter,), {'name': 'custom'}).name == 'custom'
-        assert type('Foo', (BaseFilter,), {'name': None}).name == None
+        assert type('Foo', (Filter,), {'name': 'custom'}).name == 'custom'
+        assert type('Foo', (Filter,), {'name': None}).name == None
 
     def test_get_config(self):
         """Test the ``get_config`` helper.
         """
-        get_config = BaseFilter().get_config
+        get_config = Filter().get_config
 
         # For the purposes of the following tests, we use a test
         # name which we expect to be undefined in both settings
@@ -60,7 +60,7 @@ class TestBaseFilter:
     def test_equality(self):
         """Test the ``unique`` method used to determine equality.
         """
-        class TestFilter(BaseFilter):
+        class TestFilter(Filter):
             def unique(self):
                 return getattr(self, 'token', None)
         f1 = TestFilter();
@@ -89,11 +89,11 @@ def test_get_filter():
     """Test filter resolving.
     """
     # By name - here using one of the builtins.
-    assert isinstance(get_filter('jsmin'), BaseFilter)
+    assert isinstance(get_filter('jsmin'), Filter)
     assert_raises(ValueError, get_filter, 'notafilteractually')
 
     # By class.
-    class MyFilter(BaseFilter): pass
+    class MyFilter(Filter): pass
     assert isinstance(get_filter(MyFilter), MyFilter)
     assert_raises(ValueError, get_filter, object())
 

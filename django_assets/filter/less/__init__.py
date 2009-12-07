@@ -3,13 +3,13 @@ import os, subprocess
 import tempfile
 import socket
 
-from django_assets.filter import BaseFilter
+from django_assets.filter import Filter
 
 
 __all__ = ('LessFilter',)
 
 
-class LessFilter(BaseFilter):
+class LessFilter(Filter):
     """Converts `Less <http://lesscss.org/>`_ markup to real CSS.
 
     If you want to combine it with other CSS filters, make sure this one runs

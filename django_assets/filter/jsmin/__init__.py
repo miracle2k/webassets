@@ -1,11 +1,11 @@
 from jsmin import JavascriptMinify
-from django_assets.filter import BaseFilter
+from django_assets.filter import Filter
 
 
 __all__ = ('JSMinFilter',)
 
 
-class JSMinFilter(BaseFilter):
+class JSMinFilter(Filter):
     """Minifies Javascript by removing whitespace, comments, etc.
 
     Based on Baruch Even's port of Douglas Crockford's `JSMin

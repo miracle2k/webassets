@@ -2,13 +2,13 @@ import logging
 import logging.handlers
 from django.conf import settings
 
-from django_assets.filter import BaseFilter
+from django_assets.filter import Filter
 
 
 __all__ = ('CSSUtilsFilter',)
 
 
-class CSSUtilsFilter(BaseFilter):
+class CSSUtilsFilter(Filter):
     """Minifies CSS by removing whitespace, comments etc., using the Python
     `cssutils <http://cthedot.de/cssutils/>`_ library.
 

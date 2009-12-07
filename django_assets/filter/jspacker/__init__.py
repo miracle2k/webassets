@@ -1,11 +1,11 @@
 from jspacker import JavaScriptPacker
-from django_assets.filter import BaseFilter
+from django_assets.filter import Filter
 
 
 __all__ = ('JSPackerFilter',)
 
 
-class JSPackerFilter(BaseFilter):
+class JSPackerFilter(Filter):
     """Reduces the size of Javascript using an inline compression
     algorithm, i.e. the script will be unpacked on the client side
     by the browser.
