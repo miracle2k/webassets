@@ -23,7 +23,6 @@ arguments can be passed to the template tag:
 * ``output``:
     Name/path of the output file. All source files will be merged and the
     result stored at this location. This argument is required.
-
 * ``filter``:
     One or multiple filters to apply. This argument is optional - if no
     filters are specified, the source files will merely be merged into the

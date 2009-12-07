@@ -46,7 +46,6 @@ From 0.1
   setting, and ``ASSETS_DEBUG`` should be understood as meaning *how to
   behave when in debug mode*. See :ref:`ASSETS_DEBUG <settings-ASSETS_DEBUG>`
   for more information.
-
 - ``ASSETS_AUTO_CREATE`` now causes an error to be thrown if due it it
   being disabled a file cannot be created. Previously, it caused
   the source files to be linked directly (as if debug mode were active).
@@ -56,7 +55,6 @@ From 0.1
   removed. If it turns out to be necessary, the functionality to fall
   back to source could be added again in a future version through a
   separate setting.
-
 - The YUI Javascript filter can no longer be referenced via ``yui``.
   Instead, you need to explicitly specify which filter you want to use,
   ``yui_js`` or ``yui_css``.
