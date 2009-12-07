@@ -96,7 +96,7 @@ def build(output, worklist):
                 output.close()
 
 
-def merge(sources, output, filter, close=True):
+def merge(sources, output, filters, close=True):
     """The low-level function that actually takes a bunch of files,
     applies filters and merges them together into an output file.
 
