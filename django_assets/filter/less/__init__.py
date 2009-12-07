@@ -55,7 +55,7 @@ class LessFilter(Filter):
         http://groups.google.com/group/lesscss/browse_thread/thread/3aed033a44c51b4c/b713148afde87e81
         """
         # Use for debugging
-        LESS_DAEMON = self.get_config('ASSETS_LESS_DAEMON', env=False)
+        LESS_DAEMON = self.get_config('ASSETS_LESS_DAEMON', env=False, require=False)
         if LESS_DAEMON:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect(LESS_DAEMON)
@@ -70,7 +70,7 @@ class LessFilter(Filter):
             outtemp_name = os.path.join(tempfile.gettempdir(),
                                         'assets_temp_%d.css' % int(time.time()))
 
-            proc = subprocess.Popen([less, source_path, outtemp_name],
+            proc = subprocess.Popen([self.less, source_path, outtemp_name],
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,
                                     # shell: necessary on windows to execute
