@@ -1,3 +1,5 @@
+Allow callables that act as filters to be source filters.
+
 Since running an external tool is not uncommon for a filter, the Filter
 base class could support a helper function that simplifies the calls to
 the subprocess module.
