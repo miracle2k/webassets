@@ -1,4 +1,6 @@
-Refactor filter system to support custom filters more easily.
+Since running an external tool is not uncommon for a filter, the Filter
+base class could support a helper function that simplifies the calls to
+the subprocess module.
 
 Automatically create (and delete, i.e. manage) symlinks to make the
 ASSETS_EXPIRE="filename" option work without server rewrites.
