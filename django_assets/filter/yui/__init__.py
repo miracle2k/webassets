@@ -1,3 +1,14 @@
+"""Minify Javascript and CSS with
+`YUI Compressor <http://developer.yahoo.com/yui/compressor/>`_.
+
+YUI Compressor is an external tool written in Java, which needs to be
+available. You can define a ``YUI_COMPRESSOR_PATH`` setting that
+points to the ``.jar`` file. Otherwise, an environment variable by
+the same name is tried. The filter will also look for a ``JAVA_HOME``
+environment variable to run the ``.jar`` file, or will otherwise
+assume that ``java`` is on the system path.
+"""
+
 import os, subprocess
 
 from django_assets.filter import Filter
@@ -7,16 +18,6 @@ __all__ = ('YUIJSFilter', 'YUICSSFilter',)
 
 
 class YUIBase(Filter):
-    """Minify Javascript and CSS with
-    `YUI Compressor <http://developer.yahoo.com/yui/compressor/>`_.
-
-    YUI Compressor is an external tool written in Java, which needs to be
-    available. You can define a ``YUI_COMPRESSOR_PATH`` setting that
-    points to the ``.jar`` file. Otherwise, an environment variable by
-    the same name is tried. The filter will also look for a ``JAVA_HOME``
-    environment variable to run the ``.jar`` file, or will otherwise
-    assume that ``java`` is on the system path.
-    """
 
     # Will cause this base class no not be loaded.
     name = None

@@ -12,9 +12,8 @@ class JSPackerFilter(Filter):
 
     Based on Dean Edwards' `jspacker 2 <http://dean.edwards.name/packer/>`_,
     as ported by Florian Schulze.
-
-    TODO: This could support options.
     """
+    # TODO: This could support options.
 
     name = 'jspacker'
 

@@ -12,10 +12,13 @@ __all__ = ('LessFilter',)
 class LessFilter(Filter):
     """Converts `Less <http://lesscss.org/>`_ markup to real CSS.
 
-    If you want to combine it with other CSS filters, make sure this one runs
-    first.
+    If you want to combine it with other CSS filters, make sure this
+    one runs first.
 
-    XXX: This currently needs to be the very first filter applied. This is
+    **Note**: Currently, this needs to be the very first filter
+    applied. Changes by filters that ran before will be lost.
+    """
+    """XXX: This currently needs to be the very first filter applied. This is
     because it uses the "source filter" mechanism to support "@includes"
     in less, i.e. it let's the less compiler work directly with the source
     file, and ignores the input stream. Filters previously already applied
