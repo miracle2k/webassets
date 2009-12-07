@@ -22,14 +22,12 @@ class Bundle(object):
         self.debug = options.get('debug')
         self.extra_data = {}
 
-
     def __repr__(self):
         return "<Bundle output=%s, filters=%s, contents=%s>" % (
             self.output,
             self.filters,
             self.contents,
         )
-
 
     def _get_filters(self):
         return self._filters
