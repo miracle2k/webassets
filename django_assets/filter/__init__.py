@@ -7,7 +7,7 @@ import inspect
 from django.conf import settings
 
 
-__all__ = ('Filter', 'CallableFilter',)
+__all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',)
 
 
 class NameGeneratingMeta(type):
@@ -148,6 +148,17 @@ class CallableFilter(Filter):
 
 _FILTERS = {}
 
+def register_filter(f):
+    """Add the given filter to the list of know filters.
+    """
+    if not issubclass(f, Filter):
+        raise ValueError("Must be a subclass of 'Filter'")
+    if not f.name:
+        raise ValueError('Must have a name')
+    if f.name in _FILTERS:
+        raise KeyError('Filter with name %s already registered' % f.name)
+    _FILTERS[f.name] = f
+
 
 def get_filter(f):
     """Resolves ``f`` to a filter instance.
@@ -194,9 +205,6 @@ def load_builtin_filters():
                             # Skip if filter has no name; those are
                             # considered abstract base classes.
                             continue
-                        if attr.name in _FILTERS:
-                            # Protect against duplicates.
-                            raise KeyError('Duplicate filter name: %s' % attr.name)
-                        _FILTERS[attr.name] = attr
+                        register_filter(attr)
 load_builtin_filters()
 del load_builtin_filters

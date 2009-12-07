@@ -1,7 +1,7 @@
 import os
 from nose.tools import assert_raises
 from django.conf import settings
-from django_assets.filter import Filter, get_filter
+from django_assets.filter import Filter, get_filter, register_filter
 
 # TODO: Add tests for all the builtin filters.
 
@@ -83,6 +83,24 @@ class TestFilter:
                 return 'foo'
         g = AnotherFilter()
         assert f1 != g
+
+
+def test_register_filter():
+    """Test registration of custom filters.
+    """
+    # Needs to be a ``Filter`` subclass.
+    assert_raises(ValueError, register_filter, object)
+    # A name is required.
+    class MyFilter(Filter):
+        name = None
+    assert_raises(ValueError, register_filter, MyFilter)
+    # The same filter cannot be registered under multiple names.
+    MyFilter.name = 'foo'
+    register_filter(MyFilter)
+    MyFilter.name = 'bar'
+    register_filter(MyFilter)
+    # But the same name cannot be registered multiple times.
+    assert_raises(KeyError, register_filter, MyFilter)
 
 
 def test_get_filter():
