@@ -23,8 +23,7 @@ ASSETS_UPDATER = 'timestamp'
 # Even if you disable automatic rebuilding of your assets via the
 # ASSETS_UPDATER option, when an asset is found to be not (yet) existing,
 # it would normally be created. You can set this option to ``False`` to
-# disable the behavior (and of the source files be rendered instead, as
-# in ASSETS_DEBUG mode.
+# disable the behavior, and raise an exception instead.
 ASSETS_AUTO_CREATE = True
 
 # If you send your assets to the client using a far future expires header
