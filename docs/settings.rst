@@ -32,6 +32,8 @@ There are three possible values:
   you access to the raw source code.
 
 
+.. _settings-ASSETS_UPDATER:
+
 ASSETS_UPDATER
 ~~~~~~~~~~~~~~
 
@@ -47,6 +49,8 @@ Note that when using ``never``, your assets will initially still be created
 automatically when they do not exist yet. See ``ASSETS_AUTO_CREATE``.
 
 
+.. _settings-ASSETS_AUTO_CREATE:
+
 ASSETS_AUTO_CREATE
 ~~~~~~~~~~~~~~~~~~
 
@@ -55,6 +59,7 @@ asset even if it does not yet even exist. This is useful in combination
 with ``ASSETS_UPDATER='never'``, to disable any sort of automatic asset
 building.
 
+.. _settings-ASSETS_EXPIRE:
 
 ASSETS_EXPIRE
 ~~~~~~~~~~~~~
