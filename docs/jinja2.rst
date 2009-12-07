@@ -27,7 +27,7 @@ with Django. For example:
   simply use it's ``extensions`` parameter and specify
   ``django_assets.jinja2.extension.assets``.
 
-However, there is a minor dificulty if you intend to use the management
+However, there is a minor difficulty if you intend to use the management
 command to manually rebuild assets: Since that step involves parsing your
 templates, the command needs to know what other Jinja2 extensions you are
 using to successfully do so. Because there is no "one way" to integrate
