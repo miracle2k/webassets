@@ -54,6 +54,14 @@ class BaseFilter(object):
     def __init__(self):
         self.setup()
 
+    def __hash__(self):
+        return self.id()
+
+    def __cmp__(self, other):
+        if isinstance(other, BaseFilter):
+            return cmp(self.id(), other.id())
+        return NotImplemented
+
     def get_config(self, setting=False, env=None, require=True,
                    what='dependency'):
         """Helper function that subclasses can use if they have
@@ -92,11 +100,26 @@ class BaseFilter(object):
             err_msg = '%s was not found. Define a ' % what
             options = []
             if setting:
-                options.append('%s setting ' % setting)
+                options.append('%s setting' % setting)
             if env:
-                options.append('%s environment variable ' % env)
+                options.append('%s environment variable' % env)
             err_msg += ' or '.join(options)
             raise EnvironmentError(err_msg)
+        return value
+
+    def unique(self):
+        """This function is used to determine if two filter instances
+        represent the same filter and can be merged. Only one of the
+        filters will be applied.
+
+        If your filter takes options, you might want to override this
+        and return a hashable object containing all the data unique
+        to your current instance. This will allow your filter to be applied
+        multiple times with differing values for those options.
+        """
+
+    def id(self):
+        return hash((id(self.__class__), self.unique(),)) or id(self)
 
     def setup(self):
         """Overwrite this to have the filter to initial setup work,

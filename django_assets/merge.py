@@ -229,7 +229,9 @@ def merge_filters(filters1, filters2):
     are always removed from the second filter set if they exist in the
     first.
 
-    TODO: We need to deal with resolved filters vs strings.
+    This function presumes that all the given filters inherit from
+    ``BaseFilter``, which properly implements operators to determine
+    duplicate filters.
     """
     result = filters1[:]
     for f in filters2:
