@@ -88,12 +88,21 @@ def build(output, worklist):
     if update_needed:
         output = output_path
         try:
-            for filters, files in worklist:
-                output = merge(map(abspath, files), output, filters, close=False)
-        finally:
-            # might still be a string object.
-            if hasattr(output, 'close'):
-                output.close()
+            try:
+                for filters, files in worklist:
+                    output = merge(map(abspath, files), output, filters,
+                                   close=False)
+            finally:
+                # might still be a string object.
+                if hasattr(output, 'close'):
+                    output.close()
+        except:
+            # If there was an error above make sure we delete a possibly
+            # partly created output file, or it might be considered "done"
+            # from now on.
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            raise
 
 
 def merge(sources, output, filters, close=True):
@@ -131,71 +140,58 @@ def merge(sources, output, filters, close=True):
     buf = (output_filters) and StringIO.StringIO() or open_output()
     result = None
     try:
-        try:
-            for source in source_paths:
-                _in = open(source, 'rb')
-                try:
-                    # apply source filters
-                    if source_filters:
-                        tmp_buf = _in  # first filter reads directly from input
-                        for filter in source_filters[:-1]:
-                            tmp_out = StringIO.StringIO()
-                            filter.apply(tmp_buf, tmp_out, source, output_path)
-                            tmp_buf = tmp_out
-                            tmp_buf.seek(0)
-                        # Let last filter write directly to final buffer
-                        # for performance, instead of copying once more.
-                        for filter in source_filters[-1:]:
-                            filter.apply(tmp_buf, buf, source, output_path)
-                    else:
-                        buf.write(_in.read())
-                    buf.write("\n")  # can be important, depending on content
-                finally:
-                    _in.close()
-
-            # apply output filters, copy from "buf" to "out" (the file)
-            if output_filters:
-                out = open_output()
-                try:
-                    buf.seek(0)
-                    for filter in output_filters[:-1]:
+        for source in source_paths:
+            _in = open(source, 'rb')
+            try:
+                # apply source filters
+                if source_filters:
+                    tmp_buf = _in  # first filter reads directly from input
+                    for filter in source_filters[:-1]:
                         tmp_out = StringIO.StringIO()
-                        filter.apply(buf, tmp_out)
-                        buf = tmp_out
-                        buf.seek(0)
-                    # Handle the very last filter separately, let it
-                    # write directly to output file for performance.
-                    for filter in output_filters[-1:]:
-                        filter.apply(buf, out)
-                finally:
-                    # "out" is the final output file we want to return.
-                    result = out
-                    if close:
-                        out.close()
-                        out = None
-        finally:
-            # If a result has not been set yet, then "buf" is the
-            # final output file.
-            if not result:
-                result = buf
+                        filter.apply(tmp_buf, tmp_out, source, output_path)
+                        tmp_buf = tmp_out
+                        tmp_buf.seek(0)
+                    # Let last filter write directly to final buffer
+                    # for performance, instead of copying once more.
+                    for filter in source_filters[-1:]:
+                        filter.apply(tmp_buf, buf, source, output_path)
+                else:
+                    buf.write(_in.read())
+                buf.write("\n")  # can be important, depending on content
+            finally:
+                _in.close()
+
+        # apply output filters, copy from "buf" to "out" (the file)
+        if output_filters:
+            out = open_output()
+            try:
+                buf.seek(0)
+                for filter in output_filters[:-1]:
+                    tmp_out = StringIO.StringIO()
+                    filter.apply(buf, tmp_out)
+                    buf = tmp_out
+                    buf.seek(0)
+                # Handle the very last filter separately, let it
+                # write directly to output file for performance.
+                for filter in output_filters[-1:]:
+                    filter.apply(buf, out)
+            finally:
+                # "out" is the final output file we want to return.
+                result = out
                 if close:
-                    buf.close()
-                    buf = None
-            else:
+                    out.close()
+                    out = None
+    finally:
+        # If a result has not been set yet, then "buf" is the
+        # final output file.
+        if not result:
+            result = buf
+            if close:
                 buf.close()
                 buf = None
-    except Exception:
-        # Close stuff that might still be open; in particular, on win32,
-        # this is necessary so we can delete the output file below.
-        if buf: buf.close()
-        if out: out.close()
-
-        # If there was an error above make sure we delete a possibly
-        # partly created output file, or it might be considered "done"
-        # from now on.
-        if os.path.exists(output_path):
-            os.remove(output_path)
-        raise
+        else:
+            buf.close()
+            buf = None
 
     return result
 
