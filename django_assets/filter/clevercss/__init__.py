@@ -1,11 +1,22 @@
-﻿"""Converts `CleverCSS <http://sandbox.pocoo.org/clevercss/>`_ markup to 
-real CSS.
+﻿from django_assets.filter import BaseFilter
 
-If you want to combine it with other CSS filters, make sure this one runs 
-first.
-"""
 
-import clevercss
+__all__ = ('CleverCSSFilter',)
 
-def apply(_in, out):
-	out.write(clevercss.convert(_in.read()))
+
+class CleverCSSFilter(BaseFilter):
+	"""Converts `CleverCSS <http://sandbox.pocoo.org/clevercss/>`_ markup
+	to real CSS.
+
+	If you want to combine it with other CSS filters, make sure this one
+	runs first.
+	"""
+
+	name = 'clevercss'
+
+	def setup(self):
+		import clevercss
+		self.clevercss = clevercss
+
+	def apply(self, _in, out):
+		out.write(self.clevercss.convert(_in.read()))
