@@ -9,6 +9,7 @@ from django_assets import Bundle
 from django_assets.bundle import BundleError
 from django_assets.merge import bundle_to_joblist
 from django_assets.conf import settings
+from django_assets.filter import BaseFilter
 
 
 def with_config(**options):
@@ -26,6 +27,17 @@ def with_config(**options):
                 setattr(settings, k, v)
         return with_setup(setup, teardown)(func)
     return decorator
+
+
+# Dummy filter funcs to use during these tests.
+class DummyFilter(BaseFilter):
+    def __init__(self, name):
+        self.name = name
+    def unique(self):
+        return self.name
+css = DummyFilter('css')
+js = DummyFilter('js')
+sass = DummyFilter('sass')
 
 
 def test_flat():
@@ -58,15 +70,15 @@ def test_filter_merge():
     """
     b = Bundle('s1',
                Bundle('s2',
-                      Bundle('s3', filters=['css', 'sass']),
-                      filters=['js']),
+                      Bundle('s3', filters=[css, sass]),
+                      filters=[js]),
                output='foo')
     jl = bundle_to_joblist(b)
     assert jl['foo'][0][0] == []
     assert jl['foo'][0][1] == ['s1']
-    assert jl['foo'][1][0] == ['js']
+    assert jl['foo'][1][0] == [js]
     assert jl['foo'][1][1] == ['s2']
-    assert jl['foo'][2][0] == ['css', 'sass', 'js']
+    assert jl['foo'][2][0] == [css, sass, js]
     assert jl['foo'][2][1] == ['s3']
 
 
@@ -113,11 +125,11 @@ def test_no_output_but_filters():
     """
     jl = bundle_to_joblist(Bundle(
             Bundle('s1', output='foo'),
-            Bundle('s2', output='bar', filters=['js']),
-            filters=['css']))
-    assert jl['foo'][0][0] == ['css']
+            Bundle('s2', output='bar', filters=[js]),
+            filters=[css]))
+    assert jl['foo'][0][0] == [css]
     assert jl['foo'][0][1] == ['s1']
-    assert jl['bar'][0][0] == ['js', 'css']
+    assert jl['bar'][0][0] == [js, css]
     assert jl['bar'][0][1] == ['s2']
 
 
@@ -126,12 +138,12 @@ def test_unmergable():
     """A subbundle that is unmergable will be pulled into a separate job.
     """
     b = Bundle('s1', 's2',
-               Bundle('s3', debug=False, filters=['css'], output="bar"),
-               output='foo', filters=['js'])
+               Bundle('s3', debug=False, filters=css, output="bar"),
+               output='foo', filters=js)
     jl = bundle_to_joblist(b)
     assert len(jl) == 3
     assert 's1' in jl and 's2' in jl
-    assert jl['bar'][0][0] == ['css']
+    assert jl['bar'][0][0] == [css]
     assert 's3' in jl['bar'][0][1]
 
     # However, the bundle that is pulled up needs to have it's own output
@@ -144,8 +156,8 @@ def test_unmergable():
 def test_debug_merge_only():
     """Test the 'merge only' debug option (no filters).
     """
-    sub = Bundle('s3', filters=['css'], output="bar")
-    b = Bundle('s1', 's2', sub, output='foo', filters=['js'])
+    sub = Bundle('s3', filters=[css], output="bar")
+    b = Bundle('s1', 's2', sub, output='foo', filters=[js])
     jl = bundle_to_joblist(b)
     assert len(jl) == 1
     assert jl['foo'][0][0] == []
@@ -155,7 +167,7 @@ def test_debug_merge_only():
     jl = bundle_to_joblist(b)
     assert len(jl) == 1
     assert jl['foo'][0][0] == []
-    assert jl['foo'][1][0] == ['css']
+    assert jl['foo'][1][0] == [css]
 
     sub.debug = True
     jl = bundle_to_joblist(b)
@@ -167,9 +179,9 @@ def test_debug_merge_only():
 def test_debug_inheritance():
     """Test the bundle ``debug`` setting in a nested scenario.
     """
-    sub2 = Bundle('s4', filters=['js'], output="bar")
-    sub1 = Bundle('s3', sub2, debug='merge', output='foo', filters=['css'])
-    b = Bundle('s1', 's2', sub1, filters=['js'])
+    sub2 = Bundle('s4', filters=[js], output="bar")
+    sub1 = Bundle('s3', sub2, debug='merge', output='foo', filters=[css])
+    b = Bundle('s1', 's2', sub1, filters=[js])
 
     jl = bundle_to_joblist(b)
     assert len(jl) == 3
