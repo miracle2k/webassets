@@ -27,7 +27,14 @@ class CSSUtilsFilter(BaseFilter):
             if not settings.DEBUG:
                 log = logging.getLogger('assets.cssutils')
                 log.addHandler(logging.handlers.MemoryHandler(10))
-                cssutils.log.setlog(log)
+
+                # Newer versions of cssutils print a deprecation warning
+                # for 'setlog'.
+                if hasattr(cssutils.log, 'setLog'):
+                    func = cssutils.log.setLog
+                else:
+                    func = cssutils.log.setlog
+                func(log)
         except ImportError:
             # During doc generation, Django is not going to be setup and will
             # fail when the settings object is accessed. That's ok though.
