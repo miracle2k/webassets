@@ -172,6 +172,7 @@ def merge(sources, output, filters, close=True):
                     result = out
                     if close:
                         out.close()
+                        out = None
         finally:
             # If a result has not been set yet, then "buf" is the
             # final output file.
@@ -179,9 +180,16 @@ def merge(sources, output, filters, close=True):
                 result = buf
                 if close:
                     buf.close()
+                    buf = None
             else:
                 buf.close()
+                buf = None
     except Exception:
+        # Close stuff that might still be open; in particular, on win32,
+        # this is necessary so we can delete the output file below.
+        if buf: buf.close()
+        if out: out.close()
+
         # If there was an error above make sure we delete a possibly
         # partly created output file, or it might be considered "done"
         # from now on.
