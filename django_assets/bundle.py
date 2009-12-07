@@ -38,6 +38,10 @@ class Bundle(object):
         including by giving their name; we need to make sure we resolve
         everything to an actual filter instance.
         """
+        if value is None:
+            self._filters = None
+            return
+
         if isinstance(value, basestring):
             filters = value.split(',')
         elif isinstance(value, (list, tuple)):
