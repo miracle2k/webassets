@@ -35,7 +35,7 @@ def abspath(filename):
     return os.path.abspath(os.path.join(settings.MEDIA_ROOT, filename))
 
 
-def process(bundle):
+def process(bundle, force=False, allow_debug=True):
     """Process the given bundle; this includes merging the files
     together and applying filters as appropriate.
 
@@ -44,10 +44,18 @@ def process(bundle):
     urls pointing to source files, urls pointing to generated
     output files, or be stream of in-memory content that contains
     merged/filtered data.
+
+    If ``force`` is given, the asset will be built in any case,
+    regardless of whether an update is really necessary.
+
+    ``allow_debug`` is usually used in combination with ``force``.
+    It disables debugging, even if the environment is in debug
+    mode right now. In other words, it will cause the bundle to
+    be processed like in production.
     """
 
     # STEP 1) Convert into a list of files to generate.
-    joblist = bundle_to_joblist(bundle)
+    joblist = bundle_to_joblist(bundle, allow_debug=allow_debug)
 
     # STEP 2) Optimize that list.
     simplify_jobs(joblist)
@@ -56,14 +64,14 @@ def process(bundle):
     result = []
     for output_path, work in joblist.iteritems():
         if isinstance(work, (tuple, list)):
-            build(output_path, work)
+            build(output_path, work, force=force)
             result.append(make_url(output_path))
         else:
             result.append(make_url(output_path))
     return result
 
 
-def build(output, worklist):
+def build(output, worklist, force=False):
     """Given the ``output`` target and the list of things to do,
     first determine if any action is necessary at all (i.e. resource
     may already be built), and if so, build or rebuild the asset.
@@ -75,17 +83,18 @@ def build(output, worklist):
         source_paths.extend(map(abspath, files))
 
     # b) Check if the output file needs to be (re)created.
+    update_needed = False
     if not os.path.exists(output_path):
-        if not settings.ASSETS_AUTO_CREATE:
+        if not settings.ASSETS_AUTO_CREATE or force:
             raise MergeError('\'%s\' needs to be created, but '
                              'ASSETS_AUTO_CREATE is disabled' % output)
         else:
             update_needed = True
-    else:
+    elif not force:
         update_needed = get_updater()(output_path, source_paths)
 
     # c) If an update is required, build the asset.
-    if update_needed:
+    if update_needed or force:
         output = output_path
         try:
             try:
@@ -238,7 +247,7 @@ def merge_filters(filters1, filters2):
     return result
 
 
-def resolve_action(bundle, default_debug=None):
+def resolve_action(bundle, default_debug=None, allow_debug=True):
     """Decide what needs to be done for the given bundle.
 
     Specifically, whether to apply filters and whether to merge. This
@@ -246,8 +255,10 @@ def resolve_action(bundle, default_debug=None):
     ``default_debug`` argument), as well as modifiers given by the bundle.
 
     Returns a 2-tuple of (merge, filter).
+
+    If ``allow_debug`` is False, then we will never be in debug mode.
     """
-    if not settings.DEBUG:
+    if not settings.DEBUG or not allow_debug:
         return True, True
 
     if default_debug is None:
@@ -265,7 +276,7 @@ def resolve_action(bundle, default_debug=None):
         raise ValueError('Invalid debug value: %s' % debug)
 
 
-def bundle_to_joblist(bundle):
+def bundle_to_joblist(bundle, allow_debug=True):
     """Convert the bundle hierarchy into a "job list".
 
     Each job represents one output url; often there will be only
@@ -303,7 +314,7 @@ def bundle_to_joblist(bundle):
     jobs = SortedDict()
 
     def handle(bundle, work_list=[], parent_filters=[], output=False, debug=None):
-        do_merge, do_filters = resolve_action(bundle, debug)
+        do_merge, do_filters = resolve_action(bundle, debug, allow_debug=allow_debug)
 
         # Merge filtersets with parent.
         sum_filters = parent_filters

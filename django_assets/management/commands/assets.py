@@ -105,7 +105,7 @@ class Command(BaseCommand):
             if options.get('verbosity') >= 1:
                 print "Building asset: %s" % bundle.output
             try:
-                process(bundle)
+                process(bundle, force=True, allow_debug=False)
             except ValueError, e:
                 # TODO: It would be cool if we could only capture those
                 # exceptions actually related to merging.
