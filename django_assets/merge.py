@@ -91,7 +91,7 @@ def build(output, worklist):
             try:
                 for filters, files in worklist:
                     output = merge(map(abspath, files), output, filters,
-                                   close=False)
+                                   output_path, close=False)
             finally:
                 # might still be a string object.
                 if hasattr(output, 'close'):
@@ -105,11 +105,13 @@ def build(output, worklist):
             raise
 
 
-def merge(sources, output, filters, close=True):
+def merge(sources, output, filters, output_path, close=True):
     """The low-level function that actually takes a bunch of files,
     applies filters and merges them together into an output file.
 
-    ``output`` may be a (relative or absolute) path, or a stream.
+    ``output`` may be a (relative or absolute) path, or a stream. If
+    the latter, the actual path still is passed through ``output_path``.
+    This is necessary for source filters, who need to kn ow.
 
     Tries to be efficient by minimizing the number of times the data
     needs to be piped from one stream into another.
@@ -126,7 +128,7 @@ def merge(sources, output, filters, close=True):
     source_filters = [f for f in filters if getattr(f, source_attr, False)]
 
     # make paths absolute (they might already be, we can't be sure)
-    output_path = abspath(output) if not hasattr(output, 'write') else None
+    output_path = abspath(output_path)
     source_paths = [abspath(s) for s in sources]
 
     # Either open the output file, or simply use the file object
