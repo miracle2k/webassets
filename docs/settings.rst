@@ -24,10 +24,8 @@ There are three possible values:
 - ``True`` - debug ``django-assets`` as well, that is, output all the
   source files, instead of merging bundles together and applying filters.
   **This is the default.**
-
 - ``False`` - do not debug ``django-assets``. Behave exactly as in
-   production mode, merging bundles and applying filters.
-
+  production mode, merging bundles and applying filters.
 - ``"merge"`` - Do merge files source files together, but do not apply
   filters. This is a popular alternative to full debugging, since it comes
   with some performance gains through fewer requests, while still giving
