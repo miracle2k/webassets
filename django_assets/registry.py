@@ -3,7 +3,6 @@ template tags."""
 
 import imp
 from django.utils.importlib import import_module
-from django_assets.conf import settings
 from bundle import Bundle
 
 
@@ -80,6 +79,11 @@ def autoload():
     global _APPLICATIONS_LOADED
     if _APPLICATIONS_LOADED:
         return False
+
+    # Import this locally, so that the register module does not have
+    # Django dependency by itself; The setup.py script will cause
+    # us to be imported when it tries to load the version.
+    from django_assets.conf import settings
 
     for app in settings.INSTALLED_APPS:
         # For each app, we need to look for an assets.py inside that
