@@ -3,9 +3,10 @@ from jinja2 import nodes
 from django_assets.conf import settings
 from django_assets.merge import process
 from django_assets.bundle import Bundle
+from django_assets import registry
 
 
-__all__ = ('assets')
+__all__ = ('assets',)
 
 
 class AssetsExtension(Extension):
@@ -59,6 +60,10 @@ class AssetsExtension(Extension):
                     set_lineno(lineno)
 
     def _render_assets(self, filter, output, files, caller=None):
+        # resolve bundle names
+        registry.autoload()
+        files = [registry.get(f) or f for f in files]
+
         result = u""
         urls = process(Bundle(*files, **{'output': output, 'filters': filter}))
         for f in urls:
