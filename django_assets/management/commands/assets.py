@@ -21,7 +21,6 @@ from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
 from django import template
-from django.utils.importlib import import_module
 
 from django_assets.conf import settings
 from django_assets.templatetags.assets import AssetsNode as AssetsNodeOriginal
@@ -83,7 +82,9 @@ class Command(BaseCommand):
 
         if command == 'rebuild':
             # Start with the bundles that are defined in code.
-            self._autodiscover(options)
+            if options.get('verbosity') > 1:
+                print "Looking for bundles defined in code..."
+            registry.autoload()
             bundles = [v for k, v in registry.iter()]
 
             # If requested, search the templates too.
@@ -110,53 +111,6 @@ class Command(BaseCommand):
                 # TODO: It would be cool if we could only capture those
                 # exceptions actually related to merging.
                 print self.style.ERROR("Failed, error was: %s" % e)
-
-    def _autodiscover(self, options):
-        """Find assets by looking for an ``assets`` module within each
-        installed application, similar to how, e.g., the admin autodiscover
-        process works. This is were this code has been adapted from, too.
-
-        After this function ran, look in the registry for the bundles
-        found.
-        """
-        if options.get('verbosity') > 1:
-            print "Looking for bundles defined in code..."
-        for app in settings.INSTALLED_APPS:
-            # For each app, we need to look for an assets.py inside that
-            # app's package. We can't use os.path here -- recall that
-            # modules may be imported different ways (think zip files) --
-            # so we need to get the app's __path__ and look for
-            # admin.py on that path.
-            if options.get('verbosity') > 1:
-                print "\t%s..." % app,
-
-            # Step 1: find out the app's __path__ Import errors here will
-            # (and should) bubble up, but a missing __path__ (which is
-            # legal, but weird) fails silently -- apps that do weird things
-            # with __path__ might need to roll their own registration.
-            try:
-                app_path = import_module(app).__path__
-            except AttributeError:
-                if options.get('verbosity') > 1:
-                    print "cannot inspect app"
-                continue
-
-            # Step 2: use imp.find_module to find the app's assets.py.
-            # For some reason imp.find_module raises ImportError if the
-            # app can't be found but doesn't actually try to import the
-            # module. So skip this app if its assetse.py doesn't exist
-            try:
-                imp.find_module('assets', app_path)
-            except ImportError:
-                if options.get('verbosity') > 1:
-                    print "no assets module"
-                continue
-
-            # Step 3: import the app's assets file. If this has errors we
-            # want them to bubble up.
-            import_module("%s.assets" % app)
-            if options.get('verbosity') > 1:
-                print "assets module loaded"
 
     def _parse_templates(self, options):
         # build a list of template directories based on configured loaders
