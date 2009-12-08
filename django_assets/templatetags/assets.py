@@ -4,6 +4,7 @@ from django import template
 from django_assets.conf import settings
 from django_assets.merge import process
 from django_assets.bundle import Bundle
+from django_assets import registry
 
 
 class AssetsNode(template.Node):
@@ -20,13 +21,26 @@ class AssetsNode(template.Node):
         This is a separate method as the management command must have
         the ability to check if the tag can be resolved without a context.
         """
-        def _(x):
+        def resolve_var(x):
             if x is None:
                 return None
             else:
-                return template.Variable(x).resolve(context)
-        return Bundle(*[_(f) for f in self.files],
-                      **{'output': _(self.output), 'filters': _(self.filter)})
+                try:
+                    return template.Variable(x).resolve(context)
+                except template.VariableDoesNotExist, e:
+                    # Django seems to hide those; we don't want to expose
+                    # them either, I guess.
+                    raise
+        def resolve_bundle(x):
+            bundle = registry.get(x)
+            if bundle:
+                return bundle
+            return x
+
+        registry.autoload()
+        return Bundle(*[resolve_bundle(resolve_var(f)) for f in self.files],
+                      **{'output': resolve_var(self.output),
+                         'filters': resolve_var(self.filter)})
 
     def render(self, context):
         bundle = self.resolve(context)
@@ -75,10 +89,6 @@ def assets(parser, token):
             files.append(value)
         else:
             raise template.TemplateSyntaxError('Unsupported keyword argument "%s"'%name)
-
-    # checking for missing arguments now means we'll never have to do it again
-    if not output:
-        raise template.TemplateSyntaxError('Argument "output" is required but missing.')
 
     # capture until closing tag
     childnodes = parser.parse(("endassets",))
