@@ -1,3 +1,15 @@
+Should bundle names be namespacable, similar to Django urls? At the least,
+we probably want to encourage a convention of prefixing your bundle names
+with an id. Everything else would just intend to make this easier or more
+transparent; for example, bundles could be automatically namespaced based
+on which app's assets.py file they are defined in, and the template tag
+could look at request.current_app when resolving, or take an argument.
+There should be some solution though, since it's easy to clash with names
+like "js" or "js-all". "admin:js" works much nicer.
+
+--parse-templates currently breaks on asset tags that refer to bundles
+by name.
+
 Allow callables that act as filters to be source filters.
 
 Since running an external tool is not uncommon for a filter, the Filter
@@ -25,7 +37,8 @@ combinations from within the Django template tag, with it's limited syntax.
 Note that the two features do overlap: Both deal with how to output an
 asset.
 
-Should be provide features for normalizing encodings?
+Should be provide features for normalizing encodings? This could be
+added as properties to the bundles.
 
 Handle far future expires for images: add a new templatetag that can output
 image urls with timestamps; the cssrewrite filter could modify urls within
