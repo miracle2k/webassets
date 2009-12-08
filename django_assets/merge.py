@@ -144,7 +144,7 @@ def merge(sources, output, filters, output_path, close=True):
     # that was passed into this function.
     # TODO: is it possible that another simultaneous request might
     # cause trouble? how would we avoid this?
-    open_output = lambda: open(output_path, 'wb') if output_path else output
+    open_output = lambda: output if hasattr(output, 'write') else open(output_path, 'wb')
 
     # If no output filters are used, we can write directly to the
     # given target for improved performance.
