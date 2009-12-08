@@ -1,4 +1,4 @@
-0.2 (xxxx-xx-xx)
+0.2 (2009-12-08)
 	- Compatibility with Django >= 1.0.
 	- Added some actual documentation.
 	- Allow assets to be defined in code, through ``Bundles``.
