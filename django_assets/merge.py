@@ -85,7 +85,7 @@ def build(output, worklist, force=False):
     # b) Check if the output file needs to be (re)created.
     update_needed = False
     if not os.path.exists(output_path):
-        if not settings.ASSETS_AUTO_CREATE or force:
+        if not settings.ASSETS_AUTO_CREATE and not force:
             raise MergeError('\'%s\' needs to be created, but '
                              'ASSETS_AUTO_CREATE is disabled' % output)
         else:
