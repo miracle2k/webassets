@@ -11,3 +11,4 @@
 /BRANCH_TODO
 
 *.~*
+*.pyc
