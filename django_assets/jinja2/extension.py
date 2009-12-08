@@ -46,7 +46,7 @@ class AssetsExtension(Extension):
                     parser.fail('Invalid keyword argument: %s' % name)
             # otherwise assume a source file is given, which may
             # be any expression, except note that strings are handled
-            # separately avove
+            # separately above
             else:
                 files.append(parser.parse_expression())
 
