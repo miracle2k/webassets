@@ -84,3 +84,8 @@ How do we currently handle something like this?
              filters='yui_css', output="gen/all.css",
              debug="merge")   # <- !!!!
 It seems like this should be a single file, but it probably isn't.
+
+Provide a JSBundle, CSSBundle, AutoDetectBundle (for use in templates)
+base classes which would provide a default set of filters; the idea is
+to make starting with django-assets easier, but I'm not entirely
+convinced it makes sense.
