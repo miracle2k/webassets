@@ -102,3 +102,82 @@ Provide a JSBundle, CSSBundle, AutoDetectBundle (for use in templates)
 base classes which would provide a default set of filters; the idea is
 to make starting with django-assets easier, but I'm not entirely
 convinced it makes sense.
+
+The whole compilation process could be sped up significantly if each
+individual step (i.e. every time a filter or a set of filters is applied
+to a file) would be cached somewhere (say a temp directory). Rather than
+recompiling a bundle in total on every change, only those s subtrees
+actually affected would need to be processed.
+This might also provide us with a simple way to detect changes based on
+which filters are applied, or which source files are contained in a
+bundle; changing those properties currently may not cause django-assets
+to detect a bundle has having changed, since it only looks at file
+timestamps. The cache could easily employ filenames entailing this
+information. However, note that this might not be good enough; is the
+cache always available? Or would one turn it off in  production mode?
+
+Some thoughts on how to use django-assets with compass
+(http://wiki.github.com/chriseppstein/compass), and how to integrate the
+two (if that makes sense at all). Generally speaking, compass provides
+a command line util that is used a) as a management script (like
+django-admin.py) doing for example setup work, adding plugins to a project
+etc), and b) can compile the sass source files into CSS, and even compress
+them. it's this latter functionality that provides some of the functionality
+django-assets would be used for, but not all. compass alone doesn't provide
+for cache busting, nor can it merge the multiple CSS files it processes
+into a single output file. It therefore seems like there is room for
+integration.
+	*) The sass filter could be used to compile the source files, the
+	   compass command line utility would only be needed by the dev to
+	   get started with a new project, or adding plugins. The compass
+	   compiler is not used. Not sure if there are compass specific
+	   extensions yet that a pure sass can't compile.
+	*) A compass filter could run the compass command line utility, based
+	   on a given project file; and then expand itself into the individual
+	   source files given, which could then be further processed by other
+	   filters. Support for this "expanding of files" by filters needs to
+	   be implemented first.
+	*) Simply a way to cause the compass compiler to be invoked whenever
+	   the django-assets compiler runs, so that not two steps are required
+	   to update ones assets.
+
+Right now, our filters can either be a source or a target filter; it's
+probably better design if a single filter could act as BOTH source and
+target filter at the same time.
+
+Some filters, like the less filter, cannot work with an input stream,
+but only with the source files directly. To work, they thus need to be
+the first ones to be applied. There should be a way for filters to declare
+that requirement and django-assets to automatically validate it.
+
+The less filter has one problem: It is *slow*. I'm not sure whether this
+is the default of Ruby or Less itself, but starting up the compiler for
+each source file gets unacceptable very soon during development. It's
+quite possible that other filters that startup processes, like YUI, have
+the same general problem, but it's not noticeable as easily due to that
+filter only being applied one for each bundle, not for each source file.
+Here are some ideas to improve the situation:
+	- Currently, we support a "less daemon" mode through a fork of less.
+	  The less daemon runs in the background, and we ask it to compile
+	  stuff through a TCP connection. This helps a lot, but we cannot
+	  realistically expect to add support for such a daemon mode to every
+	  slow filter.
+	- Somewhat hacky, but a special type of bundle could change the extension
+	  of it's files while in debug mode, between .less and .css. Then, the
+	  less compiler could be run in watch mode by the developer, generating
+	  the .css files for each .less file, and the bundle would cause the
+	  .css files to be rendered as long as we are in debug mode. While
+	  in production, the bundle would expose .sass files, and the normal
+	  filter/merging process of django-assets is done. This at least helps
+	  during developing.
+	- Before we do that, however, it would probably be much smarter to
+	  simply add a daemon mode to django-assets. It would recompile bundles
+	  in the background transparently, as soon as the developer makes his
+	  change. This would therefore work for all types of filters.
+	- The less files could be pre-processed to rewrite relative urls
+	  to included files. This being the main reason why we need to run
+	  less for each source file, it could maybe rid us of this requirement.
+	- The per-file caching suggested further above would help a lot; no
+	  longer would it be required to recompile all source files on every
+	  change - only those that actually changed.
+A combination of various of these approaches may be used.
