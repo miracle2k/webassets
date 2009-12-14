@@ -67,7 +67,9 @@ def process(bundle, force=False, allow_debug=True):
             build(output_path, work, force=force)
             result.append(make_url(output_path))
         else:
-            result.append(make_url(output_path))
+            # This is a source file that is included directly.
+            # We do not add any cache busting here.
+            result.append(make_url(output_path, expire=False))
     return result
 
 
@@ -207,24 +209,30 @@ def merge(sources, output, filters, output_path, close=True):
     return result
 
 
-def make_url(filename):
+def make_url(filename, expire=True):
     """Return a output url, modified for expire header handling.
+
+    Set ``expire`` to ``False`` if you do not want the URL to
+    be modified for cache busting.
     """
-    path = abspath(filename)
-    last_modified = os.stat(path).st_mtime
-    if settings.ASSETS_EXPIRE == 'querystring':
-        result = "%s?%d" % (filename, last_modified)
-    elif settings.ASSETS_EXPIRE == 'filename':
-        name = filename.rsplit('.', 1)
-        if len(name) > 1:
-            result = "%s.%d.%s" % (name[0], last_modified, name[1])
+    if expire:
+        path = abspath(filename)
+        last_modified = os.stat(path).st_mtime
+        if settings.ASSETS_EXPIRE == 'querystring':
+            result = "%s?%d" % (filename, last_modified)
+        elif settings.ASSETS_EXPIRE == 'filename':
+            name = filename.rsplit('.', 1)
+            if len(name) > 1:
+                result = "%s.%d.%s" % (name[0], last_modified, name[1])
+            else:
+                result = "%s.%d" % (name, last_modified)
+        elif not settings.ASSETS_EXPIRE:
+            result = filename
         else:
-            result = "%s.%d" % (name, last_modified)
-    elif not settings.ASSETS_EXPIRE:
-        result = filename
+            raise ValueError('Unknown value for ASSETS_EXPIRE option: %s' %
+                                settings.ASSETS_EXPIRE)
     else:
-        raise ValueError('Unknown value for ASSETS_EXPIRE option: %s' %
-                            settings.ASSETS_EXPIRE)
+        result = filename
     return absurl(result)
 
 
