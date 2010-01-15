@@ -6,10 +6,28 @@ try:
     cmdclass = {'build_sphinx': BuildDoc}
 except ImportError:
     print "Sphinx not installed--needed to build documentation"
-    # default cmdclass to None to avoid 
+    # default cmdclass to None to avoid
     cmdclass = {}
-    
-import django_assets
+
+
+# Figure out the version; this could be done by importing the
+# module, though that requires Django to be already installed,
+# which may not be the case when processing a pip requirements
+# file, for example.
+import re
+here = os.path.dirname(os.path.abspath(__file__))
+version_re = re.compile(
+    r'__version__ = (\(.*?\))')
+fp = open(os.path.join(here, 'django_assets', '__init__.py'))
+version = None
+for line in fp:
+    match = version_re.search(line)
+    if match:
+        version = eval(match.group(1))
+        break
+else:
+    raise Exception("Cannot find version in virtualenv.py")
+fp.close()
 
 
 def find_packages(root):
@@ -23,7 +41,7 @@ def find_packages(root):
 
 setup(
     name = 'django-assets',
-    version=".".join(map(str, django_assets.__version__)),
+    version=".".join(map(str, version)),
     description = 'Media asset management for the Django web framework.',
     long_description = 'Merges, minifies and compresses Javascript and '
         'CSS files, supporting a variety of different filters, including '
