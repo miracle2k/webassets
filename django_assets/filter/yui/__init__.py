@@ -28,7 +28,7 @@ class YUIBase(Filter):
 
         # We can reasonably expect that java is just on the path, so
         # don't require it, but hope for the best.
-        self.java = self.get_config(env=JAVA_HOME, require=False)
+        self.java = self.get_config(env='JAVA_HOME', require=False)
         if self.java is not None:
             self.java = os.path.join(path, 'bin/java')
         else:
