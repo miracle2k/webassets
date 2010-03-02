@@ -1,7 +1,11 @@
+# Eclipse 
 /.project
 /.pydevproject
 /.settings
+# WingIDE
+/django-assets.wpr
 
+# distutils
 /build
 /dist
 /django_assets.egg-info
