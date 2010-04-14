@@ -76,14 +76,14 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if len(args) == 0:
-            raise CommandError('You need to specify a subcommand')
+            raise CommandError('You need to specify a subcommand: rebuild')
         elif len(args) > 1:
             raise CommandError('Invalid number of subcommands passed: %s' %
                 ", ".join(args))
         else:
             command = args[0]
 
-        options['verbosity'] = int(options['verbosity'])
+        options['verbosity'] = int(options.get('verbosity', 1))
 
         if command == 'rebuild':
             # Start with the bundles that are defined in code.
