@@ -19,7 +19,7 @@ __all__ = ('YUIJSFilter', 'YUICSSFilter',)
 
 class YUIBase(Filter):
 
-    # Will cause this base class no not be loaded.
+    # Will cause this base class not be loaded.
     name = None
 
     def setup(self):
