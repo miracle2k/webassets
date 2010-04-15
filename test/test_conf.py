@@ -16,7 +16,7 @@ def test_read():
 
 
 def test_write():
-    """Test that changing a value to our configuration also updates
+    """Test that changing a value in our configuration also updates
     the original Django settings object.
     """
     assert not getattr(django_conf.settings, 'FOOBAR', None) == 1234
