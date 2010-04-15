@@ -1,3 +1,4 @@
+import random
 from django_assets import conf as assets_conf
 from django import conf as django_conf
 
@@ -19,6 +20,7 @@ def test_write():
     """Test that changing a value in our configuration also updates
     the original Django settings object.
     """
-    assert not getattr(django_conf.settings, 'FOOBAR', None) == 1234
-    assets_conf.settings.FOOBAR = 1234
-    assert django_conf.settings.FOOBAR == 1234
+    value = random.random()
+    assert not getattr(django_conf.settings, 'FOOBAR', None) == value
+    assets_conf.settings.FOOBAR = value
+    assert django_conf.settings.FOOBAR == value

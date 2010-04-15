@@ -1,7 +1,3 @@
-Some tests are currently fragile since they are not idempotent. When 
-run a second time, they will fail. Try to reset the environment after
-every test.
-
 Should bundle names be namespacable, similar to Django urls? At the least,
 we probably want to encourage a convention of prefixing your bundle names
 with an id. Everything else would just intend to make this easier or more

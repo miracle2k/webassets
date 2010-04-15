@@ -1,5 +1,5 @@
 import os
-from nose.tools import assert_raises
+from nose.tools import assert_raises, with_setup
 from django.conf import settings
 from django_assets.filter import Filter, get_filter, register_filter
 
@@ -25,37 +25,45 @@ class TestFilter:
         """
         get_config = Filter().get_config
 
-        # For the purposes of the following tests, we use a test
-        # name which we expect to be undefined in both settings
+        # For the purposes of the following tests, we use two test
+        # names which we expect to be undefined in both settings
         # and environment.
-        NAME = 'FOO1234'
-        assert not NAME in os.environ
-        assert not hasattr(settings, NAME)
+        NAME = 'FOO%s' % id(object())
+        NAME2 = 'FOO%s' % id(NAME)
+        assert NAME != NAME2
+        assert not NAME in os.environ and not NAME2 in os.environ
+        assert not hasattr(settings, NAME) and not hasattr(settings, NAME2)
 
-        # Test raising of error, and test not raising it.
-        assert_raises(EnvironmentError, get_config, NAME)
-        assert get_config(NAME, require=False) == None
+        try:
+            # Test raising of error, and test not raising it.
+            assert_raises(EnvironmentError, get_config, NAME)
+            assert get_config(NAME, require=False) == None
 
-        # Start by creating the value as a setting.
-        setattr(settings, NAME, 'foo')
-        assert get_config(NAME) == 'foo'
-        assert get_config(setting=NAME, env=False) == 'foo'
-        assert_raises(EnvironmentError, get_config, env=NAME)
+            # Start with only the environment variable set.
+            os.environ[NAME] = 'bar'
+            assert get_config(NAME) == 'bar'
+            assert get_config(env=NAME, setting=False) == 'bar'
+            assert_raises(EnvironmentError, get_config, setting=NAME, env=False)
 
-        # Set the value in the environment as well.
-        os.environ[NAME] = 'bar'
-        # Ensure that settings take precedence.
-        assert get_config(NAME) == 'foo'
-        # Two different names can be supplied.
-        assert not hasattr(settings, NAME*2)  # Must not yet exist.
-        assert get_config(setting=NAME*2, env=NAME) == 'bar'
+            # Set the value in the environment as well.
+            setattr(settings, NAME, 'foo')
+            # Ensure that settings take precedence.
+            assert get_config(NAME) == 'foo'
+            # Two different names can be supplied.
+            assert not hasattr(settings, NAME2)
+            assert get_config(setting=NAME2, env=NAME) == 'bar'
 
-        # Unset the value in the settings. Note that due to the way
-        # Django's settings object works, we need to access ``_wrapped``.
-        delattr(settings._wrapped, NAME)
-        assert get_config(NAME) == 'bar'
-        assert get_config(env=NAME, setting=False) == 'bar'
-        assert_raises(EnvironmentError, get_config, setting=NAME, env=False)
+            # Unset the env variable, now with only the setting.
+            del os.environ[NAME]
+            assert get_config(NAME) == 'foo'
+            assert get_config(setting=NAME, env=False) == 'foo'
+            assert_raises(EnvironmentError, get_config, env=NAME)
+        finally:
+            if NAME in os.environ:
+                del os.environ[NAME]
+            # Due to the way Django's settings object works, we need
+            # to access ``_wrapped`` to remove the setting.
+            delattr(settings._wrapped, NAME)
 
     def test_equality(self):
         """Test the ``unique`` method used to determine equality.
@@ -85,6 +93,16 @@ class TestFilter:
         assert f1 != g
 
 
+def reset():
+    """Reset the filter module, so that different tests don't affect
+    each other.
+    """
+    from django_assets import filter
+    filter._FILTERS = {}
+    filter.load_builtin_filters()
+
+
+@with_setup(reset)
 def test_register_filter():
     """Test registration of custom filters.
     """
@@ -103,6 +121,7 @@ def test_register_filter():
     assert_raises(KeyError, register_filter, MyFilter)
 
 
+@with_setup(reset)
 def test_get_filter():
     """Test filter resolving.
     """
