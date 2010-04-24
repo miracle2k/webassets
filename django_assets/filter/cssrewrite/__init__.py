@@ -40,6 +40,10 @@ class CSSRewriteFilter(Filter):
     individually to each source file before they are merged.
 
     No configuration is necessary.
+
+    TODO: If we want to support inline assets, this needs to be
+    updated to optionally convert URLs to absolute ones based on
+    MEDIA_URL.
     """
 
     name = 'cssrewrite'

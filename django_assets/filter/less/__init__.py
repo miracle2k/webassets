@@ -53,6 +53,7 @@ class LessFilter(Filter):
 
         http://groups.google.com/group/lesscss/browse_thread/thread/3aed033a44c51b4c/b713148afde87e81
         """
+        # TODO: Use NamedTemporaryFile.
         outtemp_name = os.path.join(tempfile.gettempdir(),
                                     'assets_temp_%d.css' % int(time.time()))
 

@@ -311,7 +311,7 @@ def bundle_to_joblist(bundle, allow_debug=True):
 
     TODO: Consider that the tree:
         csspack (files)
-            sass (files
+            sass (files)
         csspack (files)
     could be more processed with less filter-applications as
         "csspack(files + sass(files) + files))"
