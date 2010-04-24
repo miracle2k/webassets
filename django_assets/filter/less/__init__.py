@@ -1,7 +1,6 @@
 import time
 import os, subprocess
 import tempfile
-import socket
 
 from django_assets.filter import Filter
 
@@ -54,43 +53,30 @@ class LessFilter(Filter):
 
         http://groups.google.com/group/lesscss/browse_thread/thread/3aed033a44c51b4c/b713148afde87e81
         """
-        # Use for debugging
-        LESS_DAEMON = self.get_config('ASSETS_LESS_DAEMON', env=False, require=False)
-        if LESS_DAEMON:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect(LESS_DAEMON)
-            file = s.makefile('rw')
-            try:
-                file.write('%s\n' % source_path)
-                file.flush()
-                out.write(file.read())
-            finally:
-                s.close()
-        else:
-            outtemp_name = os.path.join(tempfile.gettempdir(),
-                                        'assets_temp_%d.css' % int(time.time()))
+        outtemp_name = os.path.join(tempfile.gettempdir(),
+                                    'assets_temp_%d.css' % int(time.time()))
 
-            proc = subprocess.Popen([self.less, source_path, outtemp_name],
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    # shell: necessary on windows to execute
-                                    # ruby files, but doesn't work on linux.
-                                    shell=(os.name == 'nt'))
-            stdout, stderr = proc.communicate()
+        proc = subprocess.Popen([self.less, source_path, outtemp_name],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                # shell: necessary on windows to execute
+                                # ruby files, but doesn't work on linux.
+                                shell=(os.name == 'nt'))
+        stdout, stderr = proc.communicate()
 
-            # less only writes to stdout, as noted in the method doc, but
-            # check everything anyway.
-            if stdout or stderr or proc.returncode != 0:
-                if os.path.exists(outtemp_name):
-                    os.unlink(outtemp_name)
-                raise Exception(('less: subprocess had error: stderr=%s, '+
-                                'stdout=%s, returncode=%s') % (
-                                                stderr, stdout, proc.returncode))
-
-            outtemp = open(outtemp_name)
-            try:
-                out.write(outtemp.read())
-            finally:
-                outtemp.close()
-
+        # less only writes to stdout, as noted in the method doc, but
+        # check everything anyway.
+        if stdout or stderr or proc.returncode != 0:
+            if os.path.exists(outtemp_name):
                 os.unlink(outtemp_name)
+            raise Exception(('less: subprocess had error: stderr=%s, '+
+                            'stdout=%s, returncode=%s') % (
+                                            stderr, stdout, proc.returncode))
+
+        outtemp = open(outtemp_name)
+        try:
+            out.write(outtemp.read())
+        finally:
+            outtemp.close()
+
+            os.unlink(outtemp_name)
