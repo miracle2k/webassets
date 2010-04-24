@@ -1,6 +1,20 @@
-from nose.tools import assert_raises
+from os import path
+import shutil
+import tempfile
+
+from nose.tools import assert_raises, assert_equals
+
 from django_assets import Bundle
+from django_assets.bundle import BuildError
 from django_assets.filter import Filter
+from django_assets.conf import settings
+
+
+# If you change a setting during one of these tests, make sure it is
+# listed here, so you're change will be reverted on test teardown.
+RESETTABLE_SETTINGS = ('ASSETS_AUTO_CREATE', 'ASSETS_UPDATER', 'DEBUG',
+                       'ASSETS_DEBUG', 'ASSETS_EXPIRE', 'MEDIA_URL',
+                       'MEDIA_ROOT',)
 
 
 def test_filter_assign():
@@ -51,7 +65,7 @@ def test_filter_assign():
 
     # Changing filters after bundle creation is no problem, either.
     b = Bundle()
-    assert b.filters is None
+    assert b.filters is ()
     b.filters = TestFilter
     _assert(b.filters, 1)
 
@@ -59,3 +73,346 @@ def test_filter_assign():
     old_filters = b.filters
     b.filters = b.filters
     assert b.filters == old_filters
+
+
+class BuildTestHelper:
+    """Provides some basic helpers for tests that want to simulate
+    building bundles.
+    """
+
+    default_files = {'in1': 'A', 'in2': 'B', 'in3': 'C', 'in4': 'D'}
+
+    def setup(self):
+        self.old_settings = {}
+        for name in RESETTABLE_SETTINGS:
+            self.old_settings[name] = getattr(settings, name)
+
+        settings.MEDIA_ROOT = self.dir_created = tempfile.mkdtemp()
+
+        # Some generic files to be used by simple tests
+        self.create_files(self.default_files)
+
+    def teardown(self):
+        shutil.rmtree(self.dir_created)
+
+        # Reset settings that we may have changed.
+        for key, value in self.old_settings.items():
+            setattr(settings, key, value)
+
+    def create_files(self, files):
+        """Helper that allows to quickly create a bunch of files in
+        the media directory of the current test run.
+        """
+        for name, data in files.items():
+            f = open(path.join(settings.MEDIA_ROOT, name), 'w')
+            f.write(data)
+            f.close()
+
+    def exists(self, name):
+        """Ensure the given file exists within the current test run's
+        media directory.
+        """
+        return path.exists(path.join(settings.MEDIA_ROOT, name))
+
+    def get(self, name):
+        """Return the given file's contents.
+        """
+        return open(path.join(settings.MEDIA_ROOT, name)).read()
+
+
+class TestBuild(BuildTestHelper):
+    """Test building various bundles structures.
+    """
+
+    def test_simple(self):
+        """Simple bundle, no subbundles, no filters."""
+        Bundle('in1', 'in2', output='out').build()
+        assert self.get('out') == 'A\nB'
+
+    def test_nested(self):
+        """A nested bundle."""
+        Bundle('in1', Bundle('in3', 'in4'), 'in2', output='out').build()
+        assert self.get('out') == 'A\nC\nD\nB'
+
+    def test_no_output_error(self):
+        """A bundle without an output configured cannot be built.
+        """
+        assert_raises(BuildError, Bundle('in1', 'in2').build)
+
+    def test_empty_bundle_error(self):
+        """An empty bundle cannot be built.
+        """
+        assert_raises(BuildError, Bundle(output='out').build)
+        # That is true even for child bundles
+        assert_raises(BuildError, Bundle(Bundle(), 'in1', output='out').build)
+
+
+class ReplaceFilter(Filter):
+    """Filter that does a simple string replacement.
+    """
+
+    def __init__(self, input=(None, None), output=(None, None)):
+        self._input_from, self._input_to = input
+        self._output_from, self._output_to = output
+
+    def input(self, in_, out, **kw):
+        if self._input_from:
+            out.write(in_.read().replace(self._input_from, self._input_to))
+        else:
+            out.write(in_.read())
+
+    def output(self, in_, out, **kw):
+        if self._output_from:
+            out.write(in_.read().replace(self._output_from, self._output_to))
+        else:
+            out.write(in_.read())
+
+    def unique(self):
+        # So we can apply this filter multiple times
+        return self._input_from, self._output_from
+
+
+class AppendFilter(Filter):
+    """Filter that simply appends stuff.
+    """
+
+    def __init__(self, input=None, output=None):
+        self._input = input
+        self._output = output
+
+    def input(self, in_, out, **kw):
+        out.write(in_.read())
+        if self._input:
+            out.write(self._input)
+
+    def output(self, in_, out, **kw):
+        out.write(in_.read())
+        if self._output:
+            out.write(self._output)
+
+    # Does not define unique(), can only be applied once!
+
+
+class TestFilters(BuildTestHelper):
+    """Test filter application during building.
+    """
+
+    default_files = {'1': 'foo', '2': 'foo'}
+
+    def test_input_before_output(self):
+        """Ensure that input filters are applied, and that they are applied
+        before an output filter gets to say something.
+        """
+        Bundle('1', '2', output='out', filters=ReplaceFilter(
+            input=('foo', 'input was here'), output=('foo', 'output was here'))).build()
+        assert self.get('out') == 'input was here\ninput was here'
+
+    def test_output_after_input(self):
+        """Ensure that output filters are applied, and that they are applied
+        after input filters did their job.
+        """
+        Bundle('1', '2', output='out', filters=ReplaceFilter(
+            input=('foo', 'bar'), output=('bar', 'output was here'))).build()
+        assert self.get('out') == 'output was here\noutput was here'
+
+    def test_input_before_output_nested(self):
+        """Ensure that when nested bundles are used, a parent bundles
+        input filters are applied before a child bundles output filter.
+        """
+        child_bundle_with_output_filter = Bundle('1', '2',
+                filters=ReplaceFilter(output=('foo', 'output was here')))
+        parent_bundle_with_input_filter = Bundle(child_bundle_with_output_filter,
+                output='out',
+                filters=ReplaceFilter(input=('foo', 'input was here')))
+        parent_bundle_with_input_filter.build()
+        assert self.get('out') == 'input was here\ninput was here'
+
+    def test_input_before_output_nested_merged(self):
+        """Same thing as above - a parent input filter is passed done -
+        but this time, ensure that duplicate filters are not applied twice.
+        """
+        child_bundle = Bundle('1', '2', filters=AppendFilter(input='-child'))
+        parent_bundle = Bundle(child_bundle, output='out',
+                               filters=AppendFilter(input='-parent'))
+        parent_bundle.build()
+        assert self.get('out') == 'foo-child\nfoo-child'
+
+    def test_no_filters_option(self):
+        """If ``no_filters`` is given, then filters are simply not applied.
+        """
+        child_filter = AppendFilter(output='-child:out', input='-child:in')
+        parent_filter = AppendFilter(output='-parent:out', input='-parent:in')
+        Bundle('1', Bundle('2', filters=child_filter),
+               filters=parent_filter, output='out').build(no_filters=True)
+        assert self.get('out') == 'foo\nfoo'
+
+
+class TestUpdateAndCreate(BuildTestHelper):
+
+    def setup(self):
+        BuildTestHelper.setup(self)
+
+        class CustomUpdater(object):
+            allow = True
+            def __call__(self, *a, **kw):
+                return self.allow
+        self.updater = CustomUpdater()
+        settings.ASSETS_UPDATER = self.updater
+
+    def test_no_auto_create(self):
+        """If auto create is disabled, an error is raised.
+        """
+        settings.ASSETS_AUTO_CREATE = False
+        assert_raises(BuildError, Bundle('in1', output='out').build)
+        # However, it works fine if force is used
+        Bundle('in1', output='out').build(force=True)
+
+    def test_updater_says_no(self):
+        """If the updater says 'no change', then we never do a build.
+        """
+        self.create_files({'out': 'old_value'})
+        self.updater.allow = False
+        Bundle('in1', output='out').build()
+        assert self.get('out') == 'old_value'
+
+        # force=True overrides the updater
+        Bundle('in1', output='out').build(force=True)
+        assert self.get('out') == 'A'
+
+    def test_updater_says_yes(self):
+        """Test the updater saying we need to  update.
+        """
+        self.create_files({'out': 'old_value'})
+        self.updater.allow = True
+        Bundle('in1', output='out').build()
+        assert self.get('out') == 'A'
+
+
+class BaseUrlsTester(BuildTestHelper):
+    """Test the url generation.
+    """
+
+    default_files = {}
+
+    def setup(self):
+        BuildTestHelper.setup(self)
+
+        settings.ASSETS_EXPIRE = False
+
+        self.files_built = files_built = []
+        self.no_filter_values = no_filter_values = []
+        class MockBundle(Bundle):
+            def build(self, *a, **kw):
+                if not self.output:
+                    raise BuildError('no output')
+                files_built.append(self.output)
+                no_filter_values.append(kw.get('no_filters', False))
+        self.MockBundle = MockBundle
+
+
+class TestUrlsProduction(BaseUrlsTester):
+    """Test url generation in production mode - everything is always
+    built.
+    """
+
+    def test_simple(self):
+        bundle = self.MockBundle('a', 'b', 'c', output='out')
+        assert bundle.urls() == ['/out']
+        assert len(self.files_built) == 1
+
+    def test_nested(self):
+        bundle = self.MockBundle('a', self.MockBundle('d', 'childout'), 'c', output='out')
+        assert bundle.urls() == ['/out']
+        assert len(self.files_built) == 1
+
+    def test_container_bundle(self):
+        """A bundle that has only sub bundles and does not specify
+        an output target of it's own will simply build it's child
+        bundles separately.
+        """
+        bundle = self.MockBundle(
+            self.MockBundle('a', output='child1'),
+            self.MockBundle('a', output='child2'))
+        assert bundle.urls() == ['/child1', '/child2']
+        assert len(self.files_built) == 2
+
+    def test_container_bundle_with_filters(self):
+        """If a bundle has no output, but filters, those filters are
+        passed down to each sub-bundle.
+        """
+        # TODO: This still needs to be implemented, but I'm unsure
+        # right now if it's really the behavior I want.
+        raise NotImplementedError()
+
+    def test_files_require_build(self):
+        """A bundle that has files of it's own needs to specify an
+        output target.
+
+        TODO: It wouldn't necessary have to be this way; we could
+        source the files directly, so long as no filters are given.
+        The only case that we shouldn't allow to work is when a
+        bundle has both filters defined, and has file contents. In
+        that, an error should be raised because we can't apply the
+        filter to those files.
+        """
+        bundle = self.MockBundle('a', self.MockBundle('d', 'childout'))
+        assert_raises(BuildError, bundle.urls)
+
+
+class TestUrlsDebug(BaseUrlsTester):
+    """Test url generation in debug mode."""
+
+    def setup(self):
+        BaseUrlsTester.setup(self)
+
+        settings.DEBUG = True
+        settings.MEDIA_URL = ''
+
+    def test_simple(self):
+        bundle = self.MockBundle('a', 'b', 'c', output='out')
+        assert bundle.urls() == ['/a', '/b', '/c']
+        assert len(self.files_built) == 0
+
+    def test_nested(self):
+        bundle = self.MockBundle('a', self.MockBundle('1', '2', output='childout'), 'c', output='out')
+        assert bundle.urls() == ['/a', '/1', '/2', '/c']
+        assert len(self.files_built) == 0
+
+    def test_root_bundle_merge(self):
+        """The root bundle says it wants to be merged even in debug mode.
+        """
+        bundle = self.MockBundle('1', '2', output='childout', debug='merge')
+        assert_equals(bundle.urls(), ['/childout'])
+        assert len(self.files_built) == 1
+        assert self.no_filter_values == [True]
+
+    def test_child_bundle_merge(self):
+        """A child bundle says it wants to be merged even when in debug mode.
+        """
+        bundle = self.MockBundle('a',
+                                 self.MockBundle('1', '2', output='childout', debug='merge'),
+                                 'c', output='out')
+        assert_equals(bundle.urls(), ['/a', '/childout', '/c'])
+        assert len(self.files_built) == 1
+        assert self.no_filter_values == [True]
+
+    def test_child_bundle_filter(self):
+        """A child bundle says it not only wants to be merged, but also
+        have the filters applied, when in debug mode.
+        """
+        bundle = self.MockBundle('a',
+                                 self.MockBundle('1', '2', output='childout', debug=False),
+                                 'c', output='out')
+        assert_equals(bundle.urls(), ['/a', '/childout', '/c'])
+        assert len(self.files_built) == 1
+        assert self.no_filter_values == [False]
+
+    def test_default_to_merge(self):
+        """The global ASSETS_DEBUG setting tells us to at least merge in
+        debug mode.
+        """
+        settings.ASSETS_DEBUG = 'merge'
+        bundle = self.MockBundle('1', '2', output='childout')
+        assert_equals(bundle.urls(), ['/childout'])
+        assert len(self.files_built) == 1
+        assert self.no_filter_values == [True]

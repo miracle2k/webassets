@@ -34,7 +34,7 @@ class YUIBase(Filter):
         else:
             self.java = 'java'
 
-    def apply(self, _in, out):
+    def output(self, _in, out, **kw):
         proc = subprocess.Popen(
             [self.java, '-jar', self.yui, '--type=%s' % self.mode],
             # we cannot use the in/out streams directly, as they might be

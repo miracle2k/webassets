@@ -65,7 +65,7 @@ class AssetsExtension(Extension):
         files = [registry.get(f) or f for f in files]
 
         result = u""
-        urls = process(Bundle(*files, **{'output': output, 'filters': filter}))
+        urls = Bundle(*files, **{'output': output, 'filters': filter}).urls()
         for f in urls:
             result += caller(f)
         return result

@@ -141,10 +141,6 @@ integration.
 	   the django-assets compiler runs, so that not two steps are required
 	   to update ones assets.
 
-Right now, our filters can either be a source or a target filter; it's
-probably better design if a single filter could act as BOTH source and
-target filter at the same time.
-
 Some filters, like the less filter, cannot work with an input stream,
 but only with the source files directly. To work, they thus need to be
 the first ones to be applied. There should be a way for filters to declare

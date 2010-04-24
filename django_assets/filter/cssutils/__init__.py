@@ -40,7 +40,7 @@ class CSSUtilsFilter(Filter):
             # fail when the settings object is accessed. That's ok though.
             pass
 
-    def apply(self, _in, out):
+    def output(self, _in, out, **kw):
         sheet = self.cssutils.parseString(_in.read())
         self.cssutils.ser.prefs.useMinified()
         out.write(sheet.cssText)

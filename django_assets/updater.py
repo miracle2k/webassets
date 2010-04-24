@@ -14,6 +14,9 @@ def get_updater(name=None):
     if not name:
         name = settings.ASSETS_UPDATER
 
+    if callable(name):
+        return name
+
     try:
         return {
             None: update_never,

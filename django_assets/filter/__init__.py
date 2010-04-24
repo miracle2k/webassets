@@ -112,9 +112,17 @@ class Filter(object):
         to your current instance. This will allow your filter to be applied
         multiple times with differing values for those options.
         """
+        return False
 
     def id(self):
-        return hash((id(self.__class__), self.unique(),)) or id(self)
+        """Unique identifer for the filter instance.
+        """
+        # Use either class + unique instance data, or just Python's
+        # builtin object id.
+        unique = self.unique()
+        if unique is not None:
+            return hash((id(self.__class__), self.unique(),))
+        return id(self)
 
     def setup(self):
         """Overwrite this to have the filter to initial setup work,
@@ -125,10 +133,21 @@ class Filter(object):
         dependencies are not matched.
         """
 
-    def apply(self, _in, out):
+    def input(self, _in, out):
         """Implement your actual filter here.
+
+        This will be called for every source file.
         """
-        raise NotImplementError()
+
+    def output(self, _in, out):
+        """Implement your actual filter here.
+
+        This will be called for every output file.
+        """
+
+    # We just declared those for demonstration purposes
+    del input
+    del output
 
 
 class CallableFilter(Filter):
@@ -142,7 +161,7 @@ class CallableFilter(Filter):
     def unique(self):
         return self.callable
 
-    def apply(self, _in, out):
+    def output(self, _in, out):
         return self.callable(_in, out)
 
 
@@ -157,6 +176,8 @@ def register_filter(f):
         raise ValueError('Must have a name')
     if f.name in _FILTERS:
         raise KeyError('Filter with name %s already registered' % f.name)
+    if not hasattr(f, 'input') and not hasattr(f, 'output'):
+        raise TypeError('Filter lacks both an input() and output() method: %s' % f)
     _FILTERS[f.name] = f
 
 

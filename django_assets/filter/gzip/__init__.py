@@ -18,7 +18,7 @@ class GZipFilter(Filter):
 
     name = 'gzip'
 
-    def apply(self, _in, out):
+    def output(self, _in, out, **kw):
         zfile = gzip.GzipFile(mode='wb', compresslevel=6, fileobj=out)
         try:
             zfile.write(_in.read())

@@ -44,7 +44,7 @@ class LessFilter(Filter):
     def __init__(self):
         self.less = self.get_config('LESS_PATH', what='less binary')
 
-    def apply(self, _in, out, source_path, output_path):
+    def input(self, _in, out, source_path, output_path):
         """Less currently doesn't take data from stdin, and doesn't allow
         us from stdout either. Neither does it return a proper non-0 error
         code when an error occurs, or even write to stderr (stdout instead)!

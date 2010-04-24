@@ -30,7 +30,6 @@ except ImportError:
     # Since Django #12295, custom templatetags are no longer mapped into
     # the Django namespace. Support both versions.
     AssetsNodeMapped = None
-from django_assets.merge import process
 from django_assets import registry, Bundle
 
 try:
@@ -72,7 +71,7 @@ class Command(BaseCommand):
     )
     help = 'Manage assets.'
     args = 'subcommand'
-    requires_model_validation = True
+    requires_model_validation = False
 
     def handle(self, *args, **options):
         if len(args) == 0:
@@ -111,7 +110,7 @@ class Command(BaseCommand):
             if options.get('verbosity') >= 1:
                 print "Building asset: %s" % bundle.output
             try:
-                process(bundle, force=True, allow_debug=False)
+                bundle.build(force=True)
             except ValueError, e:
                 # TODO: It would be cool if we could only capture those
                 # exceptions actually related to merging.

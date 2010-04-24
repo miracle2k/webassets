@@ -17,7 +17,7 @@ class JSPackerFilter(Filter):
 
     name = 'jspacker'
 
-    def apply(self, _in, out):
+    def output(self, _in, out, **kw):
         out.write(JavaScriptPacker().pack(_in.read(),
                                           compaction=False,
                                           encoding=62,

@@ -70,7 +70,7 @@ class TestFilter:
         """
         class TestFilter(Filter):
             def unique(self):
-                return getattr(self, 'token', None)
+                return getattr(self, 'token', 'bar')
         f1 = TestFilter();
         f2 = TestFilter();
 
@@ -108,17 +108,26 @@ def test_register_filter():
     """
     # Needs to be a ``Filter`` subclass.
     assert_raises(ValueError, register_filter, object)
+
     # A name is required.
     class MyFilter(Filter):
         name = None
+        def output(self, *a, **kw): pass
     assert_raises(ValueError, register_filter, MyFilter)
+
     # The same filter cannot be registered under multiple names.
     MyFilter.name = 'foo'
     register_filter(MyFilter)
     MyFilter.name = 'bar'
     register_filter(MyFilter)
+
     # But the same name cannot be registered multiple times.
     assert_raises(KeyError, register_filter, MyFilter)
+
+    # A filter needs to have at least one of the input or output methods.
+    class BrokenFilter(Filter):
+        name = 'broken'
+    assert_raises(TypeError, register_filter, BrokenFilter)
 
 
 @with_setup(reset)
@@ -139,4 +148,4 @@ def test_get_filter():
     assert id(get_filter(f)) == id(f)
 
     # Passing a lone callable will give us a a filter back as well.
-    assert hasattr(get_filter(lambda: None), 'apply')
+    assert hasattr(get_filter(lambda: None), 'output')
