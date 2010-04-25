@@ -59,6 +59,26 @@ When :doc:`using Jinja2 <jinja2>`, particular attention needs to be
 payed to ensuring that ``django-assets`` is able to load your templates.
 
 
+The watch daemon
+----------------
+
+The command:
+
+	$ ./manage.py assets watch
+
+or:
+
+	$ ./manage.py assets watch --parse-templates
+
+
+will start a daemon which picks up when once of your asset source files
+changes, and will rebuild the bundle it belongs to automatically.
+
+This can be useful during development if building is not instantaneous,
+and you are loosing valuable time when you have to wait for a build when
+you try to access the site.
+
+
 The Cache
 ---------
 
@@ -67,3 +87,6 @@ a cache (controlled by the :ref:`settings-ASSETS_CACHE` setting). This
 can significantly speed up rebuilding of your assets when you make changes
 to the source files, in particular if the filters you use are not the
 fastest.
+
+If you choose to build your assets during development, using both the watch
+daemon and the cache should make the experience pretty smooth.
