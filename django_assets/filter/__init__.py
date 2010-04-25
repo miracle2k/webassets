@@ -116,13 +116,12 @@ class Filter(object):
 
     def id(self):
         """Unique identifer for the filter instance.
+
+        Among other things, this is used as part of the caching key.
+        It should therefore not depend on instance data, but yield
+        the same result across multiple python invocations.
         """
-        # Use either class + unique instance data, or just Python's
-        # builtin object id.
-        unique = self.unique()
-        if unique is not None:
-            return hash((id(self.__class__), self.unique(),))
-        return id(self)
+        return hash((self.name, self.unique(),))
 
     def setup(self):
         """Overwrite this to have the filter to initial setup work,

@@ -5,6 +5,14 @@
 #       "merge"         merge the source files, but do not apply filters.
 ASSETS_DEBUG = True
 
+# Controls the caching behavior. The cache is only available if DEBUG=True,
+# so the value will be ignored in all other cases.
+# Possible values are:
+#       ``False``       do not use the cache
+#       ``True``        cache using default location: MEDIA_ROOT/.cache
+#       custom path     use the given directory as the cache directory
+ASSETS_CACHE = True
+
 # Controls when an already cached asset should be recreated.
 # Possible values are:
 #       ``False``       do not recreate automatically (use the management

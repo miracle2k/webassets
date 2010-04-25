@@ -31,7 +31,6 @@ There are three possible values:
   with some performance gains through fewer requests, while still giving
   you access to the raw source code.
 
-
 .. _settings-ASSETS_UPDATER:
 
 ASSETS_UPDATER
@@ -72,6 +71,17 @@ Possible values are ``'querystring'`` (*asset.js?1212592199*) and
 certain proxies or exotic browers, but will require you to rewrite those
 modified filenames via your webserver.
 
+.. _settings-ASSETS_DEBUG:
+
+ASSETS_DEBUG
+~~~~~~~~~~~~
+
+Controls the cache. The cache is only available during development mode
+(``DEBUG=True``), regardless of this setting.
+
+The possible values are ``False`` to disable the cache, ``True`` to use
+a default location inside ``MEDIA_ROOT`` (``./cache``), or a custom path
+of your choosing.
 
 ASSETS_JINJA2_EXTENSIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~

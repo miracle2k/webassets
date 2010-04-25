@@ -11,8 +11,8 @@ __all__ = ('BuildTestHelper',)
 # If you change a setting during one of these tests, make sure it is
 # listed here, so you're change will be reverted on test teardown.
 RESETTABLE_SETTINGS = ('ASSETS_AUTO_CREATE', 'ASSETS_UPDATER', 'DEBUG',
-                       'ASSETS_DEBUG', 'ASSETS_EXPIRE', 'MEDIA_URL',
-                       'MEDIA_ROOT',)
+                       'ASSETS_DEBUG', 'ASSETS_EXPIRE', 'ASSETS_CACHE',
+                       'MEDIA_URL', 'MEDIA_ROOT',)
 
 
 class BuildTestHelper:
@@ -33,6 +33,9 @@ class BuildTestHelper:
         self.create_files(self.default_files)
 
     def teardown(self):
+        # Make sure to use a separate attribute for security. We don't
+        # want to delete the actual media directory if a child class
+        # to call super() in setup().
         shutil.rmtree(self.dir_created)
 
         # Reset settings that we may have changed.

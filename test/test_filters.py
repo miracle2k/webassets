@@ -85,8 +85,8 @@ class TestFilter:
         # However, unique() is only per class; two different filter
         # classes will never match...
         class AnotherFilter(TestFilter):
-            # ...even if they have the same name.
-            name = TestFilter.name
+            # ...provided they have a different name.
+            name = TestFilter.name + '_2'
             def unique(self):
                 return 'foo'
         g = AnotherFilter()

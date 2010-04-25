@@ -4,3 +4,9 @@
 # empty Django settings object.
 from django.conf import settings
 settings.configure()
+
+
+def setup_package():
+    # Unless explicitely tested, we don't want to use the cache.
+    from django_assets.conf import settings
+    settings.ASSETS_CACHE = False

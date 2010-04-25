@@ -8,6 +8,7 @@ except:
     import StringIO
 import urlparse
 from django_assets.conf import settings
+from django_assets.cache import get_cache, make_key
 
 
 __all__ = ('FileHunk', 'MemoryHunk', 'make_url', 'merge', 'apply_filters')
@@ -37,7 +38,7 @@ class BaseHunk(object):
         raise NotImplementedError()
 
     def key(self):
-        raise NotImplementedError()
+        return make_key(self.data())
 
     def data(self):
         raise NotImplementedError()
@@ -49,9 +50,6 @@ class FileHunk(BaseHunk):
 
     def __init__(self, filename):
         self.filename = abspath(filename)
-
-    def key(self):
-        pass
 
     def mtime(self):
         pass
@@ -111,6 +109,18 @@ def apply_filters(hunk, filters, type, **kwargs):
     """
     assert type in ('input', 'output')
 
+    # Short-circuit
+    # TODO: This can actually be improved by looking at "type" and
+    # whether any of the existing filters handles this type.
+    if not filters:
+        return hunk
+
+    cache = get_cache()
+    key = make_key(hunk.key(), filters, type)
+    content = cache.get(key)
+    if not content in (False, None):
+        return MemoryHunk(content)
+
     kwargs = kwargs.copy()
     if hasattr(hunk, 'filename'):
         kwargs.setdefault('source_path', hunk.filename)
@@ -124,7 +134,23 @@ def apply_filters(hunk, filters, type, **kwargs):
             data = out
             data.seek(0)
 
-    return MemoryHunk(data.getvalue())
+    # Note that the key used to cache this hunk is different from the key
+    # the hunk will expose to subsequent merges, i.e. hunk.key() is always
+    # based on the actual content, and does not match the key used to cache
+    # the key. This latter key also includes information about for example
+    # the filters used.
+    #
+    # It wouldn't have to be this way. Hunk could subsequently expose their
+    # cache key through hunk.key(). This would work as well, but would be
+    # an inferior solution: Imagine a source file which receives
+    # non-substantial changes, in the sense that they do not affect the
+    # filter output, for example whitespace. If a hunk's key is the cache
+    # key, such a change would invalidate the caches for all subsequent
+    # operations on this hunk as well, even though it didn't actually change
+    # after all.
+    content = data.getvalue()
+    cache.set(key, content)
+    return MemoryHunk(content)
 
 
 def make_url(filename, expire=True):
