@@ -77,7 +77,7 @@ class Command(BaseCommand):
     requires_model_validation = False
 
     def handle(self, *args, **options):
-        valid_commands = ['rebuild', 'watch',]
+        valid_commands = ['rebuild', 'watch', 'clean',]
         if len(args) > 1:
             raise CommandError('Invalid number of subcommands passed: %s' %
                 ", ".join(args))
@@ -270,5 +270,22 @@ class Command(BaseCommand):
         except KeyboardInterrupt:
             pass
 
+    def CMD_clean(self, options, bundles):
+        """ Delete generated assets.
+        """
+        
+        try:
+            if options.get('verbosity') >= 1:
+                    print "Cleaning generated assets..."
+                    
+            for bundle in bundles:
+                file_path = abspath(bundle.output)
+                if os.path.exists(file_path):
+                    os.unlink(file_path)
+                    
+                    if options.get('verbosity') >= 1:
+                        print "Deleted asset: %s" % bundle.output
+        except KeyboardInterrupt:
+            pass
 
 from django.utils import autoreload
