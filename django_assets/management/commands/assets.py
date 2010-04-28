@@ -33,6 +33,7 @@ except ImportError:
     AssetsNodeMapped = None
 from django_assets import registry, Bundle
 from django_assets.merge import abspath
+from django_assets.bundle import BuildError
 
 try:
     import jinja2
