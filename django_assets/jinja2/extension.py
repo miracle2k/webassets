@@ -1,7 +1,6 @@
 from jinja2.ext import Extension
 from jinja2 import nodes
 from django_assets.conf import settings
-from django_assets.merge import process
 from django_assets.bundle import Bundle
 from django_assets import registry
 
@@ -65,7 +64,7 @@ class AssetsExtension(Extension):
         files = [registry.get(f) or f for f in files]
 
         result = u""
-        urls = process(Bundle(*files, **{'output': output, 'filters': filter}))
+        urls = Bundle(*files, **{'output': output, 'filters': filter}).urls()
         for f in urls:
             result += caller(f)
         return result

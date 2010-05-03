@@ -45,7 +45,7 @@ code:
              output='gen/packed.js')
 
 **Note:** You need to save the above in a file named ``assets.py`` in your
-project directory. True to Django style, ``django-assets`` will load
+application directory. True to Django style, ``django-assets`` will load
 and inspect those automatically, ensuring the ``register`` calls have
 executed. Otherwise, you'll need to make sure the registration happens
 yourself.

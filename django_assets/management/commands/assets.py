@@ -16,7 +16,8 @@ Usage:
         database will be replaced by the newly found assets.
 """
 
-import os, imp
+import os, sys, imp
+import time
 from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
@@ -30,8 +31,9 @@ except ImportError:
     # Since Django #12295, custom templatetags are no longer mapped into
     # the Django namespace. Support both versions.
     AssetsNodeMapped = None
-from django_assets.merge import process
 from django_assets import registry, Bundle
+from django_assets.merge import abspath
+from django_assets.bundle import BuildError
 
 try:
     import jinja2
@@ -59,7 +61,7 @@ else:
 def _shortpath(abspath):
     """Make an absolute path relative to the project's settings module,
     which would usually be the project directory."""
-    b = os.path.dirname(os.path.normpath(os.sys.modules[settings.SETTINGS_MODULE].__file__))
+    b = os.path.dirname(os.path.normpath(sys.modules[settings.SETTINGS_MODULE].__file__))
     p = os.path.normpath(abspath)
     return p[len(os.path.commonprefix([b, p])):]
 
@@ -72,50 +74,45 @@ class Command(BaseCommand):
     )
     help = 'Manage assets.'
     args = 'subcommand'
-    requires_model_validation = True
+    requires_model_validation = False
 
     def handle(self, *args, **options):
-        if len(args) == 0:
-            raise CommandError('You need to specify a subcommand')
-        elif len(args) > 1:
+        valid_commands = ['rebuild', 'watch', 'clean',]
+        if len(args) > 1:
             raise CommandError('Invalid number of subcommands passed: %s' %
                 ", ".join(args))
+        elif len(args) == 0:
+            raise CommandError('You need to specify a subcommand: %s' %
+                               ', '.join(valid_commands))
         else:
             command = args[0]
+            if not command in valid_commands:
+                raise CommandError(('Not a supported subcommand: %s. Valid '+
+                                   'choices are: %s') % (
+                                       command, ', '.join(valid_commands)))
+            command = getattr(self, 'CMD_%s' % command)
 
-        options['verbosity'] = int(options['verbosity'])
+        options['verbosity'] = int(options.get('verbosity', 1))
 
-        if command == 'rebuild':
-            # Start with the bundles that are defined in code.
-            if options.get('verbosity') > 1:
-                print "Looking for bundles defined in code..."
-            registry.autoload()
-            bundles = [v for k, v in registry.iter()]
+        # Find the user's assets.
+        # Start with the bundles that are defined in code.
+        if options.get('verbosity') > 1:
+            print "Looking for bundles defined in code..."
+        registry.autoload()
+        bundles = [v for k, v in registry.iter()]
 
-            # If requested, search the templates too.
-            if options.get('parse_templates'):
-                bundles += self._parse_templates(options)
-            else:
-                if not bundles:
-                    raise CommandError('No asset bundles were found. '
-                        'If you are defining assets directly within your '
-                        'templates, you want to use the --parse-templates '
-                        'option.')
-
-            self._rebuild_assets(options, bundles)
+        # If requested, search the templates too.
+        if options.get('parse_templates'):
+            bundles += self._parse_templates(options)
         else:
-            raise CommandError('Unknown subcommand: %s' % command)
+            if not bundles:
+                raise CommandError('No asset bundles were found. '
+                    'If you are defining assets directly within your '
+                    'templates, you want to use the --parse-templates '
+                    'option.')
 
-    def _rebuild_assets(self, options, bundles):
-        for bundle in bundles:
-            if options.get('verbosity') >= 1:
-                print "Building asset: %s" % bundle.output
-            try:
-                process(bundle, force=True, allow_debug=False)
-            except ValueError, e:
-                # TODO: It would be cool if we could only capture those
-                # exceptions actually related to merging.
-                print self.style.ERROR("Failed, error was: %s" % e)
+        # Run the correct subcommand
+        command(options, bundles)
 
     def _parse_templates(self, options):
         # build a list of template directories based on configured loaders
@@ -223,3 +220,72 @@ class Command(BaseCommand):
                 if options.get('verbosity') >= 2:
                     print self.style.NOTICE('\tfound asset: %s' % bundle.output)
                 found_assets.append(bundle)
+
+    def CMD_rebuild(self, options, bundles):
+        """Rebuild all assets now.
+        """
+        for bundle in bundles:
+            if options.get('verbosity') >= 1:
+                print "Building asset: %s" % bundle.output
+            try:
+                bundle.build(force=True)
+            except BuildError, e:
+                print self.style.ERROR("Failed, error was: %s" % e)
+
+    def CMD_watch(self, options, bundles):
+        """Watch assets for changes.
+
+        TODO: This should probably also restart when the code changes.
+        """
+        _mtimes = {}
+        _win = (sys.platform == "win32")
+        def check_for_changes():
+            changed_bundles = []
+            for bundle in bundles:
+                for filename in bundle.get_files():
+                    filename = abspath(filename)
+                    stat = os.stat(filename)
+                    mtime = stat.st_mtime
+                    if _win:
+                        mtime -= stat.st_ctime
+
+                    if _mtimes.get(filename, mtime) != mtime:
+                        changed_bundles.append(bundle)
+                        _mtimes[filename] = mtime
+                        break
+                    _mtimes[filename] = mtime
+            return changed_bundles
+
+        try:
+            if options.get('verbosity') >= 1:
+                print "Watching %d bundles for changes..." % len(bundles)
+
+            while True:
+                changed_bundles = check_for_changes()
+                for bundle in changed_bundles:
+                    print "Rebuilding asset: %s" % bundle.output
+                    bundle.build(force=True)
+                    print "Done."
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            pass
+
+    def CMD_clean(self, options, bundles):
+        """ Delete generated assets.
+        """
+        
+        try:
+            if options.get('verbosity') >= 1:
+                    print "Cleaning generated assets..."
+                    
+            for bundle in bundles:
+                file_path = abspath(bundle.output)
+                if os.path.exists(file_path):
+                    os.unlink(file_path)
+                    
+                    if options.get('verbosity') >= 1:
+                        print "Deleted asset: %s" % bundle.output
+        except KeyboardInterrupt:
+            pass
+
+from django.utils import autoreload

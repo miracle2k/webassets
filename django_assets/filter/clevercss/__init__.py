@@ -18,5 +18,5 @@ class CleverCSSFilter(Filter):
 		import clevercss
 		self.clevercss = clevercss
 
-	def apply(self, _in, out):
+	def output(self, _in, out, **kw):
 		out.write(self.clevercss.convert(_in.read()))

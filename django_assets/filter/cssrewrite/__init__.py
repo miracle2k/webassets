@@ -40,12 +40,16 @@ class CSSRewriteFilter(Filter):
     individually to each source file before they are merged.
 
     No configuration is necessary.
+
+    TODO: If we want to support inline assets, this needs to be
+    updated to optionally convert URLs to absolute ones based on
+    MEDIA_URL.
     """
 
     name = 'cssrewrite'
     is_source_filter = True
 
-    def apply(self, _in, out, source_path, output_path):
+    def input(self, _in, out, source_path, output_path):
         # get source and output path relative to media directory (they are
         # probably absolute paths, we need to work with them as MEDIA_URL
         # based urls (e.g. the following code will consider them absolute

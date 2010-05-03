@@ -5,15 +5,37 @@ Creating custom filters
 Creating custom filters can be easy, or very easy.
 
 Before we get to that though, it is first necessary to understand that
-there are two types of filters: *target filters* and *source filters*.
-Target filters are the default case; they are applied the the complete
-content after all the source files have been merged together. Source
-filters, on the other, are applied to each source file before the result
-is merged into the final target.
+there are two types of filters: *input filters* and *output filters*.
+Output filters applied after the complete content after all a bundle's
+contents have been merged together. Input filters, on the other, are
+applied to each source file after it is read from the disk. In the case
+of nested bundles, input filters will even be passed down so that the
+input filters of a parent bundle are applied before the output filter
+of a child bundle:
 
-The usual reason to write a source filter is because the filters work
-depends on knowledge of the input file path. This is true, for example,
-for the :ref:`cssrewrite <filters-cssrewrite>` filter. Another example
+.. code-block:: python
+
+    child_bundle = Bundle('file.css', filters='yui_css')
+    Bundle('child_bundle', filters='cssrewrite')
+
+In this example, because cssrewrite acts as an in put filter, what will
+essentially happen is:
+
+.. code-block:: python
+    yui_css(cssrewrite(file.css))
+
+To be even more specific, since a single filter can act as both an input
+and an output filter, the call chain will actually look something like
+this:
+
+.. code-block:: python
+    cssrewrite.output(yui_css.output((cssrewrite.input((yui_css.input(file.css)))))
+
+The usual reason to use an in put filter is that the filter's
+transformation depends on the source file's filename. For example,
+the :ref:`cssrewrite <filters-cssrewrite>` filter needs to know the
+location of the source file relative to the final output file, so it
+can properly update relative references. Another example
 are CSS converters like :ref:`less <filters-less>`, which support
 include mechanisms that work relative to the input filename.
 
@@ -27,7 +49,7 @@ arguments, an input stream and an output stream.
 
 .. code-block:: python
 
-    def noop(_in, out):
+    def noop(_in, out, **kw):
         out.write(_in.read())
 
 That's it! You can use this filter when defining your bundles:
@@ -54,7 +76,8 @@ filters, you need to combine them:
 Just make sure that the context variable ``my_filters`` is set to
 your function.
 
-Note that you currently cannot write source filters in this way.
+Note that you currently cannot write input filters in this way. Callables
+always act as output filters.
 
 
 The easy way
@@ -73,16 +96,30 @@ look something like this:
     class NoopFilter(Filter):
         name = 'noop'
 
-        def apply(self, _in, out):
+        def output(self, _in, out, **kwargs):
             out.write(_in.read())
 
-The ``apply`` function should look familiar. It's basically the callable
-you are already familiar with, simply pulled inside a class.
+        def input(self, _in, out, **kwargs):
+            out.write(_in.read())
+
+The ``output`` and ``input`` methods should look familiar. They're basically
+like the callable you are already familiar with, simply pulled inside a class.
 
 Class-based filters have a ``name``. If you do not set this, it will be
 automatically generated. In doing so, the class name is lowercased, and
 a potential ``Filter`` suffix is removed.
 
+The ``input`` method will be called for every source file, the ``output``
+method will be applied once after a bundle's contents have been concated.
+
+The ``kwargs`` you currently receive are:
+
+- ``source_path`` (only for ``input()``): The filename behind the ``in``
+  stream, though note that other input filters may already have transformed
+  it.
+
+- ``output_path``: The final output path that your filters work will
+  ultimatily end up in.
 
 Registering
 ~~~~~~~~~~~
@@ -101,22 +138,6 @@ After that, you can use the filter like you would any of the built-in ones:
 
     {% assets filter='jsmin,noop' ... %}
 
-
-Source filters
-~~~~~~~~~~~~~~
-
-Class-based filters can be *source filters*. Simply set the
-``is_source_filter`` attribute to ``True``. This will cause your filter
-to be applied once for each source file, and the signature of your
-``apply`` method changes to accept both the current source file processed,
-as well as the output path the file will ultimately be written to:
-
-.. code-block:: python
-
-    class FooFilter(Filter):
-        is_source_filter = True
-        def apply(self, _in, out, source_path, target_path):
-            ...
 
 Options
 ~~~~~~~

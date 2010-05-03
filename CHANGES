@@ -1,3 +1,10 @@
+0.3
+	- Fixed: YUI filter JAVA_HOME handling (Ian Langworth,
+	  Asheesh Laroia).
+	- 1.2 compatibility.
+	- Don't apply cache busting to source files in debug mode.
+	- Fixed ASSETS_AUTO_CREATE behavior.
+
 0.2 (2009-12-08)
 	- Compatibility with Django >= 1.0.
 	- Added some actual documentation.

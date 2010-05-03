@@ -12,7 +12,7 @@ __all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',)
 
 class NameGeneratingMeta(type):
     """Metaclass that will generate a "name" attribute based on the
-    class name if non is given.
+    class name if none is given.
     """
 
     def __new__(cls, name, bases, attrs):
@@ -112,9 +112,16 @@ class Filter(object):
         to your current instance. This will allow your filter to be applied
         multiple times with differing values for those options.
         """
+        return False
 
     def id(self):
-        return hash((id(self.__class__), self.unique(),)) or id(self)
+        """Unique identifer for the filter instance.
+
+        Among other things, this is used as part of the caching key.
+        It should therefore not depend on instance data, but yield
+        the same result across multiple python invocations.
+        """
+        return hash((self.name, self.unique(),))
 
     def setup(self):
         """Overwrite this to have the filter to initial setup work,
@@ -125,10 +132,21 @@ class Filter(object):
         dependencies are not matched.
         """
 
-    def apply(self, _in, out):
+    def input(self, _in, out):
         """Implement your actual filter here.
+
+        This will be called for every source file.
         """
-        raise NotImplementError()
+
+    def output(self, _in, out):
+        """Implement your actual filter here.
+
+        This will be called for every output file.
+        """
+
+    # We just declared those for demonstration purposes
+    del input
+    del output
 
 
 class CallableFilter(Filter):
@@ -142,7 +160,7 @@ class CallableFilter(Filter):
     def unique(self):
         return self.callable
 
-    def apply(self, _in, out):
+    def output(self, _in, out):
         return self.callable(_in, out)
 
 
@@ -157,6 +175,8 @@ def register_filter(f):
         raise ValueError('Must have a name')
     if f.name in _FILTERS:
         raise KeyError('Filter with name %s already registered' % f.name)
+    if not hasattr(f, 'input') and not hasattr(f, 'output'):
+        raise TypeError('Filter lacks both an input() and output() method: %s' % f)
     _FILTERS[f.name] = f
 
 
@@ -207,4 +227,3 @@ def load_builtin_filters():
                             continue
                         register_filter(attr)
 load_builtin_filters()
-del load_builtin_filters

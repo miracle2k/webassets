@@ -2,8 +2,17 @@
 template tags."""
 
 import imp
-from django.utils.importlib import import_module
 from bundle import Bundle
+
+try:
+  from django.utils.importlib import import_module
+except ImportError:
+  # django-1.0 compatibility
+  import warnings
+  warnings.warn('django-assets may not be compatible with Django versions '
+      'earlier than 1.1', DeprecationWarning)
+  def import_module(app):
+    return __import__(app, {}, {}, [app.split('.')[-1]]).__path__
 
 
 __all__ = ('register', 'RegistryError', 'get', 'reset', 'autoload',)

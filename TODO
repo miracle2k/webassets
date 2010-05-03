@@ -1,7 +1,3 @@
-Some tests are currently fragile since they are not idempotent. When 
-run a second time, they will fail. Try to reset the environment after
-every test.
-
 Should bundle names be namespacable, similar to Django urls? At the least,
 we probably want to encourage a convention of prefixing your bundle names
 with an id. Everything else would just intend to make this easier or more
@@ -144,10 +140,6 @@ integration.
 	*) Simply a way to cause the compass compiler to be invoked whenever
 	   the django-assets compiler runs, so that not two steps are required
 	   to update ones assets.
-
-Right now, our filters can either be a source or a target filter; it's
-probably better design if a single filter could act as BOTH source and
-target filter at the same time.
 
 Some filters, like the less filter, cannot work with an input stream,
 but only with the source files directly. To work, they thus need to be

@@ -2,7 +2,6 @@ import tokenize
 
 from django import template
 from django_assets.conf import settings
-from django_assets.merge import process
 from django_assets.bundle import Bundle
 from django_assets import registry
 
@@ -46,7 +45,7 @@ class AssetsNode(template.Node):
         bundle = self.resolve(context)
 
         result = u""
-        for url in process(bundle):
+        for url in bundle.urls():
             context.update({'ASSET_URL': url})
             try:
                 result += self.childnodes.render(context)
