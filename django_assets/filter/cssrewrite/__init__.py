@@ -47,7 +47,6 @@ class CSSRewriteFilter(Filter):
     """
 
     name = 'cssrewrite'
-    is_source_filter = True
 
     def input(self, _in, out, source_path, output_path):
         # get source and output path relative to media directory (they are
