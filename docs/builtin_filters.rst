@@ -28,6 +28,12 @@ Included Filters
 .. autoclass:: django_assets.filter.yui.YUICSSFilter
 
 
+``cssmin``
+~~~~~~~~~~~~
+
+.. autoclass:: django_assets.filter.cssmin.CSSMinFilter
+
+
 ``gzip``
 ~~~~~~~~
 

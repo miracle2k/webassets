@@ -1,9 +1,9 @@
 import os
 from nose.tools import assert_raises, with_setup
 from django.conf import settings
+from django_assets import Bundle
 from django_assets.filter import Filter, get_filter, register_filter
-
-# TODO: Add tests for all the builtin filters.
+from helpers import BuildTestHelper
 
 
 class TestFilter:
@@ -149,3 +149,24 @@ def test_get_filter():
 
     # Passing a lone callable will give us a a filter back as well.
     assert hasattr(get_filter(lambda: None), 'output')
+
+
+class TestBuiltinFilters(BuildTestHelper):
+    """
+    TODO: Add tests for all the builtin filters.
+    """
+
+    default_files = {'foo.css': """
+        h1  {
+            font-family: "Verdana"  ;
+            color: #FFFFFF;
+        }
+    """}
+
+    def test_cssmin(self):
+        try:
+            Bundle('foo.css', filters='cssmin', output='out.css').build()
+            assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
+        except EnvironmentError:
+            # cssmin is not installed, that's ok.
+            pass
