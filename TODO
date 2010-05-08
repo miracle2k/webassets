@@ -10,8 +10,6 @@ like "js" or "js-all". "admin:js" works much nicer.
 --parse-templates currently breaks on asset tags that refer to bundles
 by name.
 
-Allow callables that act as filters to be source filters.
-
 Since running an external tool is not uncommon for a filter, the Filter
 base class could support a helper function that simplifies the calls to
 the subprocess module.
@@ -119,7 +117,7 @@ One possible option: Adding a new method besides input/output - say, "open()".
 Only one such filter would be allowed to run.
 
 I was never really happy with the debug=False approach to solving
-the CSS compiler in debug mode problem. Maybe it should be up to 
+the CSS compiler in debug mode problem. Maybe it should be up to
 filters to decide if they need to run. There shouldn't really be
 a case in which, say, "less" should NOT compile. The output wouldn't
 be usable in the browser otherwise.
