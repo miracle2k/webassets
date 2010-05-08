@@ -60,3 +60,10 @@ Included Filters
 ~~~~~~~~
 
 .. autoclass:: django_assets.filter.less.LessFilter
+
+
+
+``compass``
+~~~~~~~~~~~
+
+.. autoclass:: django_assets.filter.compass.CompassFilter

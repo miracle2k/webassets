@@ -84,31 +84,6 @@ base classes which would provide a default set of filters; the idea is
 to make starting with django-assets easier, but I'm not entirely
 convinced it makes sense.
 
-Some thoughts on how to use django-assets with compass
-(http://wiki.github.com/chriseppstein/compass), and how to integrate the
-two (if that makes sense at all). Generally speaking, compass provides
-a command line util that is used a) as a management script (like
-django-admin.py) doing for example setup work, adding plugins to a project
-etc), and b) can compile the sass source files into CSS, and even compress
-them. it's this latter functionality that provides some of the functionality
-django-assets would be used for, but not all. compass alone doesn't provide
-for cache busting, nor can it merge the multiple CSS files it processes
-into a single output file. It therefore seems like there is room for
-integration.
-	*) The sass filter could be used to compile the source files, the
-	   compass command line utility would only be needed by the dev to
-	   get started with a new project, or adding plugins. The compass
-	   compiler is not used. Not sure if there are compass specific
-	   extensions yet that a pure sass can't compile.
-	*) A compass filter could run the compass command line utility, based
-	   on a given project file; and then expand itself into the individual
-	   source files given, which could then be further processed by other
-	   filters. Support for this "expanding of files" by filters needs to
-	   be implemented first.
-	*) Simply a way to cause the compass compiler to be invoked whenever
-	   the django-assets compiler runs, so that not two steps are required
-	   to update ones assets.
-
 Some filters, like the less filter, cannot work with an input stream,
 but only with the source files directly. To work, they thus need to be
 the first ones to be applied. There should be a way for filters to declare

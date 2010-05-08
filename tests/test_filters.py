@@ -170,3 +170,11 @@ class TestBuiltinFilters(BuildTestHelper):
         except EnvironmentError:
             # cssmin is not installed, that's ok.
             pass
+
+    def test_compass(self):
+        self.create_files({'foo.sass': '''h1
+          font-family: "Verdana"
+          color: #FFFFFF
+        '''})
+        Bundle('foo.sass', filters='compass', output='out.css').build()
+        assert self.get('out.css') == """/* line 1, in.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
