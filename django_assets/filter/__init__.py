@@ -209,21 +209,27 @@ def load_builtin_filters():
     import warnings
 
     current_dir = path.dirname(__file__)
-    for subdir in os.listdir(current_dir):
-        if path.exists(path.join(current_dir, subdir, '__init__.py')):
-            module_name = 'django_assets.filter.%s' % subdir
-            try:
-                module = __import__(module_name, {}, {}, [''])
-            except Exception, e:
-                warnings.warn('Error while loading builtin filter '
-                              'module \'%s\': %s' % (module_name, e))
-            else:
-                for attr_name in dir(module):
-                    attr = getattr(module, attr_name)
-                    if inspect.isclass(attr) and issubclass(attr, Filter):
-                        if not attr.name:
-                            # Skip if filter has no name; those are
-                            # considered abstract base classes.
-                            continue
-                        register_filter(attr)
+    for entry in os.listdir(current_dir):
+        if entry.endswith('.py'):
+            name = path.splitext(entry)[0]
+        elif path.exists(path.join(current_dir, entry, '__init__.py')):
+            name = entry
+        else:
+            continue
+
+        module_name = 'django_assets.filter.%s' % name
+        try:
+            module = __import__(module_name, {}, {}, [''])
+        except Exception, e:
+            warnings.warn('Error while loading builtin filter '
+                          'module \'%s\': %s' % (module_name, e))
+        else:
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                if inspect.isclass(attr) and issubclass(attr, Filter):
+                    if not attr.name:
+                        # Skip if filter has no name; those are
+                        # considered abstract base classes.
+                        continue
+                    register_filter(attr)
 load_builtin_filters()
