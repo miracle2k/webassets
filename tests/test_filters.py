@@ -150,6 +150,13 @@ def test_get_filter():
     # Passing a lone callable will give us a a filter back as well.
     assert hasattr(get_filter(lambda: None), 'output')
 
+    # Arguments passed to get_filter are used for instance creation.
+    assert get_filter('sass', scss=True).use_scss == True
+    # However, this is not allowed when a filter instance is passed directly,
+    # or a callable object.
+    assert_raises(AssertionError, get_filter, f, 'test')
+    assert_raises(AssertionError, get_filter, lambda: None, 'test')
+
 
 class TestBuiltinFilters(BuildTestHelper):
     """

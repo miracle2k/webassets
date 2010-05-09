@@ -180,14 +180,18 @@ def register_filter(f):
     _FILTERS[f.name] = f
 
 
-def get_filter(f):
+def get_filter(f, *args, **kwargs):
     """Resolves ``f`` to a filter instance.
 
     Different ways of specifying a filter are supported, for example by
     giving the class, or a filter name.
+
+    *args and **kwargs are passed along to the filter when it's
+    instantiated.
     """
     if isinstance(f, Filter):
         # Don't need to do anything.
+        assert not args and not kwargs
         return f
     elif isinstance(f, basestring):
         if f in _FILTERS:
@@ -197,11 +201,12 @@ def get_filter(f):
     elif inspect.isclass(f) and issubclass(f, Filter):
         klass = f
     elif callable(f):
+        assert not args and not kwargs
         return CallableFilter(f)
     else:
         raise ValueError('Unable to resolve to a filter: %s' % f)
 
-    return klass()
+    return klass(*args, **kwargs)
 
 
 def load_builtin_filters():
