@@ -62,6 +62,17 @@ Included Filters
 .. autoclass:: django_assets.filter.less.LessFilter
 
 
+``sass``
+~~~~~~~~
+
+.. autoclass:: django_assets.filter.sass.SassFilter
+
+
+``scss``
+~~~~~~~~
+
+.. autoclass:: django_assets.filter.sass.SCSSFilter
+
 
 ``compass``
 ~~~~~~~~~~~

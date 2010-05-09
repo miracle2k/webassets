@@ -156,12 +156,17 @@ class TestBuiltinFilters(BuildTestHelper):
     TODO: Add tests for all the builtin filters.
     """
 
-    default_files = {'foo.css': """
-        h1  {
-            font-family: "Verdana"  ;
-            color: #FFFFFF;
-        }
-    """}
+    default_files = {
+        'foo.css': """
+            h1  {
+                font-family: "Verdana"  ;
+                color: #FFFFFF;
+            }
+        """,
+        'foo.sass': '''h1
+            font-family: "Verdana"
+            color: #FFFFFF
+        '''}
 
     def test_cssmin(self):
         try:
@@ -172,9 +177,16 @@ class TestBuiltinFilters(BuildTestHelper):
             pass
 
     def test_compass(self):
-        self.create_files({'foo.sass': '''h1
-          font-family: "Verdana"
-          color: #FFFFFF
-        '''})
         Bundle('foo.sass', filters='compass', output='out.css').build()
         assert self.get('out.css') == """/* line 1, in.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
+
+    def test_sass(self):
+        Bundle('foo.sass', filters='sass', output='out.css').build()
+        print repr(self.get('out.css'))
+        assert self.get('out.css') == """@media -sass-debug-info{filename{font-family:}line{font-family:\\000031}}\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
+
+    def test_scss(self):
+        # SCSS is a CSS superset, should be able to compile the CSS file just fine
+        Bundle('foo.css', filters='scss', output='out.css').build()
+        print repr(self.get('out.css'))
+        assert self.get('out.css') == """@media -sass-debug-info{filename{font-family:}line{font-family:\\000032}}\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
