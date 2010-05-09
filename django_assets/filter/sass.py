@@ -33,10 +33,12 @@ class SassFilter(Filter):
                                 shell=(os.name == 'nt'))
         stdout, stderr = proc.communicate(_in.read())
 
-        if stderr or proc.returncode != 0:
+        if proc.returncode != 0:
             raise Exception(('sass: subprocess had error: stderr=%s, '+
                             'stdout=%s, returncode=%s') % (
                                             stderr, stdout, proc.returncode))
+        elif stderr:
+            print "sass filter has warnings:", stderr
 
         out.write(stdout)
 
