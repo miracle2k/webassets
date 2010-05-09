@@ -188,10 +188,20 @@ class TestBuiltinFilters(BuildTestHelper):
         assert self.get('out.css') == """/* line 1, in.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
 
     def test_sass(self):
-        Bundle('foo.sass', filters='sass', output='out.css').build()
-        assert self.get('out.css') == """@media -sass-debug-info{filename{font-family:}line{font-family:\\000031}}\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
+        sass = get_filter('sass', debug_info=False)
+        Bundle('foo.sass', filters=sass, output='out.css').build()
+        assert self.get('out.css') == """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
+
+    def test_sass_import(self):
+        """Test referencing other files in sass.
+        """
+        sass = get_filter('sass', debug_info=False)
+        self.create_files({'import-test.sass': '''@import foo.sass'''})
+        Bundle('import-test.sass', filters=sass, output='out.css').build()
+        assert self.get('out.css') == """/* line 1, ./foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
 
     def test_scss(self):
         # SCSS is a CSS superset, should be able to compile the CSS file just fine
-        Bundle('foo.css', filters='scss', output='out.css').build()
-        assert self.get('out.css') == """@media -sass-debug-info{filename{font-family:}line{font-family:\\000032}}\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
+        scss = get_filter('scss', debug_info=False)
+        Bundle('foo.css', filters=scss, output='out.css').build()
+        assert self.get('out.css') == """/* line 2 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
