@@ -182,11 +182,9 @@ class TestBuiltinFilters(BuildTestHelper):
 
     def test_sass(self):
         Bundle('foo.sass', filters='sass', output='out.css').build()
-        print repr(self.get('out.css'))
         assert self.get('out.css') == """@media -sass-debug-info{filename{font-family:}line{font-family:\\000031}}\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
 
     def test_scss(self):
         # SCSS is a CSS superset, should be able to compile the CSS file just fine
         Bundle('foo.css', filters='scss', output='out.css').build()
-        print repr(self.get('out.css'))
         assert self.get('out.css') == """@media -sass-debug-info{filename{font-family:}line{font-family:\\000032}}\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
