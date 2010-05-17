@@ -56,6 +56,12 @@ class CSSRewriteFilter(Filter):
         root = settings.MEDIA_ROOT
         if root and root[-1] != os.path.sep:
             root += os.path.sep  # so it will be matched by commonprefix()
+        # To make commonprefix() work properly in all cases, make sure we
+        # remove stuff like ../ from all paths.
+        output_path = os.path.normpath(output_path)
+        source_path = os.path.normpath(source_path)
+        root = os.path.normpath(root)
+
         output_url = output_path[len(os.path.commonprefix([root, output_path])):]
         source_url = source_path[len(os.path.commonprefix([root, source_path])):]
         if os.name == 'nt':
