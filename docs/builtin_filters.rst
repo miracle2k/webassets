@@ -28,6 +28,12 @@ Included Filters
 .. autoclass:: django_assets.filter.yui.YUICSSFilter
 
 
+``cssmin``
+~~~~~~~~~~~~
+
+.. autoclass:: django_assets.filter.cssmin.CSSMinFilter
+
+
 ``gzip``
 ~~~~~~~~
 
@@ -54,3 +60,21 @@ Included Filters
 ~~~~~~~~
 
 .. autoclass:: django_assets.filter.less.LessFilter
+
+
+``sass``
+~~~~~~~~
+
+.. autoclass:: django_assets.filter.sass.SassFilter
+
+
+``scss``
+~~~~~~~~
+
+.. autoclass:: django_assets.filter.sass.SCSSFilter
+
+
+``compass``
+~~~~~~~~~~~
+
+.. autoclass:: django_assets.filter.compass.CompassFilter

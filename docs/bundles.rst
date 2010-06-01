@@ -204,25 +204,3 @@ nested bundles:
 	         'jquery.min.js',
 	         Bundle(filter='jsmin', 'uncompressed.js'))
 
-
-A note on ordering
-~~~~~~~~~~~~~~~~~~
-
-Because in most file types ``django-assets`` deals with (CSS, JavaScript)
-order is very significant, the order in which files are defined and
-bundles nested is significant as well. This means that you can in some
-cases gain performance (not that it usually matters) by checking if it's
-possible to optimize the order in which you define your bundles:
-
-.. code-block:: python
-
-	register('css-all',
-	         Bundle(filter='cssutils', ...),       # (1)
-	         Bundle(filter='less,cssutils', ...),  # (2)
-	         Bundle(filter='cssutils', ...),       # (3)
-
-In the above case, ``django-assets`` must apply the ``cssutils`` filter
-three separate times, because it is not smart enough to see it can process
-the less filter of ``(2)`` first. If the order is not relevant in this case,
-one could change the order to ``(1)(3)(2)``, and reduce the number of
-``cssutils`` runs by one.

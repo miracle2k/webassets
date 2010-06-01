@@ -1,9 +1,9 @@
 import os
 from nose.tools import assert_raises, with_setup
 from django.conf import settings
+from django_assets import Bundle
 from django_assets.filter import Filter, get_filter, register_filter
-
-# TODO: Add tests for all the builtin filters.
+from helpers import BuildTestHelper
 
 
 class TestFilter:
@@ -149,3 +149,59 @@ def test_get_filter():
 
     # Passing a lone callable will give us a a filter back as well.
     assert hasattr(get_filter(lambda: None), 'output')
+
+    # Arguments passed to get_filter are used for instance creation.
+    assert get_filter('sass', scss=True).use_scss == True
+    # However, this is not allowed when a filter instance is passed directly,
+    # or a callable object.
+    assert_raises(AssertionError, get_filter, f, 'test')
+    assert_raises(AssertionError, get_filter, lambda: None, 'test')
+
+
+class TestBuiltinFilters(BuildTestHelper):
+    """
+    TODO: Add tests for all the builtin filters.
+    """
+
+    default_files = {
+        'foo.css': """
+            h1  {
+                font-family: "Verdana"  ;
+                color: #FFFFFF;
+            }
+        """,
+        'foo.sass': '''h1
+            font-family: "Verdana"
+            color: #FFFFFF
+        '''}
+
+    def test_cssmin(self):
+        try:
+            Bundle('foo.css', filters='cssmin', output='out.css').build()
+            assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
+        except EnvironmentError:
+            # cssmin is not installed, that's ok.
+            pass
+
+    def test_compass(self):
+        Bundle('foo.sass', filters='compass', output='out.css').build()
+        assert self.get('out.css') == """/* line 1, in.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
+
+    def test_sass(self):
+        sass = get_filter('sass', debug_info=False)
+        Bundle('foo.sass', filters=sass, output='out.css').build()
+        assert self.get('out.css') == """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
+
+    def test_sass_import(self):
+        """Test referencing other files in sass.
+        """
+        sass = get_filter('sass', debug_info=False)
+        self.create_files({'import-test.sass': '''@import foo.sass'''})
+        Bundle('import-test.sass', filters=sass, output='out.css').build()
+        assert self.get('out.css') == """/* line 1, ./foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
+
+    def test_scss(self):
+        # SCSS is a CSS superset, should be able to compile the CSS file just fine
+        scss = get_filter('scss', debug_info=False)
+        Bundle('foo.css', filters=scss, output='out.css').build()
+        assert self.get('out.css') == """/* line 2 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
