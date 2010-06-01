@@ -26,7 +26,7 @@ for line in fp:
         version = eval(match.group(1))
         break
 else:
-    raise Exception("Cannot find version in virtualenv.py")
+    raise Exception("Cannot find version in __init__.py")
 fp.close()
 
 
