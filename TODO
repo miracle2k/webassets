@@ -1,3 +1,17 @@
+``webassets`` branch
+~~~~~~~~~~~~~~~~~~~~
+
+Outsource the Django dependency, make usable with other frameworks.
+
+- setup.py needs update.
+- Tests need updating
+- Docs need updating
+- Add a Flask/Werkzeug extension next to Django app.
+
+
+Other TODOs
+~~~~~~~~~~~
+
 Should bundle names be namespacable, similar to Django urls? At the least,
 we probably want to encourage a convention of prefixing your bundle names
 with an id. Everything else would just intend to make this easier or more
