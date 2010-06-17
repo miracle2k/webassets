@@ -1,8 +1,7 @@
 import os
 from nose.tools import assert_raises, with_setup
-from django.conf import settings
-from django_assets import Bundle
-from django_assets.filter import Filter, get_filter, register_filter
+from webassets import Bundle, AssetManager
+from webassets.filter import Filter, get_filter, register_filter
 from helpers import BuildTestHelper
 
 
@@ -23,7 +22,10 @@ class TestFilter:
     def test_get_config(self):
         """Test the ``get_config`` helper.
         """
-        get_config = Filter().get_config
+        m = AssetManager(None, None)
+        f = Filter()
+        f.set_manager(m)
+        get_config = f.get_config
 
         # For the purposes of the following tests, we use two test
         # names which we expect to be undefined in both settings
@@ -32,7 +34,7 @@ class TestFilter:
         NAME2 = 'FOO%s' % id(NAME)
         assert NAME != NAME2
         assert not NAME in os.environ and not NAME2 in os.environ
-        assert not hasattr(settings, NAME) and not hasattr(settings, NAME2)
+        assert not NAME in m.config and not NAME2 in m.config
 
         try:
             # Test raising of error, and test not raising it.
@@ -46,11 +48,11 @@ class TestFilter:
             assert_raises(EnvironmentError, get_config, setting=NAME, env=False)
 
             # Set the value in the environment as well.
-            setattr(settings, NAME, 'foo')
+            m.config[NAME] = 'foo'
             # Ensure that settings take precedence.
             assert get_config(NAME) == 'foo'
             # Two different names can be supplied.
-            assert not hasattr(settings, NAME2)
+            assert not NAME2 in m.config
             assert get_config(setting=NAME2, env=NAME) == 'bar'
 
             # Unset the env variable, now with only the setting.
@@ -61,9 +63,7 @@ class TestFilter:
         finally:
             if NAME in os.environ:
                 del os.environ[NAME]
-            # Due to the way Django's settings object works, we need
-            # to access ``_wrapped`` to remove the setting.
-            delattr(settings._wrapped, NAME)
+            del m.config[NAME]
 
     def test_equality(self):
         """Test the ``unique`` method used to determine equality.
@@ -93,16 +93,6 @@ class TestFilter:
         assert f1 != g
 
 
-def reset():
-    """Reset the filter module, so that different tests don't affect
-    each other.
-    """
-    from django_assets import filter
-    filter._FILTERS = {}
-    filter.load_builtin_filters()
-
-
-@with_setup(reset)
 def test_register_filter():
     """Test registration of custom filters.
     """
@@ -130,7 +120,6 @@ def test_register_filter():
     assert_raises(TypeError, register_filter, BrokenFilter)
 
 
-@with_setup(reset)
 def test_get_filter():
     """Test filter resolving.
     """
@@ -177,19 +166,19 @@ class TestBuiltinFilters(BuildTestHelper):
 
     def test_cssmin(self):
         try:
-            Bundle('foo.css', filters='cssmin', output='out.css').build()
+            self.mkbundle('foo.css', filters='cssmin', output='out.css').build()
             assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
         except EnvironmentError:
             # cssmin is not installed, that's ok.
             pass
 
     def test_compass(self):
-        Bundle('foo.sass', filters='compass', output='out.css').build()
+        self.mkbundle('foo.sass', filters='compass', output='out.css').build()
         assert self.get('out.css') == """/* line 1, in.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
 
     def test_sass(self):
         sass = get_filter('sass', debug_info=False)
-        Bundle('foo.sass', filters=sass, output='out.css').build()
+        self.mkbundle('foo.sass', filters=sass, output='out.css').build()
         assert self.get('out.css') == """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
 
     def test_sass_import(self):
@@ -197,11 +186,11 @@ class TestBuiltinFilters(BuildTestHelper):
         """
         sass = get_filter('sass', debug_info=False)
         self.create_files({'import-test.sass': '''@import foo.sass'''})
-        Bundle('import-test.sass', filters=sass, output='out.css').build()
+        self.mkbundle('import-test.sass', filters=sass, output='out.css').build()
         assert self.get('out.css') == """/* line 1, ./foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
 
     def test_scss(self):
         # SCSS is a CSS superset, should be able to compile the CSS file just fine
         scss = get_filter('scss', debug_info=False)
-        Bundle('foo.css', filters=scss, output='out.css').build()
+        self.mkbundle('foo.css', filters=scss, output='out.css').build()
         assert self.get('out.css') == """/* line 2 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""

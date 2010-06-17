@@ -1,69 +1,69 @@
 from nose.tools import assert_raises, assert_equals
 
-from django_assets import Bundle
-from django_assets.bundle import BuildError
-from django_assets.filter import Filter
-from django_assets.conf import settings
+from webassets import Bundle
+from webassets.bundle import BuildError
+from webassets.filter import Filter
 
 from helpers import BuildTestHelper
 
 
-def test_filter_assign():
+class TestFilterAssign(BuildTestHelper):
     """Test the different ways we can assign filters to the bundle.
     """
 
-    class TestFilter(Filter):
-        pass
+    def test(self):
+        class TestFilter(Filter):
+            pass
 
-    def _assert(list, length):
-        """Confirm that everything in the list is a filter instance, and
-        that the list as the required length."""
-        assert len(list) == length
-        assert bool([f for f in list if isinstance(f, Filter)])
+        def _assert(list, length):
+            """Confirm that everything in the list is a filter instance,
+            and that the list as the required length."""
+            assert len(list) == length
+            assert bool([f for f in list if isinstance(f, Filter)])
 
-    # Comma-separated string.
-    b = Bundle(filters='jsmin,cssutils')
-    _assert(b.filters, 2)
+        # Comma-separated string.
+        b = self.mkbundle(filters='jsmin,cssutils')
+        _assert(b.filters, 2)
 
-    # List of strings.
-    b = Bundle(filters=['jsmin', 'cssutils'])
-    _assert(b.filters, 2)
-    # Strings inside a list may not be further comma separated
-    assert_raises(ValueError, Bundle, filters=['jsmin,cssutils'])
+        # List of strings.
+        b = self.mkbundle(filters=['jsmin', 'cssutils'])
+        _assert(b.filters, 2)
+        # Strings inside a list may not be further comma separated
+        assert_raises(ValueError, self.mkbundle, filters=['jsmin,cssutils'])
 
-    # A single or multiple classes may be given
-    b = Bundle(filters=TestFilter)
-    _assert(b.filters, 1)
-    b = Bundle(filters=[TestFilter, TestFilter, TestFilter])
-    _assert(b.filters, 3)
+        # A single or multiple classes may be given
+        b = self.mkbundle(filters=TestFilter)
+        _assert(b.filters, 1)
+        b = self.mkbundle(filters=[TestFilter, TestFilter, TestFilter])
+        _assert(b.filters, 3)
 
-    # A single or multiple instance may be given
-    b = Bundle(filters=TestFilter())
-    _assert(b.filters, 1)
-    b = Bundle(filters=[TestFilter(), TestFilter(), TestFilter()])
-    _assert(b.filters, 3)
+        # A single or multiple instance may be given
+        b = self.mkbundle(filters=TestFilter())
+        _assert(b.filters, 1)
+        b = self.mkbundle(filters=[TestFilter(), TestFilter(), TestFilter()])
+        _assert(b.filters, 3)
 
-    # You can mix instances and classes
-    b = Bundle(filters=[TestFilter, TestFilter()])
-    _assert(b.filters, 2)
+        # You can mix instances and classes
+        b = self.mkbundle(filters=[TestFilter, TestFilter()])
+        _assert(b.filters, 2)
 
-    # If something is wrong, an error is raised right away.
-    assert_raises(ValueError, Bundle, filters='notreallyafilter')
-    assert_raises(ValueError, Bundle, filters=object())
+        # If something is wrong, an error is raised right away.
+        assert_raises(ValueError, self.mkbundle, filters='notreallyafilter')
+        assert_raises(ValueError, self.mkbundle, filters=object())
 
-    # [bug] Specifically test that we can assign ``None``.
-    Bundle().filters = None
+        # [bug] Specifically test that we can assign ``None``.
+        self.mkbundle().filters = None
 
-    # Changing filters after bundle creation is no problem, either.
-    b = Bundle()
-    assert b.filters is ()
-    b.filters = TestFilter
-    _assert(b.filters, 1)
+        # Changing filters after bundle creation is no problem, either.
+        b = self.mkbundle()
+        assert b.filters is ()
+        b.filters = TestFilter
+        _assert(b.filters, 1)
 
-    # Assigning the own filter list should change nothing.
-    old_filters = b.filters
-    b.filters = b.filters
-    assert b.filters == old_filters
+        # Assigning the own filter list should change nothing.
+        old_filters = b.filters
+        b.filters = b.filters
+        assert b.filters == old_filters
 
 
 class TestBuild(BuildTestHelper):
@@ -72,25 +72,25 @@ class TestBuild(BuildTestHelper):
 
     def test_simple(self):
         """Simple bundle, no subbundles, no filters."""
-        Bundle('in1', 'in2', output='out').build()
+        self.mkbundle('in1', 'in2', output='out').build()
         assert self.get('out') == 'A\nB'
 
     def test_nested(self):
         """A nested bundle."""
-        Bundle('in1', Bundle('in3', 'in4'), 'in2', output='out').build()
+        self.mkbundle('in1', self.mkbundle('in3', 'in4'), 'in2', output='out').build()
         assert self.get('out') == 'A\nC\nD\nB'
 
     def test_no_output_error(self):
         """A bundle without an output configured cannot be built.
         """
-        assert_raises(BuildError, Bundle('in1', 'in2').build)
+        assert_raises(BuildError, self.mkbundle('in1', 'in2').build)
 
     def test_empty_bundle_error(self):
         """An empty bundle cannot be built.
         """
-        assert_raises(BuildError, Bundle(output='out').build)
+        assert_raises(BuildError, self.mkbundle(output='out').build)
         # That is true even for child bundles
-        assert_raises(BuildError, Bundle(Bundle(), 'in1', output='out').build)
+        assert_raises(BuildError, self.mkbundle(self.mkbundle(), 'in1', output='out').build)
 
 
 class ReplaceFilter(Filter):
@@ -98,6 +98,7 @@ class ReplaceFilter(Filter):
     """
 
     def __init__(self, input=(None, None), output=(None, None)):
+        Filter.__init__(self)
         self._input_from, self._input_to = input
         self._output_from, self._output_to = output
 
@@ -123,6 +124,7 @@ class AppendFilter(Filter):
     """
 
     def __init__(self, input=None, output=None):
+        Filter.__init__(self)
         self._input = input
         self._output = output
 
@@ -149,7 +151,7 @@ class TestFilters(BuildTestHelper):
         """Ensure that input filters are applied, and that they are applied
         before an output filter gets to say something.
         """
-        Bundle('1', '2', output='out', filters=ReplaceFilter(
+        self.mkbundle('1', '2', output='out', filters=ReplaceFilter(
             input=('foo', 'input was here'), output=('foo', 'output was here'))).build()
         assert self.get('out') == 'input was here\ninput was here'
 
@@ -157,7 +159,7 @@ class TestFilters(BuildTestHelper):
         """Ensure that output filters are applied, and that they are applied
         after input filters did their job.
         """
-        Bundle('1', '2', output='out', filters=ReplaceFilter(
+        self.mkbundle('1', '2', output='out', filters=ReplaceFilter(
             input=('foo', 'bar'), output=('bar', 'output was here'))).build()
         assert self.get('out') == 'output was here\noutput was here'
 
@@ -165,9 +167,9 @@ class TestFilters(BuildTestHelper):
         """Ensure that when nested bundles are used, a parent bundles
         input filters are applied before a child bundles output filter.
         """
-        child_bundle_with_output_filter = Bundle('1', '2',
+        child_bundle_with_output_filter = self.mkbundle('1', '2',
                 filters=ReplaceFilter(output=('foo', 'output was here')))
-        parent_bundle_with_input_filter = Bundle(child_bundle_with_output_filter,
+        parent_bundle_with_input_filter = self.mkbundle(child_bundle_with_output_filter,
                 output='out',
                 filters=ReplaceFilter(input=('foo', 'input was here')))
         parent_bundle_with_input_filter.build()
@@ -177,8 +179,8 @@ class TestFilters(BuildTestHelper):
         """Same thing as above - a parent input filter is passed done -
         but this time, ensure that duplicate filters are not applied twice.
         """
-        child_bundle = Bundle('1', '2', filters=AppendFilter(input='-child'))
-        parent_bundle = Bundle(child_bundle, output='out',
+        child_bundle = self.mkbundle('1', '2', filters=AppendFilter(input='-child'))
+        parent_bundle = self.mkbundle(child_bundle, output='out',
                                filters=AppendFilter(input='-parent'))
         parent_bundle.build()
         assert self.get('out') == 'foo-child\nfoo-child'
@@ -188,7 +190,7 @@ class TestFilters(BuildTestHelper):
         """
         child_filter = AppendFilter(output='-child:out', input='-child:in')
         parent_filter = AppendFilter(output='-parent:out', input='-parent:in')
-        Bundle('1', Bundle('2', filters=child_filter),
+        self.mkbundle('1', self.mkbundle('2', filters=child_filter),
                filters=parent_filter, output='out').build(no_filters=True)
         assert self.get('out') == 'foo\nfoo'
 
@@ -202,35 +204,34 @@ class TestUpdateAndCreate(BuildTestHelper):
             allow = True
             def __call__(self, *a, **kw):
                 return self.allow
-        self.updater = CustomUpdater()
-        settings.ASSETS_UPDATER = self.updater
+        self.m.updater = CustomUpdater()
 
     def test_no_auto_create(self):
         """If auto create is disabled, an error is raised.
         """
-        settings.ASSETS_AUTO_CREATE = False
-        assert_raises(BuildError, Bundle('in1', output='out').build)
+        self.m.auto_create = False
+        assert_raises(BuildError, self.mkbundle('in1', output='out').build)
         # However, it works fine if force is used
-        Bundle('in1', output='out').build(force=True)
+        self.mkbundle('in1', output='out').build(force=True)
 
     def test_updater_says_no(self):
         """If the updater says 'no change', then we never do a build.
         """
         self.create_files({'out': 'old_value'})
-        self.updater.allow = False
-        Bundle('in1', output='out').build()
+        self.m.updater.allow = False
+        self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'old_value'
 
         # force=True overrides the updater
-        Bundle('in1', output='out').build(force=True)
+        self.mkbundle('in1', output='out').build(force=True)
         assert self.get('out') == 'A'
 
     def test_updater_says_yes(self):
         """Test the updater saying we need to  update.
         """
         self.create_files({'out': 'old_value'})
-        self.updater.allow = True
-        Bundle('in1', output='out').build()
+        self.m.updater.allow = True
+        self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'A'
 
 
@@ -243,11 +244,15 @@ class BaseUrlsTester(BuildTestHelper):
     def setup(self):
         BuildTestHelper.setup(self)
 
-        settings.ASSETS_EXPIRE = False
+        self.m.expire = False
 
         self.files_built = files_built = []
         self.no_filter_values = no_filter_values = []
+        manager = self.m
         class MockBundle(Bundle):
+            def __init__(self, *a, **kw):
+                Bundle.__init__(self, *a, **kw)
+                self.manager = manager
             def build(self, *a, **kw):
                 if not self.output:
                     raise BuildError('no output')
@@ -311,13 +316,13 @@ class TestUrlsDebug(BaseUrlsTester):
     def setup(self):
         BaseUrlsTester.setup(self)
 
-        settings.DEBUG = True
-        settings.MEDIA_URL = ''
+        self.m.debug = True
+        self.m.url = ''
 
     def test_simple(self):
         bundle = self.MockBundle('a', 'b', 'c', output='out')
-        assert bundle.urls() == ['/a', '/b', '/c']
-        assert len(self.files_built) == 0
+        assert_equals(bundle.urls(), ['/a', '/b', '/c'])
+        assert_equals(len(self.files_built), 0)
 
     def test_nested(self):
         bundle = self.MockBundle('a', self.MockBundle('1', '2', output='childout'), 'c', output='out')
@@ -357,7 +362,7 @@ class TestUrlsDebug(BaseUrlsTester):
         """The global ASSETS_DEBUG setting tells us to at least merge in
         debug mode.
         """
-        settings.ASSETS_DEBUG = 'merge'
+        self.m.debug = 'merge'
         bundle = self.MockBundle('1', '2', output='childout')
         assert_equals(bundle.urls(), ['/childout'])
         assert len(self.files_built) == 1
