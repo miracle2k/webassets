@@ -3,9 +3,6 @@
 
 Outsource the Django dependency, make usable with other frameworks.
 
-- frontends (templatetags/management commands) still need to be
-  abstracted into a core, and a Django-specific version.
-- setup.py needs update.
 - Docs need updating
 - Add a Flask/Werkzeug extension next to Django app, for starters.
 
