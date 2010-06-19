@@ -29,7 +29,7 @@ class AssetManager(object):
         self.expire = False
 
     def __iter__(self):
-        return iter(self._bundles)
+        return self._bundles.itervalues()
 
     def __getitem__(self, name):
         return self._bundles[name]

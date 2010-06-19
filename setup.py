@@ -41,7 +41,7 @@ def find_packages(root):
 
 setup(
     name = 'django-assets',
-    version=".".join(map(str, version)),
+    version = ".".join(map(str, version)),
     description = 'Media asset management for the Django web framework.',
     long_description = 'Merges, minifies and compresses Javascript and '
         'CSS files, supporting a variety of different filters, including '
@@ -63,5 +63,6 @@ setup(
         'Topic :: Software Development :: Libraries',
         ],
     packages = find_packages('django_assets'),
-    cmdclass=cmdclass,
+    entry_points = """[console_scripts]\nwebassets = webassets.script:run\n""",
+    cmdclass = cmdclass,
 )

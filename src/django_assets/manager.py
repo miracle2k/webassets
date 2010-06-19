@@ -1,5 +1,6 @@
 from django.conf import settings
 from webassets.manager import AssetManager
+from webassets.importlib import import_module
 
 
 __all__ = ('register',)
