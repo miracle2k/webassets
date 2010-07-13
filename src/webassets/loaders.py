@@ -68,29 +68,31 @@ def recursive_glob(treeroot, pattern):
     http://stackoverflow.com/questions/2186525/2186639#2186639
     """
     results = []
-    for base, dirs, files in os.walk(treroot):
+    for base, dirs, files in os.walk(treeroot):
         goodfiles = fnmatch.filter(files, pattern)
         results.extend(os.path.join(base, f) for f in goodfiles)
     return results
 
 
-def GlobLoader(object):
+class GlobLoader(object):
     """Base class with some helpers for loaders which need to search
     for files.
     """
 
-    def glob_files(self, filter, recursive=False):
+    def glob_files(self, f, recursive=False):
         if isinstance(f, tuple):
-            iter = recursive_glob(f[0], f[1])
+            return iter(recursive_glob(f[0], f[1]))
         else:
-            iter = glob.glob(f)
+            return iter(glob.glob(f))
 
     def with_file(self, filename, then_run):
+        """Call ``then_run`` with the file contents.
+        """
         file = open(filename, 'r')
         try:
             contents = file.read()
             try:
-                then_run(filename, contents)
+                return then_run(filename, contents)
             except LoaderError:
                 # We can't handle this file.
                 pass
