@@ -22,6 +22,7 @@ Usage:
         time.
 """
 
+import logging
 from optparse import make_option
 from django.core.management.base import BaseCommand, CommandError
 
@@ -54,7 +55,7 @@ class Command(BaseCommand):
 
         # Create log
         log = logging.getLogger('django-assets')
-        log.setLevel({0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}[options.get('verbosity', 1)])
+        log.setLevel({0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}[int(options.get('verbosity', 1))])
         log.addHandler(logging.StreamHandler())
 
         # If the user requested it, search for bundles defined in templates
