@@ -40,7 +40,7 @@ class LessFilter(Filter):
 
     name = 'less'
 
-    def __init__(self):
+    def setup(self):
         self.less = self.get_config('LESS_PATH', what='less binary')
 
     def input(self, _in, out, source_path, output_path):
