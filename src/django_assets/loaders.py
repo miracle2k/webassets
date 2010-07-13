@@ -32,6 +32,7 @@ def get_django_template_dirs():
     if 'django.template.loaders.app_directories.load_template_source' in settings.TEMPLATE_LOADERS:
         from django.template.loaders.app_directories import app_template_dirs
         template_dirs.extend(app_template_dirs)
+    return template_dirs
 
 
 class DjangoLoader(GlobLoader):
@@ -42,8 +43,8 @@ class DjangoLoader(GlobLoader):
     def load_bundles(self):
         bundles = []
         for template_dir in get_django_template_dirs():
-            for filename in self.glob_files('*.html', True):
-                bundles.append(self.with_file(filename, self._parse))
+            for filename in self.glob_files((template_dir, '*.html'), True):
+                bundles.extend(self.with_file(filename, self._parse))
         return bundles
 
     def _parse(self, filename, contents):
@@ -66,7 +67,7 @@ class DjangoLoader(GlobLoader):
                     try:
                         bundle = node.resolve()
                     except template.VariableDoesNotExist:
-                        raise LoaderError('skipping bundle %s, depends on runtime data' % node.output))
+                        raise LoaderError('skipping bundle %s, depends on runtime data' % node.output)
                     else:
                         result.append(bundle)
                 # see Django #7430
