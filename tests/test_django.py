@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.template import Template, Context
 from django_assets import Bundle, register as django_env_register
-from django_assets.env import env as django_env, reset as django_env_reset
+from django_assets.env import get_env, reset as django_env_reset
 from webassets.bundle import BuildError
 
 
@@ -28,18 +28,18 @@ def test_options():
     object.
     """
     settings.MEDIA_ROOT = 'FOO'
-    assert django_env.directory == 'FOO'
+    assert get_env().directory == 'FOO'
 
-    django_env.directory = 'BAR'
+    get_env().directory = 'BAR'
     assert settings.MEDIA_ROOT == 'BAR'
 
     # We can also access values that are not represented by a original
     # Django setting. Specifically, we are able to read those values
     # and get the webassets-default without having to explicitly
     # initialize the corresponding Django setting.
-    assert django_env.debug == False
+    assert get_env().debug == False
     assert not hasattr(settings, 'ASSETS_DEBUG')
-    django_env.debug = True
+    get_env().debug = True
     assert settings.ASSETS_DEBUG == True
 
 
@@ -48,7 +48,7 @@ def test_config():
     settings object.
     """
     settings.FOO = 42
-    django_env.get_config('FOO') == 42
+    get_env().get_config('FOO') == 42
 
 
 class TestTemplateTag():
@@ -59,7 +59,7 @@ class TestTemplateTag():
             urls_to_fake = ['foo']
             def __init__(self, *a, **kw):
                 Bundle.__init__(self, *a, **kw)
-                self.env = django_env
+                self.env = get_env()
                 # Kind of hacky, but gives us access to the last Bundle
                 # instance used by our Django template tag.
                 test_instance.the_bundle = self

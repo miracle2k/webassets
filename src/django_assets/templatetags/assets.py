@@ -2,13 +2,7 @@ import tokenize
 
 from django import template
 from django_assets import Bundle
-from django_assets import env
-
-
-def get_django_env():
-    # Be sure not to import the env instance directly, so we can
-    # reset it during testing.
-    return env.env
+from django_assets.env import get_env
 
 
 class AssetsNode(template.Node):
@@ -43,7 +37,7 @@ class AssetsNode(template.Node):
             # If a bundle with that name exists, use it. Otherwise,
             # assume a filename is meant.
             try:
-                return get_django_env()[name]
+                return get_env()[name]
             except KeyError:
                 return name
 
@@ -56,7 +50,7 @@ class AssetsNode(template.Node):
         bundle = self.resolve(context)
 
         result = u""
-        for url in bundle.urls(env=get_django_env()):
+        for url in bundle.urls(env=get_env()):
             context.update({'ASSET_URL': url})
             try:
                 result += self.childnodes.render(context)
