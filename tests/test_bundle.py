@@ -214,6 +214,14 @@ class TestUpdateAndCreate(BuildTestHelper):
         # However, it works fine if force is used
         self.mkbundle('in1', output='out').build(force=True)
 
+    def test_no_auto_create_env_via_argument(self):
+        """Regression test for a bug that occured when the environment
+        was only given via an argument to build(), rather than at Bundle
+        __init__ time.
+        """
+        self.m.auto_create = False
+        assert_raises(BuildError, Bundle('in1', output='out').build, env=self.m)
+
     def test_updater_says_no(self):
         """If the updater says 'no change', then we never do a build.
         """
