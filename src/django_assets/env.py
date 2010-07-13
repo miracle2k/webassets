@@ -26,21 +26,36 @@ class DjangoEnvironment(Environment):
     }
 
     def __init__(self):
+        # Have the parent initialize the default values
+        super(DjangoEnvironment, self).__init__(None, None)
+
+        # Then, from this point on, redirect various attributes
+        # to the Django settings object.
         self.django_settings = settings
 
     def get_config(self, key, default=None):
         return getattr(self.django_settings, key, default)
 
     def __getattribute__(self, name):
-        if name == '_mapping' or not name in self._mapping:
+        if name == '_mapping':
             return super(DjangoEnvironment, self).__getattribute__(name)
-        return getattr(self.django_settings, self._mapping[name])
+        if not name in self._mapping:
+            return super(DjangoEnvironment, self).__getattribute__(name)
+
+        django_key = self._mapping[name]
+        if not hasattr(self.django_settings, django_key):
+            return super(DjangoEnvironment, self).__getattribute__(name)
+
+        return getattr(self.django_settings, django_key)
 
     def __setattr__(self, name, value):
-        if name in self._mapping:
-            setattr(self.django_settings, self._mapping[name], value)
-            return
-        super(DjangoEnvironment, self).__setattr__(name, value)
+        if not hasattr(self, 'django_settings'):
+            # The parent's __init__ is probably settings defaults
+            return super(DjangoEnvironment, self).__setattr__(name, value)
+        if not name in self._mapping:
+            return super(DjangoEnvironment, self).__setattr__(name, value)
+
+        setattr(self.django_settings, self._mapping[name], value)
 
 
 # Django has a global state, a global configuration, and so we need a

@@ -18,8 +18,14 @@ def test_options():
     django_env.directory = 'BAR'
     assert settings.MEDIA_ROOT == 'BAR'
 
-    # TODO
-    print django_env.expire
+    # We can also access values that are not represented by a original
+    # Django setting. Specifically, we are able to read those values
+    # and get the webassets-default without having to explicitly
+    # initialize the corresponding Django setting.
+    assert django_env.debug == False
+    assert not hasattr(settings, 'ASSETS_DEBUG')
+    django_env.debug = True
+    assert settings.ASSETS_DEBUG == True
 
 
 def test_config():
