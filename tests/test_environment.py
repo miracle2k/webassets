@@ -1,14 +1,14 @@
 from nose.tools import assert_raises, with_setup
 
-from webassets import AssetManager
-from webassets.manager import RegisterError
+from webassets import Environment
+from webassets.env import RegisterError
 from webassets import Bundle
 
 
-class TestManager:
+class TestEnv:
 
     def setup(self):
-        self.m = AssetManager(None, None)
+        self.m = Environment(None, None)
 
     def get(self, name='foo'):
         return self.m[name]

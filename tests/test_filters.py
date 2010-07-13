@@ -1,6 +1,6 @@
 import os
 from nose.tools import assert_raises, with_setup
-from webassets import Bundle, AssetManager
+from webassets import Bundle, Environment
 from webassets.filter import Filter, get_filter, register_filter
 from helpers import BuildTestHelper
 
@@ -22,9 +22,9 @@ class TestFilter:
     def test_get_config(self):
         """Test the ``get_config`` helper.
         """
-        m = AssetManager(None, None)
+        m = Environment(None, None)
         f = Filter()
-        f.set_manager(m)
+        f.set_environment(m)
         get_config = f.get_config
 
         # For the purposes of the following tests, we use two test

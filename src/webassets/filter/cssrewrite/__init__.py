@@ -52,7 +52,7 @@ class CSSRewriteFilter(Filter):
         # probably absolute paths, we need to work with them as MEDIA_URL
         # based urls (e.g. the following code will consider them absolute
         # within a filesystem chrooted into MEDIA_URL).
-        root = self.manager.directory
+        root = self.env.directory
         if root and root[-1] != os.path.sep:
             root += os.path.sep  # so it will be matched by commonprefix()
         # To make commonprefix() work properly in all cases, make sure we

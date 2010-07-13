@@ -3,14 +3,14 @@ import urlparse
 from bundle import Bundle
 
 
-__all__ = ('AssetManager', 'RegisterError')
+__all__ = ('Environment', 'RegisterError')
 
 
 class RegisterError(Exception):
     pass
 
 
-class AssetManager(object):
+class Environment(object):
     """Owns a collection of bundles, and a set of configuration values
     which will be used when processing these bundles.
     """
@@ -67,13 +67,13 @@ class AssetManager(object):
                                         'as "%s": %s' % (name, self._bundles[name]))
             else:
                 self._bundles[name] = bundle
-                bundle.manager = self   # take ownership
+                bundle.env = self   # take ownership
 
             return bundle
 
     def get_config(self, key, default=None):
         """This is a simple configuration area provided by the asset
-        manager which holds additional options used by the filters.
+        env which holds additional options used by the filters.
         """
         return self.config.get(key, default)
 

@@ -136,32 +136,32 @@ def apply_filters(hunk, filters, type, cache=None, **kwargs):
     return MemoryHunk(content)
 
 
-def make_url(manager, filename, expire=True):
+def make_url(env, filename, expire=True):
     """Return a output url, modified for expire header handling.
 
     Set ``expire`` to ``False`` if you do not want the URL to
     be modified for cache busting.
     """
     if expire:
-        path = manager.abspath(filename)
-        if manager.expire == 'querystring':
+        path = env.abspath(filename)
+        if env.expire == 'querystring':
             last_modified = os.stat(path).st_mtime
             result = "%s?%d" % (filename, last_modified)
-        elif manager.expire == 'filename':
+        elif env.expire == 'filename':
             last_modified = os.stat(path).st_mtime
             name = filename.rsplit('.', 1)
             if len(name) > 1:
                 result = "%s.%d.%s" % (name[0], last_modified, name[1])
             else:
                 result = "%s.%d" % (name, last_modified)
-        elif not manager.expire:
+        elif not env.expire:
             result = filename
         else:
             raise ValueError('Unknown value for ASSETS_EXPIRE option: %s' %
-                                 manager.expire)
+                                 env.expire)
     else:
         result = filename
-    return manager.absurl(result)
+    return env.absurl(result)
 
 
 def merge_filters(filters1, filters2):

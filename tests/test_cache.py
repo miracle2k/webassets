@@ -1,5 +1,5 @@
 from nose.tools import assert_equals
-from webassets import Bundle, AssetManager
+from webassets import Bundle, Environment
 from webassets.cache import BaseCache
 from helpers import BuildTestHelper
 

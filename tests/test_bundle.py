@@ -248,11 +248,11 @@ class BaseUrlsTester(BuildTestHelper):
 
         self.files_built = files_built = []
         self.no_filter_values = no_filter_values = []
-        manager = self.m
+        env = self.m
         class MockBundle(Bundle):
             def __init__(self, *a, **kw):
                 Bundle.__init__(self, *a, **kw)
-                self.manager = manager
+                self.env = env
             def build(self, *a, **kw):
                 if not self.output:
                     raise BuildError('no output')

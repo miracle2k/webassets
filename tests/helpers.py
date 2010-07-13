@@ -1,7 +1,7 @@
 from os import path
 import shutil
 import tempfile
-from webassets import AssetManager, Bundle
+from webassets import Environment, Bundle
 
 
 __all__ = ('BuildTestHelper',)
@@ -16,7 +16,7 @@ class BuildTestHelper:
 
     def setup(self):
         self.dir_created = tempfile.mkdtemp()
-        self.m = AssetManager(self.dir_created, '')
+        self.m = Environment(self.dir_created, '')
         # Unless we explicitly test it, we don't want to use the cache
         # during testing.
         self.m.cache = False
@@ -32,7 +32,7 @@ class BuildTestHelper:
 
     def mkbundle(self, *a, **kw):
         b = Bundle(*a, **kw)
-        b.manager = self.m
+        b.env = self.m
         return b
 
     def create_files(self, files):

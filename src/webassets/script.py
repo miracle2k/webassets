@@ -18,8 +18,8 @@ class CommandLineEnvironment():
     as a Django management command.
     """
 
-    def __init__(self, manager, log):
-        self.environment = manager
+    def __init__(self, env, log):
+        self.environment = env
         self.log = log
 
     def invoke(self, command):
@@ -56,7 +56,7 @@ class CommandLineEnvironment():
             changed_bundles = []
             for bundle in self.environment:
                 for filename in bundle.get_files():
-                    filename = bundle.manager.abspath(filename)
+                    filename = bundle.env.abspath(filename)
                     stat = os.stat(filename)
                     mtime = stat.st_mtime
                     if _win:

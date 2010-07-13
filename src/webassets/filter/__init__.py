@@ -46,7 +46,7 @@ class Filter(object):
     name = None
 
     def __init__(self):
-        self.manager = None
+        self.env = None
 
     def __hash__(self):
         return self.id()
@@ -56,11 +56,11 @@ class Filter(object):
             return cmp(self.id(), other.id())
         return NotImplemented
 
-    def set_manager(self, manager):
+    def set_environment(self, env):
         """This is called just before the filter is used.
         """
-        if not self.manager or self.manager != manager:
-            self.manager = manager
+        if not self.env or self.env != env:
+            self.env = env
             self.setup()
 
     def get_config(self, setting=False, env=None, require=True,
@@ -92,7 +92,7 @@ class Filter(object):
 
         value = None
         if not setting is False:
-            value = self.manager.get_config(setting, None)
+            value = self.env.get_config(setting, None)
 
         if value is None and not env is False:
             value = os.environ.get(env)
@@ -138,7 +138,7 @@ class Filter(object):
         dependencies are not matched.
 
         Note: This may be called multiple times if one filter instance
-        is used with different asset managers instances.
+        is used with different asset environment instances.
         """
 
     def input(self, _in, out):

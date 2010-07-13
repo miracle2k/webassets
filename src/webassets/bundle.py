@@ -25,7 +25,7 @@ class Bundle(object):
     """
 
     def __init__(self, *contents, **options):
-        self.manager = None
+        self.env = None
         self.contents = contents
         self.output = options.get('output')
         self.filters = options.get('filters')
@@ -59,7 +59,7 @@ class Bundle(object):
         self._filters = [get_filter(f) for f in filters]
     filters = property(_get_filters, _set_filters)
 
-    def determine_action(self, manager):
+    def determine_action(self, env):
         """Decide what needs to be done when this bundle needs to be
         resolved.
 
@@ -70,10 +70,10 @@ class Bundle(object):
         Returns a 2-tuple of (should_merge, should_filter). The latter
         always implies the former.
         """
-        if not manager.debug:
+        if not env.debug:
             return True, True
 
-        debug = self.debug if self.debug is not None else manager.debug
+        debug = self.debug if self.debug is not None else env.debug
 
         if debug == 'merge':
             return True, False
@@ -96,14 +96,14 @@ class Bundle(object):
                 files.append(c)
         return files
 
-    def _get_manager(self, manager):
-        # Note how bool(manager) can be False, due to __len__.
-        manager = manager if manager is not None else self.manager
-        if manager is None:
-            raise BundleError('Bundle is not connected to a manager')
-        return manager
+    def _get_env(self, env):
+        # Note how bool(env) can be False, due to __len__.
+        env = env if env is not None else self.env
+        if env is None:
+            raise BundleError('Bundle is not connected to an environment')
+        return env
 
-    def _build(self, manager, output_path, force, no_filters, parent_filters=[]):
+    def _build(self, env, output_path, force, no_filters, parent_filters=[]):
         """Internal recursive build method.
         """
 
@@ -124,7 +124,7 @@ class Bundle(object):
 
         # Ensure that the filters are ready
         for filter in self.filters:
-            filter.set_manager(manager)
+            filter.set_environment(env)
 
         # Apply input filters to all the contents. Note that we use
         # both this bundle's filters as well as those given to us by
@@ -135,15 +135,15 @@ class Bundle(object):
         # really the right thing to do, or does it just confuse things
         # due to there now being different kinds of behavior...
         combined_filters = merge_filters(self.filters, parent_filters)
-        cache = get_cache(manager)
+        cache = get_cache(env)
         hunks = []
         for c in self.contents:
             if isinstance(c, Bundle):
-                hunk = c._build(manager, output_path, force, no_filters,
+                hunk = c._build(env, output_path, force, no_filters,
                                 combined_filters)
                 hunks.append(hunk)
             else:
-                hunk = FileHunk(manager.abspath(c))
+                hunk = FileHunk(env.abspath(c))
                 if no_filters:
                     hunks.append(hunk)
                 else:
@@ -158,7 +158,7 @@ class Bundle(object):
         else:
             return apply_filters(final, self.filters, 'output', cache)
 
-    def build(self, manager=None, force=False, no_filters=False):
+    def build(self, env=None, force=False, no_filters=False):
         """Build this bundle, meaning create the file given by the
         ``output`` attribute, applying the configured filters etc.
 
@@ -173,32 +173,32 @@ class Bundle(object):
         if not self.output:
             raise BuildError('No output target found for %s' % self)
 
-        manager = self._get_manager(manager)
+        env = self._get_env(env)
 
         # Determine if we really need to build, or if the output file
         # already exists and nothing has changed.
         if force:
             update_needed = True
-        elif not path.exists(manager.abspath(self.output)):
-            if not self.manager.auto_create:
+        elif not path.exists(env.abspath(self.output)):
+            if not self.env.auto_create:
                 raise BuildError(('\'%s\' needs to be created, but '
                                   'ASSETS_AUTO_CREATE is disabled') % self)
             else:
                 update_needed = True
         else:
-            source_paths = [manager.abspath(p) for p in self.get_files()]
-            update_needed = get_updater(manager.updater)(
-                manager.abspath(self.output), source_paths)
+            source_paths = [env.abspath(p) for p in self.get_files()]
+            update_needed = get_updater(env.updater)(
+                env.abspath(self.output), source_paths)
 
         if not update_needed:
             # We can simply return the existing output file
-            return FileHunk(manager.abspath(self.output))
+            return FileHunk(env.abspath(self.output))
 
-        hunk = self._build(manager, self.output, force, no_filters)
-        hunk.save(manager.abspath(self.output))
+        hunk = self._build(env, self.output, force, no_filters)
+        hunk.save(env.abspath(self.output))
         return hunk
 
-    def urls(self, manager=None, *args, **kwargs):
+    def urls(self, env=None, *args, **kwargs):
         """Return a list of urls for this bundle.
 
         Depending on the environment and given options, this may be a
@@ -209,18 +209,18 @@ class Bundle(object):
         the files behind these urls.
         """
 
-        manager = self._get_manager(manager)
+        env = self._get_env(env)
 
         has_files = any([c for c in self.contents if not isinstance(c, Bundle)])
-        supposed_to_merge, do_filter = self.determine_action(manager)
+        supposed_to_merge, do_filter = self.determine_action(env)
 
         if (self.output or has_files) and supposed_to_merge:
             # If this bundle has an output target, then we want to build
             # it, if it has files, then we need to build it, at least
             # as long as were not explicitely allowed to not build at all,
             # e.g. in debug mode.
-            hunk = self.build(manager, no_filters=not do_filter, *args, **kwargs)
-            return [make_url(manager, self.output)]
+            hunk = self.build(env, no_filters=not do_filter, *args, **kwargs)
+            return [make_url(env, self.output)]
         else:
             # We either have no files (nothing to build), or we are
             # in debug mode: Instead of building the bundle, we
@@ -228,7 +228,7 @@ class Bundle(object):
             urls = []
             for c in self.contents:
                 if isinstance(c, Bundle):
-                    urls.extend(c.urls(manager, *args, **kwargs))
+                    urls.extend(c.urls(env, *args, **kwargs))
                 else:
-                    urls.append(make_url(manager, c, expire=False))
+                    urls.append(make_url(env, c, expire=False))
             return urls

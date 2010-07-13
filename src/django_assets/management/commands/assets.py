@@ -29,7 +29,7 @@ from webassets import Bundle
 from webassets.bundle import BuildError
 from webassets.script import (CommandLineEnvironment,
                               CommandError as AssetCommandError)
-from django_assets.manager import manager as asset_manager
+from django_assets.env import env as asset_env
 from django_assets.loaders import get_django_template_dirs
 from webassets.ext.jinja2 import Jinja2Loader
 
@@ -61,16 +61,16 @@ class Command(BaseCommand):
         # If the user requested it, search for bundles defined in templates
         if options.get('parse_templates'):
             log.info('Searching templates...')
-            asset_manager.register_many(self.load_from_templates())
+            asset_env.register_many(self.load_from_templates())
 
-        if len(asset_manager) == 0:
+        if len(asset_env) == 0:
             raise CommandError('No asset bundles were found. '
                 'If you are defining assets directly within your '
                 'templates, you want to use the --parse-templates '
                 'option.')
 
         # Execute the requested subcommand
-        cmd = CommandLineEnvironment(asset_manager, log)
+        cmd = CommandLineEnvironment(asset_env, log)
         try:
             cmd.invoke(args[0])
         except AssetCommandError, e:

@@ -87,22 +87,22 @@ class DummyCache(BaseCache):
         pass
 
 
-def get_cache(manager):
+def get_cache(env):
     """Get a cache object for the given environment.
     """
-    if not manager.debug or not manager.cache:
+    if not env.debug or not env.cache:
         return None
 
-    if isinstance(manager.cache, BaseCache):
-        return manager.cache
-    elif isinstance(manager.cache, type) and issubclass(manager.cache, BaseCache):
-        return manager.cache()
+    if isinstance(env.cache, BaseCache):
+        return env.cache
+    elif isinstance(env.cache, type) and issubclass(env.cache, BaseCache):
+        return env.cache()
 
-    if manager.cache is True:
-        directory = path.join(manager.directory, '.cache')
+    if env.cache is True:
+        directory = path.join(env.directory, '.cache')
         # Auto-create the default directory
         if not path.exists(directory):
             os.makedirs(directory)
     else:
-        directory = manager.cache
+        directory = env.cache
     return FilesystemCache(directory)

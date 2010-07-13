@@ -1,12 +1,12 @@
 from django.conf import settings
-from webassets.manager import AssetManager
+from webassets.env import Environment
 from webassets.importlib import import_module
 
 
 __all__ = ('register',)
 
 
-class DjangoAssetManager(AssetManager):
+class DjangoEnvironment(Environment):
     """For Django, we need to redirect all the configuration values this
     object holds to Django's own settings object.
 
@@ -33,25 +33,25 @@ class DjangoAssetManager(AssetManager):
 
     def __getattribute__(self, name):
         if name == '_mapping' or not name in self._mapping:
-            return super(DjangoAssetManager, self).__getattribute__(name)
+            return super(DjangoEnvironment, self).__getattribute__(name)
         return getattr(self.django_settings, self._mapping[name])
 
     def __setattr__(self, name, value):
         if name in self._mapping:
             setattr(self.django_settings, self._mapping[name], value)
             return
-        super(DjangoAssetManager, self).__setattr__(name, value)
+        super(DjangoEnvironment, self).__setattr__(name, value)
 
 
 # Django has a global state, a global configuration, and so we need a
-# global instance of a asset manager.
-manager = DjangoAssetManager()
+# global instance of a asset environment.
+env = DjangoEnvironment()
 
 
-# The user needn't know about the manager though, we can expose the
+# The user needn't know about the env though, we can expose the
 # relevant functionality directly. This is also for backwards-compatibility
 # with times where ``django-assets`` was a standalone library.
-register = manager.register
+register = env.register
 
 
 # Finally, we'd like to autoload the ``assets`` module of each Django.

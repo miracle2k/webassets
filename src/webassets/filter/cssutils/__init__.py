@@ -23,7 +23,7 @@ class CSSUtilsFilter(Filter):
 
         try:
             # cssutils logs to stdout by default, hide that in production
-            if not self.manager.debug:
+            if not self.env.debug:
                 log = logging.getLogger('assets.cssutils')
                 log.addHandler(logging.handlers.MemoryHandler(10))
 
