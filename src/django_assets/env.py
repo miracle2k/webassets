@@ -60,13 +60,17 @@ class DjangoEnvironment(Environment):
 
 # Django has a global state, a global configuration, and so we need a
 # global instance of a asset environment.
-env = DjangoEnvironment()
+def reset():
+    global env
+    env = DjangoEnvironment()
+reset()
 
 
 # The user needn't know about the env though, we can expose the
 # relevant functionality directly. This is also for backwards-compatibility
 # with times where ``django-assets`` was a standalone library.
-register = env.register
+def register(*a, **kw):
+    return env.register(*a, **kw)
 
 
 # Finally, we'd like to autoload the ``assets`` module of each Django.

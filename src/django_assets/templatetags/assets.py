@@ -1,12 +1,21 @@
 import tokenize
 
 from django import template
-from django_assets.conf import settings
-from django_assets.bundle import Bundle
-from django_assets import registry
+from django_assets import Bundle
+from django_assets import env
+
+
+def get_django_env():
+    # Be sure not to import the env instance directly, so we can
+    # reset it during testing.
+    return env.env
 
 
 class AssetsNode(template.Node):
+
+    # For testing, to inject a mock bundle
+    BundleClass = Bundle
+
     def __init__(self, filter, output, files, childnodes):
         self.childnodes = childnodes
         self.output = output
@@ -30,22 +39,24 @@ class AssetsNode(template.Node):
                     # Django seems to hide those; we don't want to expose
                     # them either, I guess.
                     raise
-        def resolve_bundle(x):
-            bundle = registry.get(x)
-            if bundle:
-                return bundle
-            return x
+        def resolve_bundle(name):
+            # If a bundle with that name exists, use it. Otherwise,
+            # assume a filename is meant.
+            try:
+                return get_django_env()[name]
+            except KeyError:
+                return name
 
-        registry.autoload()
-        return Bundle(*[resolve_bundle(resolve_var(f)) for f in self.files],
-                      **{'output': resolve_var(self.output),
-                         'filters': resolve_var(self.filter)})
+        return self.BundleClass(
+            *[resolve_bundle(resolve_var(f)) for f in self.files],
+            **{'output': resolve_var(self.output),
+            'filters': resolve_var(self.filter)})
 
     def render(self, context):
         bundle = self.resolve(context)
 
         result = u""
-        for url in bundle.urls():
+        for url in bundle.urls(env=get_django_env()):
             context.update({'ASSET_URL': url})
             try:
                 result += self.childnodes.render(context)
@@ -96,14 +107,14 @@ def assets(parser, token):
 
 
 
-# if Coffin is installed, expose the Jinja2 extension
+# If Coffin is installed, expose the Jinja2 extension
 try:
     from coffin.template import Library as CoffinLibrary
 except ImportError:
     register = template.Library()
 else:
     register = CoffinLibrary()
-    from django_assets.jinja2.extension import AssetsExtension
+    from webassets.jinja2.extension import AssetsExtension
     register.tag(AssetsExtension)
 
 # expose the default Django tag
