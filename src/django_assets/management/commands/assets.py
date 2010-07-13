@@ -86,6 +86,8 @@ class Command(BaseCommand):
         except:
             pass
         else:
+            from webassets.ext.jinja2 import Jinja2Loader
+
             jinja2_envs = []
             # Prepare a Jinja2 environment we can later use for parsing.
             # If not specified by the user, put in there at least our own
