@@ -61,3 +61,11 @@ class TestEnv:
         # Otherwise, an error is raised.
         assert_raises(RegisterError, self.m.register, 'foo', b2)
         assert_raises(RegisterError, self.m.register, 'foo', 's1', 's2', 's3')
+
+    def test_anon_bundle(self):
+        """Self registering an anonymous bundle.
+        """
+        b = Bundle()
+        self.m.add(b)
+        assert len(self.m) == 1
+        assert list(self.m) == [b]

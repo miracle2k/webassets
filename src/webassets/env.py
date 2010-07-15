@@ -1,5 +1,6 @@
 from os import path
 import urlparse
+from itertools import chain
 from bundle import Bundle
 
 
@@ -16,7 +17,8 @@ class Environment(object):
     """
 
     def __init__(self, directory, url, **config):
-        self._bundles = {}
+        self._named_bundles = {}
+        self._anon_bundles = []
 
         self.directory = directory
         self.url = url
@@ -29,13 +31,13 @@ class Environment(object):
         self.expire = False
 
     def __iter__(self):
-        return self._bundles.itervalues()
+        return chain(self._named_bundles.itervalues(), self._anon_bundles)
 
     def __getitem__(self, name):
-        return self._bundles[name]
+        return self._named_bundles[name]
 
     def __len__(self):
-        return len(self._bundles)
+        return len(self._named_bundles) + len(self._anon_bundles)
 
     def register(self, name, *args, **kwargs):
         """Register a bundle with the given name.
@@ -59,17 +61,29 @@ class Environment(object):
             else:
                 bundle = Bundle(*args, **kwargs)
 
-            if name in self._bundles:
-                if self._bundles[name] == bundle:
+            if name in self._named_bundles:
+                if self._named_bundles[name] == bundle:
                     pass  # ignore
                 else:
                     raise RegisterError('Another bundle is already registered '+
-                                        'as "%s": %s' % (name, self._bundles[name]))
+                                        'as "%s": %s' % (name, self._named_bundles[name]))
             else:
-                self._bundles[name] = bundle
+                self._named_bundles[name] = bundle
                 bundle.env = self   # take ownership
 
             return bundle
+
+    def add(self, *bundles):
+        """Register a list of bundles with the environment, without
+        naming them.
+
+        This isn't terribly useful in most cases. It exists primarily
+        because in some cases, like when loading bundles by seaching
+        in templates for the use of an "assets" tag, no name is available.
+        """
+        for bundle in bundles:
+            self._anon_bundles.append(bundle)
+            bundle.env = self    # take ownership
 
     def get_config(self, key, default=None):
         """This is a simple configuration area provided by the asset
