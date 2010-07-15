@@ -108,7 +108,7 @@ except ImportError:
     register = template.Library()
 else:
     register = CoffinLibrary()
-    from webassets.jinja2.extension import AssetsExtension
+    from webassets.ext.jinja2 import AssetsExtension
     register.tag(AssetsExtension)
 
 # expose the default Django tag
