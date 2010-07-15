@@ -67,6 +67,13 @@ def get_env():
     global env
     if env is None:
         env = DjangoEnvironment()
+
+        # Load application's ``assets``  modules. We need to do this in
+        # a delayed fashion, since the main django_assets module imports
+        # this, and the application ``assets`` modules we load will import
+        # ``django_assets``, thus giving us a classic circular dependency
+        # issue.
+        autoload()
     return env
 
 def reset():
