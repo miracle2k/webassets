@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
+import jinja2
 from jinja2.ext import Extension
 from jinja2 import nodes
 from webassets import Bundle
-from webassets.loaders import GlobLoader
+from webassets.loaders import GlobLoader, LoaderError
 
 
 __all__ = ('assets', 'Jinja2Loader',)
@@ -70,21 +71,25 @@ class AssetsExtension(Extension):
                 [nodes.Name('ASSET_URL', 'store')], [], body).\
                     set_lineno(lineno)
 
+    @classmethod
+    def resolve_contents(self, contents, env):
+        """Resolve bundle names."""
+        result = []
+        for f in contents:
+            try:
+                result.append(env[f])
+            except KeyError:
+                result.append(f)
+        return result
+
     def _render_assets(self, filter, output, files, caller=None):
         env = self.environment.assets_environment
         if env is None:
             raise RuntimeError('No assets environment configured in '+
                                'Jinja2 environment')
-        # resolve bundle names
-        contents = []
-        for f in files:
-            try:
-                contents.append(env[f])
-            except KeyError:
-                contents.append(f)
 
         result = u""
-        urls = self.BundleClass(*contents,
+        urls = self.BundleClass(*self.resolve_contents(files, env),
                                 **{'output': output,
                                    'filters': filter}).urls(env=env)
         for f in urls:
@@ -103,24 +108,27 @@ class Jinja2Loader(GlobLoader):
     succeed.
     """
 
-    def __init__(self, directories, environments, charset='utf8'):
+    def __init__(self, assets_env, directories, jinja2_envs, charset='utf8'):
+        self.asset_env = assets_env
         self.directories = directories
-        self.environments = environments
+        self.jinja2_envs = jinja2_envs
         self.charset = charset
 
     def load_bundles(self):
         bundles = []
-        for template_dir in get_django_template_dirs():
-            for filename in self.glob_files('*.html', True):
-                bundles.append(self.with_file(filename, self._parse))
+        for template_dir in self.directories:
+            for filename in self.glob_files((template_dir, '*.html')):
+                bundles.extend(self.with_file(filename, self._parse) or [])
         return bundles
 
     def _parse(self, filename, contents):
-        for i, env in enumerate(jinja2_envs):
+        for i, env in enumerate(self.jinja2_envs):
+            print filename, env
             try:
                 t = env.parse(contents.decode(self.charset))
             except jinja2.exceptions.TemplateSyntaxError, e:
-                raise LoaderError('jinja parser (env %d) failed: %s'% (i, e))
+                #print ('jinja parser (env %d) failed: %s'% (i, e))
+                pass
             else:
                 result = []
                 def _recurse_node(node_to_search):
@@ -130,13 +138,18 @@ class Jinja2Loader(GlobLoader):
                                and node.node.identifier == AssetsExtension.identifier:
                                 filter, output, files = node.args
                                 bundle = Bundle(
-                                    *files.as_const(), **{
+                                    *AssetsExtension.resolve_contents(files.as_const(), self.asset_env),
+                                    **{
                                         'output': output.as_const(),
                                         'filters': filter.as_const()})
+                                print bundle
                                 result.append(bundle)
                         else:
                             _recurse_node(node)
                 for node in t.iter_child_nodes():
                     _recurse_node(node)
                 return result
+        else:
+            raise LoaderError('Jinja parser failed on %s, tried %d environments' % (
+                filename, len(self.jinja2_envs)))
         return False
