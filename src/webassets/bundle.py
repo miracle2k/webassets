@@ -96,6 +96,17 @@ class Bundle(object):
                 files.append(c)
         return files
 
+    @property
+    def is_container(self):
+        """Return true if this is a container bundle, that is, a bundle
+        that acts only as a container for a number of sub-bundles.
+
+        It must not contain any files of it's own, and must have an
+        empty ``output`` attribute.
+        """
+        has_files = any([c for c in self.contents if not isinstance(c, Bundle)])
+        return not has_files and not self.output
+
     def _get_env(self, env):
         # Note how bool(env) can be False, due to __len__.
         env = env if env is not None else self.env
@@ -198,23 +209,28 @@ class Bundle(object):
         hunk.save(env.abspath(self.output))
         return hunk
 
-    def urls(self, env=None, *args, **kwargs):
-        """Return a list of urls for this bundle.
+    def iterbuild(self):
+        """Iterate over the bundles which actually need to be built.
 
-        Depending on the environment and given options, this may be a
-        single url (likely the case in production mode), or many urls
-        (when we source the original media files in DEBUG mode).
-
-        Insofar necessary, this will automatically create or update
-        the files behind these urls.
+        This will often only entail ``self``, though for container
+        bundles (and container bundle hierarchies), a list of all the
+        non-container leafs will be yielded.
         """
+        if self.is_container:
+            for bundle in self.contents:
+                if bundle.is_container:
+                    for t in bundle.iterbuild():
+                        yield t
+                else:
+                    yield bundle
+        else:
+            yield self
 
+    def _urls(self, env, *args, **kwargs):
         env = self._get_env(env)
-
-        has_files = any([c for c in self.contents if not isinstance(c, Bundle)])
         supposed_to_merge, do_filter = self.determine_action(env)
 
-        if (self.output or has_files) and supposed_to_merge:
+        if supposed_to_merge:
             # If this bundle has an output target, then we want to build
             # it, if it has files, then we need to build it, at least
             # as long as were not explicitely allowed to not build at all,
@@ -232,3 +248,18 @@ class Bundle(object):
                 else:
                     urls.append(make_url(env, c, expire=False))
             return urls
+
+    def urls(self, env=None, *args, **kwargs):
+        """Return a list of urls for this bundle.
+
+        Depending on the environment and given options, this may be a
+        single url (likely the case in production mode), or many urls
+        (when we source the original media files in DEBUG mode).
+
+        Insofar necessary, this will automatically create or update
+        the files behind these urls.
+        """
+        urls = []
+        for bundle in self.iterbuild():
+            urls.extend(bundle._urls(env, *args, **kwargs))
+        return urls
