@@ -1,3 +1,4 @@
+import imp
 from django.conf import settings
 from webassets.env import Environment
 from webassets.importlib import import_module
