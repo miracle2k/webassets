@@ -1,13 +1,9 @@
 ``webassets`` branch
 ~~~~~~~~~~~~~~~~~~~~
 
-Outsource the Django dependency, make usable with other frameworks.
-
 - Docs need updating
-- Add a Flask/Werkzeug extension next to Django app, for starters.
-
-List of incompatible changes:
-- RegistryError is now RegisterError.
+  List of incompatible changes:
+    - RegistryError is now RegisterError.
 
 Other TODOs
 ~~~~~~~~~~~
