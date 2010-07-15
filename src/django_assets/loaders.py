@@ -8,7 +8,7 @@ except ImportError:
     # the Django namespace. Support both versions.
     AssetsNodeMapped = None
 
-from webassets.loaders import GlobLoader
+from webassets.loaders import GlobLoader, LoaderError
 
 
 __all__ = ('DjangoLoader', 'get_django_template_dirs',)
@@ -44,7 +44,7 @@ class DjangoLoader(GlobLoader):
         bundles = []
         for template_dir in get_django_template_dirs():
             for filename in self.glob_files((template_dir, '*.html'), True):
-                bundles.extend(self.with_file(filename, self._parse))
+                bundles.extend(self.with_file(filename, self._parse) or [])
         return bundles
 
     def _parse(self, filename, contents):

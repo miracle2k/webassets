@@ -24,6 +24,7 @@ Usage:
 
 import logging
 from optparse import make_option
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 from webassets import Bundle
@@ -90,13 +91,13 @@ class Command(BaseCommand):
         except:
             pass
         else:
-            from webassets.ext.jinja2 import Jinja2Loader
+            from webassets.ext.jinja2 import Jinja2Loader, AssetsExtension
 
             jinja2_envs = []
             # Prepare a Jinja2 environment we can later use for parsing.
             # If not specified by the user, put in there at least our own
             # extension, which we will need most definitely to achieve anything.
-            _jinja2_extensions = getattr(settings, 'ASSETS_JINJA2_EXTENSIONS')
+            _jinja2_extensions = getattr(settings, 'ASSETS_JINJA2_EXTENSIONS', False)
             if not _jinja2_extensions:
                 _jinja2_extensions = [AssetsExtension.identifier]
             jinja2_envs.append(jinja2.Environment(extensions=_jinja2_extensions))
@@ -108,6 +109,8 @@ class Command(BaseCommand):
             else:
                 jinja2_envs.append(get_coffin_env())
 
-            bundles.append(Jinja2Loader(get_django_template_dirs(), jinja2_envs))
+            bundles.extend(Jinja2Loader(get_env(),
+                                        get_django_template_dirs(),
+                                        jinja2_envs).load_bundles())
 
         return bundles
