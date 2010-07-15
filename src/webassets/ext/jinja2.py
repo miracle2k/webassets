@@ -123,7 +123,6 @@ class Jinja2Loader(GlobLoader):
 
     def _parse(self, filename, contents):
         for i, env in enumerate(self.jinja2_envs):
-            print filename, env
             try:
                 t = env.parse(contents.decode(self.charset))
             except jinja2.exceptions.TemplateSyntaxError, e:
@@ -142,7 +141,6 @@ class Jinja2Loader(GlobLoader):
                                     **{
                                         'output': output.as_const(),
                                         'filters': filter.as_const()})
-                                print bundle
                                 result.append(bundle)
                         else:
                             _recurse_node(node)
