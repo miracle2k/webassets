@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from jinja2.ext import Extension
 from jinja2 import nodes
 from webassets import Bundle
@@ -16,7 +18,18 @@ class AssetsExtension(Extension):
                   filter=("jsmin", "gzip"), output=get_output() %}
         {% endassets %}
     """
+
     tags = set(['assets'])
+
+    BundleClass = Bundle   # Helpful for mocking during tests.
+
+    def __init__(self, environment):
+        super(AssetsExtension, self).__init__(environment)
+
+        # add the defaults to the environment
+        environment.extend(
+            assets_environment=None,
+        )
 
     def parse(self, parser):
         lineno = parser.stream.next().lineno
@@ -58,12 +71,22 @@ class AssetsExtension(Extension):
                     set_lineno(lineno)
 
     def _render_assets(self, filter, output, files, caller=None):
+        env = self.environment.assets_environment
+        if env is None:
+            raise RuntimeError('No assets environment configured in '+
+                               'Jinja2 environment')
         # resolve bundle names
-        registry.autoload()
-        files = [registry.get(f) or f for f in files]
+        contents = []
+        for f in files:
+            try:
+                contents.append(env[f])
+            except KeyError:
+                contents.append(f)
 
         result = u""
-        urls = Bundle(*files, **{'output': output, 'filters': filter}).urls()
+        urls = self.BundleClass(*contents,
+                                **{'output': output,
+                                   'filters': filter}).urls(env=env)
         for f in urls:
             result += caller(f)
         return result
