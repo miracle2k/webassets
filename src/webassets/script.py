@@ -39,11 +39,12 @@ class CommandLineEnvironment():
         """Rebuild all assets now.
         """
         for bundle in self.environment:
-            self.log.info("Building asset: %s" % bundle.output)
-            try:
-                bundle.build(force=True)
-            except BuildError, e:
-                self.log.error("Failed, error was: %s" % e)
+            for to_build in bundle.iterbuild():
+                self.log.info("Building asset: %s" % to_build.output)
+                try:
+                    to_build.build(force=True)
+                except BuildError, e:
+                    self.log.error("Failed, error was: %s" % e)
 
     def watch(self):
         """Watch assets for changes.
