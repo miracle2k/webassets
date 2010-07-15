@@ -61,24 +61,11 @@ class Command(BaseCommand):
         # If the user requested it, search for bundles defined in templates
         if options.get('parse_templates'):
             log.info('Searching templates...')
-            # TODO: Right now, if you where to merge the use of
-            # template-only assets, and assets defined in code, then
-            # the later might also be generated multiple times if found
-            # through parsing where they are referenced in'templates.
-            # I'm not sure how to best solve this: We could of course try
-            # to detect the duplicates, either by instance or by output
-            # path, but maybe this check should be built into the
-            # environment itself (unless there are cases where we would
-            # want the environment to support duplicates, though I can't
-            # think of any right now. What about conditional building, i.e.
-            # subbundles that are built standalone in debug mode).
-            # Random idea: Should iter(environment) only yield actual
-            # buildable bundles? Because both the build() and the watch()
-            # command need to go through the motions of calling iterbuild().
-            # Another thought: Maybe container bundles found through
-            # parsing should simply be ignored. Those seem to be the sole
-            # source of potential duplicates.
-            get_env().add(*self.load_from_templates())
+            # Note that we exclude container bundles. By their very nature,
+            # they are guaranteed to have been created by solely referencing
+            # other bundles which are already registered.
+            get_env().add(*[b for b in self.load_from_templates()
+                            if not b.is_container])
 
         if len(get_env()) == 0:
             raise CommandError('No asset bundles were found. '
