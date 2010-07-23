@@ -1,13 +1,3 @@
-``webassets`` branch
-~~~~~~~~~~~~~~~~~~~~
-
-- Docs need updating
-  List of incompatible changes:
-    - RegistryError is now RegisterError.
-
-Other TODOs
-~~~~~~~~~~~
-
 Should bundle names be namespacable, similar to Django urls? At the least,
 we probably want to encourage a convention of prefixing your bundle names
 with an id. Everything else would just intend to make this easier or more

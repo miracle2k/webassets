@@ -19,8 +19,8 @@ import sys, os
 #sys.path.append(os.path.abspath('.'))
 
 # make sure we are documenting the local version with autodoc
-sys.path.insert(0, os.path.abspath('..'))
-import django_assets
+sys.path.insert(0, os.path.abspath('../src'))
+import webassets
 
 # -- General configuration -----------------------------------------------------
 
@@ -41,15 +41,15 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'django-assets'
-copyright = u'2009, Michael Elsdörfer'
+project = u'webassets'
+copyright = u'2009, 2010, Michael Elsdörfer'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = ".".join(map(str, django_assets.__version__))
+version = ".".join(map(str, webassets.__version__))
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -162,7 +162,7 @@ html_static_path = ['_static']
 #html_file_suffix = ''
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'django-assetsdoc'
+htmlhelp_basename = 'webassetsdoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -176,7 +176,7 @@ htmlhelp_basename = 'django-assetsdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'django-assets.tex', u'django-assets Documentation',
+  ('index', 'webassets.tex', u'webassets Documentation',
    u'Michael Elsdörfer', 'manual'),
 ]
 

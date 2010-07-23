@@ -95,91 +95,125 @@ class Environment(object):
         self._debug = debug
     def get_debug(self):
         return self._debug
-    debug = property(get_debug, set_debug)
+    debug = property(get_debug, set_debug, doc=
     """Enable/disable debug mode. Possible values are:
-      - ``False``       default production mode
-      - ``True``        enable debug, output the source files
-      - "merge"         merge the source files, but do not apply filters
-    """
+
+        ``False``
+            Production mode. Bundles will be merged and filters applied.
+        ``True``
+            Enable debug mode. Bundles will output their individual source
+            files.
+        *"merge"*
+            Merge the source files, but do not apply filters.
+    """)
 
     def set_cache(self, enable):
         self._cache = enable
     def get_cache(self):
         return self._cache
-    cache = property(get_cache, set_cache)
-    """Controls the caching behavior. The cache is only available in debug
-    mode, so the value will be ignored in all other cases. Possible values
-    are:
-      - ``False``       do not use the cache
-      - ``True``        cache using default location: MEDIA_ROOT/.cache
-      - custom path     use the given directory as the cache directory
-    """
+    cache = property(get_cache, set_cache, doc=
+    """Controls the behavior of the cache. The cache will speed up rebuilding
+    of your bundles, by caching individual filter results. This can be
+    particulary useful while developing, if your bundles would otherwise take
+    a long time to rebuild.
+
+    Possible values are:
+
+      ``False``
+          Do not use the cache.
+
+      ``True`` (default)
+          Cache using default location, a ``.cache`` folder inside
+          :attr:`directory`.
+
+      *custom path*
+         Use the given directory as the cache directory.
+
+    Note: Currently, the cache is never used while in production mode.
+    """)
 
     def set_updater(self, updater):
         self._updater = updater
     def get_updater(self):
         return self._updater
-    updater = property(get_updater, set_updater)
-    """Controls when an already cached asset should be recreated. Possible
-    values are:
-      - ``False``       do not recreate automatically (use the management
-                        command for a manual update)
-      - "timestamp"     update if a source file timestamp exceeds the
-                        existing file's timestamp
-      - "interval"      recreate after an interval X (in seconds), specify
-                        as a tuple: ("internal", 3600)
-      - "always"        always recreate an every request (avoid in
-                        production environments)
-    """
+    updater = property(get_updater, set_updater, doc=
+    """Controls when and if bundles should be automatically rebuilt.
+    Possible values are:
+
+      ``False``
+          Do not auto-rebuilt bundles. You will need to use the command
+          line interface to update bundles yourself.
+
+      ``"timestamp"`` (default)
+          Rebuild bundles if the source file timestamp exceeds the existing
+          output file's timestamp.
+
+      ``"interval"``
+          Always rebuild after an interval of X seconds has passed.
+          Specify as a tuple: ``("internal", 3600)``.
+
+      ``"always"``
+          Always rebuild bundles (avoid in production environments).
+
+    For most people, the default value will make a lot of sense. However,
+    if you want to avoid the request which causes a rebuild taking too
+    long, you may want to disable auto-rebuilds and instead rebuild
+    yourself, outside of your webserver process. See also :attr:`auto_create`.
+    """)
 
     def set_auto_create(self, auto_create):
         self._auto_create =  auto_create
     def get_auto_create(self):
         return self._auto_create
-    auto_create = property(get_auto_create, set_auto_create)
-    """Even if you disable automatic rebuilding of your assets via
-    ``set_updater``, when an asset is found to be not (yet) existing,
-    it would normally be created. You can set this option to ``False``
-    to disable the behavior, and raise an exception instead.
-    """
+    auto_create = property(get_auto_create, set_auto_create, doc=
+    """Even if you disable automatic rebuilds via :attr:`updater`, when a
+    bundle's output file is found to not yet exist, it would normally still
+    be created. You can set this option to ``False`` to disable the behavior,
+    and raise an exception instead.
+    """)
 
     def set_expire(self, expire):
         self._expire = expire
     def get_expire(self):
         return self._expire
-    expire = property(get_expire, set_expire)
-    """If you send your assets to the client using a far future expires
-    header to minimize the 304 responses your server has to send, you need
-    to make sure that changed assets will be reloaded. This feature will
-    help you. Possible values are:
-      - ``False``       don't do anything, expires headers may cause problems
-      - "querystring"   append a querystring with the assets last
-                        modification timestamp:
-                            asset.js?1212592199
-      - "filename"      modify the assets filename to include the timestamp:
-                            asset.1212592199.js
-                        this may work better with certain proxies/browsers,
-                        but requires you to configure your webserver to
-                        rewrite those modified filenames to the originals.
-                        see also: http://www.stevesouders.com/blog/2008/08/23/revving-filenames-dont-use-querystring/
-    """
+    expire = property(get_expire, set_expire, doc=
+    """If you send your assets to the client using a *far future expires*
+    header (to minimize the 304 responses your server has to send), you
+    need to make sure that changed assets will be reloaded when they change.
+
+    This feature will help. Possible values are:
+
+      ``False``
+          Don't do anything.
+
+      ``"querystring"``
+          Append a querystring with a timestamp to generated urls, e.g.
+          ``asset.js?1212592199``.
+
+      ``"filename"``
+          Modify the filename to include a timestamp, e.g.
+          ``asset.1212592199.js``. This may work better with certain
+          proxies, but requires you to configure your webserver to
+          rewrite those modified filenames to the originals. See also
+          `High Performance Web Sites blog <http://www.stevesouders.com/blog/2008/08/23/revving-filenames-dont-use-querystring/>`_.
+    """)
 
     def set_directory(self, directory):
         self._directory = directory
     def get_directory(self):
         return self._directory
-    directory = property(get_directory, set_directory)
+    directory = property(get_directory, set_directory, doc=
     """The base directory to which all paths will be relative to.
-    """
+    """)
 
     def set_url(self, url):
         self._url = url
     def get_url(self):
         return self._url
-    url = property(get_url, set_url)
-    """The base used to construct urls under which ``self.directory``
+    url = property(get_url, set_url, doc=
+    """The base used to construct urls under which :attr:`directory`
     should be exposed.
-    """
+    """)
 
     def absurl(self, fragment):
         """Create an absolute url based on the root url.
