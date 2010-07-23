@@ -1,4 +1,4 @@
-0.3
+0.3 (unreleased)
 	- Fixed: YUI filter JAVA_HOME handling (Ian Langworth,
 	  Asheesh Laroia).
 	- 1.2 compatibility.
