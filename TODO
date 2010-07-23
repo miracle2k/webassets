@@ -1,4 +1,14 @@
-Why don't be use the cache in production mode? We probably should.
+There is currently no locking going during auto-rebuilds, that is multiple
+requests could potentially cause multiple builds!
+
+As much as I like the fact that one doesn't need to specify the filters to
+use globally, the fact is that in many cases, the same set of filters is
+going to be used, and for many simple cases, a set of default filters will
+work really well and make things easy for new users. May something like this
+could be added:
+	 - env.default_filters['js'] == 'jsmin'
+    - JSBundle('')
+    - In templates, maybe: {% assets type="js" %}?
 
 Add a switch to the rebuild() command to ignore the cache.
 
@@ -22,19 +32,9 @@ recreated automatically.
 Automatically create (and delete, i.e. manage) symlinks to make the
 ASSETS_EXPIRE="filename" option work without server rewrites.
 
-(a) Support functionality for applying a filter directly within a template,
-i.e. pack inline scripts. (b) On the other end, allow piping an assets
+Support functionality for applying a filter directly within a template,
+i.e. pack inline scripts. On the other end, allow piping an assets
 directly into the template.
-
-(c) Support a "apply filter but do not merge" mode in which every source
-file is written to a corresponding file in a given output directory;
-without having to explicitly create a separate bundle for each file. How
-would this behave in a nested scenario?
-
-With respect to (b) and (b), it will be challenging to support all those
-combinations from within the Django template tag, with it's limited syntax.
-Note that the two features do overlap: Both deal with how to output an
-asset.
 
 Should be provide features for normalizing encodings? This could be
 added as properties to the bundles.
@@ -50,24 +50,9 @@ standardized way across the board.
 
 Allow an option to fall back to rendering source files in case asset
 building fails for some reason. Right now, the user would get to see a
-server error. This would probably most simply be accomplished by having
-AssetsNode catch exceptions in create_merged() and redirect to
-render_sources. We probably want to activate this only in production mode.
+server error.
 
 Support asset deployment to services like Amazon S3.
-
-In the beginning, there was this idea of "tracking" assets in a model, to
-avoid having to parse templates. Now that we conceptually moved towards
-defining Bundles in code, that's no longer necessary. Still, there could
-still be some uses for it; note enough probably to justify the feature, but
-let's note them anyway:
-	- The model could store things like the bundle hash, allowing a
-	  hash-based update mechanism, even when using say a timestamp cache
-	  buster, or no cache buster at all.
-    - Right now, if asset properties like the applied filters or the list
-      of source files change, without causing the source timestamp to
-      change, the update will not be automatically picked up. That kind of
-      information could be tracked and used to detect changes better.
 
 Support more expiration/cache busting options (e.g. append hash, use hash
 instead of filename, ...); Allow custom code as well.
@@ -88,7 +73,7 @@ convinced it makes sense.
 Some filters, like the less filter, cannot work with an input stream,
 but only with the source files directly. To work, they thus need to be
 the first ones to be applied. There should be a way for filters to declare
-that requirement and django-assets to automatically validate it.
+that requirement and webassets to automatically validate it.
 One possible option: Adding a new method besides input/output - say, "open()".
 Only one such filter would be allowed to run.
 
@@ -97,3 +82,7 @@ the CSS compiler in debug mode problem. Maybe it should be up to
 filters to decide if they need to run. There shouldn't really be
 a case in which, say, "less" should NOT compile. The output wouldn't
 be usable in the browser otherwise.
+
+It might be possible to get rid of the ASSETS_JINJA2_EXTENSIONS setting,
+or the requirement that the Jinja2Loader need to know about the extensions
+used, if we can somehow hack Jinja2 to ignore unknown tags.
