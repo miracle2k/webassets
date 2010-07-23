@@ -19,10 +19,10 @@ class Environment(object):
     def __init__(self, directory, url, **config):
         self._named_bundles = {}
         self._anon_bundles = []
+        self._config = config
 
         self.directory = directory
         self.url = url
-        self.config = config
 
         self.debug = False
         self.cache = True
@@ -88,7 +88,10 @@ class Environment(object):
         """This is a simple configuration area provided by the asset
         env which holds additional options used by the filters.
         """
-        return self.config.get(key, default)
+        return self._config.get(key.lower(), default)
+
+    def set_config(self, key, value):
+        self._config[key.lower()] = value
 
     def set_debug(self, debug):
         self._debug = debug

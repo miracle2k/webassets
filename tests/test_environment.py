@@ -69,3 +69,24 @@ class TestEnv:
         self.m.add(b)
         assert len(self.m) == 1
         assert list(self.m) == [b]
+
+
+class TestEnvConfig:
+    """Custom config values through get_config/set_config.
+    """
+
+    def setup(self):
+        self.m = Environment(None, None)
+
+    def test_basic(self):
+        assert self.m.get_config('foo') == None
+        self.m.set_config('foo', 'bar')
+        assert self.m.get_config('foo') == 'bar'
+
+    def test_case(self):
+        """get_config() is case-insensitive.
+        """
+        self.m.set_config('FoO', 'bar')
+        assert self.m.get_config('FOO') == 'bar'
+        assert self.m.get_config('foo') == 'bar'
+        assert self.m.get_config('fOO') == 'bar'

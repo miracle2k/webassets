@@ -1,5 +1,5 @@
 import os
-from nose.tools import assert_raises, with_setup
+from nose.tools import assert_raises, with_setup, assert_equals
 from nose import SkipTest
 from webassets import Bundle, Environment
 from webassets.filter import Filter, get_filter, register_filter
@@ -35,7 +35,7 @@ class TestFilter:
         NAME2 = 'FOO%s' % id(NAME)
         assert NAME != NAME2
         assert not NAME in os.environ and not NAME2 in os.environ
-        assert not NAME in m.config and not NAME2 in m.config
+        assert not NAME in m._config and not NAME2 in m._config
 
         try:
             # Test raising of error, and test not raising it.
@@ -49,11 +49,11 @@ class TestFilter:
             assert_raises(EnvironmentError, get_config, setting=NAME, env=False)
 
             # Set the value in the environment as well.
-            m.config[NAME] = 'foo'
+            m.set_config(NAME, 'foo')
             # Ensure that settings take precedence.
-            assert get_config(NAME) == 'foo'
+            assert_equals(get_config(NAME), 'foo')
             # Two different names can be supplied.
-            assert not NAME2 in m.config
+            assert not NAME2 in m._config
             assert get_config(setting=NAME2, env=NAME) == 'bar'
 
             # Unset the env variable, now with only the setting.
@@ -64,7 +64,7 @@ class TestFilter:
         finally:
             if NAME in os.environ:
                 del os.environ[NAME]
-            del m.config[NAME]
+            del m._config[NAME.lower()]
 
     def test_equality(self):
         """Test the ``unique`` method used to determine equality.
