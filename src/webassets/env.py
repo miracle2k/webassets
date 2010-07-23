@@ -11,15 +11,76 @@ class RegisterError(Exception):
     pass
 
 
+class ConfigStorage(object):
+    """This is the backend which :class:`Environment` uses to store
+    it's configuration values.
+
+    Environment-subclasses like the one used by ``django-assets`` will
+    often want to use a custom ``ConfigStorage`` as well, building upon
+    whatever configuration the framework is using.
+
+    The goal in designing this class therefore is to make it easy for
+    subclasses to change the place the data is stored: Only
+    _meth:`__getitem__`, _meth:`__setitem__` and _meth:`__delitem__`
+    need to be implemented.
+
+    One rule: The default storage is case-insensitive, and custom
+    environments should maintain those semantics.
+
+    A related reason is why we don't inherit from ``dict``. It would
+    require us to re-implement a whole bunch of methods, like pop() etc.
+    """
+    # Don't inherit from ``dict``, as that would require us to implement
+    # a whole bunch of methods, like pop() etc.
+    def __init__(self, d={}):
+        self._dict = {}
+        self.update(d)
+
+    def __contains__(self, key):
+        return self._dict.__contains__(key.lower())
+
+    def get(self, key, default=None):
+        try:
+            return self.__getitem__(key)
+        except KeyError:
+            return default
+
+    def update(self, d):
+        for key in d:
+            self._dict[key] = d[key]
+
+    def __getitem__(self, key):
+        raise NotImplementedError()
+
+    def __setitem__(self, key, value):
+        raise NotImplementedError()
+
+    def __delitem__(self, key):
+        raise NotImplementedError()
+
+
+class DictConfigStorage(ConfigStorage):
+    """Using a lower-case dict for configuration values.
+    """
+    def __getitem__(self, key):
+        return self._dict.__getitem__(key.lower())
+    def __setitem__(self, key, value):
+        self._dict.__setitem__(key.lower(), value)
+    def __delitem__(self, key):
+        self._dict.__delitem__(key.lower())
+
+
 class Environment(object):
     """Owns a collection of bundles, and a set of configuration values
     which will be used when processing these bundles.
     """
 
+    config_storage_class = DictConfigStorage
+
     def __init__(self, directory, url, **config):
         self._named_bundles = {}
         self._anon_bundles = []
-        self._config = config
+        self._config = self.config_storage_class(config)
 
         self.directory = directory
         self.url = url
@@ -84,19 +145,18 @@ class Environment(object):
             self._anon_bundles.append(bundle)
             bundle.env = self    # take ownership
 
-    def get_config(self, key, default=None):
-        """This is a simple configuration area provided by the asset
-        env which holds additional options used by the filters.
+    @property
+    def config(self):
+        """Key-value configuration. Keys are case-insensitive.
         """
-        return self._config.get(key.lower(), default)
-
-    def set_config(self, key, value):
-        self._config[key.lower()] = value
+        # This is a property so that user are not tempted to assign
+        # a custom dictionary which won't uphold our caseless semantics.
+        return self._config
 
     def set_debug(self, debug):
-        self._debug = debug
+        self.config['debug'] = debug
     def get_debug(self):
-        return self._debug
+        return self.config['debug']
     debug = property(get_debug, set_debug, doc=
     """Enable/disable debug mode. Possible values are:
 
@@ -110,9 +170,9 @@ class Environment(object):
     """)
 
     def set_cache(self, enable):
-        self._cache = enable
+        self.config['cache'] = enable
     def get_cache(self):
-        return self._cache
+        return self.config['cache']
     cache = property(get_cache, set_cache, doc=
     """Controls the behavior of the cache. The cache will speed up rebuilding
     of your bundles, by caching individual filter results. This can be
@@ -135,9 +195,9 @@ class Environment(object):
     """)
 
     def set_updater(self, updater):
-        self._updater = updater
+        self.config['updater'] = updater
     def get_updater(self):
-        return self._updater
+        return self.config['updater']
     updater = property(get_updater, set_updater, doc=
     """Controls when and if bundles should be automatically rebuilt.
     Possible values are:
@@ -167,9 +227,9 @@ class Environment(object):
     """)
 
     def set_expire(self, expire):
-        self._expire = expire
+        self.config['expire'] = expire
     def get_expire(self):
-        return self._expire
+        return self.config['expire']
     expire = property(get_expire, set_expire, doc=
     """If you send your assets to the client using a *far future expires*
     header (to minimize the 304 responses your server has to send), you
@@ -193,17 +253,17 @@ class Environment(object):
     """)
 
     def set_directory(self, directory):
-        self._directory = directory
+        self.config['directory'] = directory
     def get_directory(self):
-        return self._directory
+        return self.config['directory']
     directory = property(get_directory, set_directory, doc=
     """The base directory to which all paths will be relative to.
     """)
 
     def set_url(self, url):
-        self._url = url
+        self.config['url'] = url
     def get_url(self):
-        return self._url
+        return self.config['url']
     url = property(get_url, set_url, doc=
     """The base used to construct urls under which :attr:`directory`
     should be exposed.

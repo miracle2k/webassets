@@ -1,20 +1,14 @@
 import imp
 from django.conf import settings
-from webassets.env import Environment
+from webassets.env import Environment, ConfigStorage
 from webassets.importlib import import_module
 
 
 __all__ = ('register',)
 
 
-class DjangoEnvironment(Environment):
-    """For Django, we need to redirect all the configuration values this
-    object holds to Django's own settings object.
 
-    We do this by hooking into __getattribute__ and __setattribute__,
-    rather than reimplementing the get_foo/set_foo() methods, which means
-    we won't have to reimplement any validation the parent class may do.
-    """
+class DjangoConfigStorage(ConfigStorage):
 
     _mapping = {
         'debug': 'ASSETS_DEBUG',
@@ -26,37 +20,36 @@ class DjangoEnvironment(Environment):
         'url': 'MEDIA_URL',
     }
 
+    def _transform_key(self, key):
+        return self._mapping.get(key.lower(), key.upper())
+
+    def __getitem__(self, key):
+        return getattr(settings, self._transform_key(key))
+
+    def __setitem__(self, key, value):
+        setattr(settings, self._transform_key(key), value)
+
+    def __delitem__(self, key):
+        # This isn't possible to implement in Django without relying
+        # on internals of the settings object, so just set to None.
+        self.__setitem__(key, None)
+
+
+class DjangoEnvironment(Environment):
+    """For Django, we need to redirect all the configuration values this
+    object holds to Django's own settings object.
+
+    We do this by hooking into __getattribute__ and __setattribute__,
+    rather than reimplementing the get_foo/set_foo() methods, which means
+    we won't have to reimplement any validation the parent class may do.
+    """
+
+    config_storage_class = DjangoConfigStorage
+
     def __init__(self):
         # Have the parent initialize the default values
-        super(DjangoEnvironment, self).__init__(None, None)
-
-        # Then, from this point on, redirect various attributes
-        # to the Django settings object.
-        self.django_settings = settings
-
-    def get_config(self, key, default=None):
-        return getattr(self.django_settings, key, default)
-
-    def __getattribute__(self, name):
-        if name == '_mapping':
-            return super(DjangoEnvironment, self).__getattribute__(name)
-        if not name in self._mapping:
-            return super(DjangoEnvironment, self).__getattribute__(name)
-
-        django_key = self._mapping[name]
-        if not hasattr(self.django_settings, django_key):
-            return super(DjangoEnvironment, self).__getattribute__(name)
-
-        return getattr(self.django_settings, django_key)
-
-    def __setattr__(self, name, value):
-        if not hasattr(self, 'django_settings'):
-            # The parent's __init__ is probably settings defaults
-            return super(DjangoEnvironment, self).__setattr__(name, value)
-        if not name in self._mapping:
-            return super(DjangoEnvironment, self).__setattr__(name, value)
-
-        setattr(self.django_settings, self._mapping[name], value)
+        super(DjangoEnvironment, self).__init__(settings.MEDIA_ROOT,
+                                                settings.MEDIA_URL)
 
 
 # Django has a global state, a global configuration, and so we need a

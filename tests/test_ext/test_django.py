@@ -23,32 +23,29 @@ def setup_module():
     AssetsNode = Node
 
 
-def test_options():
-    """Various Environment options are backed by the Django settings
+class TestConfig(object):
+    """The environment configuration is backed by the Django settings
     object.
     """
-    settings.MEDIA_ROOT = 'FOO'
-    assert get_env().directory == 'FOO'
 
-    get_env().directory = 'BAR'
-    assert settings.MEDIA_ROOT == 'BAR'
+    def test_default_options(self):
+        """The builtin options have different names within the Django
+        settings, to make it obvious they belong to django-assets.
+        """
+        settings.ASSETS_EXPIRE = 'timestamp'
+        assert get_env().config['expire'] == settings.ASSETS_EXPIRE
 
-    # We can also access values that are not represented by a original
-    # Django setting. Specifically, we are able to read those values
-    # and get the webassets-default without having to explicitly
-    # initialize the corresponding Django setting.
-    assert get_env().debug == False
-    assert not hasattr(settings, 'ASSETS_DEBUG')
-    get_env().debug = True
-    assert settings.ASSETS_DEBUG == True
+        settings.MEDIA_ROOT = 'FOO'
+        assert get_env().directory == 'FOO'
 
+        get_env().directory = 'BAR'
+        assert settings.MEDIA_ROOT == 'BAR'
 
-def test_config():
-    """The Environment config storage is also backed by the Django
-    settings object.
-    """
-    settings.FOO = 42
-    get_env().get_config('FOO') == 42
+    def test_custom_options(self):
+        settings.FOO = 42
+        get_env().config['foo'] == 42
+        # Also, we are caseless.
+        get_env().config['foO'] == 42
 
 
 class TestTemplateTag():

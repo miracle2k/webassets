@@ -72,12 +72,12 @@ Filter configuration
 ====================
 
 In addition to the standard options listed above, you can set custom
-configuration values using ``set_config``. This is so that you can
+configuration values using ``Environment.config``. This is so that you can
 configure filters through the environment:
 
 .. code-block:: python
 
-    environment.set_config('sass_bin', '/opt/sass/bin/sass')
+    environment.config['sass_bin'] = '/opt/sass/bin/sass')
 
 This allows the :ref:`Sass filter <filters-sass>` to find the sass
 binary.

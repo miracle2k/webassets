@@ -47,7 +47,7 @@ class TestFilter:
             assert_raises(EnvironmentError, get_config, setting=NAME, env=False)
 
             # Set the value in the environment as well.
-            m.set_config(NAME, 'foo')
+            m.config[NAME] = 'foo'
             # Ensure that settings take precedence.
             assert_equals(get_config(NAME), 'foo')
             # Two different names can be supplied.

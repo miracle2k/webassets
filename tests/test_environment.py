@@ -79,14 +79,14 @@ class TestEnvConfig:
         self.m = Environment(None, None)
 
     def test_basic(self):
-        assert self.m.get_config('foo') == None
-        self.m.set_config('foo', 'bar')
-        assert self.m.get_config('foo') == 'bar'
+        assert self.m.config.get('foo') == None
+        self.m.config['foo'] = 'bar'
+        assert self.m.config.get('foo') == 'bar'
 
     def test_case(self):
         """get_config() is case-insensitive.
         """
-        self.m.set_config('FoO', 'bar')
-        assert self.m.get_config('FOO') == 'bar'
-        assert self.m.get_config('foo') == 'bar'
-        assert self.m.get_config('fOO') == 'bar'
+        self.m.config['FoO'] = 'bar'
+        assert self.m.config.get('FOO') == 'bar'
+        assert self.m.config.get('foo') == 'bar'
+        assert self.m.config.get('fOO') == 'bar'

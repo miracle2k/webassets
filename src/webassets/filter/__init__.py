@@ -92,7 +92,7 @@ class Filter(object):
 
         value = None
         if not setting is False:
-            value = self.env.get_config(setting, None)
+            value = self.env.config.get(setting, None)
 
         if value is None and not env is False:
             value = os.environ.get(env)
