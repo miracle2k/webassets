@@ -27,7 +27,7 @@ class Environment(object):
         self.debug = False
         self.cache = True
         self.updater = 'timestamp'
-        self.expire = False
+        self.expire = 'querystring'
 
     def __iter__(self):
         return chain(self._named_bundles.itervalues(), self._anon_bundles)
@@ -177,7 +177,7 @@ class Environment(object):
       ``False``
           Don't do anything.
 
-      ``"querystring"``
+      ``"querystring"`` (default)
           Append a querystring with a timestamp to generated urls, e.g.
           ``asset.js?1212592199``.
 

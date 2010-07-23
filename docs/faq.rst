@@ -4,7 +4,8 @@ FAQ
 Is there a cache-busting feature?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes! You simply need to turn on the :ref:`Environment.expire <environment-setting-expire>`
+Yes! It's turned on by default. See the
+:ref:`Environment.expire <environment-setting-expire>`
 option (or :ref:`ASSETS_EXPIRE <django-setting-expire>` if using
 ``django_assets``).
 
