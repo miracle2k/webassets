@@ -15,6 +15,7 @@ Jinja. For example, filters may be specified as tuples:
 
 
 More exhaustive documentation of the Jinja2 tag can be
+:doc:`here </integration/jinja2>`.
 
 
 Installation
