@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 import os
-from distutils.core import setup
+from setuptools import setup, find_packages
 try:
     from sphinx.setup_command import BuildDoc
     cmdclass = {'build_sphinx': BuildDoc}
 except ImportError:
-    print "Sphinx not installed--needed to build documentation"
-    # default cmdclass to None to avoid
+    print "Sphinx not installed - needed to build documentation"
     cmdclass = {}
 
 
@@ -18,7 +17,7 @@ import re
 here = os.path.dirname(os.path.abspath(__file__))
 version_re = re.compile(
     r'__version__ = (\(.*?\))')
-fp = open(os.path.join(here, 'django_assets', '__init__.py'))
+fp = open(os.path.join(here, 'src/webassets', '__init__.py'))
 version = None
 for line in fp:
     match = version_re.search(line)
@@ -30,27 +29,19 @@ else:
 fp.close()
 
 
-def find_packages(root):
-    # so we don't depend on setuptools; from the Storm ORM setup.py
-    packages = []
-    for directory, subdirectories, files in os.walk(root):
-        if '__init__.py' in files:
-            packages.append(directory.replace(os.sep, '.'))
-    return packages
-
-
 setup(
-    name = 'django-assets',
-    version=".".join(map(str, version)),
-    description = 'Media asset management for the Django web framework.',
+    name = 'web-assets',
+    version = ".".join(map(str, version)),
+    description = 'Media asset management for Python, with glue code for '+\
+        'various web frameworks',
     long_description = 'Merges, minifies and compresses Javascript and '
         'CSS files, supporting a variety of different filters, including '
         'YUI, jsmin, jspacker or CSS tidy. Also supports URL rewriting '
         'in CSS files.',
     author = 'Michael Elsdoerfer',
-    author_email = 'michael@elsdoerfer.info',
+    author_email = 'michael@elsdoerfer.com',
     license = 'BSD',
-    url = 'http://launchpad.net/django-assets',
+    url = 'github.com/miracle2k/web-assets/',
     classifiers = [
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
@@ -62,6 +53,8 @@ setup(
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Software Development :: Libraries',
         ],
-    packages = find_packages('django_assets'),
-    cmdclass=cmdclass,
+    entry_points = """[console_scripts]\nwebassets = webassets.script:run\n""",
+    packages = find_packages('src'),
+    package_dir = {'': 'src'},
+    cmdclass = cmdclass,
 )

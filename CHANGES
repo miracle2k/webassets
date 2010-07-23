@@ -1,3 +1,8 @@
+0.4
+	- Renamed project to ``webassets``, no longer Django specific;
+	  instead, the Django app is an optional addon.
+
+
 0.3 (unreleased)
 	- Fixed: YUI filter JAVA_HOME handling (Ian Langworth,
 	  Asheesh Laroia).

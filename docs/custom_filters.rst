@@ -22,6 +22,7 @@ In this example, because cssrewrite acts as an in put filter, what will
 essentially happen is:
 
 .. code-block:: python
+
     yui_css(cssrewrite(file.css))
 
 To be even more specific, since a single filter can act as both an input
@@ -29,6 +30,7 @@ and an output filter, the call chain will actually look something like
 this:
 
 .. code-block:: python
+
     cssrewrite.output(yui_css.output((cssrewrite.input((yui_css.input(file.css)))))
 
 The usual reason to use an in put filter is that the filter's

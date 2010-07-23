@@ -1,57 +1,66 @@
+================
 Included Filters
-=================
+================
 
+The following filters are included in ``webassets``, though some may
+require the installation of an external library, or the availability of
+external tools.
+
+You can also write :doc:`custom filters <custom_filters>`.
+
+
+Javascript compressors
+----------------------
 
 ``jsmin``
 ~~~~~~~~~
 
-.. autoclass:: django_assets.filter.jsmin.JSMinFilter
+.. autoclass:: webassets.filter.jsmin.JSMinFilter
+
+
+``yui_js``
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: webassets.filter.yui
+.. autoclass:: webassets.filter.yui.YUIJSFilter
 
 
 ``jspacker``
 ~~~~~~~~~~~~
 
-.. autoclass:: django_assets.filter.jspacker.JSPackerFilter
+.. autoclass:: webassets.filter.jspacker.JSPackerFilter
+
+
+CSS compressors
+---------------
+
+``cssmin``
+~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.cssmin.CSSMinFilter
 
 
 ``cssutils``
 ~~~~~~~~~~~~
 
-.. autoclass:: django_assets.filter.cssutils.CSSUtilsFilter
+.. autoclass:: webassets.filter.cssutils.CSSUtilsFilter
 
 
-``yui_css``, ``yui_js``
-~~~~~~~~~~~~~~~~~~~~~~~
+``yui_css``
+~~~~~~~~~~~
 
-.. automodule:: django_assets.filter.yui
-.. autoclass:: django_assets.filter.yui.YUIJSFilter
-.. autoclass:: django_assets.filter.yui.YUICSSFilter
+.. autoclass:: webassets.filter.yui.YUICSSFilter
 
 
-``cssmin``
-~~~~~~~~~~~~
+.. _filters-css-compilers:
 
-.. autoclass:: django_assets.filter.cssmin.CSSMinFilter
-
-
-``gzip``
-~~~~~~~~
-
-.. autoclass:: django_assets.filter.gzip.GZipFilter
-
-
-.. _filters-cssrewrite:
-
-``cssrewrite``
-~~~~~~~~~~~~~~
-
-.. autoclass:: django_assets.filter.cssrewrite.CSSRewriteFilter
-
+CSS Compilers
+-------------
 
 ``clevercss``
 ~~~~~~~~~~~~~
 
-.. autoclass:: django_assets.filter.clevercss.CleverCSSFilter
+.. autoclass:: webassets.filter.clevercss.CleverCSSFilter
 
 
 .. _filters-less:
@@ -59,22 +68,41 @@ Included Filters
 ``less``
 ~~~~~~~~
 
-.. autoclass:: django_assets.filter.less.LessFilter
+.. autoclass:: webassets.filter.less.LessFilter
 
+
+.. _filters-sass:
 
 ``sass``
 ~~~~~~~~
 
-.. autoclass:: django_assets.filter.sass.SassFilter
+.. autoclass:: webassets.filter.sass.SassFilter
 
 
 ``scss``
 ~~~~~~~~
 
-.. autoclass:: django_assets.filter.sass.SCSSFilter
+.. autoclass:: webassets.filter.sass.SCSSFilter
 
 
 ``compass``
 ~~~~~~~~~~~
 
-.. autoclass:: django_assets.filter.compass.CompassFilter
+.. autoclass:: webassets.filter.compass.CompassFilter
+
+
+Other
+-----
+
+.. _filters-cssrewrite:
+
+``cssrewrite``
+~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.cssrewrite.CSSRewriteFilter
+
+
+``gzip``
+~~~~~~~~
+
+.. autoclass:: webassets.filter.gzip.GZipFilter
