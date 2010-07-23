@@ -26,9 +26,6 @@ in your project's global settings.
 .. autodata:: ASSETS_UPDATER
     :noindex:
 
-.. autodata:: ASSETS_AUTO_CREATE
-    :noindex:
-
 .. _django-setting-expire:
 
 .. autodata:: ASSETS_EXPIRE

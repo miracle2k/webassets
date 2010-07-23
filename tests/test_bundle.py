@@ -207,10 +207,18 @@ class TestUpdateAndCreate(BuildTestHelper):
                 return self.allow
         self.m.updater = CustomUpdater()
 
-    def test_no_auto_create(self):
-        """If auto create is disabled, an error is raised.
+    def test_autocreate(self):
+        """If an output file doesn't yet exist, it'll be created (as long
+        as automatic building is enabled, anyway).
         """
-        self.m.auto_create = False
+        self.mkbundle('in1', output='out').build()
+        assert self.get('out') == 'A'
+
+    def test_no_auto_create(self):
+        """If no updater is given, then the initial build if a previously
+        non-existent output file will not happen either.
+        """
+        self.m.updater = False
         assert_raises(BuildError, self.mkbundle('in1', output='out').build)
         # However, it works fine if force is used
         self.mkbundle('in1', output='out').build(force=True)
@@ -220,7 +228,7 @@ class TestUpdateAndCreate(BuildTestHelper):
         was only given via an argument to build(), rather than at Bundle
         __init__ time.
         """
-        self.m.auto_create = False
+        self.m.updater = False
         assert_raises(BuildError, Bundle('in1', output='out').build, env=self.m)
 
     def test_updater_says_no(self):

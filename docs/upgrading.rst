@@ -16,6 +16,11 @@ In 0.4
 
 - ``RegistryError`` is now ``RegisterError``.
 
+- The ``ASSETS_AUTO_CREATE`` option no longer exists. Instead, automatic
+  creation of bundle output files is now bound to the ``ASSETS_UPDATER``
+  setting. If it is ``False``, i.e. automatic updating is disabled, then
+  assets won't be automatically created either.
+
 In 0.2
 ~~~~~~
 

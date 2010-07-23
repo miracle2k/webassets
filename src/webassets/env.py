@@ -27,7 +27,6 @@ class Environment(object):
         self.debug = False
         self.cache = True
         self.updater = 'timestamp'
-        self.auto_create = True
         self.expire = False
 
     def __iter__(self):
@@ -142,7 +141,10 @@ class Environment(object):
 
       ``False``
           Do not auto-rebuilt bundles. You will need to use the command
-          line interface to update bundles yourself.
+          line interface to update bundles yourself. Note that the with
+          this settings, bundles will not only be not rebuilt, but will
+          not be automatically built at all, period (even the initial
+          build needs to be done manually).
 
       ``"timestamp"`` (default)
           Rebuild bundles if the source file timestamp exceeds the existing
@@ -158,18 +160,7 @@ class Environment(object):
     For most people, the default value will make a lot of sense. However,
     if you want to avoid the request which causes a rebuild taking too
     long, you may want to disable auto-rebuilds and instead rebuild
-    yourself, outside of your webserver process. See also :attr:`auto_create`.
-    """)
-
-    def set_auto_create(self, auto_create):
-        self._auto_create =  auto_create
-    def get_auto_create(self):
-        return self._auto_create
-    auto_create = property(get_auto_create, set_auto_create, doc=
-    """Even if you disable automatic rebuilds via :attr:`updater`, when a
-    bundle's output file is found to not yet exist, it would normally still
-    be created. You can set this option to ``False`` to disable the behavior,
-    and raise an exception instead.
+    yourself, outside of your webserver process.
     """)
 
     def set_expire(self, expire):

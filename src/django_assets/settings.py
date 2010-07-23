@@ -13,6 +13,5 @@ ASSETS_DEBUG = Environment.debug
 ASSETS_CACHE = Environment.cache
 ASSETS_UPDATER = Environment.updater
 ASSETS_EXPIRE = Environment.expire
-ASSETS_AUTO_CREATE = Environment.auto_create
 MEDIA_URL = Environment.url
 MEDIA_ROOT = Environment.directory

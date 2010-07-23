@@ -191,9 +191,10 @@ class Bundle(object):
         if force:
             update_needed = True
         elif not path.exists(env.abspath(self.output)):
-            if not env.auto_create:
+            if not env.updater:
                 raise BuildError(('\'%s\' needs to be created, but '
-                                  'ASSETS_AUTO_CREATE is disabled') % self)
+                                  'automatic building is disabled  ('
+                                  'configure an updater)') % self)
             else:
                 update_needed = True
         else:

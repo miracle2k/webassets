@@ -61,8 +61,6 @@ The environment supports the following configuration options:
 
 .. autoattribute:: webassets.env.Environment.updater
 
-.. autoattribute:: webassets.env.Environment.auto_create
-
 .. _environment-setting-expire:
 
 .. autoattribute:: webassets.env.Environment.expire
