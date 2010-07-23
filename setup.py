@@ -30,7 +30,7 @@ fp.close()
 
 
 setup(
-    name = 'web-assets',
+    name = 'webassets',
     version = ".".join(map(str, version)),
     description = 'Media asset management for Python, with glue code for '+\
         'various web frameworks',
@@ -41,7 +41,7 @@ setup(
     author = 'Michael Elsdoerfer',
     author_email = 'michael@elsdoerfer.com',
     license = 'BSD',
-    url = 'github.com/miracle2k/web-assets/',
+    url = 'github.com/miracle2k/webassets/',
     classifiers = [
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
