@@ -31,7 +31,7 @@ In 0.1
   setting this to ``True`` meant *enable the django-assets debugging mode*.
   However, ``django-assets`` now follows the default Django ``DEBUG``
   setting, and ``ASSETS_DEBUG`` should be understood as meaning *how to
-  behave when in debug mode*. See :ref:`ASSETS_DEBUG <settings-ASSETS_DEBUG>`
+  behave when in debug mode*. See :ref:`ASSETS_DEBUG <django-setting-debug>`
   for more information.
 - ``ASSETS_AUTO_CREATE`` now causes an error to be thrown if due it it
   being disabled a file cannot be created. Previously, it caused

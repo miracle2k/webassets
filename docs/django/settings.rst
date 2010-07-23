@@ -18,6 +18,8 @@ in your project's global settings.
 .. autodata:: MEDIA_URL
     :noindex:
 
+.. _django-setting-debug:
+
 .. autodata:: ASSETS_DEBUG
     :noindex:
 
@@ -26,6 +28,8 @@ in your project's global settings.
 
 .. autodata:: ASSETS_AUTO_CREATE
     :noindex:
+
+.. _django-setting-expire:
 
 .. autodata:: ASSETS_EXPIRE
     :noindex:
