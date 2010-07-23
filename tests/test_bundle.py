@@ -1,4 +1,5 @@
 from nose.tools import assert_raises, assert_equals
+from nose import SkipTest
 
 from webassets import Bundle
 from webassets.bundle import BuildError
@@ -301,7 +302,7 @@ class TestUrlsProduction(BaseUrlsTester):
         """
         # TODO: This still needs to be implemented, but I'm unsure
         # right now if it's really the behavior I want.
-        raise NotImplementedError()
+        raise SkipTest()
 
     def test_files_require_build(self):
         """A bundle that has files of it's own needs to specify an
