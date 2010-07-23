@@ -29,13 +29,11 @@ class TestFilter:
         get_config = f.get_config
 
         # For the purposes of the following tests, we use two test
-        # names which we expect to be undefined in both settings
-        # and environment.
+        # names which we expect to be undefined in os.env.
         NAME = 'FOO%s' % id(object())
         NAME2 = 'FOO%s' % id(NAME)
         assert NAME != NAME2
         assert not NAME in os.environ and not NAME2 in os.environ
-        assert not NAME in m._config and not NAME2 in m._config
 
         try:
             # Test raising of error, and test not raising it.
@@ -53,7 +51,6 @@ class TestFilter:
             # Ensure that settings take precedence.
             assert_equals(get_config(NAME), 'foo')
             # Two different names can be supplied.
-            assert not NAME2 in m._config
             assert get_config(setting=NAME2, env=NAME) == 'bar'
 
             # Unset the env variable, now with only the setting.
@@ -64,7 +61,6 @@ class TestFilter:
         finally:
             if NAME in os.environ:
                 del os.environ[NAME]
-            del m._config[NAME.lower()]
 
     def test_equality(self):
         """Test the ``unique`` method used to determine equality.
