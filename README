@@ -1,5 +1,5 @@
-Asset management application for Django - use it to merge and compress
-your JavaScript and CSS files.
+Asset management application for Python web development - use it to
+merge and compress your JavaScript and CSS files.
 
 Documentation:
-	http://elsdoerfer.name/docs/django-assets/
+	http://elsdoerfer.name/docs/webassets/
