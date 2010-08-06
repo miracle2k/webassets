@@ -33,11 +33,7 @@ class ConfigStorage(object):
     # Don't inherit from ``dict``, as that would require us to implement
     # a whole bunch of methods, like pop() etc.
     def __init__(self, d={}):
-        self._dict = {}
         self.update(d)
-
-    def __contains__(self, key):
-        return self._dict.__contains__(key.lower())
 
     def get(self, key, default=None):
         try:
@@ -62,6 +58,9 @@ class ConfigStorage(object):
 class DictConfigStorage(ConfigStorage):
     """Using a lower-case dict for configuration values.
     """
+    def __init__(self, *a, **kw):
+        self._dict = {}
+        ConfigStorage.__init__(self, *a, **kw)
     def __getitem__(self, key):
         return self._dict.__getitem__(key.lower())
     def __setitem__(self, key, value):
