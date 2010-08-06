@@ -44,7 +44,9 @@ class PythonLoader(object):
             sys.path.pop()
 
     def load_bundles(self):
-        """Load ``Bundle`` objects defined in a Python module.
+        """Load ``Bundle`` objects defined in the Python module.
+
+        Collects all bundles in the global namespace.
         """
         bundles = []
         for name in dir(self.module):
@@ -54,7 +56,9 @@ class PythonLoader(object):
         return bundles
 
     def load_environment(self):
-        """Load a Environment defined in a Python module.
+        """Load an Environment defined in the Python module.
+
+        Expects a global name `environment` to be defined.
         """
         try:
             return getattr(self.module, 'environment')
