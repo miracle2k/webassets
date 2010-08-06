@@ -1,6 +1,6 @@
 import imp
 from django.conf import settings
-from webassets.env import Environment, ConfigStorage
+from webassets.env import BaseEnvironment, ConfigStorage
 from webassets.importlib import import_module
 
 
@@ -35,16 +35,12 @@ class DjangoConfigStorage(ConfigStorage):
         self.__setitem__(key, None)
 
 
-class DjangoEnvironment(Environment):
+class DjangoEnvironment(BaseEnvironment):
     """For Django, we need to redirect all the configuration values this
     object holds to Django's own settings object.
     """
 
     config_storage_class = DjangoConfigStorage
-
-    def __init__(self):
-        super(DjangoEnvironment, self).__init__(settings.MEDIA_ROOT,
-                                                settings.MEDIA_URL)
 
 
 # Django has a global state, a global configuration, and so we need a

@@ -54,35 +54,20 @@ class ConfigStorage(object):
         raise NotImplementedError()
 
 
-class DictConfigStorage(ConfigStorage):
-    """Using a lower-case dict for configuration values.
-    """
-    def __init__(self, *a, **kw):
-        self._dict = {}
-        ConfigStorage.__init__(self, *a, **kw)
-    def __getitem__(self, key):
-        return self._dict.__getitem__(key.lower())
-    def __setitem__(self, key, value):
-        self._dict.__setitem__(key.lower(), value)
-    def __delitem__(self, key):
-        self._dict.__delitem__(key.lower())
-
-
-class Environment(object):
-    """Owns a collection of bundles, and a set of configuration values
-    which will be used when processing these bundles.
+class BaseEnvironment(object):
+    """Abstract base class for :class:`Environment` which makes
+    subclassing easier.
     """
 
-    config_storage_class = DictConfigStorage
+    config_storage_class = None
 
-    def __init__(self, directory, url, **config):
+    def __init__(self, **config):
         self._named_bundles = {}
         self._anon_bundles = []
-        self._config = self.config_storage_class(config)
+        self._config = self.config_storage_class(self)
+        self.config.update(config)
 
-        self.directory = directory
-        self.url = url
-
+        # directory, url currently do not have default values
         self.debug = False
         self.cache = True
         self.updater = 'timestamp'
@@ -280,3 +265,30 @@ class Environment(object):
         if path.isabs(filename):
             return filename
         return path.abspath(path.join(self.directory, filename))
+
+
+class DictConfigStorage(ConfigStorage):
+    """Using a lower-case dict for configuration values.
+    """
+    def __init__(self, *a, **kw):
+        self._dict = {}
+        ConfigStorage.__init__(self, *a, **kw)
+    def __getitem__(self, key):
+        return self._dict.__getitem__(key.lower())
+    def __setitem__(self, key, value):
+        self._dict.__setitem__(key.lower(), value)
+    def __delitem__(self, key):
+        self._dict.__delitem__(key.lower())
+
+
+class Environment(BaseEnvironment):
+    """Owns a collection of bundles, and a set of configuration values
+    which will be used when processing these bundles.
+    """
+
+    config_storage_class = DictConfigStorage
+
+    def __init__(self, directory, url, **more_config):
+        super(Environment, self).__init__(**more_config)
+        self.directory = directory
+        self.url = url
