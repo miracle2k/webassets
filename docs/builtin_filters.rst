@@ -1,3 +1,5 @@
+.. _builtin-filters:
+
 ================
 Included Filters
 ================

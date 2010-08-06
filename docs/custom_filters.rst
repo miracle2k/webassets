@@ -1,3 +1,5 @@
+.. _custom-filters:
+
 -----------------------
 Creating custom filters
 -----------------------
