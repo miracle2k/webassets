@@ -109,7 +109,8 @@ except ImportError:
 else:
     register = CoffinLibrary()
     from webassets.ext.jinja2 import AssetsExtension
-    register.tag(AssetsExtension)
+    from django_assets.env import get_env
+    register.tag(AssetsExtension, environment={'assets_environment': get_env()})
 
 # expose the default Django tag
 register.tag('assets', assets)
