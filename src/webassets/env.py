@@ -30,8 +30,7 @@ class ConfigStorage(object):
     A related reason is why we don't inherit from ``dict``. It would
     require us to re-implement a whole bunch of methods, like pop() etc.
     """
-    # Don't inherit from ``dict``, as that would require us to implement
-    # a whole bunch of methods, like pop() etc.
+
     def __init__(self, env):
         self.env = env
 
