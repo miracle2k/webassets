@@ -38,16 +38,11 @@ class DjangoConfigStorage(ConfigStorage):
 class DjangoEnvironment(Environment):
     """For Django, we need to redirect all the configuration values this
     object holds to Django's own settings object.
-
-    We do this by hooking into __getattribute__ and __setattribute__,
-    rather than reimplementing the get_foo/set_foo() methods, which means
-    we won't have to reimplement any validation the parent class may do.
     """
 
     config_storage_class = DjangoConfigStorage
 
     def __init__(self):
-        # Have the parent initialize the default values
         super(DjangoEnvironment, self).__init__(settings.MEDIA_ROOT,
                                                 settings.MEDIA_URL)
 
