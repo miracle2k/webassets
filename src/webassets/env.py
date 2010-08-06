@@ -32,8 +32,8 @@ class ConfigStorage(object):
     """
     # Don't inherit from ``dict``, as that would require us to implement
     # a whole bunch of methods, like pop() etc.
-    def __init__(self, d={}):
-        self.update(d)
+    def __init__(self, env):
+        self.env = env
 
     def get(self, key, default=None):
         try:
