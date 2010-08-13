@@ -11,6 +11,7 @@ you are using one of the supported frameworks, to go the respective page:
    :maxdepth: 1
 
    With Django <django/index>
+   With Flask <http://elsdoerfer.name/docs/flask-assets/>
    Other or no framework <generic/index>
 
 This documentation also includes some pages with are applicable regardless

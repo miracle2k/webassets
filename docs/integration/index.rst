@@ -8,6 +8,13 @@ Django
 See :doc:`django-assets <../django/index>`.
 
 
+Flask
+-----
+
+See the documentation for
+`Flask-Assets <http://elsdoerfer.name/docs/flask-assets/>`_.
+
+
 Jinja2
 ------
 
