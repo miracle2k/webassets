@@ -3,7 +3,7 @@
 /.pydevproject
 /.settings
 # WingIDE
-/django-assets.wpr
+/webassets.wpr
 
 # distutils
 /build
