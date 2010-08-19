@@ -2,31 +2,15 @@
 Integration with other libraries
 ================================
 
-Django
-------
-
-See :doc:`django-assets <../django/index>`.
-
-
-Flask
------
-
-See the documentation for
-`Flask-Assets <http://elsdoerfer.name/docs/flask-assets/>`_.
+While the *webassets* core is designed to work with any WSGI application,
+also included are some additional utilities for some popular frameworks
+and libraries.
 
 
-Jinja2
-------
+.. toctree::
+   :maxdepth: 1
 
-A :doc:`Jinja2 extension <jinja2>` is provided which allows access to
-bundles from your templates, as well as defining bundles inside the
-templates.
-
-This extension may also be used
-:doc:`in combination with Django <../django/jinja2>`.
-
-
-Werkzeug
---------
-
-A :doc:`helper for werkzeug.script <werkzeug>` is provided.
+   Django <../django/index>
+   Flask-Assets <http://elsdoerfer.name/docs/flask-assets/>
+   jinja2
+   werkzeug
