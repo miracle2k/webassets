@@ -151,8 +151,6 @@ define a ``__init__`` method that takes arguments. However, you should
 make all parameters optional, if possible, or your filter will not be
 usable through a name reference.
 
-.. TODO: Link to the pages explaining bundles and explaining filter order
-
 There might be another thing to consider. If a filter is specified
 multiple times, which sometimes can happen unsuspectingly when bundles
 are nested within each other, it will only be applied a single time.
