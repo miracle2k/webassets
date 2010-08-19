@@ -29,4 +29,4 @@ This extension may also be used
 Werkzeug
 --------
 
-*Coming soon.*
+A :doc:`helper for werkzeug.script <werkzeug>` is provided.
