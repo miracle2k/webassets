@@ -5,7 +5,8 @@ Using ``webassets`` in standalone mode
 You don't need to use one of the frameworks into which ``webassets`` can
 integrate. Using the underlaying facilites directly it is almost as easy.
 
-And depending on what libraries you use
+And depending on what libraries you use, there may still be some things
+*webassets* can help you with, see :doc:`/integration/index`.
 
 
 Quick Start
