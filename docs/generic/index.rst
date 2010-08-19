@@ -78,9 +78,8 @@ more information.
 Using the Command Line Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*TODO*.
+See :doc:`/script`.
 
-.. TODO: Deserves a page in generic/script.
 
 Further Reading
 ---------------
