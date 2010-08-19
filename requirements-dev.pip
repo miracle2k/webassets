@@ -1,4 +1,4 @@
 # Libs useful when developing webassets.
 Jinja2>=2.5
 Sphinx
-nosetests
+nose
