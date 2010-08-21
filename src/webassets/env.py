@@ -65,13 +65,14 @@ class BaseEnvironment(object):
         self._named_bundles = {}
         self._anon_bundles = []
         self._config = self.config_storage_class(self)
-        self.config.update(config)
 
         # directory, url currently do not have default values
         self.debug = False
         self.cache = True
         self.updater = 'timestamp'
         self.expire = 'querystring'
+
+        self.config.update(config)
 
     def __iter__(self):
         return chain(self._named_bundles.itervalues(), self._anon_bundles)

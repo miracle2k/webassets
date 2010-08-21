@@ -78,6 +78,14 @@ class TestEnvConfig:
     def setup(self):
         self.m = Environment(None, None)
 
+    def test_initial_values_override_defaults(self):
+        """[Bug] If a dict of initial values are passed to the
+        environment, they override any defaults the environment might
+        want to set.
+        """
+        env = Environment(None, None, updater='foo')
+        assert env.updater == 'foo'
+
     def test_basic(self):
         assert self.m.config.get('foo') == None
         self.m.config['foo'] = 'bar'
