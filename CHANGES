@@ -1,4 +1,4 @@
-0.4
+0.4 (2010-08-21)
 	- Renamed project to ``webassets``, no longer Django specific;
 	  instead, the Django app is an optional addon.
 	- With the change to ``webassets``, a bunch of new things are
