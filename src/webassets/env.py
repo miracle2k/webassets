@@ -42,7 +42,7 @@ class ConfigStorage(object):
 
     def update(self, d):
         for key in d:
-            self._dict[key] = d[key]
+            self.__setitem__(key, d[key])
 
     def __getitem__(self, key):
         raise NotImplementedError()
