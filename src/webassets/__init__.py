@@ -1,4 +1,4 @@
-__version__ = (0, 4)
+__version__ = (0, 5, 'dev')
 
 
 # Make a couple frequently used things available right here.
