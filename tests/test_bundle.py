@@ -25,6 +25,9 @@ class TestFilterAssign(BuildTestHelper):
         # Comma-separated string.
         b = self.mkbundle(filters='jsmin,cssutils')
         _assert(b.filters, 2)
+        # Whitespace is ignored.
+        b = self.mkbundle(filters=' jsmin, cssutils ')
+        _assert(b.filters, 2)
 
         # List of strings.
         b = self.mkbundle(filters=['jsmin', 'cssutils'])
