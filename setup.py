@@ -41,7 +41,7 @@ setup(
     author = 'Michael Elsdoerfer',
     author_email = 'michael@elsdoerfer.com',
     license = 'BSD',
-    url = 'github.com/miracle2k/webassets/',
+    url = 'http://github.com/miracle2k/webassets/',
     classifiers = [
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
