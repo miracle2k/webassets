@@ -2,6 +2,7 @@
 Jinja2>=2.5
 Sphinx
 nose
+PyYaml
 
 # Necessary for autodoc to build documentation regarding django-assets.
 Django
