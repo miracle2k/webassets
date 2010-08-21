@@ -162,9 +162,9 @@ class PythonLoader(object):
         return bundles
 
     def load_environment(self):
-        """Load an Environment defined in the Python module.
+        """Load an ``Environment`` defined in the Python module.
 
-        Expects a global name `environment` to be defined.
+        Expects a global name ``environment`` to be defined.
         """
         try:
             return getattr(self.module, 'environment')
