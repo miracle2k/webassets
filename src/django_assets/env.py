@@ -23,6 +23,9 @@ class DjangoConfigStorage(ConfigStorage):
     def _transform_key(self, key):
         return self._mapping.get(key.lower(), key.upper())
 
+    def __contains__(self, key):
+        return hasattr(settings, self._transform_key(key))
+
     def __getitem__(self, key):
         return getattr(settings, self._transform_key(key))
 

@@ -21,8 +21,8 @@ class ConfigStorage(object):
 
     The goal in designing this class therefore is to make it easy for
     subclasses to change the place the data is stored: Only
-    _meth:`__getitem__`, _meth:`__setitem__` and _meth:`__delitem__`
-    need to be implemented.
+    _meth:`__getitem__`, _meth:`__setitem__`, _meth:`__delitem__` and
+    _meth:`__contains__` need to be implemented.
 
     One rule: The default storage is case-insensitive, and custom
     environments should maintain those semantics.
@@ -43,6 +43,15 @@ class ConfigStorage(object):
     def update(self, d):
         for key in d:
             self.__setitem__(key, d[key])
+
+    def setdefault(self, key, value):
+        if not key in self:
+            self.__setitem__(key, value)
+            return value
+        return self.__getitem__(key)
+
+    def __contains__(self, key):
+        raise NotImplementedError()
 
     def __getitem__(self, key):
         raise NotImplementedError()
@@ -67,10 +76,10 @@ class BaseEnvironment(object):
         self._config = self.config_storage_class(self)
 
         # directory, url currently do not have default values
-        self.debug = False
-        self.cache = True
-        self.updater = 'timestamp'
-        self.expire = 'querystring'
+        self.config.setdefault('debug', False)
+        self.config.setdefault('cache', True)
+        self.config.setdefault('updater', 'timestamp')
+        self.config.setdefault('expire', 'querystring')
 
         self.config.update(config)
 
@@ -274,6 +283,8 @@ class DictConfigStorage(ConfigStorage):
     def __init__(self, *a, **kw):
         self._dict = {}
         ConfigStorage.__init__(self, *a, **kw)
+    def __contains__(self, key):
+        return self._dict.__contains__(key.lower())
     def __getitem__(self, key):
         return self._dict.__getitem__(key.lower())
     def __setitem__(self, key, value):
