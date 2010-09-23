@@ -1,5 +1,5 @@
+from __future__ import absolute_import
 from webassets.filter import Filter
-
 
 __all__ = ('CSSPrefixerFilter',)
 
