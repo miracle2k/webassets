@@ -42,6 +42,12 @@ CSS compressors
 .. autoclass:: webassets.filter.cssmin.CSSMinFilter
 
 
+``cssprefixer``
+~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.cssprefixer.CSSPrefixerFilter
+
+
 ``cssutils``
 ~~~~~~~~~~~~
 
