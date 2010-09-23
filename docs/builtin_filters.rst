@@ -104,6 +104,12 @@ Other
 .. autoclass:: webassets.filter.cssrewrite.CSSRewriteFilter
 
 
+``cssprefixer``
+~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.cssprefixer.CSSPrefixerFilter
+ 
+
 ``gzip``
 ~~~~~~~~
 

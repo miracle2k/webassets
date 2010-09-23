@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from jsmin import JavascriptMinify
 from webassets.filter import Filter
 
