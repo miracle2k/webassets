@@ -170,11 +170,8 @@ class TestBuiltinFilters(BuildTestHelper):
             pass
 
     def test_compass(self):
-        # As long as http://github.com/chriseppstein/compass/issues#issue/129
-        # remains unfixed, the Compass filter doesn't actually work.
-        raise SkipTest()
-        #self.mkbundle('foo.sass', filters='compass', output='out.css').build()
-        #assert self.get('out.css') == """/* line 1, in.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
+        self.mkbundle('foo.sass', filters='compass', output='out.css').build()
+        assert self.get('out.css') == """/* line 1, in.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
 
     def test_sass(self):
         sass = get_filter('sass', debug_info=False)
