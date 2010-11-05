@@ -72,7 +72,7 @@ class CompassFilter(Filter):
         options properly, so we can "guess" the final css filename.
         """
         sasspath = tempfile.mkdtemp()
-        sassname = path.join(sasspath, 'in.sass')
+        sassname = path.join(sasspath, 'in' + path.splitext(source_path)[1])
 
         # Write the incoming stream to the temporary sass directory.
         f = open(sassname, 'wb')
