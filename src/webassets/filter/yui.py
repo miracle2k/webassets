@@ -36,7 +36,7 @@ class YUIBase(Filter):
 
     def output(self, _in, out, **kw):
         proc = subprocess.Popen(
-            [self.java, '-jar', self.yui, '--type=%s' % self.mode],
+            [self.java, '-jar', self.yui, '--charset=utf-8', '--type=%s' % self.mode],
             # we cannot use the in/out streams directly, as they might be
             # StringIO objects (which are not supported by subprocess)
             stdout=subprocess.PIPE,
