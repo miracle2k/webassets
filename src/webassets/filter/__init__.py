@@ -2,7 +2,7 @@
 contents (think minification, compression).
 """
 
-import os, re
+import os, subprocess
 import inspect
 
 
@@ -171,6 +171,36 @@ class CallableFilter(Filter):
 
     def output(self, _in, out):
         return self.callable(_in, out)
+
+
+class JavaMixin(object):
+    """Mixin for filters which use Java ARchives (JARs) to perform tasks.
+    """
+
+    def java_setup(self):
+        # We can reasonably expect that java is just on the path, so
+        # don't require it, but hope for the best.
+        path = self.get_config(env='JAVA_HOME', require=False)
+        if path is not None:
+            self.java = os.path.join(path, 'bin/java')
+        else:
+            self.java = 'java'
+
+    def java_run(self, _in, out, args):
+        proc = subprocess.Popen(
+            [self.java, '-jar', self.jar] + args,
+            # we cannot use the in/out streams directly, as they might be
+            # StringIO objects (which are not supported by subprocess)
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        stdout, stderr = proc.communicate(_in.read())
+        if proc.returncode:
+            raise Exception('%s: subprocess returned a '
+                'non-success result code: %s' % (self.name, proc.returncode))
+            # stderr contains error messages
+        else:
+            out.write(stdout)
 
 
 _FILTERS = {}
