@@ -33,6 +33,12 @@ Javascript compressors
 .. autoclass:: webassets.filter.jspacker.JSPackerFilter
 
 
+``closure``
+~~~~~~~~~~~
+
+.. automodule:: webassets.filter.closure
+
+
 CSS compressors
 ---------------
 
