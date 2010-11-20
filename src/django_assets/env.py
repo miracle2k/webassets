@@ -27,7 +27,10 @@ class DjangoConfigStorage(ConfigStorage):
         return hasattr(settings, self._transform_key(key))
 
     def __getitem__(self, key):
-        return getattr(settings, self._transform_key(key))
+        if self.__contains__(key):
+            return getattr(settings, self._transform_key(key))
+        else:
+            raise KeyError("Django settings doesn't define %s" % key)
 
     def __setitem__(self, key, value):
         setattr(settings, self._transform_key(key), value)
