@@ -144,3 +144,10 @@ def autoload():
         #    print "assets module loaded"
 
     _APPLICATIONS_LOADED = True
+
+    # Look for an assets.py at the project level
+    try:
+        import_module('assets')
+    except ImportError:
+        # not found, just ignore
+        pass
