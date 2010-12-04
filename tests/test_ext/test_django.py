@@ -1,4 +1,8 @@
-from django.conf import settings
+from nose import SkipTest
+try:
+    from django.conf import settings
+except ImportError:
+    raise SkipTest()
 from django.template import Template, Context
 from django_assets import Bundle, register as django_env_register
 from django_assets.env import get_env, reset as django_env_reset
