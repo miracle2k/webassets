@@ -9,46 +9,24 @@ environment variable to run the ``.jar`` file, or will otherwise
 assume that ``java`` is on the system path.
 """
 
-import os, subprocess
-
-from webassets.filter import Filter
+from webassets.filter import Filter, JavaMixin
 
 
 __all__ = ('YUIJSFilter', 'YUICSSFilter',)
 
 
-class YUIBase(Filter):
+class YUIBase(Filter, JavaMixin):
 
     # Will cause this base class not be loaded.
     name = None
 
     def setup(self):
-        self.yui = self.get_config('YUI_COMPRESSOR_PATH',
+        self.jar = self.get_config('YUI_COMPRESSOR_PATH',
                                    what='YUI Compressor')
-
-        # We can reasonably expect that java is just on the path, so
-        # don't require it, but hope for the best.
-        path = self.get_config(env='JAVA_HOME', require=False)
-        if path is not None:
-            self.java = os.path.join(path, 'bin/java')
-        else:
-            self.java = 'java'
+        self.java_setup()
 
     def output(self, _in, out, **kw):
-        proc = subprocess.Popen(
-            [self.java, '-jar', self.yui, '--type=%s' % self.mode],
-            # we cannot use the in/out streams directly, as they might be
-            # StringIO objects (which are not supported by subprocess)
-            stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        stdout, stderr = proc.communicate(_in.read())
-        if proc.returncode:
-            raise Exception('yui compressor: subprocess returned a '
-                'non-success result code: %s' % proc.returncode)
-            # stderr contains error messages
-        else:
-            out.write(stdout)
+        self.java_run(_in, out, ['--charset=utf-8', '--type=%s' % self.mode])
 
 
 class YUIJSFilter(YUIBase):

@@ -12,6 +12,25 @@ could be added:
 
 Add a switch to the rebuild() command to ignore the cache.
 
+I keep coming back to this idea of having bundles that contain different
+file types. For example, a jQueryUI bundle may reference both the JS and CSS
+files of jQueryUI. Or, a form widget calendar widget could provide a bundle
+with both the necessary JS and CSS files (this would allow things like
+collecting all assets from all form widgets used to built the final bundle).
+This would be much nicer than having to deal with separate bundles.
+How would this be implemented?
+    - The "contents" and "filters" attributes would become dicts:
+      bundle.contents['js']
+    - The template tags could: a) output the type ("js", "css") as a var; b)
+      allow type="js" as an argument.
+    - To maintain backwards-compatibility (and for convienience) the default
+      Bundle() call would automatically separate the files based on
+      extension. bundle.contents.js would expose only the JS files, while
+      bundle.contents would continue to expose all. It would therefor be
+      possible to continue while ignoring the new type-separation, so long
+      as the Bundle only contains files of one type.
+Question: What if a library wants to provide a separate CSS file for IE?
+
 Should bundle names be namespacable, similar to Django urls? At the least,
 we probably want to encourage a convention of prefixing your bundle names
 with an id. Everything else would just intend to make this easier or more

@@ -26,7 +26,7 @@ import webassets
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -196,3 +196,8 @@ latex_documents = [
 
 # If false, no module index is generated.
 #latex_use_modindex = True
+
+intersphinx_mapping = {
+    'python': ('http://docs.python.org/', None),
+    'flask': ('http://elsdoerfer.name/docs/flask-assets/', None),
+}

@@ -1,8 +1,9 @@
-0.4
+0.4 (2010-08-21)
 	- Renamed project to ``webassets``, no longer Django specific;
 	  instead, the Django app is an optional addon.
+	- With the change to ``webassets``, a bunch of new things are
+	  included which now make sense, like loading from YAML files.
 	- Got rid of the ASSETS_AUTO_CREATE option.
-
 
 0.3 (unreleased)
 	- Fixed: YUI filter JAVA_HOME handling (Ian Langworth,

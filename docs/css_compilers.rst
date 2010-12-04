@@ -1,3 +1,5 @@
+.. _css-compilers:
+
 CSS compilers
 =============
 

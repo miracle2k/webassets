@@ -2,12 +2,59 @@
 Command Line Interface
 ======================
 
-.. TODO: Link to the Integration page, and a page explaining how to use the interface in generic mode
+While it's often convienient to have webassets automatically rebuild
+your bundles on access, you sometimes may prefer to build manually,
+for example for performance reasons in larger deployments.
+
+*webassets* provides a command line interface which is supposed to help
+you manage your bundles manually. However, due to the generic nature of
+the webassets core library, it usually needs some help setting up.
+
+You may want to check the :doc:`integration page </integration/index>`
+to see if webassets already provides helpers to expose the command line
+within your framework. If that is not the case, read on.
 
 
---------
-Commands
---------
+----------------------------------
+Build a custom command line client
+----------------------------------
+
+It's quite straightfoward, really. The class
+``webassets.script.CommandLineEnvironment`` implements all the
+commands as simple methods.
+
+.. code-block:: python
+
+    import logging
+    from webassets.script import CommandLineEnvironment
+
+    # Setup a logger
+    log = logging.getLogger('webassets')
+    log.addHandler(logging.StreamHandler())
+    log.setLevel(logging.DEBUG)
+
+    cmdenv = CommandLineEnvironment(assets_env, log)
+    cmdenv.invoke('rebuild')
+
+    # This would also work
+    cmdenv.rebuild()
+
+
+You are reponsible for parsing the command line in any way you see fit
+(using for example the :py:mod:`optparse` or :py:mod:`argparse` libraries,
+or whatever your framework provides as a command line utility shell), and
+then invoking the corresponding methods on your instance of
+``CommandLineEnvironment``.
+
+For an example, you could have a look at the ``werkzeug.script``
+integration in ``webassets.ext.werkzeug``.
+
+-----------------
+Included Commands
+-----------------
+
+The following describes the commands that will be available to you through
+the *webassets* CLI interface.
 
 rebuild
 -------

@@ -8,7 +8,7 @@
 # distutils
 /build
 /dist
-/django_assets.egg-info
+/src/webassets.egg-info/
 /MANIFEST
 /docs/_build/*
 

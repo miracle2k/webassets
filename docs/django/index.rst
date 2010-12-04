@@ -77,8 +77,6 @@ your templates, rather than in code. You then need to use the
 More about the management commands which are available (in generic,
 non-Django specific form) can be found on the :doc:`../script` page.
 
-.. TODO: This deserves a Django-specific "script" page.
-
 
 Jinja2 support
 ~~~~~~~~~~~~~~

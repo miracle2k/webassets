@@ -1,6 +1,6 @@
 import imp
 from django.conf import settings
-from webassets.env import Environment, ConfigStorage
+from webassets.env import BaseEnvironment, ConfigStorage
 from webassets.importlib import import_module
 
 
@@ -23,6 +23,9 @@ class DjangoConfigStorage(ConfigStorage):
     def _transform_key(self, key):
         return self._mapping.get(key.lower(), key.upper())
 
+    def __contains__(self, key):
+        return hasattr(settings, self._transform_key(key))
+
     def __getitem__(self, key):
         return getattr(settings, self._transform_key(key))
 
@@ -35,21 +38,12 @@ class DjangoConfigStorage(ConfigStorage):
         self.__setitem__(key, None)
 
 
-class DjangoEnvironment(Environment):
+class DjangoEnvironment(BaseEnvironment):
     """For Django, we need to redirect all the configuration values this
     object holds to Django's own settings object.
-
-    We do this by hooking into __getattribute__ and __setattribute__,
-    rather than reimplementing the get_foo/set_foo() methods, which means
-    we won't have to reimplement any validation the parent class may do.
     """
 
     config_storage_class = DjangoConfigStorage
-
-    def __init__(self):
-        # Have the parent initialize the default values
-        super(DjangoEnvironment, self).__init__(settings.MEDIA_ROOT,
-                                                settings.MEDIA_URL)
 
 
 # Django has a global state, a global configuration, and so we need a

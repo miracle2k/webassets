@@ -1,5 +1,8 @@
-include README
-include LICENSE
-include CHANGES
-include MANIFEST.in
+include README.rst LICENSE CHANGES run_tests.py
+
 recursive-include docs *
+recursive-exclude docs *.pyc
+prune docs/_build
+
+recursive-include tests *
+recursive-exclude tests *.pyc

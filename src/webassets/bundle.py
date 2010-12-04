@@ -51,7 +51,7 @@ class Bundle(object):
             return
 
         if isinstance(value, basestring):
-            filters = value.split(',')
+            filters = map(unicode.strip, unicode(value).split(','))
         elif isinstance(value, (list, tuple)):
             filters = value
         else:

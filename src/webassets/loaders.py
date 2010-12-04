@@ -5,9 +5,15 @@ This can be used as an alternative to an imperative setup.
 """
 
 import os, sys
+from os import path
 import glob, fnmatch
 import importlib
+try:
+    import pyyaml
+except ImportError:
+    pass
 
+from webassets import Environment
 from webassets.bundle import Bundle
 from webassets.importlib import import_module
 
@@ -25,7 +31,107 @@ class LoaderError(Exception):
 class YAMLLoader(object):
     """Will load bundles from a YAML configuration file.
     """
-    pass
+
+    def __init__(self, file_or_filename):
+        try:
+            import yaml
+        except NameError:
+            raise EnvironmentError('PyYAML is not installed')
+        else:
+            self.yaml = yaml
+        self.file_or_filename = file_or_filename
+
+    def _get_bundles(self, obj):
+        bundles = {}
+        for key, data in obj.iteritems():
+            if data is None:
+                data = {}
+            contents = data.get('contents', [])
+            if isinstance(contents, basestring):
+                contents = [contents]
+            bundles[key] = Bundle(
+                filters=data.get('filters', None),
+                output=data.get('output', None),
+                *contents
+            )
+        return bundles
+
+    def _open(self):
+        """Returns a (fileobj, filename) tuple.
+
+        The filename can be False if it is unknown.
+        """
+        if isinstance(self.file_or_filename, basestring):
+            return open(self.file_or_filename), self.file_or_filename
+
+        file = self.file_or_filename
+        return file, getattr(file, 'name', False)
+
+    def load_bundles(self):
+        """Load a list of ``Bundle`` instances defined in the YAML
+        file.
+
+        Expects the following format::
+
+            bundle-name:
+                filters: sass,cssutils
+                output: cache/default.css
+                contents:
+                    - css/jquery.ui.calendar.css
+                    - css/jquery.ui.slider.css
+        """
+        # TODO: Support a "consider paths relative to YAML location, return
+        # as absolute paths" option?
+        f, _ = self._open()
+        try:
+            obj = self.yaml.load(f) or {}
+            return self._get_bundles(obj)
+        finally:
+            f.close()
+
+    def load_environment(self):
+        """Load an ``Environment`` instance defined in the YAML file.
+
+        Expects the following format::
+
+            directory: ../static
+            url: /media
+            debug: True
+            updater: timestamp
+
+            bundles:
+                bundle-name:
+                    filters: sass,cssutils
+                    output: cache/default.css
+                    contents:
+                        - css/jquery.ui.calendar.css
+                        - css/jquery.ui.slider.css
+        """
+        f, filename = self._open()
+        try:
+            obj = self.yaml.load(f) or {}
+
+            # construct the environment
+            if not 'url' in obj or not 'directory' in obj:
+                raise LoaderError('"url" and "directory" must be defined')
+            directory = obj['directory']
+            if filename:
+                # If we know the location of the file, make sure that the
+                # paths included are considered relative to the file location.
+                directory = path.normpath(path.join(path.dirname(filename), directory))
+            env = Environment(directory, obj['url'])
+
+            # load environment settings
+            for setting in ('debug', 'cache', 'updater', 'expire',):
+                if setting in obj:
+                    setattr(env, setting, obj[setting])
+
+            # load bundles
+            bundles = self._get_bundles(obj.get('bundles', {}))
+
+            return env
+        finally:
+            f.close()
 
 
 class PythonLoader(object):
@@ -44,7 +150,9 @@ class PythonLoader(object):
             sys.path.pop()
 
     def load_bundles(self):
-        """Load ``Bundle`` objects defined in a Python module.
+        """Load ``Bundle`` objects defined in the Python module.
+
+        Collects all bundles in the global namespace.
         """
         bundles = []
         for name in dir(self.module):
@@ -54,7 +162,9 @@ class PythonLoader(object):
         return bundles
 
     def load_environment(self):
-        """Load a Environment defined in a Python module.
+        """Load an ``Environment`` defined in the Python module.
+
+        Expects a global name ``environment`` to be defined.
         """
         try:
             return getattr(self.module, 'environment')

@@ -1,3 +1,5 @@
+.. _builtin-filters:
+
 ================
 Included Filters
 ================
@@ -29,6 +31,12 @@ Javascript compressors
 ~~~~~~~~~~~~
 
 .. autoclass:: webassets.filter.jspacker.JSPackerFilter
+
+
+``closure``
+~~~~~~~~~~~
+
+.. automodule:: webassets.filter.closure
 
 
 CSS compressors
@@ -101,6 +109,12 @@ Other
 
 .. autoclass:: webassets.filter.cssrewrite.CSSRewriteFilter
 
+
+``cssprefixer``
+~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.cssprefixer.CSSPrefixerFilter
+ 
 
 ``gzip``
 ~~~~~~~~

@@ -9,7 +9,8 @@ bundles from within a template to render it's urls.
 It also allows you to create bundles on-the-fly, thus making it possible
 to define your assets entirly within your templates.
 
-If you are using Jinja2 inside of Django, see :doc:`this page </django/jinja2>`.
+If you are using Jinja2 inside of Django, see
+:doc:`this page </django/jinja2>`.
 
 
 Setting up the extension
@@ -36,7 +37,7 @@ Using the tag
 To output a bundle that has been registered with the environment, simply
 pass it's name to the tag:
 
-.. code-block:: django
+.. code-block:: jinja
 
     {% assets "all_js", "ie_js" %}
         <script type="text/javascript" src="{{ ASSET_URL }}"></script>
@@ -52,7 +53,7 @@ If you pass something to the tag that isn't a known bundle name, it will
 be considered a filename. This allows you to define a bundle entirely
 within your templates:
 
-.. code-block:: django
+.. code-block:: jinja
 
     {% assets filter="jsmin,gzip", output="gen/packed.js", "common/jquery.js", "site/base.js", "site/widgets.js" %}
     ...
@@ -62,7 +63,7 @@ Of course, this means you can combine the two approaches as well. The
 following code snippet will merge together the given bundle and the contents
 of the ``jquery.js`` file that was explicitly passed:
 
-.. code-block:: django
+.. code-block:: jinja
 
     {% assets output="gen/packed.js", "common/jquery.js", "my-bundle" %}
     ...

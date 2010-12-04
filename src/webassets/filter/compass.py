@@ -53,6 +53,8 @@ class CompassFilter(Filter):
     def setup(self):
         self.compass = self.get_config('COMPASS_BIN', what='compass binary',
                                        require=False) or 'compass'
+        self.plugins = self.get_config('COMPASS_PLUGINS', what='compass plugins',
+                                       require=False) or []
 
     def input(self, _in, out, source_path, output_path):
         """Compass currently doesn't take data from stdin, and doesn't allow
@@ -72,7 +74,7 @@ class CompassFilter(Filter):
         options properly, so we can "guess" the final css filename.
         """
         sasspath = tempfile.mkdtemp()
-        sassname = path.join(sasspath, 'in.sass')
+        sassname = path.join(sasspath, 'in' + path.splitext(source_path)[1])
 
         # Write the incoming stream to the temporary sass directory.
         f = open(sassname, 'wb')
@@ -82,13 +84,18 @@ class CompassFilter(Filter):
         finally:
             f.close()
 
-        proc = subprocess.Popen([self.compass, 'compile',
-                                 '--sass-dir', sasspath,
-                                 '--css-dir', sasspath,
-                                 '--quiet',
-                                 '--boring',
-                                 '--output-style', 'expanded',
-                                 sassname],
+        command = [self.compass, 'compile']
+        for plugin in self.plugins:
+            command.extend(('--require', plugin))
+        command.extend(['--sass-dir', sasspath,
+                        '--css-dir', sasspath,
+                        '--image-dir', self.env.url[1:],
+                        '--quiet',
+                        '--boring',
+                        '--output-style', 'expanded',
+                        sassname])
+
+        proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
                                 # shell: necessary on windows to execute

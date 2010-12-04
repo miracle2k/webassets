@@ -1,3 +1,5 @@
+.. _bundles:
+
 =======
 Bundles
 =======
@@ -89,11 +91,19 @@ Some things to consider when nesting bundles:
   In this case it must not have any files of it's own.
 
 
-Using bundles
--------------
+Building bundles
+----------------
 
-Once a bundle is defined, the most interesting thing about it is it's
-``url()`` method:
+Once a bundle is defined, the thing you want to do is build it, and then
+include a link to the final merged and compressed output file in your
+site.
+
+There are different approaches.
+
+In Code
+~~~~~~~
+
+For starters, you can simply call the bundle's ``url()`` method:
 
 .. code-block:: python
 
@@ -111,3 +121,32 @@ actually exist. That is, it will merge and compress the source files in
 production mode when first called, and update the compressed assets when
 it detects changes. This behavior can be customized using various
 :ref:`environment configuration values <environment-configuration>`.
+
+Call ``urls()`` once per request, and pass the resulting list of urls to
+your template, and you're good to go.
+
+
+In templates
+~~~~~~~~~~~~
+
+For :doc:`some template languages </integration/index>`, webassets
+includes extensions which allow you to access the bundles you defined.
+Further, they usually allow you to define bundles on-the-fly, so you can
+reference your assets directly from within your templates, rather than
+predefining them in code.
+
+For example, there are template tags for both :doc:`Django </django/index>`
+and :doc:`Jinja2 </integration/jinja2>`, which allow you do something like
+this:
+
+.. code-block:: jinja
+
+    {% assets filter="jsmin,gzip", output="gen/packed.js", "common/jquery.js", "site/base.js", "site/widgets.js" %}
+    ...
+
+
+Management command
+~~~~~~~~~~~~~~~~~~
+
+In some cases you  might prefer to cause a manual build of your bundles
+from the command line. See :doc:`/script` for more information.
