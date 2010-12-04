@@ -89,7 +89,7 @@ except ImportError:
         return __import__(app, {}, {}, [app.split('.')[-1]]).__path__
 
 
-_APPLICATIONS_LOADED = False
+_ASSETS_LOADED = False
 
 def autoload():
     """Find assets by looking for an ``assets`` module within each
@@ -101,8 +101,8 @@ def autoload():
     TOOD: Not thread-safe!
     TODO: Bring back to status output via callbacks?
     """
-    global _APPLICATIONS_LOADED
-    if _APPLICATIONS_LOADED:
+    global _ASSETS_LOADED
+    if _ASSETS_LOADED:
         return False
 
     # Import this locally, so that we don't have a global Django
@@ -146,11 +146,11 @@ def autoload():
         #if options.get('verbosity') > 1:
         #    print "assets module loaded"
 
-    _APPLICATIONS_LOADED = True
-
     # Look for an assets.py at the project level
     try:
         import_module('assets')
     except ImportError:
         # not found, just ignore
         pass
+
+    _ASSETS_LOADED = True
