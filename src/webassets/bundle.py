@@ -1,4 +1,5 @@
 from os import path
+import glob
 from updater import get_updater
 from filter import get_filter
 from cache import get_cache
@@ -59,6 +60,44 @@ class Bundle(object):
         self._filters = [get_filter(f) for f in filters]
     filters = property(_get_filters, _set_filters)
 
+    def _get_contents(self):
+        return self._contents
+    def _set_contents(self, value):
+        self._contents = value
+        self._resolved_contents = None
+    contents = property(_get_contents, _set_contents)
+
+    def resolve_contents(self, env):
+        """Returns contents, with globbed patterns resolved to actual
+        filenames.
+        """
+        # TODO: We cache the values, which in theory is problematic, since
+        # due to changes in the env object, the result of the globbing may
+        # change. Not to mention that a different env object may be passed
+        # in. We should find a fix for this.
+        if not getattr(self, '_resolved_contents', None):
+            l = []
+            for item in self.contents:
+                if isinstance(item, basestring):
+                    # We only go through glob() if this actually is a
+                    # pattern; this means that invalid filenames will
+                    # remain in the content set, and only raise an error
+                    # at a later point in time.
+                    # TODO: This is possible a good place to check for
+                    # a file's existance though; currently, when in debug
+                    # mode, no error would be raised at all, and simply a
+                    # broken url sent to the browser.
+                    if glob.has_magic(item):
+                        path = env.abspath(item)
+                        for f in glob.glob(path):
+                            l.append(f[len(path)-len(item):])
+                    else:
+                        l.append(item)
+                else:
+                    l.append(item)
+            self._resolved_contents = l
+        return self._resolved_contents
+
     def determine_action(self, env):
         """Decide what needs to be done when this bundle needs to be
         resolved.
@@ -84,14 +123,15 @@ class Bundle(object):
         else:
             raise BundleError('Invalid debug value: %s' % debug)
 
-    def get_files(self):
+    def get_files(self, env=None):
         """Return a flattened list of all source files of this bundle,
         and all the nested bundles.
         """
+        env = self._get_env(env)
         files = []
-        for c in self.contents:
+        for c in self.resolve_contents(env):
             if isinstance(c, Bundle):
-                files.extend(c.get_files())
+                files.extend(c.get_files(env))
             else:
                 files.append(c)
         return files
@@ -129,8 +169,8 @@ class Bundle(object):
         # bundles, as described above, then we should also deal with
         # a child bundle enabling debug=True during a merge, i.e.
         # raising an error rather than ignoring it as we do now.
-
-        if not self.contents:
+        resolved_contents = self.resolve_contents(env)
+        if not resolved_contents:
             raise BuildError('empty bundle cannot be built')
 
         # Ensure that the filters are ready
@@ -148,7 +188,7 @@ class Bundle(object):
         combined_filters = merge_filters(self.filters, parent_filters)
         cache = get_cache(env)
         hunks = []
-        for c in self.contents:
+        for c in resolved_contents:
             if isinstance(c, Bundle):
                 hunk = c._build(env, output_path, force, no_filters,
                                 combined_filters)
@@ -198,7 +238,7 @@ class Bundle(object):
             else:
                 update_needed = True
         else:
-            source_paths = [env.abspath(p) for p in self.get_files()]
+            source_paths = [p for p in self.get_files(env)]
             update_needed = get_updater(env.updater)(
                 env.abspath(self.output), source_paths)
 
@@ -210,17 +250,22 @@ class Bundle(object):
         hunk.save(env.abspath(self.output))
         return hunk
 
-    def iterbuild(self):
+    def iterbuild(self, env=None):
         """Iterate over the bundles which actually need to be built.
 
         This will often only entail ``self``, though for container
         bundles (and container bundle hierarchies), a list of all the
         non-container leafs will be yielded.
+
+        Essentally, what this does is "skip" bundles which do not need
+        to be built on their own (container bundles), and gives the
+        caller the child bundles instead.
         """
+        env = self._get_env(env)
         if self.is_container:
-            for bundle in self.contents:
+            for bundle in self.resolve_contents(env):
                 if bundle.is_container:
-                    for t in bundle.iterbuild():
+                    for t in bundle.iterbuild(env):
                         yield t
                 else:
                     yield bundle
@@ -243,7 +288,7 @@ class Bundle(object):
             # in debug mode: Instead of building the bundle, we
             # source all contents instead.
             urls = []
-            for c in self.contents:
+            for c in self.resolve_contents(env):
                 if isinstance(c, Bundle):
                     urls.extend(c.urls(env, *args, **kwargs))
                 else:
@@ -261,6 +306,6 @@ class Bundle(object):
         the files behind these urls.
         """
         urls = []
-        for bundle in self.iterbuild():
+        for bundle in self.iterbuild(env):
             urls.extend(bundle._urls(env, *args, **kwargs))
         return urls

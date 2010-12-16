@@ -264,6 +264,9 @@ class BaseEnvironment(object):
 
     def absurl(self, fragment):
         """Create an absolute url based on the root url.
+
+        TODO: Not sure if it feels right that these are environment
+        methods, rather than global helpers.
         """
         root = self.url
         root += root[-1:] != '/' and '/' or ''

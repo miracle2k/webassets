@@ -387,3 +387,34 @@ class TestUrlsDebug(BaseUrlsTester):
         assert_equals(bundle.urls(), ['/childout'])
         assert len(self.files_built) == 1
         assert self.no_filter_values == [True]
+
+
+class TestGlobbing(BuildTestHelper):
+    """Test the bundle contents support for patterns.
+    """
+
+    default_files = {'file1.js': 'foo', 'file2.js': 'bar', 'file3.css': 'test'}
+
+    def test_building(self):
+        """Globbing works!"""
+        self.mkbundle('*.js', output='out').build()
+        assert self.get('out') == 'foo\nbar'
+
+    def test_debug_urls(self):
+        """In debug mode, the source files matching the pattern are
+        returned.
+        """
+        self.m.debug = True
+        assert self.mkbundle('*.js', output='out').urls() == ['/file1.js', '/file2.js']
+
+    def test_empty_pattern(self):
+        bundle = self.mkbundle('*.xyz', output='out')
+        assert_raises(BuildError, bundle.build)
+
+    def test_non_pattern_missing_files(self):
+        """Ensure that if we specify a non-existant file, it will still
+        be returned in the debug urls(), and build() will raise the IOError
+        rathern than the globbing failing and the bundle being empty
+        """
+        self.mkbundle('*.js', output='out').build()
+        assert self.get('out') == 'foo\nbar'

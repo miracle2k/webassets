@@ -8,6 +8,8 @@
 	- ``django-assets``: Now also loads from an application-level
 	  ``assets.py`` file (by David Guaraglia).
 	- Minor bug fixes.
+	- Globbing support: Patterns may not be used when specifying
+	  Bundle contents.
 
 0.4 (2010-08-21)
 	- Renamed project to ``webassets``, no longer Django specific;
