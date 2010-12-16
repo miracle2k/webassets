@@ -19,9 +19,25 @@ within your framework. If that is not the case, read on.
 Build a custom command line client
 ----------------------------------
 
-It's quite straightfoward, really. The class
-``webassets.script.CommandLineEnvironment`` implements all the
-commands as simple methods.
+In most cases, you can simple wrap around the ``webassets.script.main``
+function. For example, the command provided by Flask-Assets looks like
+this:
+
+.. code-block:: python
+
+    class ManageAssets(flaskext.script.Command):
+        def __init__(self, assets_env):
+            self.env = assets_env
+
+        def handle(self, app, prog, name, remaining_args):
+            from webassets import script
+            script.main(remaining_args, env=self.env)
+
+
+In cases where this isn't possible for some reason, or you need more
+control, you can work directly with the
+``webassets.script.CommandLineEnvironment`` class, which implements all
+the commands as simple methods.
 
 .. code-block:: python
 
@@ -48,6 +64,7 @@ then invoking the corresponding methods on your instance of
 
 For an example, you could have a look at the ``werkzeug.script``
 integration in ``webassets.ext.werkzeug``.
+
 
 -----------------
 Included Commands

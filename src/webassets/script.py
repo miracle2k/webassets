@@ -107,7 +107,7 @@ class CommandLineEnvironment():
     }
 
 
-def main(argv):
+def main(argv, env=None):
     """Generic version of the command line utilities, not specific to
     any framework.
 
@@ -119,8 +119,9 @@ def main(argv):
                       help="be verbose")
     parser.add_option("-q", action="store_true", dest="quiet",
                       help="be quiet")
-    parser.add_option("-m", "--module", dest="module",
-                      help="read environment from a Python module")
+    if not env:
+        parser.add_option("-m", "--module", dest="module",
+                          help="read environment from a Python module")
     (options, args) = parser.parse_args(argv)
 
     if len(args) != 1:
@@ -134,8 +135,7 @@ def main(argv):
     log.addHandler(logging.StreamHandler())
 
     # Load the bundles we shall work with
-    env = None
-    if options.module:
+    if not env and options.module:
         env = PythonLoader(options.module).load_environment()
 
     if not env:
