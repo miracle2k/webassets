@@ -162,10 +162,12 @@ class TestBuiltinFilters(BuildTestHelper):
                 color: #FFFFFF;
             }
         """,
-        'foo.sass': '''h1
+        'foo.sass': """h1
             font-family: "Verdana"
             color: #FFFFFF
-        '''}
+        """,
+        'foo.coffee': "alert \"I knew it!\" if elvis?"
+        }
 
     def test_cssmin(self):
         try:
@@ -203,3 +205,11 @@ class TestBuiltinFilters(BuildTestHelper):
         scss = get_filter('scss', debug_info=False)
         self.mkbundle('foo.css', filters=scss, output='out.css').build()
         assert self.get('out.css') == """/* line 2 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
+
+    def test_coffeescript(self):
+        coffeescript = get_filter('coffeescript')
+        self.mkbundle('foo.coffee', filters=coffeescript, output='out.js').build()
+        assert self.get('out.js') == """if (typeof elvis != "undefined" && elvis !== null) {
+  alert("I knew it!");
+}
+"""

@@ -16,13 +16,13 @@ class CoffeeScriptFilter(Filter):
     name = 'coffeescript'
 
     def setup(self):
-        self.coffee = self.get_config('COFFEE_PATH', what='coffee binary')
+        self.coffee = self.get_config('COFFEE_PATH', what='coffee binary', require=False) or 'coffee'
 
     def input(self, _in, out, source_path, output_path):
         old_dir = os.getcwd()
         os.chdir(os.path.dirname(source_path))
         try:
-            proc = subprocess.Popen([self.coffee or 'coffee', '-bp', source_path],
+            proc = subprocess.Popen([self.coffee, '-bp', source_path],
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
             stdout, stderr = proc.communicate()
