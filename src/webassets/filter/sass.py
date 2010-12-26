@@ -20,7 +20,7 @@ class SassFilter(Filter):
         self.debug_info = debug_info
 
     def setup(self):
-        self.binary = self.get_config('SASS_BIN', what='less binary',
+        self.binary = self.get_config('SASS_BIN', what='sass binary',
                                       require=False)
 
     def input(self, _in, out, source_path, output_path):
