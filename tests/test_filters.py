@@ -166,6 +166,9 @@ class TestBuiltinFilters(BuildTestHelper):
             font-family: "Verdana"
             color: #FFFFFF
         """,
+        'foo.clevercss': """a:
+            color: #fff.darken(50%)
+        """,
         'foo.coffee': "alert \"I knew it!\" if elvis?"
         }
 
@@ -205,6 +208,13 @@ class TestBuiltinFilters(BuildTestHelper):
         scss = get_filter('scss', debug_info=False)
         self.mkbundle('foo.css', filters=scss, output='out.css').build()
         assert self.get('out.css') == """/* line 2 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
+
+    def test_clevercss(self):
+        clevercss = get_filter('clevercss')
+        self.mkbundle('foo.clevercss', filters=clevercss, output='out.css').build()
+        assert self.get('out.css') == """a {
+  color: #7f7f7f;
+}"""
 
     def test_coffeescript(self):
         coffeescript = get_filter('coffeescript')
