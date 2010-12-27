@@ -4,5 +4,8 @@ Sphinx
 nose
 PyYaml
 
+# Filters
+clevercss
+
 # Necessary for autodoc to build documentation regarding django-assets.
 Django
