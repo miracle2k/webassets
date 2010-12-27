@@ -1,10 +1,10 @@
 0.5 (unreleased)
-	- Added ``CSSPrefixer`` filter (by myfreeweb).
+	- Added ``CSSPrefixer`` and ``CoffeeScript`` filters (by myfreeweb).
 	- Compass filter: support .scss compilation (by Olivier Poitrey).
 	- Compass filter: added plugin support (by Olivier Poitrey).
 	- YUI filter: properly deal with UTF-8 encoded files (by Olivier
 	  Poitrey).
-	- Added Google Closure filter.
+	- Added Google Closure filter (by Mark Lee).
 	- ``django-assets``: Now also loads from an application-level
 	  ``assets.py`` file (by David Guaraglia).
 	- Minor bug fixes.
