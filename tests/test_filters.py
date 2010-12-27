@@ -210,6 +210,10 @@ class TestBuiltinFilters(BuildTestHelper):
         assert self.get('out.css') == """/* line 2 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
 
     def test_clevercss(self):
+        try:
+            import clevercss
+        except ImportError: 
+            raise SkipTest()
         clevercss = get_filter('clevercss')
         self.mkbundle('foo.clevercss', filters=clevercss, output='out.css').build()
         assert self.get('out.css') == """a {
