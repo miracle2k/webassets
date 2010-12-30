@@ -27,9 +27,9 @@ def get_django_template_dirs():
     """Build a list of template directories based on configured loaders.
     """
     template_dirs = []
-    if 'django.template.loaders.filesystem.load_template_source' in settings.TEMPLATE_LOADERS:
+    if 'django.template.loaders.filesystem.load_template_source' in settings.TEMPLATE_LOADERS or 'django.template.loaders.filesystem.Loader' in settings.TEMPLATE_LOADERS:
         template_dirs.extend(settings.TEMPLATE_DIRS)
-    if 'django.template.loaders.app_directories.load_template_source' in settings.TEMPLATE_LOADERS:
+    if 'django.template.loaders.app_directories.load_template_source' in settings.TEMPLATE_LOADERS or 'django.template.loaders.app_directories.Loader' in settings.TEMPLATE_LOADERS:
         from django.template.loaders.app_directories import app_template_dirs
         template_dirs.extend(app_template_dirs)
     return template_dirs
