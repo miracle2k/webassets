@@ -405,7 +405,9 @@ class TestGlobbing(BuildTestHelper):
         returned.
         """
         self.m.debug = True
-        assert self.mkbundle('*.js', output='out').urls() == ['/file1.js', '/file2.js']
+        urls = self.mkbundle('*.js', output='out').urls()
+        urls.sort()
+        assert urls == ['/file1.js', '/file2.js']
 
     def test_empty_pattern(self):
         bundle = self.mkbundle('*.xyz', output='out')
