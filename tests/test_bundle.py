@@ -96,6 +96,15 @@ class TestBuild(BuildTestHelper):
         # That is true even for child bundles
         assert_raises(BuildError, self.mkbundle(self.mkbundle(), 'in1', output='out').build)
 
+    def test_rebuild(self):
+        """Regression test for a bug that occured when a bundle
+        was built a second time since Bundle.get_files() did
+        not return absolute filenames."""
+        self.mkbundle('in1', 'in2', output='out').build()
+        assert self.get('out') == 'A\nB'
+        self.mkbundle('in1', 'in2', output='out').build()
+        assert self.get('out') == 'A\nB'
+
 
 class ReplaceFilter(Filter):
     """Filter that does a simple string replacement.

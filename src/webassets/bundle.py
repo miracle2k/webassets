@@ -133,7 +133,7 @@ class Bundle(object):
             if isinstance(c, Bundle):
                 files.extend(c.get_files(env))
             else:
-                files.append(c)
+                files.append(env.abspath(c))
         return files
 
     @property
