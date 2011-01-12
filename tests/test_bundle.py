@@ -398,7 +398,9 @@ class TestGlobbing(BuildTestHelper):
     def test_building(self):
         """Globbing works!"""
         self.mkbundle('*.js', output='out').build()
-        assert self.get('out') == 'foo\nbar'
+        content = self.get('out').split("\n")
+        content.sort()
+        assert content == ['bar', 'foo']
 
     def test_debug_urls(self):
         """In debug mode, the source files matching the pattern are
