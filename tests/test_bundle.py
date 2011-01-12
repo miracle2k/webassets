@@ -417,4 +417,6 @@ class TestGlobbing(BuildTestHelper):
         rathern than the globbing failing and the bundle being empty
         """
         self.mkbundle('*.js', output='out').build()
-        assert self.get('out') == 'foo\nbar'
+        content = self.get('out').split("\n")
+        content.sort()
+        assert content == ['bar', 'foo']
