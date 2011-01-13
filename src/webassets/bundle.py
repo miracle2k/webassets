@@ -276,11 +276,11 @@ class Bundle(object):
         env = self._get_env(env)
         supposed_to_merge, do_filter = self.determine_action(env)
 
-        if supposed_to_merge:
-            # If this bundle has an output target, then we want to build
-            # it, if it has files, then we need to build it, at least
-            # as long as were not explicitely allowed to not build at all,
-            # e.g. in debug mode.
+        if supposed_to_merge and (self.filters or self.output):
+            # We need to build this bundle, unless a) the configuration
+            # tells us not to ("determine_action"), or b) this bundle
+            # isn't actually configured to be built, that is, has no
+            # filters and no output target.
             hunk = self.build(env, no_filters=not do_filter, *args, **kwargs)
             return [make_url(env, self.output)]
         else:

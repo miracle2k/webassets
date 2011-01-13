@@ -324,18 +324,19 @@ class TestUrlsProduction(BaseUrlsTester):
         # right now if it's really the behavior I want.
         raise SkipTest()
 
-    def test_files_require_build(self):
-        """A bundle that has files of it's own needs to specify an
-        output target.
-
-        TODO: It wouldn't necessary have to be this way; we could
-        source the files directly, so long as no filters are given.
-        The only case that we shouldn't allow to work is when a
-        bundle has both filters defined, and has file contents. In
-        that, an error should be raised because we can't apply the
-        filter to those files.
+    def test_source_bundle(self):
+        """If a bundle does neither specify an output target nor any
+        filters, it's file are always sourced directly.
         """
-        bundle = self.MockBundle('a', self.MockBundle('d', 'childout'))
+        bundle = self.MockBundle('a', self.MockBundle('d', output='childout'))
+        print bundle.urls()
+        assert bundle.urls() == ['/a', '/childout']
+
+    def test_require_output(self):
+        """You can misconfigure a bundle if you specify files, filters,
+        but do not give an output target.
+        """
+        bundle = self.MockBundle('a', filters='cssmin')
         assert_raises(BuildError, bundle.urls)
 
 
