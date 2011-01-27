@@ -84,7 +84,7 @@ class CSSRewriteFilter(Filter):
                 url = url[:-1]
 
             # if path is an absolute one, keep it
-            if not url.startswith('/') and not url.startswith('http://'):
+            if not url.startswith('/') and not url.startswith('http://') or url.startswith('https://'):
                 # rewritten url: relative path from new location (output)
                 # to location of referenced file (source + current url)
                 url = urlpath.relpath(output_url,
