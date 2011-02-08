@@ -172,6 +172,12 @@ class TestBuiltinFilters(BuildTestHelper):
         'foo.coffee': "alert \"I knew it!\" if elvis?"
         }
 
+    def test_cssrewrite(self):
+        self.create_files({'in.css': '''h1 { background: url(sub/icon.png) }'''})
+        self.create_directories('g')
+        self.mkbundle('in.css', filters='cssrewrite', output='g/out.css').build()
+        assert self.get('g/out.css') == '''h1 { background: url(../sub/icon.png) }'''
+
     def test_cssmin(self):
         try:
             self.mkbundle('foo.css', filters='cssmin', output='out.css').build()

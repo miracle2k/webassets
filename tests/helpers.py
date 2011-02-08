@@ -1,3 +1,4 @@
+import os
 from os import path
 import shutil
 import tempfile
@@ -43,6 +44,13 @@ class BuildTestHelper:
             f = open(path.join(self.m.directory, name), 'w')
             f.write(data)
             f.close()
+
+    def create_directories(self, *dirs):
+        """Helper to create directories within the media directory
+        of the current test's environment.
+        """
+        for dir in dirs:
+            os.makedirs(path.join(self.m.directory, dir))
 
     def exists(self, name):
         """Ensure the given file exists within the current test run's
