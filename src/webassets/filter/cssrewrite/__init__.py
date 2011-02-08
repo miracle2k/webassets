@@ -109,7 +109,6 @@ class CSSRewriteFilter(Filter):
                 repldir = addsep(os.path.normpath(join(root, repldir)))
                 replurl = path2url(repldir[len(commonprefix([root, repldir])):])
                 replace[replurl] = sub
-        print replace
 
         def _rewrite(m):
             # Get the regex matches; note how we maintain the exact
@@ -131,7 +130,6 @@ class CSSRewriteFilter(Filter):
             if replace is not False:
                 for to_replace, sub in replace.items():
                     targeturl = urlparse.urljoin(source_url, url)
-                    print targeturl
                     if targeturl.startswith(to_replace):
                         url = "%s%s" % (sub, targeturl[len(to_replace):])
                         # Only apply the first match
