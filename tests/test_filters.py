@@ -178,7 +178,7 @@ class TestBuiltinFilters(BuildTestHelper):
             assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
         except EnvironmentError:
             # cssmin is not installed, that's ok.
-            pass
+            raise SkipTest()
 
     def test_compass(self):
         self.mkbundle('foo.sass', filters='compass', output='out.css').build()
@@ -212,7 +212,7 @@ class TestBuiltinFilters(BuildTestHelper):
     def test_clevercss(self):
         try:
             import clevercss
-        except ImportError: 
+        except ImportError:
             raise SkipTest()
         clevercss = get_filter('clevercss')
         self.mkbundle('foo.clevercss', filters=clevercss, output='out.css').build()
