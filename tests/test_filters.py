@@ -178,6 +178,29 @@ class TestBuiltinFilters(BuildTestHelper):
         self.mkbundle('in.css', filters='cssrewrite', output='g/out.css').build()
         assert self.get('g/out.css') == '''h1 { background: url(../sub/icon.png) }'''
 
+    def test_cssrewrite_change_folder(self):
+        """Test the replace mode of the cssrewrite filter.
+        """
+        self.create_files({'in.css': '''h1 { background: url(old/sub/icon.png) }'''})
+        try:
+            from collections import OrderedDict
+        except ImportError:
+            # Without OrderedDict available, use a simplified version
+            # of this test.
+            cssrewrite = get_filter('cssrewrite', replace=dict((
+                ('o', '/error/'),       # o does NOT match the old/ dir
+                ('old', '/new/'),       # this will match
+            )))
+        else:
+            cssrewrite = get_filter('cssrewrite', replace=OrderedDict((
+                ('o', '/error/'),       # o does NOT match the old/ dir
+                ('old', '/new/'),       # this will match
+                ('old/sub', '/error/'), # the first match is used, so this won't be
+                ('new', '/error/'),     # neither will this one match
+            )))
+        self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
+        assert self.get('out.css') == '''h1 { background: url(/new/sub/icon.png) }'''
+
     def test_cssmin(self):
         try:
             self.mkbundle('foo.css', filters='cssmin', output='out.css').build()

@@ -1,5 +1,12 @@
 import os, re, urlparse
+from os.path import join, commonprefix, normpath
 import urlpath
+try:
+    from collections import OrderedDict
+except ImportError:
+    # Use an ordered dict when available, otherwise we simply don't
+    # support ordering - it's just a nice bonus.
+    OrderedDict = dict
 
 from webassets.filter import Filter
 
@@ -24,6 +31,20 @@ url\(
 """, re.VERBOSE)
 
 
+def addsep(path):
+    """Add a trailing path separator."""
+    if path and path[-1] != os.path.sep:
+        return path + os.path.sep
+    return path
+
+
+def path2url(path):
+    """Simple helper for NT systems to replace slash syntax."""
+    if os.name == 'nt':
+        return path.replace('\\', '/')
+    return path
+
+
 class CSSRewriteFilter(Filter):
     """Source filter that rewrites relative urls in CSS files.
 
@@ -40,37 +61,60 @@ class CSSRewriteFilter(Filter):
 
     No configuration is necessary.
 
-    TODO: If we want to support inline assets, this needs to be
-    updated to optionally convert URLs to absolute ones based on
-    MEDIA_URL.
+    The filter also supports a manual mode::
+
+        get_filter('cssrewrite', replace={'old_directory', '/custom/path/'})
+
+    This will rewrite all urls that point to files within ``old_directory``
+    to use ``/custom/path`` as a prefix instead.
     """
+
+    # TODO: If we want to support inline assets, this needs to be
+    # updated to optionally convert URLs to absolute ones based on
+    # MEDIA_URL.
 
     name = 'cssrewrite'
 
+    def __init__(self, replace=False):
+        super(CSSRewriteFilter, self).__init__()
+        self.replace = replace
+
+    def unique(self):
+        # Allow mixing the standard version of this filter, and the
+        # replace mode.
+        return self.replace
+
     def input(self, _in, out, source_path, output_path):
-        # get source and output path relative to media directory (they are
-        # probably absolute paths, we need to work with them as MEDIA_URL
+        # Get source and output path relative to media directory (they are
+        # probably absolute paths, we need to work with them as env.url
         # based urls (e.g. the following code will consider them absolute
-        # within a filesystem chrooted into MEDIA_URL).
-        root = self.env.directory
-        if root and root[-1] != os.path.sep:
-            root += os.path.sep  # so it will be matched by commonprefix()
+        # within a filesystem chrooted into env.url).
+        root = addsep(self.env.directory)
         # To make commonprefix() work properly in all cases, make sure we
         # remove stuff like ../ from all paths.
-        output_path = os.path.normpath(output_path)
-        source_path = os.path.normpath(source_path)
-        root = os.path.normpath(root)
+        output_path = normpath(join(root, output_path))
+        source_path = normpath(join(root, source_path))
+        root = normpath(root)
 
-        output_url = output_path[len(os.path.commonprefix([root, output_path])):]
-        source_url = source_path[len(os.path.commonprefix([root, source_path])):]
-        if os.name == 'nt':
-            output_url = output_url.replace('\\', '/')
-            source_url = source_url.replace('\\', '/')
+        output_url = path2url(output_path[len(commonprefix([root, output_path])):])
+        source_url = path2url(source_path[len(commonprefix([root, source_path])):])
+
+        # For replace mode, make sure we have all the directories to be
+        # rewritten in form of a url, so we can later easily match it
+        # against the urls encountered in the CSS.
+        replace = False
+        if self.replace not in (False, None):
+            replace = OrderedDict()
+            for repldir, sub in self.replace.items():
+                repldir = addsep(os.path.normpath(join(root, repldir)))
+                replurl = path2url(repldir[len(commonprefix([root, repldir])):])
+                replace[replurl] = sub
+        print replace
 
         def _rewrite(m):
-            # get the regex matches; note how we maintain the exact
+            # Get the regex matches; note how we maintain the exact
             # whitespace around the actual url; we'll indeed only
-            # replace the url itself
+            # replace the url itself.
             text_before = m.groups()[0]
             url = m.groups()[1]
             text_after = m.groups()[2]
@@ -83,12 +127,24 @@ class CSSRewriteFilter(Filter):
             if url[-1:] in '"\'':
                 url = url[:-1]
 
-            # if path is an absolute one, keep it
-            if not url.startswith('/') and not url.startswith('http://'):
-                # rewritten url: relative path from new location (output)
-                # to location of referenced file (source + current url)
-                url = urlpath.relpath(output_url,
-                                      urlparse.urljoin(source_url, url))
+            # Replace mode: manually adjust the location of files
+            if replace is not False:
+                for to_replace, sub in replace.items():
+                    targeturl = urlparse.urljoin(source_url, url)
+                    print targeturl
+                    if targeturl.startswith(to_replace):
+                        url = "%s%s" % (sub, targeturl[len(to_replace):])
+                        # Only apply the first match
+                        break
+
+            # Default mode: auto correct relative urls
+            else:
+                # If path is an absolute one, keep it
+                if not url.startswith('/') and not url.startswith('http://'):
+                    # rewritten url: relative path from new location (output)
+                    # to location of referenced file (source + current url)
+                    url = urlpath.relpath(output_url,
+                                          urlparse.urljoin(source_url, url))
 
             result = 'url(%s%s%s%s%s)' % (
                         text_before, quotes_used, url, quotes_used, text_after)
