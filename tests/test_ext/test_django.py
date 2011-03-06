@@ -39,17 +39,17 @@ class TestConfig(object):
         settings.ASSETS_EXPIRE = 'timestamp'
         assert get_env().config['expire'] == settings.ASSETS_EXPIRE
 
-        settings.MEDIA_ROOT = 'FOO'
+        settings.ASSETS_ROOT = 'FOO'
         assert get_env().directory == 'FOO'
 
         get_env().directory = 'BAR'
-        assert settings.MEDIA_ROOT == 'BAR'
+        assert settings.ASSETS_ROOT == 'BAR'
 
     def test_custom_options(self):
         settings.FOO = 42
-        get_env().config['foo'] == 42
+        assert get_env().config['foo'] == 42
         # Also, we are caseless.
-        get_env().config['foO'] == 42
+        assert get_env().config['foO'] == 42
 
 
 class TestTemplateTag():

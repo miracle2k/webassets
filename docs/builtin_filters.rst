@@ -21,7 +21,7 @@ Javascript compressors
 
 
 ``yui_js``
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
 
 .. automodule:: webassets.filter.yui
 .. autoclass:: webassets.filter.yui.YUIJSFilter
@@ -43,7 +43,7 @@ CSS compressors
 ---------------
 
 ``cssmin``
-~~~~~~~~~~~~
+~~~~~~~~~~
 
 .. autoclass:: webassets.filter.cssmin.CSSMinFilter
 
@@ -111,10 +111,10 @@ Other
 
 
 ``cssprefixer``
-~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 .. autoclass:: webassets.filter.cssprefixer.CSSPrefixerFilter
- 
+
 
 ``gzip``
 ~~~~~~~~

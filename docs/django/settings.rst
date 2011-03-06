@@ -12,10 +12,10 @@ module. This is irrelevant. To change the values, you need to define them
 in your project's global settings.
 
 
-.. autodata:: MEDIA_ROOT
+.. autodata:: ASSETS_ROOT
     :noindex:
 
-.. autodata:: MEDIA_URL
+.. autodata:: ASSETS_URL
     :noindex:
 
 .. _django-setting-debug:
