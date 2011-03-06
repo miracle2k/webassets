@@ -39,11 +39,23 @@ class TestConfig(object):
         settings.ASSETS_EXPIRE = 'timestamp'
         assert get_env().config['expire'] == settings.ASSETS_EXPIRE
 
-        settings.ASSETS_ROOT = 'FOO'
-        assert get_env().directory == 'FOO'
-
+        settings.ASSETS_ROOT = 'FOO_ASSETS'
+        settings.STATIC_ROOT = 'FOO_STATIC'
+        settings.MEDIA_ROOT = 'FOO_MEDIA'
+        # Pointing to ASSETS_ROOT
+        assert get_env().directory == 'FOO_ASSETS'
         get_env().directory = 'BAR'
         assert settings.ASSETS_ROOT == 'BAR'
+        # Pointing to STATIC_ROOT
+        delattr(settings, 'ASSETS_ROOT')
+        assert get_env().directory == 'FOO_STATIC'
+        get_env().directory = 'BAR'
+        assert settings.STATIC_ROOT == 'BAR'
+        # Pointing to MEDIA_ROOT
+        delattr(settings, 'STATIC_ROOT')
+        assert get_env().directory == 'FOO_MEDIA'
+        get_env().directory = 'BAR'
+        assert settings.MEDIA_ROOT == 'BAR'
 
     def test_custom_options(self):
         settings.FOO = 42
