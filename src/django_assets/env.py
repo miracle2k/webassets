@@ -16,11 +16,24 @@ class DjangoConfigStorage(ConfigStorage):
         'updater': 'ASSETS_UPDATER',
         'auto_create': 'ASSETS_AUTO_CREATE',
         'expire': 'ASSETS_EXPIRE',
-        'directory': 'MEDIA_ROOT',
-        'url': 'MEDIA_URL',
     }
 
     def _transform_key(self, key):
+
+        if key.lower() == 'directory':
+            if hasattr(settings, 'ASSETS_ROOT'):
+                return 'ASSETS_ROOT'
+            if hasattr(settings, 'STATIC_ROOT'):
+                return 'STATIC_ROOT'
+            return 'MEDIA_ROOT'
+
+        if key.lower() == 'url':
+            if hasattr(settings, 'ASSETS_URL'):
+                return 'ASSETS_URL'
+            if hasattr(settings, 'STATIC_URL'):
+                return 'STATIC_URL'
+            return 'MEDIA_URL'
+
         return self._mapping.get(key.lower(), key.upper())
 
     def __contains__(self, key):
