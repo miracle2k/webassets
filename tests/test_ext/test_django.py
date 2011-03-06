@@ -47,9 +47,9 @@ class TestConfig(object):
 
     def test_custom_options(self):
         settings.FOO = 42
-        get_env().config['foo'] == 42
+        assert get_env().config['foo'] == 42
         # Also, we are caseless.
-        get_env().config['foO'] == 42
+        assert get_env().config['foO'] == 42
 
 
 class TestTemplateTag():
