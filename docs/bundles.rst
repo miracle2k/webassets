@@ -17,7 +17,7 @@ generated urls will be relative to the ``url`` setting.
 
     Bundle('common/inheritance.js', 'portal/js/common.js',
            'portal/js/plot.js', 'portal/js/ticker.js',
-           filter='jsmin',
+           filters='jsmin',
            output='gen/packed.js')
 
 A bundle takes any number of filenames, as well as the following keyword
@@ -53,7 +53,7 @@ Bundles may also contain other bundles:
         # Our own stuff
         Bundle('common/inheritance.js', 'portal/js/common.js',
             'portal/js/plot.js', 'portal/js/ticker.js'),
-        filter='jsmin',
+        filters='jsmin',
         output='gen/packed.js')
 
 
@@ -75,7 +75,7 @@ need to merge together with uncompressed ones, you could do it like so:
 
     register('js-all',
         'jquery.min.js',
-        Bundle(filter='jsmin', 'uncompressed.js'))
+        Bundle(filters='jsmin', 'uncompressed.js'))
 
 
 Generally speaking, nested bundles allow you to apply different sets of
