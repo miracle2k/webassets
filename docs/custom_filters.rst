@@ -67,7 +67,7 @@ provided that it is available in the context:
 
 .. code-block:: django
 
-    {% assets filter=(noop, 'jsmin') ... %}
+    {% assets filters=(noop, 'jsmin') ... %}
 
 It even works when using Django templates, although here, you are
 of course more limited in terms of syntax; if you want to use multiple
@@ -75,7 +75,7 @@ filters, you need to combine them:
 
 .. code-block:: django
 
-    {% assets filter=my_filters ... %}
+    {% assets filters=my_filters ... %}
 
 Just make sure that the context variable ``my_filters`` is set to
 your function.
@@ -140,7 +140,7 @@ After that, you can use the filter like you would any of the built-in ones:
 
 .. code-block:: django
 
-    {% assets filter='jsmin,noop' ... %}
+    {% assets filters='jsmin,noop' ... %}
 
 
 Options

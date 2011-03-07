@@ -55,7 +55,7 @@ within your templates:
 
 .. code-block:: jinja
 
-    {% assets filter="jsmin,gzip", output="gen/packed.js", "common/jquery.js", "site/base.js", "site/widgets.js" %}
+    {% assets filters="jsmin,gzip", output="gen/packed.js", "common/jquery.js", "site/base.js", "site/widgets.js" %}
     ...
 
 

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import warnings
 import jinja2
 from jinja2.ext import Extension
 from jinja2 import nodes
@@ -37,7 +38,7 @@ class AssetsExtension(Extension):
 
         files = []
         output = nodes.Const(None)
-        filter = nodes.Const(None)
+        filters = nodes.Const(None)
 
         # parse the arguments
         first = True
@@ -51,8 +52,15 @@ class AssetsExtension(Extension):
                 name = parser.stream.next().value
                 parser.stream.skip()
                 value = parser.parse_expression()
-                if name == 'filter':
-                    filter = value
+                if name == 'filters':
+                    filters = value
+                elif name == 'filter':
+                    filters = value
+                    warnings.warn('The "filter" option of the {% assets %} '
+                                  'template tag has been renamed to '
+                                  '"filters" for consistency reasons '
+                                  '(line %s).' % lineno,
+                                  DeprecationWarning)
                 elif name == 'output':
                     output = value
                 else:
@@ -67,7 +75,7 @@ class AssetsExtension(Extension):
         body = parser.parse_statements(['name:endassets'], drop_needle=True)
         return nodes.CallBlock(
                 self.call_method('_render_assets',
-                                 args=[filter, output, nodes.List(files)]),
+                                 args=[filters, output, nodes.List(files)]),
                 [nodes.Name('ASSET_URL', 'store')], [], body).\
                     set_lineno(lineno)
 

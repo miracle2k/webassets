@@ -1,4 +1,5 @@
 import tokenize
+import warnings
 
 from django import template
 from django_assets import Bundle
@@ -10,11 +11,11 @@ class AssetsNode(template.Node):
     # For testing, to inject a mock bundle
     BundleClass = Bundle
 
-    def __init__(self, filter, output, files, childnodes):
+    def __init__(self, filters, output, files, childnodes):
         self.childnodes = childnodes
         self.output = output
         self.files = files
-        self.filter = filter
+        self.filters = filters
 
     def resolve(self, context={}):
         """We allow variables to be used for all arguments; this function
@@ -44,7 +45,7 @@ class AssetsNode(template.Node):
         return self.BundleClass(
             *[resolve_bundle(resolve_var(f)) for f in self.files],
             **{'output': resolve_var(self.output),
-            'filters': resolve_var(self.filter)})
+            'filters': resolve_var(self.filters)})
 
     def render(self, context):
         bundle = self.resolve(context)
@@ -60,7 +61,7 @@ class AssetsNode(template.Node):
 
 
 def assets(parser, token):
-    filter = None
+    filters = None
     output = None
     files = []
 
@@ -86,8 +87,14 @@ def assets(parser, token):
         # handle known keyword arguments
         if name == 'output':
             output = value
+        elif name == 'filters':
+            filters = value
         elif name == 'filter':
-            filter = value
+            filters = value
+            warnings.warn('The "filter" option of the {% assets %} '
+                          'template tag has been renamed to '
+                          '"filters" for consistency reasons.',
+                          DeprecationWarning)
         # positional arguments are source files
         elif name is None:
             files.append(value)
@@ -97,7 +104,7 @@ def assets(parser, token):
     # capture until closing tag
     childnodes = parser.parse(("endassets",))
     parser.delete_first_token()
-    return AssetsNode(filter, output, files, childnodes)
+    return AssetsNode(filters, output, files, childnodes)
 
 
 

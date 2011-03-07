@@ -54,7 +54,7 @@ simply define everything inside your template:
 .. code-block:: django
 
     {% load assets %}
-    {% assets filter="jsmin", output="gen/packed.js", "common/jquery.js", "site/base.js", "site/widgets.js" %}
+    {% assets filters="jsmin", output="gen/packed.js", "common/jquery.js", "site/base.js", "site/widgets.js" %}
         <script type="text/javascript" src="{{ ASSET_URL }}"></script>
     {% endassets %}
 
