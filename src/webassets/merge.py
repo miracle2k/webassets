@@ -118,9 +118,8 @@ def apply_filters(hunk, filters, type, cache=None, **kwargs):
 
     # Note that the key used to cache this hunk is different from the key
     # the hunk will expose to subsequent merges, i.e. hunk.key() is always
-    # based on the actual content, and does not match the key used to cache
-    # the key. This latter key also includes information about for example
-    # the filters used.
+    # based on the actual content, and does not match the cache key. The
+    # latter also includes information about for example the filters used.
     #
     # It wouldn't have to be this way. Hunk could subsequently expose their
     # cache key through hunk.key(). This would work as well, but would be
