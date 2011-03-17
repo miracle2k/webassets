@@ -56,7 +56,7 @@ class AssetsExtension(Extension):
                     filters = value
                 elif name == 'filter':
                     filters = value
-                    warnings.warn('The "filter" option of the {% assets %} '
+                    warnings.warn('The "filter" option of the {%% assets %%} '
                                   'template tag has been renamed to '
                                   '"filters" for consistency reasons '
                                   '(line %s).' % lineno,
