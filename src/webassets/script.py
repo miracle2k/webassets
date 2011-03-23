@@ -135,7 +135,7 @@ def main(argv, env=None):
     log.addHandler(logging.StreamHandler())
 
     # Load the bundles we shall work with
-    if not env and options.module:
+    if env is None and options.module:
         env = PythonLoader(options.module).load_environment()
 
     if env is None:
