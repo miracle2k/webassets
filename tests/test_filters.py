@@ -216,8 +216,41 @@ class TestBuiltinFilters(BuildTestHelper):
     def test_compass_with_scss(self):
         # [bug] test compass with scss files
         self.mkbundle('foo.scss', filters='compass', output='out.css').build()
-        print self.get('out.css')
         assert self.get('out.css') == """/* line 2, in.scss */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
+
+    def test_clevercss(self):
+        try:
+            import clevercss
+        except ImportError:
+            raise SkipTest()
+        clevercss = get_filter('clevercss')
+        self.mkbundle('foo.clevercss', filters=clevercss, output='out.css').build()
+        assert self.get('out.css') == """a {
+  color: #7f7f7f;
+}"""
+
+    def test_coffeescript(self):
+        coffeescript = get_filter('coffeescript')
+        self.mkbundle('foo.coffee', filters=coffeescript, output='out.js').build()
+        assert self.get('out.js') == """if (typeof elvis != "undefined" && elvis !== null) {
+  alert("I knew it!");
+}
+"""
+
+class TestSass(BuildTestHelper):
+
+    default_files = {
+        'foo.css': """
+            h1  {
+                font-family: "Verdana"  ;
+                color: #FFFFFF;
+            }
+        """,
+        'foo.sass': """h1
+            font-family: "Verdana"
+            color: #FFFFFF
+        """,
+    }
 
     def test_sass(self):
         sass = get_filter('sass', debug_info=False)
@@ -238,21 +271,13 @@ class TestBuiltinFilters(BuildTestHelper):
         self.mkbundle('foo.css', filters=scss, output='out.css').build()
         assert self.get('out.css') == """/* line 2 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
 
-    def test_clevercss(self):
-        try:
-            import clevercss
-        except ImportError:
-            raise SkipTest()
-        clevercss = get_filter('clevercss')
-        self.mkbundle('foo.clevercss', filters=clevercss, output='out.css').build()
-        assert self.get('out.css') == """a {
-  color: #7f7f7f;
-}"""
+    def test_debug_info_option(self):
+        # The debug_info argument to the sass filter can be configured via
+        # a global SASS_DEBUG_INFO option.
+        self.m.config['SASS_DEBUG_INFO'] = False
+        self.mkbundle('foo.sass', filters=get_filter('sass'), output='out.css').build()
+        assert not '-sass-debug-info' in self.get('out.css')
 
-    def test_coffeescript(self):
-        coffeescript = get_filter('coffeescript')
-        self.mkbundle('foo.coffee', filters=coffeescript, output='out.js').build()
-        assert self.get('out.js') == """if (typeof elvis != "undefined" && elvis !== null) {
-  alert("I knew it!");
-}
-"""
+        # However, an instance-specific debug_info option takes precedence.
+        self.mkbundle('foo.sass', filters=get_filter('sass', debug_info=True), output='out2.css').build()
+        assert '-sass-debug-info' in self.get('out2.css')

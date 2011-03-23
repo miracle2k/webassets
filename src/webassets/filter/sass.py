@@ -14,7 +14,7 @@ class SassFilter(Filter):
 
     name = 'sass'
 
-    def __init__(self, scss=False, debug_info=True):
+    def __init__(self, scss=False, debug_info=None):
         super(SassFilter, self).__init__()
         self.use_scss = scss
         self.debug_info = debug_info
@@ -22,6 +22,8 @@ class SassFilter(Filter):
     def setup(self):
         self.binary = self.get_config('SASS_BIN', what='sass binary',
                                       require=False)
+        if self.debug_info is None:
+            self.debug_info = self.get_config('SASS_DEBUG_INFO', require=False)
 
     def input(self, _in, out, source_path, output_path):
         old_dir = os.getcwd()
@@ -29,7 +31,7 @@ class SassFilter(Filter):
         try:
             args = [self.binary or 'sass', '--stdin', '--style', 'expanded',
                     '--no-cache', '--line-comments']
-            if self.debug_info:
+            if not self.debug_info is False:
                 args.append('--debug-info')
             if self.use_scss:
                 args.append('--scss')
