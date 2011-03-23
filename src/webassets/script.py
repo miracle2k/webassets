@@ -119,7 +119,7 @@ def main(argv, env=None):
                       help="be verbose")
     parser.add_option("-q", action="store_true", dest="quiet",
                       help="be quiet")
-    if not env:
+    if env is None:
         parser.add_option("-m", "--module", dest="module",
                           help="read environment from a Python module")
     (options, args) = parser.parse_args(argv)
@@ -138,7 +138,7 @@ def main(argv, env=None):
     if not env and options.module:
         env = PythonLoader(options.module).load_environment()
 
-    if not env:
+    if env is None:
         print "Error: No environment given or found. Maybe use -m?"
         return 1
 
