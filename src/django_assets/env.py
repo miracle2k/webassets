@@ -19,18 +19,22 @@ class DjangoConfigStorage(ConfigStorage):
     }
 
     def _transform_key(self, key):
+        # STATIC_* are the new Django 1.3 settings,
+        # MEDIA_* was used in earlier versions.
 
         if key.lower() == 'directory':
             if hasattr(settings, 'ASSETS_ROOT'):
                 return 'ASSETS_ROOT'
-            if hasattr(settings, 'STATIC_ROOT'):
+            if getattr(settings, 'STATIC_ROOT', None):
+                # Is None by default
                 return 'STATIC_ROOT'
             return 'MEDIA_ROOT'
 
         if key.lower() == 'url':
             if hasattr(settings, 'ASSETS_URL'):
                 return 'ASSETS_URL'
-            if hasattr(settings, 'STATIC_URL'):
+            if getattr(settings, 'STATIC_URL', None):
+                # Is '' by default
                 return 'STATIC_URL'
             return 'MEDIA_URL'
 

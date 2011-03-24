@@ -51,8 +51,10 @@ class TestConfig(object):
         assert get_env().directory == 'FOO_STATIC'
         get_env().directory = 'BAR'
         assert settings.STATIC_ROOT == 'BAR'
-        # Pointing to MEDIA_ROOT
-        delattr(settings, 'STATIC_ROOT')
+        # Pointing to MEDIA_ROOT; Note we only
+        # set STATIC_ROOT to None rather than deleting
+        # it, a scenario that may occur in the wild.
+        settings.STATIC_ROOT = None
         assert get_env().directory == 'FOO_MEDIA'
         get_env().directory = 'BAR'
         assert settings.MEDIA_ROOT == 'BAR'
