@@ -4,15 +4,26 @@ Generally speaking, compass provides a command line util that is used
     setup work, adding plugins to a project etc), and
   b) can compile the sass source files into CSS.
 
-While generally project-based, starting with 0.10, compass supports
-compiling individual files, which is what we are using. Alternative
-approaches would include:
-   *) Using the "sass" filter to compile source files, setting it up
-      to use the compas environment (framework files, sass extensions).
-	*) Support a CompassBundle() which would call the compass utility to
-      update a project, then further process the CSS outputted by compass.
-See also this discussion:
-http://groups.google.com/group/compass-users/browse_thread/thread/daf55acda03656d1
+While generally project-based, starting with 0.10, compass supposedly
+supports compiling individual files, which is what we are using for
+implementing this filter. Supposedly, because there are numerous issues
+that require working around. See the comments in the actual filter code
+for the full story on all the hoops be have to jump through.
+
+An alternative option would be to use Sass to compile. Compass essentially
+adds two things on top of sass: A bunch of CSS frameworks, ported to Sass,
+and available for including. And various ruby helpers that these frameworks
+and custom Sass files can use. Apparently there is supposed to be a way
+to compile a compass project through sass, but so far, I haven't got it
+to work. The syntax is supposed to be one of:
+
+    $ sass -r compass `compass imports` FILE
+    $ sass --compass FILE
+
+See:
+    http://groups.google.com/group/compass-users/browse_thread/thread/a476dfcd2b47653e
+    http://groups.google.com/group/compass-users/browse_thread/thread/072bd8b51bec5f7c
+    http://groups.google.com/group/compass-users/browse_thread/thread/daf55acda03656d1
 """
 
 
@@ -20,6 +31,7 @@ import time
 import os, subprocess
 from os import path
 import tempfile
+import shutil
 
 from webassets.filter import Filter
 
@@ -58,61 +70,82 @@ class CompassFilter(Filter):
 
     def input(self, _in, out, source_path, output_path):
         """Compass currently doesn't take data from stdin, and doesn't allow
-        us from stdout either.
+        us accessing the result from stdout either.
 
         Also, there's a bunch of other issues we need to work around:
+
          - compass doesn't support given an explict output file, only a
            "--css-dir" output directory.
+
+           We have to "guess" the filename that will be created in that
+           directory.
+
          - The output filename used is based on the input filename, and
            simply cutting of the length of the "sass_dir" (and changing
            the file extension). That is, compass expects the input
            filename to always be inside the "sass_dir" (which defaults to
            ./src), and if this is not the case, the output filename will
-           be gibberish (missing characters in front).
+           be gibberish (missing characters in front). See:
+           https://github.com/chriseppstein/compass/issues/304
 
-        As a result, we need to set both the --sass-dir and --css-dir
-        options properly, so we can "guess" the final css filename.
+           We fix this by setting the proper --sass-dir option.
+
+         - Compass insists on creating a .sass-cache folder in the
+           current working directory, and unlike the sass executable,
+           there doesn't seem to be a way to disable it.
+
+           The workaround is to set the working directory to our temp
+           directory, so that the cache folder will be deleted at the end.
         """
-        sasspath = tempfile.mkdtemp()
-        sassname = path.join(sasspath, 'in' + path.splitext(source_path)[1])
 
-        # Write the incoming stream to the temporary sass directory.
-        f = open(sassname, 'wb')
+        tempout = tempfile.mkdtemp()
+        # Temporarily move to "tempout", so .sass-cache will be created there
+        old_wd = os.getcwdu()
+        os.chdir(tempout)
         try:
-            f.write(_in.read())
-            f.flush()
+            # Make sure to use normpath() to not cause trouble with
+            # compass' simplistic path handling, where it just assumes
+            # source_path is within sassdir, and cuts off the length of
+            # sassdir from the input file.
+            sassdir = path.normpath(path.dirname(source_path))
+            source_path = path.normpath(source_path)
+
+            command = [self.compass, 'compile']
+            for plugin in self.plugins:
+                command.extend(('--require', plugin))
+            command.extend(['--sass-dir', sassdir,
+                            '--css-dir', tempout,
+                            '--image-dir', self.env.url[1:],
+                            '--quiet',
+                            '--boring',
+                            '--output-style', 'expanded',
+                            source_path])
+
+            proc = subprocess.Popen(command,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    # shell: necessary on windows to execute
+                                    # ruby files, but doesn't work on linux.
+                                    shell=(os.name == 'nt'))
+            stdout, stderr = proc.communicate()
+
+            # compass seems to always write a utf8 header? to stderr, so
+            # make sure to not fail just because there's something there.
+            if proc.returncode != 0:
+                raise Exception(('compass: subprocess had error: stderr=%s, '+
+                                'stdout=%s, returncode=%s') % (
+                                                stderr, stdout, proc.returncode))
+
+
+            guessed_outputfile = \
+                path.join(tempout, path.splitext(path.basename(source_path))[0])
+            f = open("%s.css" % guessed_outputfile)
+            try:
+                out.write(f.read())
+            finally:
+                f.close()
         finally:
-            f.close()
-
-        command = [self.compass, 'compile']
-        for plugin in self.plugins:
-            command.extend(('--require', plugin))
-        command.extend(['--sass-dir', sasspath,
-                        '--css-dir', sasspath,
-                        '--image-dir', self.env.url[1:],
-                        '--quiet',
-                        '--boring',
-                        '--output-style', 'expanded',
-                        sassname])
-
-        proc = subprocess.Popen(command,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                # shell: necessary on windows to execute
-                                # ruby files, but doesn't work on linux.
-                                shell=(os.name == 'nt'))
-        stdout, stderr = proc.communicate()
-
-        # compass seems to always write a utf8 header? to stderr, so
-        # make sure to not fail just because there's something there.
-        if proc.returncode != 0:
-            raise Exception(('compass: subprocess had error: stderr=%s, '+
-                            'stdout=%s, returncode=%s') % (
-                                            stderr, stdout, proc.returncode))
-
-
-        f = open("%s.css" % path.splitext(sassname)[0])
-        try:
-            out.write(f.read())
-        finally:
-            f.close()
+            # Restore previous working dir
+            os.chdir(old_wd)
+            # Clean up the temp dir
+            shutil.rmtree(tempout)

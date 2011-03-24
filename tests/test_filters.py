@@ -5,6 +5,11 @@ from webassets import Bundle, Environment
 from webassets.filter import Filter, get_filter, register_filter
 from helpers import BuildTestHelper
 
+# Sometimes testing filter output can be hard if they generate
+# unpredictable text like temp paths or timestamps. doctest has
+# the same problem, so we just steal it's solution.
+from doctest import _ellipsis_match as doctest_match
+
 
 class TestFilter:
     """Test the API ``Filter`` provides to descendants.
@@ -156,21 +161,11 @@ class TestBuiltinFilters(BuildTestHelper):
                 color: #FFFFFF;
             }
         """,
-        'foo.scss': """
-            h1  {
-                font-family: "Verdana"  ;
-                color: #FFFFFF;
-            }
-        """,
-        'foo.sass': """h1
-            font-family: "Verdana"
-            color: #FFFFFF
-        """,
         'foo.clevercss': """a:
             color: #fff.darken(50%)
         """,
         'foo.coffee': "alert \"I knew it!\" if elvis?"
-        }
+    }
 
     def test_cssrewrite(self):
         self.create_files({'in.css': '''h1 { background: url(sub/icon.png) }'''})
@@ -209,15 +204,6 @@ class TestBuiltinFilters(BuildTestHelper):
             # cssmin is not installed, that's ok.
             raise SkipTest()
 
-    def test_compass(self):
-        self.mkbundle('foo.sass', filters='compass', output='out.css').build()
-        assert self.get('out.css') == """/* line 1, in.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
-
-    def test_compass_with_scss(self):
-        # [bug] test compass with scss files
-        self.mkbundle('foo.scss', filters='compass', output='out.css').build()
-        assert self.get('out.css') == """/* line 2, in.scss */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
-
     def test_clevercss(self):
         try:
             import clevercss
@@ -236,6 +222,7 @@ class TestBuiltinFilters(BuildTestHelper):
   alert("I knew it!");
 }
 """
+
 
 class TestSass(BuildTestHelper):
 
@@ -281,3 +268,36 @@ class TestSass(BuildTestHelper):
         # However, an instance-specific debug_info option takes precedence.
         self.mkbundle('foo.sass', filters=get_filter('sass', debug_info=True), output='out2.css').build()
         assert '-sass-debug-info' in self.get('out2.css')
+
+
+class TestCompass(BuildTestHelper):
+
+    default_files = {
+        'foo.scss': """
+            h1  {
+                font-family: "Verdana"  ;
+                color: #FFFFFF;
+            }
+        """,
+        'import.scss': """
+        @import "foo.scss";
+        """,
+        'foo.sass': """h1
+            font-family: "Verdana"
+            color: #FFFFFF
+        """
+    }
+
+    def test_compass(self):
+        self.mkbundle('foo.sass', filters='compass', output='out.css').build()
+        print self.get('out.css')
+        assert doctest_match("""/* ... */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""", self.get('out.css'))
+
+    def test_compass_with_imports(self):
+        self.mkbundle('import.scss', filters='compass', output='out.css').build()
+        assert doctest_match("""/* ... */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""", self.get('out.css'))
+
+    def test_compass_with_scss(self):
+        # [bug] test compass with scss files
+        self.mkbundle('foo.scss', filters='compass', output='out.css').build()
+        assert doctest_match("""/* ... */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""", self.get('out.css'))
