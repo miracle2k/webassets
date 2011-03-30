@@ -1,7 +1,11 @@
-0.5 (unreleased)
+0.5 (2011-03-30)
 	- Added ``CSSPrefixer`` and ``CoffeeScript`` filters (by myfreeweb).
 	- Compass filter: support .scss compilation (by Olivier Poitrey).
 	- Compass filter: added plugin support (by Olivier Poitrey).
+	- Compass filter: properly support imports.
+	- YUI filters: Support for ``yuicompressor`` PyPI package (by 
+	  Mikhail Korobov).
+	- Django 1.3 compatibility improvements.
 	- YUI filter: properly deal with UTF-8 encoded files (by Olivier
 	  Poitrey).
 	- Added Google Closure filter (by Mark Lee).
