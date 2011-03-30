@@ -2,6 +2,7 @@
 """
 
 import os
+import urllib2
 try:
     import cStringIO as StringIO
 except:
@@ -42,6 +43,23 @@ class FileHunk(BaseHunk):
             return f.read()
         finally:
             f.close()
+
+
+class UrlHunk(BaseHunk):
+    """Represents a file that is referenced by an Url.
+    """
+
+    def __init__(self, url):
+        self.url = url
+
+    def data(self):
+        if not hasattr(self, '_data'):
+            r = urllib2.urlopen(self.url)
+            try:
+                self._data = r.read()
+            finally:
+                r.close()
+        return self._data
 
 
 class MemoryHunk(BaseHunk):

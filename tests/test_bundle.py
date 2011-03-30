@@ -1,3 +1,6 @@
+import urllib2
+from StringIO import StringIO
+
 from nose.tools import assert_raises, assert_equals
 from nose import SkipTest
 
@@ -209,6 +212,8 @@ class TestFilters(BuildTestHelper):
 
 
 class TestUpdateAndCreate(BuildTestHelper):
+    """Test bundle auto rebuild.
+    """
 
     def setup(self):
         BuildTestHelper.setup(self)
@@ -256,7 +261,7 @@ class TestUpdateAndCreate(BuildTestHelper):
         assert self.get('out') == 'A'
 
     def test_updater_says_yes(self):
-        """Test the updater saying we need to  update.
+        """Test the updater saying we need to update.
         """
         self.create_files({'out': 'old_value'})
         self.m.updater.allow = True
@@ -434,3 +439,59 @@ class TestGlobbing(BuildTestHelper):
         content = self.get('out').split("\n")
         content.sort()
         assert content == ['bar', 'foo']
+
+
+class MockHTTPHandler(urllib2.HTTPHandler):
+
+    def __init__(self, urls={}):
+        self.urls = urls
+
+    def http_open(self, req):
+        url = req.get_full_url()
+        try:
+            content = self.urls[url]
+        except KeyError:
+            resp = urllib2.addinfourl(StringIO(""), None, url)
+            resp.code = 404
+            resp.msg = "OK"
+        else:
+            resp = urllib2.addinfourl(StringIO(content), None, url)
+            resp.code = 200
+            resp.msg = "OK"
+        return resp
+
+
+class TestUrlContents(BuildTestHelper):
+    """Test bundles containing a URL.
+    """
+
+    def setup(self):
+        BuildTestHelper.setup(self)
+        mock_opener = urllib2.build_opener(MockHTTPHandler({
+            'http://foo': 'function() {}'}))
+        urllib2.install_opener(mock_opener)
+
+    def test_valid_url(self):
+        self.mkbundle('http://foo', output='out').build()
+        assert self.get('out') == 'function() {}'
+
+    def test_invalid_url(self):
+        """If a bundle contains an invalid url, building will raise an error.
+        """
+        assert_raises(urllib2.URLError,
+                      self.mkbundle('http://bar', output='out').build)
+
+    def test_auto_rebuild(self):
+        # Simulate a build that will cause a call into a mock updater
+        # to check whether an auto rebuild is required.
+        self.create_files({'in': 'foo', 'out': 'foo'})
+        class CustomUpdater(object):
+            last_call_sources = []
+            def __call__(self, output, sources, **kw):
+                self.last_call_sources = sources
+                return True
+        self.m.updater = CustomUpdater()
+        self.mkbundle('http://foo', 'in', output='out').build()
+        # The updater will only be called with a single source file,
+        # because the url is not actually checked.
+        assert len(self.m.updater.last_call_sources) == 1

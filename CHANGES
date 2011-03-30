@@ -1,3 +1,6 @@
+0.6 (unreleased)
+	- Bundles may now contain URLs (as supported by urllib2).
+
 0.5 (2011-03-30)
 	- Added ``CSSPrefixer`` and ``CoffeeScript`` filters (by myfreeweb).
 	- Compass filter: support .scss compilation (by Olivier Poitrey).
