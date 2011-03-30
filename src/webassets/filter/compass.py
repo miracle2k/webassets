@@ -115,7 +115,7 @@ class CompassFilter(Filter):
                 command.extend(('--require', plugin))
             command.extend(['--sass-dir', sassdir,
                             '--css-dir', tempout,
-                            '--image-dir', self.env.url[1:],
+                            '--image-dir', self.env.directory,
                             '--quiet',
                             '--boring',
                             '--output-style', 'expanded',
