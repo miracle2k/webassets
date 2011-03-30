@@ -5,4 +5,4 @@ Documentation of latest stable version:
         http://elsdoerfer.name/docs/webassets/
 
 Documentation of development version:
-        http://readthedocs.org/docs/webassets/en/latest/
+        http://webassets.readthedocs.org/
