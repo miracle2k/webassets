@@ -1,5 +1,8 @@
 Asset management application for Python web development - use it to
 merge and compress your JavaScript and CSS files.
 
-Documentation:
-	http://elsdoerfer.name/docs/webassets/
+Documentation of latest stable version:
+        http://elsdoerfer.name/docs/webassets/
+
+Documentation of development version:
+        http://readthedocs.org/docs/webassets/en/latest/
