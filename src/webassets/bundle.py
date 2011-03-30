@@ -1,9 +1,10 @@
 from os import path
+import urlparse
 import glob
 from updater import get_updater
 from filter import get_filter
 from cache import get_cache
-from merge import (FileHunk, MemoryHunk, apply_filters, merge,
+from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
                    make_url, merge_filters)
 
 
@@ -16,6 +17,10 @@ class BundleError(Exception):
 
 class BuildError(BundleError):
     pass
+
+
+def is_url(s):
+    return bool(urlparse.urlsplit(s).scheme)
 
 
 class Bundle(object):
@@ -132,7 +137,7 @@ class Bundle(object):
         for c in self.resolve_contents(env):
             if isinstance(c, Bundle):
                 files.extend(c.get_files(env))
-            else:
+            elif not is_url(c):
                 files.append(env.abspath(c))
         return files
 
@@ -194,7 +199,10 @@ class Bundle(object):
                                 combined_filters)
                 hunks.append(hunk)
             else:
-                hunk = FileHunk(env.abspath(c))
+                if is_url(c):
+                    hunk = UrlHunk(c)
+                else:
+                    hunk = FileHunk(env.abspath(c))
                 if no_filters:
                     hunks.append(hunk)
                 else:
