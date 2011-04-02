@@ -151,7 +151,9 @@ def test_get_filter():
 
 class TestBuiltinFilters(BuildTestHelper):
     """
-    TODO: Add tests for all the builtin filters.
+    TODO: Some filters are still lacking tests: closure, cssprefixer,
+       cssutils, less, yui, jspacker, jsmin
+
     """
 
     default_files = {
@@ -160,11 +162,7 @@ class TestBuiltinFilters(BuildTestHelper):
                 font-family: "Verdana"  ;
                 color: #FFFFFF;
             }
-        """,
-        'foo.clevercss': """a:
-            color: #fff.darken(50%)
-        """,
-        'foo.coffee': "alert \"I knew it!\" if elvis?"
+        """
     }
 
     def test_gzip(self):
@@ -176,13 +174,41 @@ class TestBuiltinFilters(BuildTestHelper):
         assert self.get('out.css')[:3] == '\x1f\x8b\x08'
         assert len(self.get('out.css')) == 24
 
-    def test_cssrewrite(self):
+    def test_cssmin(self):
+        try:
+            self.mkbundle('foo.css', filters='cssmin', output='out.css').build()
+            assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
+        except EnvironmentError:
+            # cssmin is not installed, that's ok.
+            raise SkipTest()
+
+    def test_clevercss(self):
+        try:
+            import clevercss
+        except ImportError:
+            raise SkipTest()
+        self.create_files({'in': """a:\n    color: #fff.darken(50%)"""})
+        self.mkbundle('in', filters='clevercss', output='out.css').build()
+        assert self.get('out.css') == """a {\n  color: #7f7f7f;\n}"""
+
+    def test_coffeescript(self):
+        self.create_files({'in': "alert \"I knew it!\" if elvis?"})
+        self.mkbundle('in', filters='coffeescript', output='out.js').build()
+        assert self.get('out.js') == """if (typeof elvis != "undefined" && elvis !== null) {
+  alert("I knew it!");
+}
+"""
+
+
+class TestCssRewrite(BuildTestHelper):
+
+    def test(self):
         self.create_files({'in.css': '''h1 { background: url(sub/icon.png) }'''})
         self.create_directories('g')
         self.mkbundle('in.css', filters='cssrewrite', output='g/out.css').build()
         assert self.get('g/out.css') == '''h1 { background: url(../sub/icon.png) }'''
 
-    def test_cssrewrite_change_folder(self):
+    def test_change_folder(self):
         """Test the replace mode of the cssrewrite filter.
         """
         self.create_files({'in.css': '''h1 { background: url(old/sub/icon.png) }'''})
@@ -204,33 +230,6 @@ class TestBuiltinFilters(BuildTestHelper):
             )))
         self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
         assert self.get('out.css') == '''h1 { background: url(/new/sub/icon.png) }'''
-
-    def test_cssmin(self):
-        try:
-            self.mkbundle('foo.css', filters='cssmin', output='out.css').build()
-            assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
-        except EnvironmentError:
-            # cssmin is not installed, that's ok.
-            raise SkipTest()
-
-    def test_clevercss(self):
-        try:
-            import clevercss
-        except ImportError:
-            raise SkipTest()
-        clevercss = get_filter('clevercss')
-        self.mkbundle('foo.clevercss', filters=clevercss, output='out.css').build()
-        assert self.get('out.css') == """a {
-  color: #7f7f7f;
-}"""
-
-    def test_coffeescript(self):
-        coffeescript = get_filter('coffeescript')
-        self.mkbundle('foo.coffee', filters=coffeescript, output='out.js').build()
-        assert self.get('out.js') == """if (typeof elvis != "undefined" && elvis !== null) {
-  alert("I knew it!");
-}
-"""
 
 
 class TestSass(BuildTestHelper):
