@@ -167,6 +167,15 @@ class TestBuiltinFilters(BuildTestHelper):
         'foo.coffee': "alert \"I knew it!\" if elvis?"
     }
 
+    def test_gzip(self):
+        self.create_files({'in': 'a'*100})
+        self.mkbundle('in', filters='gzip', output='out.css').build()
+        # GZip contains a timestamp (which additionally Python only
+        # supports changing beginnging with 2.7), so we can't compare
+        # the full string.
+        assert self.get('out.css')[:3] == '\x1f\x8b\x08'
+        assert len(self.get('out.css')) == 24
+
     def test_cssrewrite(self):
         self.create_files({'in.css': '''h1 { background: url(sub/icon.png) }'''})
         self.create_directories('g')
