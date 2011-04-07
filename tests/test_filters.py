@@ -312,6 +312,14 @@ class TestCompass(BuildTestHelper):
     def test_images_dir(self):
         # [bug] Make sure the compass plugin can reference images. It expects
         # paths to be relative to env.directory.
-        self.create_files({'datauri.scss': 'h1 { background: url(inline-image("test.png")) }', 'test.png': 'foo'})
+        self.create_files({'datauri.scss': 'h1 { background: inline-image("test.png") }', 'test.png': 'foo'})
         self.mkbundle('datauri.scss', filters='compass', output='out.css').build()
-        assert doctest_match("""/* ... */\nh1 {\n  background: url(url('data:image/png;base64,Zm9v'));\n}\n""", self.get('out.css'))
+        assert doctest_match("""/* ... */\nh1 {\n  background: url('data:image/png;base64,Zm9v');\n}\n""", self.get('out.css'))
+
+    def test_images_url(self):
+        # [bug] Make sure the compass plugin outputs the correct urls to images
+        # when using the image-url helper.
+        self.m.url = 'http://assets.host.com/the-images'
+        self.create_files({'imguri.scss': 'h1 { background: image-url("test.png") }'})
+        self.mkbundle('imguri.scss', filters='compass', output='out.css').build()
+        assert doctest_match("""/* ... */\nh1 {\n  background: url('http://assets.host.com/the-images/test.png');\n}\n""", self.get('out.css'))

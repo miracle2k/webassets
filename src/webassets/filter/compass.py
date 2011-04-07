@@ -110,12 +110,50 @@ class CompassFilter(Filter):
             sassdir = path.normpath(path.dirname(source_path))
             source_path = path.normpath(source_path)
 
+            # Compass offers some helpers like image-url(), which need
+            # information about the urls under which media files will be
+            # available. This is hard for two reasons: First, the options in
+            # question aren't supported on the command line, so we need to write
+            # a temporary config file. Secondly, the assume a defined and
+            # separate directories for "images", "stylesheets" etc., something
+            # webassets knows nothing of: we don't support the user defining
+            # something such directories. Because we traditionally had this
+            # filter point all type-specific directories to the root media
+            # directory, we will define the paths to match this. In other
+            # words, in Compass, both inline-image("img/test.png) and
+            # image-url("img/test.png") will find the same file, and assume it
+            # to be {env.directory}/img/test.png.
+            # However, this partly negates the purpose of an utiility like
+            # image-url() in the first place - you not having to hard code
+            # the location of your images. So a possiblity for the future
+            # might be adding options that allow changing this behavior (see
+            # ticket #36).
+            #
+            # Note that is also the --relative-assets option, which we can't
+            # use because it calculates an actual relative path between the
+            # image and the css output file, the latter being in a temporary
+            # directory in our case.
+            config_file = path.join(tempout, '.config.rb')
+            f = open(config_file, 'w')
+            try:
+                f.write("""
+http_path = "%s"
+http_images_dir = ""
+http_stylesheets_dir = ""
+http_fonts_dir = ""
+http_javascripts_dir = ""
+    """ % self.env.url)
+                f.flush()
+            finally:
+                f.close()
+
             command = [self.compass, 'compile']
             for plugin in self.plugins:
                 command.extend(('--require', plugin))
             command.extend(['--sass-dir', sassdir,
                             '--css-dir', tempout,
                             '--image-dir', self.env.directory,
+                            '--config', config_file,
                             '--quiet',
                             '--boring',
                             '--output-style', 'expanded',
