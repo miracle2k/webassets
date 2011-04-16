@@ -53,6 +53,8 @@ setup(
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Software Development :: Libraries',
         ],
+    obsoletes = ['django-assets'],
+    conflicts = ['django-assets'],
     entry_points = """[console_scripts]\nwebassets = webassets.script:run\n""",
     packages = find_packages('src'),
     package_dir = {'': 'src'},
