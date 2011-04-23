@@ -5,7 +5,6 @@ try:
     from sphinx.setup_command import BuildDoc
     cmdclass = {'build_sphinx': BuildDoc}
 except ImportError:
-    print "Sphinx not installed - needed to build documentation"
     cmdclass = {}
 
 
