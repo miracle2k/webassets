@@ -128,6 +128,8 @@ class YAMLLoader(object):
 
             # load bundles
             bundles = self._get_bundles(obj.get('bundles', {}))
+            for name, bundle in bundles.iteritems():
+                env.register(name, bundle)
 
             return env
         finally:
