@@ -4,6 +4,8 @@
 /.settings
 # WingIDE
 /*.wpr
+# JetBrains
+/.idea
 
 # distutils
 /build
