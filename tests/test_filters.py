@@ -1,6 +1,7 @@
 import os
 from nose.tools import assert_raises, with_setup, assert_equals
 from nose import SkipTest
+from distutils.spawn import find_executable
 from webassets import Bundle, Environment
 from webassets.filter import Filter, get_filter, register_filter
 from helpers import BuildTestHelper
@@ -192,6 +193,8 @@ class TestBuiltinFilters(BuildTestHelper):
         assert self.get('out.css') == """a {\n  color: #7f7f7f;\n}"""
 
     def test_coffeescript(self):
+        if not find_executable('coffee'):
+            raise SkipTest()
         self.create_files({'in': "alert \"I knew it!\" if elvis?"})
         self.mkbundle('in', filters='coffeescript', output='out.js').build()
         assert self.get('out.js') == """if (typeof elvis != "undefined" && elvis !== null) {
@@ -247,6 +250,11 @@ class TestSass(BuildTestHelper):
         """,
     }
 
+    def setup(self):
+        if not find_executable('sass'):
+            raise SkipTest()
+        BuildTestHelper.setup(self)
+
     def test_sass(self):
         sass = get_filter('sass', debug_info=False)
         self.mkbundle('foo.sass', filters=sass, output='out.css').build()
@@ -295,6 +303,11 @@ class TestCompass(BuildTestHelper):
             color: #FFFFFF
         """
     }
+
+    def setup(self):
+        if not find_executable('compass'):
+            raise SkipTest()
+        BuildTestHelper.setup(self)
 
     def test_compass(self):
         self.mkbundle('foo.sass', filters='compass', output='out.css').build()
