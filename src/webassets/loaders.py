@@ -9,7 +9,7 @@ from os import path
 import glob, fnmatch
 import importlib
 try:
-    import pyyaml
+    import yaml
 except ImportError:
     pass
 
@@ -34,7 +34,7 @@ class YAMLLoader(object):
 
     def __init__(self, file_or_filename):
         try:
-            import yaml
+            yaml
         except NameError:
             raise EnvironmentError('PyYAML is not installed')
         else:
