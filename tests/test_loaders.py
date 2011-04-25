@@ -2,9 +2,16 @@ from nose.tools import assert_raises
 import textwrap
 from StringIO import StringIO
 from webassets.loaders import YAMLLoader, LoaderError
+from nose import SkipTest
 
 
 class TestYAML(object):
+
+    def setup(self):
+        try:
+            import yaml
+        except ImportError:
+            raise SkipTest()
 
     def loader(self, text, filename=None):
         io = StringIO(textwrap.dedent(text))
