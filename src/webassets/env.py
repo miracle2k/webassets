@@ -217,10 +217,12 @@ class BaseEnvironment(object):
       ``"always"``
           Always rebuild bundles (avoid in production environments).
 
-    For most people, the default value will make a lot of sense. However,
-    if you want to avoid the request which causes a rebuild taking too
-    long, you may want to disable auto-rebuilds and instead rebuild
-    yourself, outside of your webserver process.
+    For most people, the default value will be fine. However, on busy
+    websites you may want to disable automatic rebuilding, since the
+    updater will need to check for changes during every request.
+
+    Your build taking very long is another reason why you may want to
+    do it outside of the request handling process.
     """)
 
     def set_expire(self, expire):
