@@ -169,7 +169,7 @@ class BaseEnvironment(object):
     cache = property(get_cache, set_cache, doc=
     """Controls the behavior of the cache. The cache will speed up rebuilding
     of your bundles, by caching individual filter results. This can be
-    particulary useful while developing, if your bundles would otherwise take
+    particularly useful while developing, if your bundles would otherwise take
     a long time to rebuild.
 
     Possible values are:
