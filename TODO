@@ -49,7 +49,9 @@ ASSETS_EXPIRE="filename" option work without server rewrites.
 
 Support functionality for applying a filter directly within a template,
 i.e. pack inline scripts. On the other end, allow piping an assets
-directly into the template.
+directly into the template. The latter is probably best using
+a MemoryBundle() class that requires an id to be set to replace the
+output filename as a cache key.
 
 Should be provide features for normalizing encodings? This could be
 added as properties to the bundles.
@@ -101,3 +103,9 @@ be usable in the browser otherwise.
 It might be possible to get rid of the ASSETS_JINJA2_EXTENSIONS setting,
 or the requirement that the Jinja2Loader need to know about the extensions
 used, if we can somehow hack Jinja2 to ignore unknown tags.
+
+The input filter step can be parallelised. Is this worth it?
+
+Creating a custom CLI is too complex currently. It should be possible
+to use an existing class which does all the parsing, only providing
+an environment instance.
