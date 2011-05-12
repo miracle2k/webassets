@@ -10,7 +10,7 @@ clevercss
 # Necessary for autodoc to build documentation regarding django-assets.
 Django
 
-# scss and compass ruby gems are necessary for tests to pass
+# scss and compass ruby gems are necessary for some tests to run
 # install them as follows:
 
 # sudo gem install haml
