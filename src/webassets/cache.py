@@ -7,36 +7,8 @@ import os
 from os import path
 from filter import Filter
 
-import sys
-if sys.version_info >= (2, 5):
-    import hashlib
-    md5_constructor = hashlib.md5
-else:
-    import md5
-    md5_constructor = md5.new
 
-
-__all__ = ('FilesystemCache', 'get_cache', 'make_key',)
-
-
-def make_key(*stuff):
-    """Create a cache key by hashing the given data.
-
-    This knows about certain data types that are relevant for us,
-    for example filters.
-    """
-    # MD5 is faster than sha, and we don't care so much about collisions
-    md5 = md5_constructor()
-    def feed(data):
-        for d in data:
-            if isinstance(d, list):
-                feed(d)
-            elif isinstance(d, Filter):
-                md5.update("%d" % d.id())
-            else:
-                md5.update(str(d))
-    feed(stuff)
-    return md5.hexdigest()
+__all__ = ('FilesystemCache', 'get_cache',)
 
 
 class BaseCache(object):
@@ -59,7 +31,7 @@ class FilesystemCache(BaseCache):
         self.directory = directory
 
     def get(self, key):
-        filename = path.join(self.directory, key)
+        filename = path.join(self.directory, hash(key))
         if not path.exists(filename):
             return False
         f = open(filename, 'rb')
@@ -69,7 +41,7 @@ class FilesystemCache(BaseCache):
             f.close()
 
     def set(self, key, data):
-        filename = path.join(self.directory, key)
+        filename = path.join(self.directory, hash(key))
         f = open(filename, 'wb')
         try:
             f.write(data)

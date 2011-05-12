@@ -7,7 +7,16 @@ try:
     import cStringIO as StringIO
 except:
     import StringIO
-from cache import get_cache, make_key
+from cache import get_cache
+
+
+import sys
+if sys.version_info >= (2, 5):
+    import hashlib
+    md5_constructor = hashlib.md5
+else:
+    import md5
+    md5_constructor = md5.new
 
 
 __all__ = ('FileHunk', 'MemoryHunk', 'make_url', 'merge', 'apply_filters')
@@ -21,7 +30,13 @@ class BaseHunk(object):
         raise NotImplementedError()
 
     def key(self):
-        return make_key(self.data())
+        """Return a key we can use to cache this hunk.
+        """
+        # MD5 is faster than sha, and we don't care so much about collisions.
+        # We care enough however not to use hash().
+        md5 = md5_constructor()
+        md5.update(self.data())
+        return md5.hexdigest()
 
     def data(self):
         raise NotImplementedError()
@@ -72,9 +87,6 @@ class MemoryHunk(BaseHunk):
         self._data = data
         self.files = files
 
-    def key(self):
-        return hash(self._data)
-
     def mtime(self):
         pass
 
@@ -116,7 +128,7 @@ def apply_filters(hunk, filters, type, cache=None, **kwargs):
         return hunk
 
     if cache:
-        key = make_key(hunk.key(), filters, type)
+        key = (hunk.key(), filters, type)
         content = cache.get(key)
         if not content in (False, None):
             return MemoryHunk(content)
