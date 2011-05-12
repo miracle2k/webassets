@@ -121,7 +121,7 @@ class Filter(object):
         return False
 
     def id(self):
-        """Unique identifer for the filter instance.
+        """Unique identifier for the filter instance.
 
         Among other things, this is used as part of the caching key.
         It should therefore not depend on instance data, but yield

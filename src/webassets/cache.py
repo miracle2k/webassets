@@ -20,7 +20,7 @@ __all__ = ('FilesystemCache', 'get_cache', 'make_key',)
 
 
 def make_key(*stuff):
-    """Create a cache key by hasing the given data.
+    """Create a cache key by hashing the given data.
 
     This knows about certain data types that are relevant for us,
     for example filters.
