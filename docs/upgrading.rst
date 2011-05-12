@@ -7,6 +7,20 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
+In 0.6
+~~~~~~
+
+- The ``Environment.updater`` class no longer support custom callables.
+  Instead, you need to subclass ``BaseUpdater``. Nobody is likely to use
+  this feature though.
+
+- The cache is no longer debug-mode only. If you enable
+  ``Environment.cache`` (``ASSETS_CACHE`` in ``django-assets``),
+  the cache will be enabled regardless of the
+  ``Environment.debug``/``ASSETS_DEBUG`` option. If you want the old
+  behavior, you can easily configure it manually.
+
+
 In 0.4
 ~~~~~~
 

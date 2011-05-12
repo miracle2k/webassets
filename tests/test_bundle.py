@@ -7,6 +7,7 @@ from nose import SkipTest
 from webassets import Bundle
 from webassets.bundle import BuildError
 from webassets.filter import Filter
+from webassets.updater import TimestampUpdater, BaseUpdater
 
 from helpers import BuildTestHelper
 
@@ -74,7 +75,7 @@ class TestFilterAssign(BuildTestHelper):
 
 
 class TestBuild(BuildTestHelper):
-    """Test building various bundles structures.
+    """Test building various bundle structures.
     """
 
     def test_simple(self):
@@ -218,9 +219,9 @@ class TestUpdateAndCreate(BuildTestHelper):
     def setup(self):
         BuildTestHelper.setup(self)
 
-        class CustomUpdater(object):
+        class CustomUpdater(BaseUpdater):
             allow = True
-            def __call__(self, *a, **kw):
+            def needs_rebuild(self, *a, **kw):
                 return self.allow
         self.m.updater = CustomUpdater()
 
@@ -481,17 +482,11 @@ class TestUrlContents(BuildTestHelper):
         assert_raises(urllib2.URLError,
                       self.mkbundle('http://bar', output='out').build)
 
-    def test_auto_rebuild(self):
-        # Simulate a build that will cause a call into a mock updater
-        # to check whether an auto rebuild is required.
-        self.create_files({'in': 'foo', 'out': 'foo'})
-        class CustomUpdater(object):
-            last_call_sources = []
-            def __call__(self, output, sources, **kw):
-                self.last_call_sources = sources
-                return True
-        self.m.updater = CustomUpdater()
-        self.mkbundle('http://foo', 'in', output='out').build()
-        # The updater will only be called with a single source file,
-        # because the url is not actually checked.
-        assert len(self.m.updater.last_call_sources) == 1
+    def test_autorebuild_updaters(self):
+        # Make sure the timestamp updater can deal with bundles that
+        # contain urls. We need to make sure the output file already
+        # exists to test this or the updater may simply decide not to
+        # run at all.
+        self.create_files({'out': 'foo'})
+        bundle = self.mkbundle('http://foo', output='out')
+        TimestampUpdater().needs_rebuild(bundle, bundle.env)

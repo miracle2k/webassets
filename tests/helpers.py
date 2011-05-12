@@ -41,7 +41,7 @@ class BuildTestHelper:
         the media directory of the current test run.
         """
         for name, data in files.items():
-            f = open(path.join(self.m.directory, name), 'w')
+            f = open(self.path(name), 'w')
             f.write(data)
             f.close()
 
@@ -50,15 +50,19 @@ class BuildTestHelper:
         of the current test's environment.
         """
         for dir in dirs:
-            os.makedirs(path.join(self.m.directory, dir))
+            os.makedirs(self.path(dir))
 
     def exists(self, name):
         """Ensure the given file exists within the current test run's
         media directory.
         """
-        return path.exists(path.join(self.m.directory, name))
+        return path.exists(self.path(name))
 
     def get(self, name):
         """Return the given file's contents.
         """
-        return open(path.join(self.m.directory, name)).read()
+        return open(self.path(name)).read()
+
+    def path(self, name):
+        """Return the given file's full path."""
+        return path.join(self.m.directory, name)

@@ -2,6 +2,8 @@ from os import path
 import urlparse
 from itertools import chain
 from bundle import Bundle
+from cache import get_cache
+from updater import get_updater
 
 
 __all__ = ('Environment', 'RegisterError')
@@ -165,7 +167,10 @@ class BaseEnvironment(object):
     def set_cache(self, enable):
         self.config['cache'] = enable
     def get_cache(self):
-        return self.config['cache']
+        cache = get_cache(self.config['cache'], self)
+        if cache != self.config['cache']:
+            self.config['cache'] = cache
+        return cache
     cache = property(get_cache, set_cache, doc=
     """Controls the behavior of the cache. The cache will speed up rebuilding
     of your bundles, by caching individual filter results. This can be
@@ -190,7 +195,10 @@ class BaseEnvironment(object):
     def set_updater(self, updater):
         self.config['updater'] = updater
     def get_updater(self):
-        return self.config['updater']
+        updater = get_updater(self.config['updater'])
+        if updater != self.config['updater']:
+            self.config['updater'] = updater
+        return updater
     updater = property(get_updater, set_updater, doc=
     """Controls when and if bundles should be automatically rebuilt.
     Possible values are:
@@ -205,10 +213,6 @@ class BaseEnvironment(object):
       ``"timestamp"`` (default)
           Rebuild bundles if the source file timestamp exceeds the existing
           output file's timestamp.
-
-      ``"interval"``
-          Always rebuild after an interval of X seconds has passed.
-          Specify as a tuple: ``("internal", 3600)``.
 
       ``"always"``
           Always rebuild bundles (avoid in production environments).

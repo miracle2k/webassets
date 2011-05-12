@@ -3,7 +3,6 @@ import urlparse
 import glob
 from updater import get_updater
 from filter import get_filter
-from cache import get_cache
 from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
                    make_url, merge_filters)
 
@@ -141,6 +140,17 @@ class Bundle(object):
                 files.append(env.abspath(c))
         return files
 
+    def __hash__(self):
+        """This is used to determine when a bundle definition has changed so that a rebuild
+        is required.
+
+        The hash therefore depends only on data that actually affects the final build result.
+        """
+        return hash((tuple(self.contents),
+                     self.output,
+                     tuple(self.filters),
+                     self.debug))
+
     @property
     def is_container(self):
         """Return true if this is a container bundle, that is, a bundle
@@ -191,7 +201,6 @@ class Bundle(object):
         # really the right thing to do, or does it just confuse things
         # due to there now being different kinds of behavior...
         combined_filters = merge_filters(self.filters, parent_filters)
-        cache = get_cache(env)
         hunks = []
         for c in resolved_contents:
             if isinstance(c, Bundle):
@@ -207,7 +216,7 @@ class Bundle(object):
                     hunks.append(hunk)
                 else:
                     hunks.append(apply_filters(
-                        hunk, combined_filters, 'input', cache,
+                        hunk, combined_filters, 'input', env.cache,
                         output_path=output_path))
 
         # Return all source hunks as one, with output filters applied
@@ -215,7 +224,7 @@ class Bundle(object):
         if no_filters:
             return final
         else:
-            return apply_filters(final, self.filters, 'output', cache)
+            return apply_filters(final, self.filters, 'output', env.cache)
 
     def build(self, env=None, force=False, no_filters=False):
         """Build this bundle, meaning create the file given by the
@@ -246,9 +255,7 @@ class Bundle(object):
             else:
                 update_needed = True
         else:
-            source_paths = [p for p in self.get_files(env)]
-            update_needed = get_updater(env.updater)(
-                env.abspath(self.output), source_paths)
+            update_needed = env.updater.needs_rebuild(self, env)
 
         if not update_needed:
             # We can simply return the existing output file
@@ -256,6 +263,13 @@ class Bundle(object):
 
         hunk = self._build(env, self.output, force, no_filters)
         hunk.save(env.abspath(self.output))
+
+        # The updater may need to know this bundle exists and how it
+        # has been last built, in order to detect changes in the
+        # bundle definition, like new source files.
+        if env.updater:
+            env.updater.build_done(self, env)
+
         return hunk
 
     def iterbuild(self, env=None):

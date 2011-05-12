@@ -7,7 +7,6 @@ try:
     import cStringIO as StringIO
 except:
     import StringIO
-from cache import get_cache
 
 
 import sys
@@ -128,7 +127,7 @@ def apply_filters(hunk, filters, type, cache=None, **kwargs):
         return hunk
 
     if cache:
-        key = (hunk.key(), filters, type)
+        key = ("hunk", hunk.key(), tuple(filters), type)
         content = cache.get(key)
         if not content in (False, None):
             return MemoryHunk(content)

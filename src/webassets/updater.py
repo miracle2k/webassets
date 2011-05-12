@@ -1,44 +1,143 @@
-"""An "updater" determines when assets should automatically be recreated.
+"""The auto-rebuild system is an optional part of webassets that can be used during development, and can also
+be quite convenient on small sites that don't have the performance requirements where a rebuild-check on every
+request is fatal.
+
+This module contains classes that help determine whether a rebuild is required for a bundle. This is more
+complicated than simply comparing the timestamps of the source and output files.
+
+First, certain filters, in particular CSS compilers like SASS, allow bundle source files to reference
+additional files which the user may not have listed in the bundle definition. The bundles support
+an additional ``depends`` argument that can list files that should be watched for modification.
+
+Second, if the bundle definition itself changes, i.e., source files being added or removed, or the list of
+applied filters modified, the bundle needs to be rebuilt also. Since there is no single fixed place where
+bundles are defined, simply watching the timestamp of that bundle definition file is not good enough.
+
+To solve the latter problem, we employ an environment-specific in-memory cache of bundle definition.
+
 """
 
 import os
 
 
-def get_updater(name):
-    """Return a callable(output, sources) that returns True if the file
-    ``output``, based on the files in the list ``sources`` needs to be
-    recreated.
+__all__ = ('get_updater', 'TimestampUpdater', 'AlwaysUpdater', 'NeverUpdater',)
+
+
+class BaseUpdater(object):
+    """Base updater class.
+
+    Child classes that define an ``id`` attribute are accessible via their
+    string id in the configuration.
     """
-    if callable(name):
-        return name
 
-    try:
-        return {
-            None: update_never,
-            False: update_never,
-            "never": update_never,
-            "timestamp": update_by_timestamp,
-            "hash": update_by_hash,
-            "interval": update_by_interval,
-            "always": update_always
-            }[name]
-    except KeyError:
-        raise ValueError('Updater "%s" is not valid.' % name)
+    class __metaclass__(type):
+        UPDATERS = {}
 
-def update_never(*args):
-    return False
+        def __new__(cls, name, bases, attrs):
+            new_klass = type.__new__(cls, name, bases, attrs)
+            if hasattr(new_klass, 'id'):
+                cls.UPDATERS[new_klass.id] = new_klass
+            return new_klass
 
-def update_always(*args):
-    return True
+        def get_updater(cls, thing):
+            if hasattr(thing, 'needs_rebuild'):
+                if isinstance(thing, type):
+                    return thing()
+                return thing
+            if not thing:
+                return None
+            try:
+                return cls.UPDATERS[thing]()
+            except KeyError:
+                raise ValueError('Updater "%s" is not valid.' % thing)
 
-def update_by_timestamp(output, sources):
-    o_modified = os.stat(output).st_mtime
-    s_modified = max([os.stat(s).st_mtime for s in sources])
-    # TODO: What about using != - could that potentially be more solid?
-    return s_modified > o_modified
+    def __eq__(self, other):
+        """Return equality with the config values
+        that instantiate this instance.
+        """
+        return (hasattr(self, 'id') and self.id == other) or \
+               id(self) == id(other)
 
-def update_by_hash(output, sources):
-    raise NotImplementedError()
+    def needs_rebuild(self, bundle, env):
+        """Returns ``True`` if the given bundle needs to be rebuilt,
+        ``False`` otherwise.
+        """
+        raise NotImplementedError()
 
-def update_by_interval(output, sources):
-    raise NotImplementedError()
+    def build_done(self, bundle, env):
+        """This will be called once a bundle has been successfully built.
+        """
+
+get_updater = BaseUpdater.get_updater
+
+
+class BundleDefUpdater(BaseUpdater):
+    """Supports the bundle definition cache update check that child
+    classes are usually going to want to use also.
+    """
+
+    def check_bundle_definition(self, bundle, env):
+        if not env.cache:
+            # If no global cache is configured, we could always
+            # fall back to a memory-cache specific for the rebuild
+            # process (store as env._update_cache); however,
+            # whenever a bundle definition changes, it's likely that
+            # a process restart will be required also, so in most cases
+            # this would make no sense.
+            return False
+        cache_key = ('bdef', bundle.output)
+        current_hash = "%s" % hash(bundle)
+        cached_hash = env.cache.get(cache_key)
+        # This may seem counter-intuitive, but if no cache entry is found
+        # then we actually return "no update needed". This is because
+        # otherwise if no cache / a dummy cache is used, then we would be
+        # rebuilding every single time.
+        if not cached_hash is None:
+            return cached_hash != current_hash
+        return False
+
+    def needs_rebuild(self, bundle, env):
+        return self.check_bundle_definition(bundle, env)
+
+    def build_done(self, bundle, env):
+        if not env.cache:
+            return False
+        cache_key = ('bdef', bundle.output)
+        cache_value = "%s" % hash(bundle)
+        env.cache.set(cache_key, cache_value)
+
+
+class TimestampUpdater(BundleDefUpdater):
+
+    id = 'timestamp'
+
+    def check_timestamps(self, bundle, env):
+        sources = bundle.get_files(env)
+        if not sources:
+            return
+        o_modified = os.stat(env.abspath(bundle.output)).st_mtime
+        s_modified = max([os.stat(s).st_mtime for s in sources])
+        return s_modified > o_modified
+
+    def needs_rebuild(self, bundle, env):
+        return \
+            super(TimestampUpdater, self).needs_rebuild(bundle, env) or \
+            self.check_timestamps(bundle, env)
+
+
+class AlwaysUpdater(BaseUpdater):
+
+    id = 'always'
+
+    def needs_rebuild(self, bundle, env):
+        return True
+
+
+class NeverUpdater(BaseUpdater):
+    """#TODO: Get rid of this once #27 lands and we have an auto_rebuild option.
+    """
+
+    id = 'never'
+
+    def needs_rebuild(self, bundle, env):
+        return False

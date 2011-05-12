@@ -5,7 +5,8 @@ from webassets.env import RegisterError
 from webassets import Bundle
 
 
-class TestEnv:
+class TestEnvApi:
+    """General Environment functionality."""
 
     def setup(self):
         self.m = Environment(None, None)
@@ -83,8 +84,8 @@ class TestEnvConfig:
         environment, they override any defaults the environment might
         want to set.
         """
-        env = Environment(None, None, updater='foo')
-        assert env.updater == 'foo'
+        env = Environment(None, None, debug='foo')
+        assert env.debug == 'foo'
 
     def test_basic(self):
         assert self.m.config.get('foo') == None
@@ -98,3 +99,68 @@ class TestEnvConfig:
         assert self.m.config.get('FOO') == 'bar'
         assert self.m.config.get('foo') == 'bar'
         assert self.m.config.get('fOO') == 'bar'
+
+
+class TestSpecialProperties:
+    """Certain environment options are special in that one may assign
+    values as a string, and would receive object instances when
+    accessing the property.
+    """
+
+    def setup(self):
+        self.m = Environment('.', None)  # we won't create any files
+
+    def test_updater(self):
+        from webassets.updater import BaseUpdater
+
+        # Standard string values
+        self.m.updater = 'always'
+        assert isinstance(self.m.config['updater'], basestring)
+        assert isinstance(self.m.updater, BaseUpdater)
+        assert self.m.updater == 'always'   # __eq__
+        assert self.m.updater != 'timestamp'
+
+        # False
+        self.m.config['updater'] = False
+        assert self.m.updater is None
+
+        # Instance assign
+        self.m.updater = instance = BaseUpdater()
+        assert self.m.updater == instance
+
+        # Class assign
+        self.m.updater = BaseUpdater
+        assert isinstance(self.m.updater, BaseUpdater)
+
+        # Invalid value
+        self.m.updater = 'invalid-value'
+        assert_raises(ValueError, getattr, self.m, 'updater')
+
+    def test_cache(self):
+        from webassets.cache import BaseCache, FilesystemCache
+
+        # True
+        self.m.cache = True
+        assert isinstance(self.m.config['cache'], type(True))
+        assert isinstance(self.m.cache, BaseCache)
+        assert self.m.cache == True   # __eq__
+        assert self.m.cache != '/foo/path'
+
+        # False value
+        self.m.cache = False
+        assert self.m.cache is None
+
+        # Path
+        self.m.cache = '/cache/dir'
+        assert isinstance(self.m.cache, FilesystemCache)
+        assert self.m.cache.directory == '/cache/dir'
+        assert self.m.cache == True   # __eq__
+        assert self.m.cache == '/cache/dir'  # __eq__
+
+        # Instance assign
+        self.m.cache = instance = BaseCache()
+        assert self.m.cache == instance
+
+        # Class assign
+        self.m.cache = instance = BaseCache
+        assert isinstance(self.m.cache, BaseCache)

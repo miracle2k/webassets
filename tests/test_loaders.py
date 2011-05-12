@@ -60,14 +60,14 @@ class TestYAML(object):
         environment = self.loader("""
         url: /foo
         directory: something
-        updater: 'bla'
+        updater: 'always'
 
         bundles:
             test:
                 output: foo
         """).load_environment()
         assert environment.url == '/foo'
-        assert environment.updater == 'bla'
+        assert environment.updater == 'always'
 
         # Because the loader isn't aware of the file location, the
         # directory is read as-is, relative to cwd rather than the
