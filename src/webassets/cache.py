@@ -19,7 +19,7 @@ from os import path
 from filter import Filter
 
 
-__all__ = ('FilesystemCache', 'get_cache',)
+__all__ = ('FilesystemCache', 'MemoryCache', 'get_cache',)
 
 
 class BaseCache(object):
@@ -41,6 +41,44 @@ class BaseCache(object):
 
     def set(self, key):
         raise NotImplementedError()
+
+
+class MemoryCache(BaseCache):
+    """Caches stuff in the process memory.
+
+    WARNING: Do NOT use this in a production environment, where you
+    are likely going to have multiple processes serving the same app!
+    """
+
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.keys = []
+        self.cache = {}
+
+    def __eq__(self, other):
+        """Return equality with the config values
+        that instantiate this instance.
+        """
+        return False == other or \
+               None == other or \
+               id(self) == id(other)
+
+    def get(self, key):
+        return self.cache.get(key, None)
+
+    def set(self, key, value):
+        self.cache[key] = value
+        try:
+            self.keys.remove(key)
+        except ValueError:
+            pass
+        self.keys.append(key)
+
+        # limit cache to the given capacity
+        to_delete = self.keys[0:max(0, len(self.keys)-self.capacity)]
+        self.keys = self.keys[len(to_delete):]
+        for item in to_delete:
+            del self.cache[key]
 
 
 class MemoryCache(BaseCache):
