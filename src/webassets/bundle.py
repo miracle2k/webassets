@@ -1,7 +1,6 @@
 from os import path
 import urlparse
 import glob
-from updater import get_updater
 from filter import get_filter
 from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
                    make_url, merge_filters)
