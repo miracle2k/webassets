@@ -89,7 +89,7 @@ class Bundle(object):
                     # remain in the content set, and only raise an error
                     # at a later point in time.
                     # TODO: This is possible a good place to check for
-                    # a file's existance though; currently, when in debug
+                    # a file's existence though; currently, when in debug
                     # mode, no error would be raised at all, and simply a
                     # broken url sent to the browser.
                     if glob.has_magic(item):
