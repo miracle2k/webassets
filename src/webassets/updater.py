@@ -1,20 +1,26 @@
-"""The auto-rebuild system is an optional part of webassets that can be used during development, and can also
-be quite convenient on small sites that don't have the performance requirements where a rebuild-check on every
-request is fatal.
+"""The auto-rebuild system is an optional part of webassets that can
+be used during development, and can also be quite convenient on small
+sites that don't have the performance requirements where a rebuild-check
+on every request is fatal.
 
-This module contains classes that help determine whether a rebuild is required for a bundle. This is more
-complicated than simply comparing the timestamps of the source and output files.
+This module contains classes that help determine whether a rebuild is
+required for a bundle. This is more complicated than simply comparing
+the timestamps of the source and output files.
 
-First, certain filters, in particular CSS compilers like SASS, allow bundle source files to reference
-additional files which the user may not have listed in the bundle definition. The bundles support
-an additional ``depends`` argument that can list files that should be watched for modification.
+First, certain filters, in particular CSS compilers like SASS,
+allow bundle source files to reference additional files which the user
+may not have listed in the bundle definition. The bundles support an
+additional ``depends`` argument that can list files that should be
+watched for modification.
 
-Second, if the bundle definition itself changes, i.e., source files being added or removed, or the list of
-applied filters modified, the bundle needs to be rebuilt also. Since there is no single fixed place where
-bundles are defined, simply watching the timestamp of that bundle definition file is not good enough.
+Second, if the bundle definition itself changes, i.e., source files
+being added or removed, or the list of applied filters modified, the
+bundle needs to be rebuilt also. Since there is no single fixed place
+where bundles are defined, simply watching the timestamp of that
+bundle definition file is not good enough.
 
-To solve the latter problem, we employ an environment-specific in-memory cache of bundle definition.
-
+To solve the latter problem, we employ an environment-specific
+in-memory cache of bundle definition.
 """
 
 import os
