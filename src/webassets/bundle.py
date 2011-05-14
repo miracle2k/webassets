@@ -26,6 +26,21 @@ class Bundle(object):
     media files, which filters to apply and where to store them.
 
     Bundles can be nested arbitrarily.
+
+    A note on the connection between a bundle and an "environment"
+    instance: The bundle requires a environment that it belongs to.
+    Without an environment, it lacks information about how to behave,
+    and cannot know where relative paths are actually based.
+    However, I don't want to make the Bundle.__init__ syntax more
+    complicated than it already is by requiring an Environment object
+    to be passed. This would be a particular nuisance when nested
+    bundles are used. Further, nested bundles are never explicitly
+    connected to an Environment, and what's more, the same child
+    bundle can be used in multiple parent bundles.
+
+    This is the reason why basically every method of the Bundle
+    class takes an ``env`` parameter - so a parent bundle can provide
+    the environment for child bundles that do not know it.
     """
 
     def __init__(self, *contents, **options):
