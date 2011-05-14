@@ -244,20 +244,21 @@ class TestUpdateAndCreate(BuildTestHelper):
             allow = True
             def needs_rebuild(self, *a, **kw):
                 return self.allow
-        self.m.updater = CustomUpdater()
+        self.m.versioner.updater = self.updater = CustomUpdater()
 
     def test_autocreate(self):
         """If an output file doesn't yet exist, it'll be created (as long
         as automatic building is enabled, anyway).
         """
+        self.m.auto_build = True
         self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'A'
 
     def test_no_auto_create(self):
-        """If no updater is given, then the initial build if a previously
-        non-existent output file will not happen either.
+        """If auto_build is disabled, then the initial build of a
+        previously non-existent output file will not happen either.
         """
-        self.m.updater = False
+        self.m.auto_build = False
         assert_raises(BuildError, self.mkbundle('in1', output='out').build)
         # However, it works fine if force is used
         self.mkbundle('in1', output='out').build(force=True)
@@ -267,14 +268,14 @@ class TestUpdateAndCreate(BuildTestHelper):
         was only given via an argument to build(), rather than at Bundle
         __init__ time.
         """
-        self.m.updater = False
+        self.m.auto_build = False
         assert_raises(BuildError, Bundle('in1', output='out').build, env=self.m)
 
     def test_updater_says_no(self):
         """If the updater says 'no change', then we never do a build.
         """
         self.create_files({'out': 'old_value'})
-        self.m.updater.allow = False
+        self.updater.allow = False
         self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'old_value'
 
@@ -286,7 +287,7 @@ class TestUpdateAndCreate(BuildTestHelper):
         """Test the updater saying we need to update.
         """
         self.create_files({'out': 'old_value'})
-        self.m.updater.allow = True
+        self.updater.allow = True
         self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'A'
 
@@ -299,7 +300,7 @@ class TestUpdateAndCreate(BuildTestHelper):
         file to be included, one of the existing files first needs
         to be modified to actually add the include command.
         """
-        self.m.updater = 'timestamp'
+        updater = self.m.versioner.updater = TimestampUpdater()
         self.m.cache = False
         self.create_files({'first.sass': 'one'})
         b = self.mkbundle('in1', output='out', depends='*.sass')
@@ -307,26 +308,26 @@ class TestUpdateAndCreate(BuildTestHelper):
 
         now = self.setmtime('in1', 'first.sass', 'out')
         # At this point, no rebuild is required
-        assert self.m.updater.needs_rebuild(b, self.m) == False
+        assert updater.needs_rebuild(b, self.m) == False
 
         # Create a new file that matches the dependency;
         # make sure it is newer.
         self.create_files({'second.sass': 'two'})
         self.setmtime('second.sass', mtime=now+100)
         # Still no rebuild required though
-        assert self.m.updater.needs_rebuild(b, self.m) == False
+        assert updater.needs_rebuild(b, self.m) == False
 
         # Touch one of the existing files
         self.setmtime('first.sass', mtime=now+200)
         # Do the rebuild that is now required
-        assert self.m.updater.needs_rebuild(b, self.m) == True
+        assert updater.needs_rebuild(b, self.m) == True
         b.build()
         self.setmtime('out', mtime=now+200)
 
         # Now, touch the new dependency we created - a
         # rebuild is now required.
         self.setmtime('second.sass', mtime=now+300)
-        assert self.m.updater.needs_rebuild(b, self.m) == True
+        assert updater.needs_rebuild(b, self.m) == True
 
 
 class BaseUrlsTester(BuildTestHelper):

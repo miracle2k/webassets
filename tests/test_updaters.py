@@ -1,4 +1,4 @@
-import os, time
+import os
 from webassets import Environment, Bundle
 from webassets.updater import TimestampUpdater, BundleDefUpdater
 from webassets.cache import MemoryCache
@@ -66,26 +66,24 @@ class TestTimestampUpdater(BuildTestHelper):
         # Test the timestamp updater with cache disabled, so that the
         # BundleDefUpdater() base class won't interfere.
         self.m.cache = False
-        self.m.updater = "timestamp"
+        self.m.versioner.updater = self.updater = TimestampUpdater()
 
     def test_default(self):
         bundle = self.mkbundle('in', output='out')
-        now = time.time()
 
         # Set both times to the same timestamp
-        os.utime(self.path('in'), (now, now))
-        os.utime(self.path('out'), (now, now))
-        assert self.m.updater.needs_rebuild(bundle, self.m) == False
+        now = self.setmtime('in', 'out')
+        assert self.updater.needs_rebuild(bundle, self.m) == False
 
         # Make in file older than out file
-        os.utime(self.path('in'), (now, now-100))
-        os.utime(self.path('out'), (now, now))
-        assert self.m.updater.needs_rebuild(bundle, self.m) == False
+        self.setmtime('in', mtime=now-100)
+        self.setmtime('out', mtime=now)
+        assert self.updater.needs_rebuild(bundle, self.m) == False
 
         # Make in file newer than out file
-        os.utime(self.path('in'), (now, now))
-        os.utime(self.path('out'), (now, now-100))
-        assert self.m.updater.needs_rebuild(bundle, self.m) == True
+        self.setmtime('in', mtime=now)
+        self.setmtime('out', mtime=now-100)
+        assert self.updater.needs_rebuild(bundle, self.m) == True
 
     def test_bundle_definition_change(self):
         """Test that the timestamp updater uses the base class
@@ -94,22 +92,21 @@ class TestTimestampUpdater(BuildTestHelper):
         """
         self.m.cache = MemoryCache(capacity=100)
         bundle = self.mkbundle('in', output='out')
-        now = time.time()
 
         # Fake an initial build
-        self.m.updater.build_done(bundle, self.m)
+        self.updater.build_done(bundle, self.m)
 
         # Make in file older than out file
-        os.utime(self.path('in'), (now, now-100))
-        os.utime(self.path('out'), (now, now))
-        assert self.m.updater.needs_rebuild(bundle, self.m) == False
+        now = self.setmtime('out')
+        self.setmtime('in', mtime=now-100)
+        assert self.updater.needs_rebuild(bundle, self.m) == False
 
         # Change the bundle definition
         bundle.filters = 'jsmin'
 
         # Timestamp updater will says we need to rebuild.
-        assert self.m.updater.needs_rebuild(bundle, self.m) == True
-        self.m.updater.build_done(bundle, self.m)
+        assert self.updater.needs_rebuild(bundle, self.m) == True
+        self.updater.build_done(bundle, self.m)
 
     def test_depends(self):
         """Test the timestamp updater properly considers additional
@@ -122,22 +119,18 @@ class TestTimestampUpdater(BuildTestHelper):
         internal_attr = '_resolved_depends'
         assert not getattr(bundle, internal_attr, None)
 
-        now = time.time()
-
         # Make all files older than the output
-        os.utime(self.path('in'), (now, now-100))
-        os.utime(self.path('d.sass'), (now, now-100))
-        os.utime(self.path('d.other'), (now, now-100))
-        os.utime(self.path('out'), (now, now))
-        assert self.m.updater.needs_rebuild(bundle, self.m) == False
+        now = self.setmtime('out')
+        self.setmtime('in', 'd.sass', 'd.other', mtime=now-100)
+        assert self.updater.needs_rebuild(bundle, self.m) == False
 
         # Touch the file that is supposed to be unrelated
-        os.utime(self.path('d.other'), (now, now+100))
-        assert self.m.updater.needs_rebuild(bundle, self.m) == False
+        now = self.setmtime('d.other', mtime=now+100)
+        assert self.updater.needs_rebuild(bundle, self.m) == False
 
         # Touch the dependency file - now a rebuild is required
-        os.utime(self.path('d.sass'), (now, now+100))
-        assert self.m.updater.needs_rebuild(bundle, self.m) == True
+        now = self.setmtime('d.sass', mtime=now+100)
+        assert self.updater.needs_rebuild(bundle, self.m) == True
 
         # Finally, counter-check that our previous check for the
         # internal attribute was valid.

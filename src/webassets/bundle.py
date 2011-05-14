@@ -296,17 +296,18 @@ class Bundle(object):
 
         # Determine if we really need to build, or if the output file
         # already exists and nothing has changed.
+        update_needed = False
         if force:
             update_needed = True
         elif not path.exists(env.abspath(self.output)):
-            if not env.updater:
+            if not env.auto_build:
                 raise BuildError(('\'%s\' needs to be created, but '
-                                  'automatic building is disabled  ('
-                                  'configure an updater)') % self)
+                                  'automatic building is disabled (set '
+                                  'the "auto_build" option') % self)
             else:
                 update_needed = True
-        else:
-            update_needed = env.updater.needs_rebuild(self, env)
+        elif env.auto_build:
+            update_needed = env.versioner.updater.needs_rebuild(self, env)
 
         if not update_needed:
             # We can simply return the existing output file
@@ -318,8 +319,8 @@ class Bundle(object):
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
         # bundle definition, like new source files.
-        if env.updater:
-            env.updater.build_done(self, env)
+        if env.versioner and env.versioner.updater:
+            env.versioner.updater.build_done(self, env)
 
         return hunk
 

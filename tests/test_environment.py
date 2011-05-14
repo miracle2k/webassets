@@ -110,31 +110,31 @@ class TestSpecialProperties:
     def setup(self):
         self.m = Environment('.', None)  # we won't create any files
 
-    def test_updater(self):
-        from webassets.updater import BaseUpdater
+    def test_versioner(self):
+        from webassets.version import BaseVersion
 
         # Standard string values
-        self.m.updater = 'always'
-        assert isinstance(self.m.config['updater'], basestring)
-        assert isinstance(self.m.updater, BaseUpdater)
-        assert self.m.updater == 'always'   # __eq__
-        assert self.m.updater != 'timestamp'
+        self.m.versioner = 'timestamp'
+        assert isinstance(self.m.config['versioner'], basestring)
+        assert isinstance(self.m.versioner, BaseVersion)
+        assert self.m.versioner == 'timestamp'   # __eq__
+        assert self.m.versioner != 'hash'
 
         # False
-        self.m.config['updater'] = False
-        assert self.m.updater is None
+        self.m.config['versioner'] = False
+        assert self.m.versioner is None
 
         # Instance assign
-        self.m.updater = instance = BaseUpdater()
-        assert self.m.updater == instance
+        self.m.versioner = instance = BaseVersion()
+        assert self.m.versioner == instance
 
         # Class assign
-        self.m.updater = BaseUpdater
-        assert isinstance(self.m.updater, BaseUpdater)
+        self.m.updater = BaseVersion
+        assert isinstance(self.m.versioner, BaseVersion)
 
         # Invalid value
-        self.m.updater = 'invalid-value'
-        assert_raises(ValueError, getattr, self.m, 'updater')
+        self.m.versioner = 'invalid-value'
+        assert_raises(ValueError, getattr, self.m, 'versioner')
 
     def test_cache(self):
         from webassets.cache import BaseCache, FilesystemCache

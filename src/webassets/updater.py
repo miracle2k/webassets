@@ -26,7 +26,7 @@ in-memory cache of bundle definition.
 import os
 
 
-__all__ = ('get_updater', 'TimestampUpdater', 'AlwaysUpdater', 'NeverUpdater',)
+__all__ = ('TimestampUpdater', 'AlwaysUpdater',)
 
 
 class BaseUpdater(object):
@@ -35,34 +35,6 @@ class BaseUpdater(object):
     Child classes that define an ``id`` attribute are accessible via their
     string id in the configuration.
     """
-
-    class __metaclass__(type):
-        UPDATERS = {}
-
-        def __new__(cls, name, bases, attrs):
-            new_klass = type.__new__(cls, name, bases, attrs)
-            if hasattr(new_klass, 'id'):
-                cls.UPDATERS[new_klass.id] = new_klass
-            return new_klass
-
-        def get_updater(cls, thing):
-            if hasattr(thing, 'needs_rebuild'):
-                if isinstance(thing, type):
-                    return thing()
-                return thing
-            if not thing:
-                return None
-            try:
-                return cls.UPDATERS[thing]()
-            except KeyError:
-                raise ValueError('Updater "%s" is not valid.' % thing)
-
-    def __eq__(self, other):
-        """Return equality with the config values
-        that instantiate this instance.
-        """
-        return (hasattr(self, 'id') and self.id == other) or \
-               id(self) == id(other)
 
     def needs_rebuild(self, bundle, env):
         """Returns ``True`` if the given bundle needs to be rebuilt,
@@ -73,8 +45,6 @@ class BaseUpdater(object):
     def build_done(self, bundle, env):
         """This will be called once a bundle has been successfully built.
         """
-
-get_updater = BaseUpdater.get_updater
 
 
 class BundleDefUpdater(BaseUpdater):
@@ -151,13 +121,3 @@ class AlwaysUpdater(BaseUpdater):
 
     def needs_rebuild(self, bundle, env):
         return True
-
-
-class NeverUpdater(BaseUpdater):
-    """#TODO: Get rid of this once #27 lands and we have an auto_rebuild option.
-    """
-
-    id = 'never'
-
-    def needs_rebuild(self, bundle, env):
-        return False

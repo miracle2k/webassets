@@ -3,7 +3,7 @@ import urlparse
 from itertools import chain
 from bundle import Bundle
 from cache import get_cache
-from updater import get_updater
+from version import get_versioner
 
 
 __all__ = ('Environment', 'RegisterError')
@@ -80,8 +80,9 @@ class BaseEnvironment(object):
         # directory, url currently do not have default values
         self.config.setdefault('debug', False)
         self.config.setdefault('cache', True)
-        self.config.setdefault('updater', 'timestamp')
-        self.config.setdefault('expire', 'querystring')
+        self.config.setdefault('url_expire', False)
+        self.config.setdefault('auto_build', True)
+        self.config.setdefault('versioner', 'timestamp')
 
         self.config.update(config)
 
@@ -148,11 +149,11 @@ class BaseEnvironment(object):
         # a custom dictionary which won't uphold our caseless semantics.
         return self._config
 
-    def set_debug(self, debug):
+    def _set_debug(self, debug):
         self.config['debug'] = debug
-    def get_debug(self):
+    def _get_debug(self):
         return self.config['debug']
-    debug = property(get_debug, set_debug, doc=
+    debug = property(_get_debug, _set_debug, doc=
     """Enable/disable debug mode. Possible values are:
 
         ``False``
@@ -164,14 +165,14 @@ class BaseEnvironment(object):
             Merge the source files, but do not apply filters.
     """)
 
-    def set_cache(self, enable):
+    def _set_cache(self, enable):
         self.config['cache'] = enable
-    def get_cache(self):
+    def _get_cache(self):
         cache = get_cache(self.config['cache'], self)
         if cache != self.config['cache']:
             self.config['cache'] = cache
         return cache
-    cache = property(get_cache, set_cache, doc=
+    cache = property(_get_cache, _set_cache, doc=
     """Controls the behavior of the cache. The cache will speed up rebuilding
     of your bundles, by caching individual filter results. This can be
     particularly useful while developing, if your bundles would otherwise take
@@ -192,78 +193,100 @@ class BaseEnvironment(object):
     Note: Currently, the cache is never used while in production mode.
     """)
 
-    def set_updater(self, updater):
-        self.config['updater'] = updater
-    def get_updater(self):
-        updater = get_updater(self.config['updater'])
-        if updater != self.config['updater']:
-            self.config['updater'] = updater
-        return updater
-    updater = property(get_updater, set_updater, doc=
-    """Controls when and if bundles should be automatically rebuilt.
-    Possible values are:
+    def _set_auto_build(self, value):
+        self.config['auto_build'] = value
+    def _get_auto_build(self):
+        value = self.config['auto_build']
+        if value and not self.versioner:
+            raise ValueError('you have enabled the "auto_build" option, '+
+                             'but "versioner" is not set')
+        if value and not self.versioner.updater:
+            raise ValueError('you have enabled the "auto_build" option, '+
+                             'but your "versioner" does not support it')
+        return value
+    auto_build = property(_get_auto_build, _set_auto_build, doc=
+    """Controls whether bundles should be automatically built, and
+    rebuilt, when required (if set to ``True``), or whether they
+    must be built manually be the user, for example via a management
+    command.
 
-      ``False``
-          Do not auto-rebuilt bundles. You will need to use the command
-          line interface to update bundles yourself. Note that the with
-          this settings, bundles will not only be not rebuilt, but will
-          not be automatically built at all, period (even the initial
-          build needs to be done manually).
+    This is a good setting to have enabled during debugging, and can
+    be very convenient for low-traffic sites in production as well.
+    However, there is a cost in checking whether the source files
+    have changed, so if you care about performance, or if your build
+    process takes very long, then you may want to disable this.
 
-      ``"timestamp"`` (default)
-          Rebuild bundles if the source file timestamp exceeds the existing
-          output file's timestamp.
-
-      ``"always"``
-          Always rebuild bundles (avoid in production environments).
-
-    For most people, the default value will be fine. However, on busy
-    websites you may want to disable automatic rebuilding, since the
-    updater will need to check for changes during every request.
-
-    Your build taking very long is another reason why you may want to
-    do it outside of the request handling process.
+    By default automatic building is enabled.
     """)
 
-    def set_expire(self, expire):
-        self.config['expire'] = expire
-    def get_expire(self):
-        return self.config['expire']
-    expire = property(get_expire, set_expire, doc=
-    """If you send your assets to the client using a *far future expires*
-    header (to minimize the 304 responses your server has to send), you
-    need to make sure that changed assets will be reloaded when they change.
+    def _set_versioner(self, versioner):
+        self.config['versioner'] = versioner
+    def _get_versioner(self):
+        versioner = get_versioner(self.config['versioner'])
+        if versioner != self.config['versioner']:
+            self.config['versioner'] = versioner
+        return versioner
+    versioner = property(_get_versioner, _set_versioner, doc=
+    """Defines what should be used as a Bundle ``version``.
 
-    This feature will help. Possible values are:
+    A bundle's version is what is appended to URLs when the
+    ``url_expire`` option is enabled, and the version can be part
+    of a Bundle's output filename by use of the %(version)s placeholder.
 
-      ``False``
-          Don't do anything.
+    Valid values are:
 
-      ``"querystring"`` (default)
-          Append a querystring with a timestamp to generated urls, e.g.
-          ``asset.js?1212592199``.
+      ``timestamp``
+          The version is determined by looking at the mtime of a
+          bundle's output file.
 
-      ``"filename"``
-          Modify the filename to include a timestamp, e.g.
-          ``asset.1212592199.js``. This may work better with certain
-          proxies, but requires you to configure your webserver to
-          rewrite those modified filenames to the originals. See also
-          `High Performance Web Sites blog <http://www.stevesouders.com/blog/2008/08/23/revving-filenames-dont-use-querystring/>`_.
+      ``hash``
+          The version is a hash over the output file's content.
+
+      ``False``, ``None``
+          Functionality that requires a version is disabled. This
+          includes the ``url_expire`` option, the ``auto_build``
+          option, and support for the %(version)s placeholder.
+
+      Any custom version implementation.
+
+    The default value is ``timestamp``. Along with ``hash``, one
+    of these two values are going to be what most users are looking
+    for.
     """)
 
-    def set_directory(self, directory):
+    def _set_url_expire(self, url_expire):
+        self.config['url_expire'] = url_expire
+    def _get_url_expire(self):
+        return self.config['url_expire']
+    url_expire = property(_get_url_expire, _set_url_expire, doc=
+    """If you send your assets to the client using a
+    *far future expires* header (to minimize the 304 responses
+    your server has to send), you need to make sure that assets
+    will be reloaded by the browser when they change.
+
+    If this is set to ``True``, then the Bundle URLs generated by
+    webassets will have their version (see ``Environment.versioner``)
+    appended as a querystring.
+
+    An alternative approach would be to use the %(version)s
+    placeholder in the bundle output file.
+
+    By default, this option is disabled.
+    """)
+
+    def _set_directory(self, directory):
         self.config['directory'] = directory
-    def get_directory(self):
+    def _get_directory(self):
         return self.config['directory']
-    directory = property(get_directory, set_directory, doc=
+    directory = property(_get_directory, _set_directory, doc=
     """The base directory to which all paths will be relative to.
     """)
 
-    def set_url(self, url):
+    def _set_url(self, url):
         self.config['url'] = url
-    def get_url(self):
+    def _get_url(self):
         return self.config['url']
-    url = property(get_url, set_url, doc=
+    url = property(_get_url, _set_url, doc=
     """The base used to construct urls under which :attr:`directory`
     should be exposed.
     """)
