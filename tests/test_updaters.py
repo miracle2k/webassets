@@ -43,6 +43,18 @@ class TestBundleDefBaseUpdater:
         self.bundle.debug = not self.bundle.debug
         assert self.updater.needs_rebuild(self.bundle, self.env) == True
 
+    def test_depends_changed(self):
+        # Changing the depends attribute of a bundle will NOT cause
+        # a rebuild. This is a close call, and might just as well work
+        # differently. I decided that the purity of the Bundle.__hash__
+        # implementation in not including anything that isn't affecting
+        # to the final output bytes was more important. If the user
+        # is changing depends than after the next rebuild that change
+        # will be effective anyway.
+        self.updater.build_done(self.bundle, self.env)
+        self.bundle.depends += ['foo']
+        assert self.updater.needs_rebuild(self.bundle, self.env) == False
+
 
 class TestTimestampUpdater(BuildTestHelper):
 
@@ -97,5 +109,36 @@ class TestTimestampUpdater(BuildTestHelper):
 
         # Timestamp updater will says we need to rebuild.
         assert self.m.updater.needs_rebuild(bundle, self.m) == True
+        self.m.updater.build_done(bundle, self.m)
 
+    def test_depends(self):
+        """Test the timestamp updater properly considers additional
+        bundle dependencies."""
+        self.create_files({'d.sass': '', 'd.other': ''})
+        bundle = self.mkbundle('in', output='out', depends=('*.sass',))
 
+        # First, ensure that the dependency definition is not
+        # unglobbed until we actually need to do it.
+        internal_attr = '_resolved_depends'
+        assert not getattr(bundle, internal_attr, None)
+
+        now = time.time()
+
+        # Make all files older than the output
+        os.utime(self.path('in'), (now, now-100))
+        os.utime(self.path('d.sass'), (now, now-100))
+        os.utime(self.path('d.other'), (now, now-100))
+        os.utime(self.path('out'), (now, now))
+        assert self.m.updater.needs_rebuild(bundle, self.m) == False
+
+        # Touch the file that is supposed to be unrelated
+        os.utime(self.path('d.other'), (now, now+100))
+        assert self.m.updater.needs_rebuild(bundle, self.m) == False
+
+        # Touch the dependency file - now a rebuild is required
+        os.utime(self.path('d.sass'), (now, now+100))
+        assert self.m.updater.needs_rebuild(bundle, self.m) == True
+
+        # Finally, counter-check that our previous check for the
+        # internal attribute was valid.
+        assert hasattr(bundle, internal_attr)

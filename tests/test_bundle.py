@@ -12,11 +12,11 @@ from webassets.updater import TimestampUpdater, BaseUpdater
 from helpers import BuildTestHelper
 
 
-class TestFilterAssign(BuildTestHelper):
-    """Test the different ways we can assign filters to the bundle.
-    """
+class TestBundleConfig(BuildTestHelper):
 
-    def test(self):
+    def test_filter_assign(self):
+        """Test the different ways we can assign filters to the bundle.
+        """
         class TestFilter(Filter):
             pass
 
@@ -72,6 +72,27 @@ class TestFilterAssign(BuildTestHelper):
         old_filters = b.filters
         b.filters = b.filters
         assert b.filters == old_filters
+
+    def test_depends_assign(self):
+        """Test the different ways we can assign dependencies.
+        """
+        # List of strings.
+        b = self.mkbundle(depends=['file1', 'file2'])
+        assert len(b.depends) == 2
+
+        # Single string
+        b = self.mkbundle(depends='*.sass')
+        assert len(b.depends) == 1
+        assert b.depends == ['*.sass']
+
+    def test_depends_cached(self):
+        """Test that the depends property is cached."""
+        self.create_files({'file1.sass': ''})
+        b = self.mkbundle(depends=['*.sass'])
+        len(b.resolve_depends(self.m)) == 1
+        self.create_files({'file2.sass': ''})
+        len(b.resolve_depends(self.m)) == 1
+
 
 
 class TestBuild(BuildTestHelper):
@@ -268,6 +289,44 @@ class TestUpdateAndCreate(BuildTestHelper):
         self.m.updater.allow = True
         self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'A'
+
+    def test_dependency_refresh(self):
+        """This tests a specific behavior of bundle dependencies.
+        If they are specified via glob, then that glob is cached
+        and only refreshed after a build. The thinking is that in
+        those cases for which the depends option was designed, if
+        for example a new SASS include file is created, for this
+        file to be included, one of the existing files first needs
+        to be modified to actually add the include command.
+        """
+        self.m.updater = 'timestamp'
+        self.m.cache = False
+        self.create_files({'first.sass': 'one'})
+        b = self.mkbundle('in1', output='out', depends='*.sass')
+        b.build()
+
+        now = self.setmtime('in1', 'first.sass', 'out')
+        # At this point, no rebuild is required
+        assert self.m.updater.needs_rebuild(b, self.m) == False
+
+        # Create a new file that matches the dependency;
+        # make sure it is newer.
+        self.create_files({'second.sass': 'two'})
+        self.setmtime('second.sass', mtime=now+100)
+        # Still no rebuild required though
+        assert self.m.updater.needs_rebuild(b, self.m) == False
+
+        # Touch one of the existing files
+        self.setmtime('first.sass', mtime=now+200)
+        # Do the rebuild that is now required
+        assert self.m.updater.needs_rebuild(b, self.m) == True
+        b.build()
+        self.setmtime('out', mtime=now+200)
+
+        # Now, touch the new dependency we created - a
+        # rebuild is now required.
+        self.setmtime('second.sass', mtime=now+300)
+        assert self.m.updater.needs_rebuild(b, self.m) == True
 
 
 class BaseUrlsTester(BuildTestHelper):

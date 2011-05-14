@@ -1,5 +1,6 @@
 import os
 from os import path
+import time
 import shutil
 import tempfile
 from webassets import Environment, Bundle
@@ -66,3 +67,16 @@ class BuildTestHelper:
     def path(self, name):
         """Return the given file's full path."""
         return path.join(self.m.directory, name)
+
+    def setmtime(self, *files, **kwargs):
+        """Set the mtime of the given files. Useful helper when
+        needing to test things like the timestamp updater.
+
+        Specify ``mtime`` as a keyword argument, or time.time()
+        will automatically be used. Returns the mtime used.
+        """
+        mtime = kwargs.pop('mtime', time.time())
+        assert not kwargs, "Unsupported kwargs: %s" %  ', '.join(kwargs.keys())
+        for f in files:
+            os.utime(self.path(f), (mtime, mtime))
+        return mtime

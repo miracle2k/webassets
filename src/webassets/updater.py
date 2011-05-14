@@ -85,6 +85,7 @@ class BundleDefUpdater(BaseUpdater):
             # a process restart will be required also, so in most cases
             # this would make no sense.
             return False
+
         cache_key = ('bdef', bundle.output)
         current_hash = "%s" % hash(bundle)
         cached_hash = env.cache.get(cache_key)
@@ -112,17 +113,30 @@ class TimestampUpdater(BundleDefUpdater):
     id = 'timestamp'
 
     def check_timestamps(self, bundle, env):
-        sources = bundle.get_files(env)
-        if not sources:
-            return
         o_modified = os.stat(env.abspath(bundle.output)).st_mtime
-        s_modified = max([os.stat(s).st_mtime for s in sources])
-        return s_modified > o_modified
+        # Check the timestamp of all the bundle source files, as
+        # well as any additional dependencies that we are supposed
+        # to watch.
+        for iterator in (bundle.get_files, bundle.resolve_depends):
+            for file in iterator(env):
+                s_modified = os.stat(env.abspath(file)).st_mtime
+                if s_modified > o_modified:
+                    return True
+        return False
 
     def needs_rebuild(self, bundle, env):
         return \
             super(TimestampUpdater, self).needs_rebuild(bundle, env) or \
             self.check_timestamps(bundle, env)
+
+    def build_done(self, bundle, env):
+        # Reset the resolved dependencies, so any globs will be
+        # re-resolved the next time we check if a rebuild is
+        # required. This ensures that we begin watching new files
+        # that are created, while still caching the globs as long
+        # no changes happen.
+        bundle._resolved_depends = None
+        super(TimestampUpdater, self).build_done(bundle, env)
 
 
 class AlwaysUpdater(BaseUpdater):

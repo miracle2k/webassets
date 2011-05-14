@@ -23,10 +23,10 @@ def is_url(s):
 
 
 class Bundle(object):
-    """A bundle is the unit django-assets uses to organize groups of media
-    files, which filters to apply and where to store them.
+    """A bundle is the unit webassets uses to organize groups of
+    media files, which filters to apply and where to store them.
 
-    Bundles can be nested.
+    Bundles can be nested arbitrarily.
     """
 
     def __init__(self, *contents, **options):
@@ -35,6 +35,7 @@ class Bundle(object):
         self.output = options.get('output')
         self.filters = options.get('filters')
         self.debug = options.get('debug')
+        self.depends = options.get('depends', [])
         self.extra_data = {}
 
     def __repr__(self):
@@ -72,14 +73,14 @@ class Bundle(object):
     contents = property(_get_contents, _set_contents)
 
     def resolve_contents(self, env):
-        """Returns contents, with globbed patterns resolved to actual
-        filenames.
+        """Returns contents, with globbed patterns resolved to
+        actual filenames.
         """
         # TODO: We cache the values, which in theory is problematic, since
         # due to changes in the env object, the result of the globbing may
         # change. Not to mention that a different env object may be passed
         # in. We should find a fix for this.
-        if not getattr(self, '_resolved_contents', None):
+        if getattr(self, '_resolved_contents', None) is None:
             l = []
             for item in self.contents:
                 if isinstance(item, basestring):
@@ -101,6 +102,36 @@ class Bundle(object):
                     l.append(item)
             self._resolved_contents = l
         return self._resolved_contents
+
+    def _get_depends(self):
+        return self._depends
+    def _set_depends(self, value):
+        self._depends = [value] if isinstance(value, basestring) else value
+        self._resolved_depends = None
+    depends = property(_get_depends, _set_depends, doc=
+    """Allows you to define an additional set of files (glob syntax
+    is supported), which are considered when determining whether a
+    rebuild is required.
+    """)
+
+    def resolve_depends(self, env):
+        # Caching is as problematic here as it is in resolve_contents().
+        if not self.depends:
+            return []
+        if getattr(self, '_resolved_depends', None) is None:
+            l = []
+            for item in self.depends:
+                if isinstance(item, basestring):
+                    if glob.has_magic(item):
+                        path = env.abspath(item)
+                        for f in glob.glob(path):
+                            l.append(f[len(path)-len(item):])
+                    else:
+                        l.append(item)
+                else:
+                    l.append(item)
+            self._resolved_depends = l
+        return self._resolved_depends
 
     def determine_action(self, env):
         """Decide what needs to be done when this bundle needs to be
@@ -141,15 +172,21 @@ class Bundle(object):
         return files
 
     def __hash__(self):
-        """This is used to determine when a bundle definition has changed so that a rebuild
-        is required.
+        """This is used to determine when a bundle definition has
+        changed so that a rebuild is required.
 
-        The hash therefore depends only on data that actually affects the final build result.
+        The hash therefore should be built upon data that actually
+        affect the final build result.
         """
         return hash((tuple(self.contents),
                      self.output,
                      tuple(self.filters),
                      self.debug))
+        # Note how self.depends is not included here. It could be,
+        # but we really want this hash to only change for stuff
+        # that affects the actual output bytes. Note that modifying
+        # depends will be effective after the first rebuild in any
+        # case.
 
     @property
     def is_container(self):
