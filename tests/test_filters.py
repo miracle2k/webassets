@@ -163,6 +163,12 @@ class TestBuiltinFilters(BuildTestHelper):
                 font-family: "Verdana"  ;
                 color: #FFFFFF;
             }
+        """,
+        'foo.js': """
+        function foo(bar) {
+            var dummy;
+            document.write ( bar ); /* Write */
+        }
         """
     }
 
@@ -201,6 +207,14 @@ class TestBuiltinFilters(BuildTestHelper):
   alert("I knew it!");
 }
 """
+
+    def test_rjsmin(self):
+        try:
+            import rjsmin
+        except ImportError:
+            raise SkipTest()
+        self.mkbundle('foo.js', filters='rjsmin', output='out.js').build()
+        assert self.get('out.js') == "function foo(bar){var dummy;document.write(bar);}"
 
 
 class TestCssRewrite(BuildTestHelper):
