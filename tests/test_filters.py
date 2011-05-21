@@ -152,7 +152,7 @@ def test_get_filter():
 
 class TestBuiltinFilters(BuildTestHelper):
     """
-    TODO: Some filters are still lacking tests: closure, less
+    TODO: Some filters are still lacking tests: closure
     """
 
     default_files = {
@@ -222,6 +222,12 @@ class TestBuiltinFilters(BuildTestHelper):
   alert("I knew it!");
 }
 """
+
+    def test_less(self):
+        if not find_executable('lessc'):
+            raise SkipTest()
+        self.mkbundle('foo.css', filters='less', output='out.css').build()
+        assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #ffffff;\n}\n'
 
     def test_jsmin(self):
         self.mkbundle('foo.js', filters='jsmin', output='out.js').build()
