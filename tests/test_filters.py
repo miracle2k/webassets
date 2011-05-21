@@ -153,7 +153,7 @@ def test_get_filter():
 class TestBuiltinFilters(BuildTestHelper):
     """
     TODO: Some filters are still lacking tests: closure, cssprefixer,
-       cssutils, less, yui, jspacker
+       cssutils, less, yui
 
     """
 
@@ -219,6 +219,10 @@ class TestBuiltinFilters(BuildTestHelper):
             raise SkipTest()
         self.mkbundle('foo.js', filters='rjsmin', output='out.js').build()
         assert self.get('out.js') == "function foo(bar){var dummy;document.write(bar);}"
+
+    def test_jspacker(self):
+        self.mkbundle('foo.js', filters='jspacker', output='out.js').build()
+        assert self.get('out.js').startswith('eval(function(p,a,c,k,e,d)')
 
 
 class TestCssRewrite(BuildTestHelper):
