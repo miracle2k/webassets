@@ -6,6 +6,7 @@ PyYaml
 
 # Filters
 clevercss
+cssutils
 
 # Necessary for autodoc to build documentation regarding django-assets.
 Django

@@ -153,7 +153,7 @@ def test_get_filter():
 class TestBuiltinFilters(BuildTestHelper):
     """
     TODO: Some filters are still lacking tests: closure, cssprefixer,
-       cssutils, less, yui
+       less, yui
 
     """
 
@@ -188,6 +188,14 @@ class TestBuiltinFilters(BuildTestHelper):
         except EnvironmentError:
             # cssmin is not installed, that's ok.
             raise SkipTest()
+
+    def test_cssutils(self):
+        try:
+            import cssutils
+        except ImportError:
+            raise SkipTest()
+        self.mkbundle('foo.css', filters='cssutils', output='out.css').build()
+        assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
 
     def test_clevercss(self):
         try:
