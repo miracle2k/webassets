@@ -152,7 +152,7 @@ def test_get_filter():
 
 class TestBuiltinFilters(BuildTestHelper):
     """
-    TODO: Some filters are still lacking tests: closure, cssprefixer, less
+    TODO: Some filters are still lacking tests: closure, less
     """
 
     default_files = {
@@ -178,6 +178,15 @@ class TestBuiltinFilters(BuildTestHelper):
         # the full string.
         assert self.get('out.css')[:3] == '\x1f\x8b\x08'
         assert len(self.get('out.css')) == 24
+
+    def test_cssprefixer(self):
+        try:
+            import cssprefixer
+        except ImportError:
+            raise SkipTest()
+        self.create_files({'in': """a { border-radius: 1em; }"""})
+        self.mkbundle('in', filters='cssprefixer', output='out.css').build()
+        assert self.get('out.css') == 'a {\n    -webkit-border-radius: 1em;\n    -moz-border-radius: 1em;\n    border-radius: 1em\n    }'
 
     def test_cssmin(self):
         try:

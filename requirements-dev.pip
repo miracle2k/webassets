@@ -8,6 +8,9 @@ PyYaml
 clevercss
 cssutils
 yuicompressor
+# Requiring manual installation:
+#cssprefixer
+#rjsmin
 
 # Necessary for autodoc to build documentation regarding django-assets.
 Django
