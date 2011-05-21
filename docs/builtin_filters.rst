@@ -126,3 +126,9 @@ Other
 ~~~~~~~~
 
 .. autoclass:: webassets.filter.gzip.GZipFilter
+
+
+``coffeescript``
+~~~~~~~~
+
+.. autoclass:: webassets.filter.coffeescript.CoffeeScriptFilter
