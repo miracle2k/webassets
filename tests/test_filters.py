@@ -152,9 +152,7 @@ def test_get_filter():
 
 class TestBuiltinFilters(BuildTestHelper):
     """
-    TODO: Some filters are still lacking tests: closure, cssprefixer,
-       less, yui
-
+    TODO: Some filters are still lacking tests: closure, cssprefixer, less
     """
 
     default_files = {
@@ -231,6 +229,22 @@ class TestBuiltinFilters(BuildTestHelper):
     def test_jspacker(self):
         self.mkbundle('foo.js', filters='jspacker', output='out.js').build()
         assert self.get('out.js').startswith('eval(function(p,a,c,k,e,d)')
+
+    def test_yui_js(self):
+        try:
+            import yuicompressor
+        except ImportError:
+            raise SkipTest()
+        self.mkbundle('foo.js', filters='yui_js', output='out.js').build()
+        assert self.get('out.js') == "function foo(a){var b;document.write(a)};"
+
+    def test_yui_css(self):
+        try:
+            import yuicompressor
+        except ImportError:
+            raise SkipTest()
+        self.mkbundle('foo.css', filters='yui_css', output='out.css').build()
+        assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
 
 
 class TestCssRewrite(BuildTestHelper):

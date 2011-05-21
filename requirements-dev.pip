@@ -7,6 +7,7 @@ PyYaml
 # Filters
 clevercss
 cssutils
+yuicompressor
 
 # Necessary for autodoc to build documentation regarding django-assets.
 Django
