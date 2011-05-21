@@ -151,9 +151,6 @@ def test_get_filter():
 
 
 class TestBuiltinFilters(BuildTestHelper):
-    """
-    TODO: Some filters are still lacking tests: closure
-    """
 
     default_files = {
         'foo.css': """
@@ -244,6 +241,19 @@ class TestBuiltinFilters(BuildTestHelper):
     def test_jspacker(self):
         self.mkbundle('foo.js', filters='jspacker', output='out.js').build()
         assert self.get('out.js').startswith('eval(function(p,a,c,k,e,d)')
+
+    def test_closure(self):
+        try:
+            self.mkbundle('foo.js', filters='closure_js', output='out1.js').build()
+            self.m.config['CLOSURE_COMPRESSOR_OPTIMIZATION'] = 'SIMPLE_OPTIMIZATIONS'
+            self.mkbundle('foo.js', filters='closure_js', output='out2.js').build()
+        except EnvironmentError:
+            # We don't really have a way to make this filter work without
+            # configuration. What would be nice is a "closure" Python
+            # package in the spirit of "yuicompressor".
+            raise SkipTest()
+        assert self.get('out1.js') == 'function foo(bar){var dummy;document.write(bar)};\n'
+        assert self.get('out2.js') == 'function foo(a){document.write(a)};\n'
 
     def test_yui_js(self):
         try:
