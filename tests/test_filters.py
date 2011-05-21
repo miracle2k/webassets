@@ -188,10 +188,10 @@ class TestBuiltinFilters(BuildTestHelper):
     def test_cssmin(self):
         try:
             self.mkbundle('foo.css', filters='cssmin', output='out.css').build()
-            assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
         except EnvironmentError:
             # cssmin is not installed, that's ok.
             raise SkipTest()
+        assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
 
     def test_cssutils(self):
         try:
