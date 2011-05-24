@@ -5,6 +5,7 @@ from optparse import OptionParser
 
 from webassets.loaders import PythonLoader
 from webassets.bundle import BuildError
+from webassets.updater import TimestampUpdater
 
 
 class CommandError(Exception):
@@ -107,20 +108,15 @@ class CommandLineEnvironment():
         used in pre-commit hooks.
         """
         needsupdate = False
+        updater = self.environment.updater
+        if not updater:
+            self.log.debug('no updater configured, using TimestampUpdater')
+            updater = TimestampUpdater()
         for bundle in self.environment:
-            basedir = bundle._get_env(None).directory
-            outputname = None
-            outputtime = None
-            for to_build in bundle.iterbuild():
-                self.log.info('Checking asset: %s', to_build.output)
-                outputname = os.path.join(basedir, to_build.output)
-                outputtime = os.stat(outputname).st_mtime
-            for filename in bundle.get_files():
-                inputtime = os.stat(filename).st_mtime
-                self.log.debug('    %s', filename)
-                if inputtime > outputtime:
-                    self.log.warn('%s is newer than %s', filename, outputname)
-                    needsupdate = True
+            self.log.info('Checking asset: %s', bundle.output)
+            if updater.needs_rebuild(bundle, self.environment):
+                self.log.info('  needs update')
+                needsupdate = True
         if needsupdate:
             sys.exit(-1)
 
