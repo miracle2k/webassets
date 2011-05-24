@@ -5,6 +5,7 @@ from optparse import OptionParser
 
 from webassets.loaders import PythonLoader
 from webassets.bundle import BuildError
+from webassets.updater import TimestampUpdater
 
 
 class CommandError(Exception):
@@ -99,13 +100,33 @@ class CommandLineEnvironment():
                 os.unlink(file_path)
                 self.log.info("Deleted asset: %s" % bundle.output)
 
+    def check(self):
+        """Check to see if assets need to be rebuilt.
+
+        A non-zero exit status will be returned if any of the input files are
+        newer (based on mtime) than their output file. This is intended to be
+        used in pre-commit hooks.
+        """
+        needsupdate = False
+        updater = self.environment.updater
+        if not updater:
+            self.log.debug('no updater configured, using TimestampUpdater')
+            updater = TimestampUpdater()
+        for bundle in self.environment:
+            self.log.info('Checking asset: %s', bundle.output)
+            if updater.needs_rebuild(bundle, self.environment):
+                self.log.info('  needs update')
+                needsupdate = True
+        if needsupdate:
+            sys.exit(-1)
+
     # List of command methods
     Commands = {
         'rebuild': rebuild,
         'watch': watch,
         'clean': clean,
+        'check': check,
     }
-
 
 def main(argv, env=None):
     """Generic version of the command line utilities, not specific to
