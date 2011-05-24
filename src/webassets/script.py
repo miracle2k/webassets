@@ -99,13 +99,38 @@ class CommandLineEnvironment():
                 os.unlink(file_path)
                 self.log.info("Deleted asset: %s" % bundle.output)
 
+    def check(self):
+        """Check to see if assets need to be rebuilt.
+
+        A non-zero exit status will be returned if any of the input files are
+        newer (based on mtime) than their output file. This is intended to be
+        used in pre-commit hooks.
+        """
+        needsupdate = False
+        for bundle in self.environment:
+            basedir = bundle._get_env(None).directory
+            outputname = None
+            outputtime = None
+            for to_build in bundle.iterbuild():
+                self.log.info('Checking asset: %s', to_build.output)
+                outputname = os.path.join(basedir, to_build.output)
+                outputtime = os.stat(outputname).st_mtime
+            for filename in bundle.get_files():
+                inputtime = os.stat(filename).st_mtime
+                self.log.debug('    %s', filename)
+                if inputtime > outputtime:
+                    self.log.warn('%s is newer than %s', filename, outputname)
+                    needsupdate = True
+        if needsupdate:
+            sys.exit(-1)
+
     # List of command methods
     Commands = {
         'rebuild': rebuild,
         'watch': watch,
         'clean': clean,
+        'check': check,
     }
-
 
 def main(argv, env=None):
     """Generic version of the command line utilities, not specific to
