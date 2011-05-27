@@ -150,6 +150,21 @@ def test_get_filter():
     assert_raises(AssertionError, get_filter, lambda: None, 'test')
 
 
+def test_callable_filter():
+    """Simple callables can be used as filters.
+
+    Regression: Ensure that they actually work.
+    """
+    def my_filter(_in, out):
+        assert _in.read() == 'initial value'
+        out.write('filter was here')
+    with BuildTestHelper() as helper:
+        helper.create_files({'in': 'initial value'})
+        b = helper.mkbundle('in', filters=my_filter, output='out')
+        b.build()
+        assert helper.get('out') == 'filter was here'
+
+
 class TestBuiltinFilters(BuildTestHelper):
 
     default_files = {
