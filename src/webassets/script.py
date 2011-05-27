@@ -44,7 +44,11 @@ class CommandLineEnvironment():
             # others in the future) need to go through the motions of
             # looping over iterbuild(). Can be move this to the environment?
             for to_build in bundle.iterbuild():
-                self.log.info("Building asset: %s" % to_build.output)
+                if not to_build.output:
+                    self.log.warning("No output target, skipping bundle "
+                                     "%s" % to_build)
+                    continue
+                self.log.info("Building bundle: %s" % to_build.output)
                 try:
                     to_build.build(force=True)
                 except BuildError, e:
