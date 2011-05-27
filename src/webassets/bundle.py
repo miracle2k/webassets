@@ -1,13 +1,14 @@
 from os import path
 import urlparse
 import glob
+import warnings
 from filter import get_filter
 from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
                    make_url, merge_filters)
 from updater import SKIP_CACHE
 
 
-__all__ = ('Bundle', 'BundleError',)
+__all__ = ('Bundle', 'BundleError', 'get_all_bundle_files',)
 
 
 class BundleError(Exception):
@@ -89,10 +90,12 @@ class Bundle(object):
         self._resolved_contents = None
     contents = property(_get_contents, _set_contents)
 
-    def resolve_contents(self, env):
+    def resolve_contents(self, env=None):
         """Returns contents, with globbed patterns resolved to
         actual filenames.
         """
+        env = self._get_env(env)
+
         # TODO: We cache the values, which in theory is problematic, since
         # due to changes in the env object, the result of the globbing may
         # change. Not to mention that a different env object may be passed
@@ -176,17 +179,10 @@ class Bundle(object):
             raise BundleError('Invalid debug value: %s' % debug)
 
     def get_files(self, env=None):
-        """Return a flattened list of all source files of this bundle,
-        and all the nested bundles.
-        """
-        env = self._get_env(env)
-        files = []
-        for c in self.resolve_contents(env):
-            if isinstance(c, Bundle):
-                files.extend(c.get_files(env))
-            elif not is_url(c):
-                files.append(env.abspath(c))
-        return files
+        warnings.warn('Bundle.get_files() has been replaced '+
+                      'by get_all_bundle_files() utility. '+
+                      'This API be removed in 0.6.')
+        return get_all_bundle_files(self, env)
 
     def __hash__(self):
         """This is used to determine when a bundle definition has
@@ -389,3 +385,22 @@ class Bundle(object):
         for bundle in self.iterbuild(env):
             urls.extend(bundle._urls(env, *args, **kwargs))
         return urls
+
+
+def get_all_bundle_files(bundle, env=None):
+    """Return a flattened list of all source files of the given
+    bundle, all it's dependencies, recursively for all nested
+    bundles.
+
+    Making this a helper function rather than a part of the official
+    Bundle feels right.
+    """
+    env = bundle._get_env(env)
+    files = []
+    for c in bundle.resolve_contents(env):
+        if isinstance(c, Bundle):
+            files.extend(get_all_bundle_files(c, env))
+        elif not is_url(c):
+            files.append(env.abspath(c))
+        files.extend(bundle.resolve_depends(env))
+    return files

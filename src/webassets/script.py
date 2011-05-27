@@ -4,7 +4,7 @@ import logging
 from optparse import OptionParser
 
 from webassets.loaders import PythonLoader
-from webassets.bundle import BuildError
+from webassets.bundle import BuildError, get_all_bundle_files
 from webassets.updater import TimestampUpdater
 
 
@@ -65,7 +65,7 @@ class CommandLineEnvironment():
             changed_bundles = []
             for possibly_container in self.environment:
                 for bundle in possibly_container.iterbuild():
-                    for filename in bundle.get_files():
+                    for filename in get_all_bundle_files(bundle):
                         filename = bundle.env.abspath(filename)
                         stat = os.stat(filename)
                         mtime = stat.st_mtime
