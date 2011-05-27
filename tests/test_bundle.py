@@ -97,9 +97,9 @@ class TestBundleConfig(BuildTestHelper):
         """Test that the depends property is cached."""
         self.create_files({'file1.sass': ''})
         b = self.mkbundle(depends=['*.sass'])
-        len(b.resolve_depends(self.m)) == 1
+        assert len(b.resolve_depends(self.m)) == 1
         self.create_files({'file2.sass': ''})
-        len(b.resolve_depends(self.m)) == 1
+        assert len(b.resolve_depends(self.m)) == 1
 
 
 
