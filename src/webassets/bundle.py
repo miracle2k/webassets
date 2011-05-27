@@ -47,10 +47,12 @@ class Bundle(object):
     def __init__(self, *contents, **options):
         self.env = None
         self.contents = contents
-        self.output = options.get('output')
-        self.filters = options.get('filters')
-        self.debug = options.get('debug')
-        self.depends = options.get('depends', [])
+        self.output = options.pop('output', None)
+        self.filters = options.pop('filters', None)
+        self.debug = options.pop('debug', None)
+        self.depends = options.pop('depends', [])
+        if options:
+            raise TypeError('kwarg "%s" not supported' % options.keys[0])
         self.extra_data = {}
 
     def __repr__(self):

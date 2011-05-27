@@ -15,6 +15,13 @@ from helpers import BuildTestHelper, noop
 
 class TestBundleConfig(BuildTestHelper):
 
+    def test_init_kwargs(self):
+        """We used to silently ignore unsupported kwargs, which can make
+        mistakes harder to track down; in particular "filters" vs "filter"
+        is confusing. Now we raise an error.
+        """
+        assert_raises(TypeError, Bundle, yaddayada=True)
+
     def test_filter_assign(self):
         """Test the different ways we can assign filters to the bundle.
         """
