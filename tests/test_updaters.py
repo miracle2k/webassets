@@ -1,6 +1,6 @@
 import os, time
 from webassets import Environment, Bundle
-from webassets.updater import TimestampUpdater, BundleDefUpdater
+from webassets.updater import TimestampUpdater, BundleDefUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache
 from helpers import BuildTestHelper
 
@@ -137,7 +137,7 @@ class TestTimestampUpdater(BuildTestHelper):
 
         # Touch the dependency file - now a rebuild is required
         os.utime(self.path('d.sass'), (now, now+100))
-        assert self.m.updater.needs_rebuild(bundle, self.m) == True
+        assert self.m.updater.needs_rebuild(bundle, self.m) == SKIP_CACHE
 
         # Finally, counter-check that our previous check for the
         # internal attribute was valid.

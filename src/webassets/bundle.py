@@ -4,6 +4,7 @@ import glob
 from filter import get_filter
 from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
                    make_url, merge_filters)
+from updater import SKIP_CACHE
 
 
 __all__ = ('Bundle', 'BundleError',)
@@ -220,7 +221,8 @@ class Bundle(object):
             raise BundleError('Bundle is not connected to an environment')
         return env
 
-    def _build(self, env, output_path, force, no_filters, parent_filters=[]):
+    def _build(self, env, output_path, force, no_filters, parent_filters=[],
+               disable_cache=False):
         """Internal recursive build method.
         """
 
@@ -256,7 +258,7 @@ class Bundle(object):
         for c in resolved_contents:
             if isinstance(c, Bundle):
                 hunk = c._build(env, output_path, force, no_filters,
-                                combined_filters)
+                                combined_filters, disable_cache)
                 hunks.append(hunk)
             else:
                 if is_url(c):
@@ -267,7 +269,8 @@ class Bundle(object):
                     hunks.append(hunk)
                 else:
                     hunks.append(apply_filters(
-                        hunk, combined_filters, 'input', env.cache,
+                        hunk, combined_filters, 'input',
+                        env.cache, disable_cache,
                         output_path=output_path))
 
         # Return all source hunks as one, with output filters applied
@@ -275,7 +278,8 @@ class Bundle(object):
         if no_filters:
             return final
         else:
-            return apply_filters(final, self.filters, 'output', env.cache)
+            return apply_filters(final, self.filters, 'output',
+                                 env.cache, disable_cache)
 
     def build(self, env=None, force=False, no_filters=False):
         """Build this bundle, meaning create the file given by the
@@ -312,7 +316,8 @@ class Bundle(object):
             # We can simply return the existing output file
             return FileHunk(env.abspath(self.output))
 
-        hunk = self._build(env, self.output, force, no_filters)
+        hunk = self._build(env, self.output, force, no_filters,
+                           disable_cache=update_needed==SKIP_CACHE)
         hunk.save(env.abspath(self.output))
 
         # The updater may need to know this bundle exists and how it

@@ -26,7 +26,15 @@ in-memory cache of bundle definition.
 import os
 
 
-__all__ = ('get_updater', 'TimestampUpdater', 'AlwaysUpdater', 'NeverUpdater',)
+__all__ = ('get_updater', 'SKIP_CACHE', 'TimestampUpdater',
+           'AlwaysUpdater', 'NeverUpdater',)
+
+
+SKIP_CACHE = object()
+"""An updater can return this value to indicate that a cache, if enabled,
+should not be used for the rebuild. This is currently used for bundle
+dependencies, which if they change, may cause the cache to be used
+incorrectly."""
 
 
 class BaseUpdater(object):
@@ -123,11 +131,12 @@ class TimestampUpdater(BundleDefUpdater):
         # Check the timestamp of all the bundle source files, as
         # well as any additional dependencies that we are supposed
         # to watch.
-        for iterator in (bundle.get_files, bundle.resolve_depends):
+        for iterator, result in ((bundle.get_files, True),
+                                 (bundle.resolve_depends, SKIP_CACHE)):
             for file in iterator(env):
                 s_modified = os.stat(env.abspath(file)).st_mtime
                 if s_modified > o_modified:
-                    return True
+                    return result
         return False
 
     def needs_rebuild(self, bundle, env):

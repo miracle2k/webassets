@@ -7,9 +7,10 @@ from nose import SkipTest
 from webassets import Bundle
 from webassets.bundle import BuildError
 from webassets.filter import Filter
-from webassets.updater import TimestampUpdater, BaseUpdater
+from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
+from webassets.cache import MemoryCache
 
-from helpers import BuildTestHelper
+from helpers import BuildTestHelper, noop
 
 
 class TestBundleConfig(BuildTestHelper):
@@ -290,6 +291,29 @@ class TestUpdateAndCreate(BuildTestHelper):
         self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'A'
 
+    def test_updater_says_skip_cache(self):
+        """Test the updater saying we need to update without relying
+        on the cache.
+        """
+        class TestMemoryCache(MemoryCache):
+            getc = 0
+            def get(self, key):
+                self.getc += 1
+                return MemoryCache.get(self, key)
+
+        self.m.cache = TestMemoryCache(100)
+        self.create_files({'out': 'old_value'})
+        self.m.updater.allow = SKIP_CACHE
+        b = self.mkbundle('in1', output='out', filters=noop)
+        b.build()
+        assert self.get('out') == 'A'
+        assert self.m.cache.getc == 0   # cache was not read
+
+        # Test the test: the cache is used with True
+        self.m.updater.allow = True
+        b.build()
+        assert self.m.cache.getc > 0    # cache was touched
+
     def test_dependency_refresh(self):
         """This tests a specific behavior of bundle dependencies.
         If they are specified via glob, then that glob is cached
@@ -319,14 +343,50 @@ class TestUpdateAndCreate(BuildTestHelper):
         # Touch one of the existing files
         self.setmtime('first.sass', mtime=now+200)
         # Do the rebuild that is now required
-        assert self.m.updater.needs_rebuild(b, self.m) == True
+        # TODO: first.sass is a dependency, because the glob matches
+        # the bundle contents as well; As a result, we might check
+        # it's timestamp twice. Should something be done about it?
+        assert self.m.updater.needs_rebuild(b, self.m) == SKIP_CACHE
         b.build()
         self.setmtime('out', mtime=now+200)
 
         # Now, touch the new dependency we created - a
         # rebuild is now required.
         self.setmtime('second.sass', mtime=now+300)
-        assert self.m.updater.needs_rebuild(b, self.m) == True
+        assert self.m.updater.needs_rebuild(b, self.m) == SKIP_CACHE
+
+    def test_dependency_refresh_with_cache(self):
+        """If a bundle dependency is changed, the cache may not be
+        used; otherwise, we'd be using previous build results from
+        the cache, where we really need to do a refresh, because,
+        for example, an included file has changed.
+        """
+        def depends_fake(in_, out):
+            out.write(self.get('d.sass'))
+
+        self.m.updater = 'timestamp'
+        self.m.cache = MemoryCache(100)
+        self.create_files({'d.sass': 'initial', 'in': ''})
+        bundle = self.mkbundle('in', output='out', depends=('*.sass',),
+                               filters=depends_fake)
+
+        # Do an initial build to ensure we have the build steps in
+        # the cache.
+        bundle.build()
+        assert self.get('out') == 'initial'
+        assert self.m.cache.keys
+
+        # Change the dependency
+        self.create_files({'d.sass': 'new-value-12345'})
+        # Ensure the timestamps are such that dependency will
+        # cause the rebuild.
+        now = self.setmtime('out')
+        self.setmtime('in', mtime=now-100)
+        self.setmtime('d.sass', mtime=now+100)
+
+        # Build again, verify result
+        bundle.build()
+        assert self.get('out') == 'new-value-12345'
 
 
 class BaseUrlsTester(BuildTestHelper):
