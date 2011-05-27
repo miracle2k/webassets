@@ -142,3 +142,16 @@ class TestTimestampUpdater(BuildTestHelper):
         # Finally, counter-check that our previous check for the
         # internal attribute was valid.
         assert hasattr(bundle, internal_attr)
+
+    def test_depends_nested(self):
+        """Test the dependencies of a nested bundle are checked too.
+        """
+        self.create_files({'dependency': ''})
+        bundle = self.mkbundle('in', Bundle('in', depends='dependency'),
+                               output='out', )
+        now = self.setmtime('out')
+        self.setmtime('in', mtime=now-100)
+        self.setmtime('dependency', mtime=now+100)
+
+        print self.m.updater.needs_rebuild(bundle, self.m)
+        assert self.m.updater.needs_rebuild(bundle, self.m) == SKIP_CACHE
