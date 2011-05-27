@@ -32,6 +32,13 @@ class BuildTestHelper:
         # to call super() in setup().
         shutil.rmtree(self.dir_created)
 
+    def __enter__(self):
+        self.setup()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.teardown()
+
     def mkbundle(self, *a, **kw):
         b = Bundle(*a, **kw)
         b.env = self.m
