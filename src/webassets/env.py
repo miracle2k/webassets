@@ -64,6 +64,49 @@ class ConfigStorage(object):
     def __delitem__(self, key):
         raise NotImplementedError()
 
+    def _get_deprecated(self, key):
+        """For deprecated keys, fake the values as good as we can.
+        Subclasses need to call this in __getitem__."""
+        self._warn_key_deprecation(key)
+        if key == 'expire':
+            return 'querystring' if self['url_expire'] else False
+        if key == 'updater':
+            if self['auto_build']:
+                return 'timestamp'
+            else:
+                return False
+
+    def _set_deprecated(self, key, value):
+        self._warn_key_deprecation(key)
+        if key == 'expire':
+            self['url_expire'] = bool(value)
+            return True
+        if key == 'updater':
+            if not value:
+                self['auto_build'] = False
+            else:
+                self['auto_build'] = True
+            return True
+
+    def _warn_key_deprecation(self, key):
+        """Subclasses should override this to provide custom
+        warnings with their mapped keys in the error message."""
+        import warnings
+        if  key == 'expire':
+            warnings.warn((
+                'The "expire" option has been deprecated in 0.6, and '
+                'replaced with a boolean option "url_expire". If you '
+                'want to append something other than a timestamp to '
+                'your URLs, check out the "versioner" option.'),
+                          DeprecationWarning)
+        if key == 'updater':
+            warnings.warn((
+                'The "updater" option has been deprecated in 0.6, and '
+                'replaced with a boolean option "auto_build". If you '
+                'want to use something other than a timestamp check '
+                'for this, see the "versioner" option, and the "updater" '
+                'attribute of the versioner.'), DeprecationWarning)
+
 
 class BaseEnvironment(object):
     """Abstract base class for :class:`Environment` which makes
@@ -291,6 +334,19 @@ class BaseEnvironment(object):
     should be exposed.
     """)
 
+    # Deprecated attributes, remove in 0.7; warnings are raised by
+    # the config backend.
+    def _set_expire(self, expire):
+        self.config['expire'] = expire
+    def _get_expire(self):
+        return self.config['expire']
+    expire = property(_get_expire, _set_expire)
+    def _set_updater(self, expire):
+        self.config['updater'] = expire
+    def _get_updater(self):
+        return self.config['updater']
+    updater = property(_get_updater, _set_updater)
+
     def absurl(self, fragment):
         """Create an absolute url based on the root url.
 
@@ -318,9 +374,15 @@ class DictConfigStorage(ConfigStorage):
     def __contains__(self, key):
         return self._dict.__contains__(key.lower())
     def __getitem__(self, key):
-        return self._dict.__getitem__(key.lower())
+        key = key.lower()
+        value = self._get_deprecated(key)
+        if not value is None:
+            return value
+        return self._dict.__getitem__(key)
     def __setitem__(self, key, value):
-        self._dict.__setitem__(key.lower(), value)
+        key = key.lower()
+        if not self._set_deprecated(key, value):
+            self._dict.__setitem__(key.lower(), value)
     def __delitem__(self, key):
         self._dict.__delitem__(key.lower())
 

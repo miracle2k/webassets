@@ -3,6 +3,7 @@ from StringIO import StringIO
 
 from nose.tools import assert_raises, assert_equals
 from nose import SkipTest
+from test.test_support import check_warnings
 
 from webassets import Bundle
 from webassets.bundle import BuildError
@@ -101,6 +102,65 @@ class TestBundleConfig(BuildTestHelper):
         self.create_files({'file2.sass': ''})
         assert len(b.resolve_depends(self.m)) == 1
 
+
+class TestVersionSystemDeprecations(BuildTestHelper):
+    """With the introduction of the ``Environment.version`` system,
+    some functionality has been deprecated.
+    """
+
+    def test_expire_option(self):
+        # Assigning to the expire option raises a deprecation warning
+        with check_warnings(("", DeprecationWarning)) as w:
+            self.m.expire = True
+        with check_warnings(("", DeprecationWarning)):
+            self.m.config['expire'] = True
+        # Reading the expire option raises a warning also.
+        with check_warnings(("", DeprecationWarning)):
+            x = self.m.expire
+        with check_warnings(("", DeprecationWarning)):
+            x = self.m.config['expire']
+        
+    def test_updater_option(self):
+        # Assigning to the updater option raises a deprecation warning
+        with check_warnings(("", DeprecationWarning)):
+            self.m.updater = True
+        with check_warnings(("", DeprecationWarning)):
+            self.m.config['updater'] = True
+        # Reading the updater option raises a warning also.
+        with check_warnings(("", DeprecationWarning)):
+            x = self.m.updater
+        with check_warnings(("", DeprecationWarning)):
+            x = self.m.config['updater']
+
+    def test_expire_option_passthrough(self):
+        """While "expire" no longer exists, we attempt to provide an
+        emulation."""
+        with check_warnings(("", DeprecationWarning)):
+            # Read
+            self.m.url_expire = False
+            assert self.m.expire == False
+            self.m.url_expire = True
+            assert self.m.expire == 'querystring'
+            # Write
+            self.m.expire = False
+            assert self.m.url_expire == False
+            self.m.expire = 'querystring'
+            assert self.m.url_expire == True
+
+    def test_updater_option_passthrough(self):
+        """While "updater" no longer exists, we attempt to provide an
+        emulation."""
+        with check_warnings(("", DeprecationWarning)):
+            # Read
+            self.m.auto_build = False
+            assert self.m.updater == False
+            self.m.auto_build = True
+            assert self.m.updater == 'timestamp'
+            # Write
+            self.m.updater = False
+            assert self.m.auto_build == False
+            self.m.updater = 'timestamp'
+            assert self.m.auto_build == True
 
 
 class TestBuild(BuildTestHelper):
@@ -406,7 +466,7 @@ class BaseUrlsTester(BuildTestHelper):
     def setup(self):
         BuildTestHelper.setup(self)
 
-        self.m.expire = False
+        self.m.url_expire = False
 
         self.files_built = files_built = []
         self.no_filter_values = no_filter_values = []
