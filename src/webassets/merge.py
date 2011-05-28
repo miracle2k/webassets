@@ -170,31 +170,13 @@ def apply_filters(hunk, filters, type, cache=None, no_cache_read=False,
     return MemoryHunk(content)
 
 
-def make_url(env, filename, expire=True):
+def make_url(env, bundle):
     """Return a output url, modified for expire header handling.
-
-    Set ``expire`` to ``False`` if you do not want the URL to
-    be modified for cache busting.
     """
-    if expire:
-        path = env.abspath(filename)
-        if env.expire == 'querystring':
-            last_modified = os.stat(path).st_mtime
-            result = "%s?%d" % (filename, last_modified)
-        elif env.expire == 'filename':
-            last_modified = os.stat(path).st_mtime
-            name = filename.rsplit('.', 1)
-            if len(name) > 1:
-                result = "%s.%d.%s" % (name[0], last_modified, name[1])
-            else:
-                result = "%s.%d" % (name, last_modified)
-        elif not env.expire:
-            result = filename
-        else:
-            raise ValueError('Unknown value for ASSETS_EXPIRE option: %s' %
-                                 env.expire)
+    if env.url_expire:
+        result = "%s?%d" % (bundle.get_output(env), bundle.get_version(env))
     else:
-        result = filename
+        result = bundle.output
     return env.absurl(result)
 
 

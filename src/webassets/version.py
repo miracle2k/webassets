@@ -51,9 +51,12 @@ class BaseVersion(object):
         return (hasattr(self, 'id') and self.id == other) or \
                id(self) == id(other)    
 
-    def get_version_for(self, bundle, env):
+    def get_version_for(self, bundle, hunk=None):
         """Return a string that represents the current version
         of the given bundle.
+
+        If the content of the output file is still in memory, it may
+        be passed as a ``MemoryHunk`` object in ``hunk``.
         """
         raise NotImplementedError()
 
@@ -79,7 +82,7 @@ class TimestampVersion(BaseVersion):
 
     id = 'timestamp'
 
-    def get_version_for(self, bundle, env):
+    def get_version_for(self, bundle, hunk=None):
         raise NotImplementedError()
 
 
@@ -87,5 +90,5 @@ class HashVersion(BaseVersion):
 
     id = 'hash'
 
-    def get_version_for(self, bundle, env):
+    def get_version_for(self, bundle, hunk=None):
         raise NotImplementedError()
