@@ -53,7 +53,8 @@ class Bundle(object):
         self.debug = options.pop('debug', None)
         self.depends = options.pop('depends', [])
         if options:
-            raise TypeError('kwarg "%s" not supported' % options.keys[0])
+            raise TypeError("got unexpected keyword argument '%s'" %
+                            options.keys()[0])
         self.extra_data = {}
 
     def __repr__(self):
