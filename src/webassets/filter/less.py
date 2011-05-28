@@ -41,7 +41,8 @@ class LessFilter(Filter):
     name = 'less'
 
     def setup(self):
-        self.less = self.get_config('LESS_PATH', what='less binary')
+        self.less = self.get_config('LESS_PATH', what='less binary',
+                                    require=False)
 
     def input(self, _in, out, source_path, output_path):
         """Less currently doesn't take data from stdin, and doesn't allow
@@ -56,12 +57,13 @@ class LessFilter(Filter):
         outtemp_name = os.path.join(tempfile.gettempdir(),
                                     'assets_temp_%d.css' % int(time.time()))
 
-        proc = subprocess.Popen([self.less, source_path, outtemp_name],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                # shell: necessary on windows to execute
-                                # ruby files, but doesn't work on linux.
-                                shell=(os.name == 'nt'))
+        proc = subprocess.Popen(
+            [self.less or 'lessc', source_path, outtemp_name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            # shell: necessary on windows to execute
+            # ruby files, but doesn't work on linux.
+            shell=(os.name == 'nt'))
         stdout, stderr = proc.communicate()
 
         # less only writes to stdout, as noted in the method doc, but

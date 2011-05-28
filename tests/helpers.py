@@ -6,7 +6,12 @@ import tempfile
 from webassets import Environment, Bundle
 
 
-__all__ = ('BuildTestHelper',)
+__all__ = ('BuildTestHelper', 'noop')
+
+
+# Define a noop filter; occasionally in tests we need to define
+# a filter to be able to test a certain piece of functionality,.
+noop = lambda _in, out: out.write(_in.read())
 
 
 class BuildTestHelper:
@@ -31,6 +36,13 @@ class BuildTestHelper:
         # want to delete the actual media directory if a child class
         # to call super() in setup().
         shutil.rmtree(self.dir_created)
+
+    def __enter__(self):
+        self.setup()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.teardown()
 
     def mkbundle(self, *a, **kw):
         b = Bundle(*a, **kw)

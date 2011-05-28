@@ -26,8 +26,12 @@ in-memory cache of bundle definition.
 import os
 
 
-__all__ = ('TimestampUpdater', 'AlwaysUpdater',)
-
+__all__ = ('SKIP_CACHE', 'TimestampUpdater', 'AlwaysUpdater',)
+SKIP_CACHE = object()
+"""An updater can return this value to indicate that a cache, if enabled,
+should not be used for the rebuild. This is currently used for bundle
+dependencies, which if they change, may cause the cache to be used
+incorrectly."""
 
 class BaseUpdater(object):
     """Base updater class.
@@ -88,16 +92,26 @@ class TimestampUpdater(BundleDefUpdater):
 
     id = 'timestamp'
 
-    def check_timestamps(self, bundle, env):
-        o_modified = os.stat(env.abspath(bundle.output)).st_mtime
-        # Check the timestamp of all the bundle source files, as
-        # well as any additional dependencies that we are supposed
-        # to watch.
-        for iterator in (bundle.get_files, bundle.resolve_depends):
-            for file in iterator(env):
-                s_modified = os.stat(env.abspath(file)).st_mtime
-                if s_modified > o_modified:
-                    return True
+    def check_timestamps(self, bundle, env, o_modified=None):
+        from bundle import Bundle, is_url
+
+        if not o_modified:
+            o_modified = os.stat(env.abspath(bundle.output)).st_mtime
+
+        # Recurse through the bundle hierarchy. Check the timestamp of all
+        # the bundle source files, as well as any additional
+        # dependencies that we are supposed to watch.
+        for iterator, result in ((bundle.resolve_contents, True),
+                                 (bundle.resolve_depends, SKIP_CACHE)):
+            for item in iterator(env):
+                if isinstance(item, Bundle):
+                    result = self.check_timestamps(item, env, o_modified)
+                    if result:
+                        return result
+                elif not is_url(item):
+                    s_modified = os.stat(env.abspath(item)).st_mtime
+                    if s_modified > o_modified:
+                        return result
         return False
 
     def needs_rebuild(self, bundle, env):

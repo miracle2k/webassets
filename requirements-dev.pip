@@ -6,12 +6,16 @@ PyYaml
 
 # Filters
 clevercss
+cssutils
+yuicompressor
+# Requiring manual installation:
+#cssprefixer
+#rjsmin
 
 # Necessary for autodoc to build documentation regarding django-assets.
 Django
 
-# scss and compass ruby gems are necessary for some tests to run
-# install them as follows:
-
+# The following Ruby gems are required for some filter tests to run:
 # sudo gem install haml
 # sudo gem install compass
+# sudo gem install less

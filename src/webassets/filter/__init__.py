@@ -164,6 +164,7 @@ class CallableFilter(Filter):
     """
 
     def __init__(self, callable):
+        super(CallableFilter, self).__init__()
         self.callable = callable
 
     def unique(self):

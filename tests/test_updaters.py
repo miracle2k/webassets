@@ -1,6 +1,6 @@
 import os
 from webassets import Environment, Bundle
-from webassets.updater import TimestampUpdater, BundleDefUpdater
+from webassets.updater import TimestampUpdater, BundleDefUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache
 from helpers import BuildTestHelper
 
@@ -130,8 +130,21 @@ class TestTimestampUpdater(BuildTestHelper):
 
         # Touch the dependency file - now a rebuild is required
         now = self.setmtime('d.sass', mtime=now+100)
-        assert self.updater.needs_rebuild(bundle, self.m) == True
+        assert self.updater.needs_rebuild(bundle, self.m) == SKIP_CACHE
 
         # Finally, counter-check that our previous check for the
         # internal attribute was valid.
         assert hasattr(bundle, internal_attr)
+
+    def test_depends_nested(self):
+        """Test the dependencies of a nested bundle are checked too.
+        """
+        self.create_files({'dependency': ''})
+        bundle = self.mkbundle('in', Bundle('in', depends='dependency'),
+                               output='out', )
+        now = self.setmtime('out')
+        self.setmtime('in', mtime=now-100)
+        self.setmtime('dependency', mtime=now+100)
+
+        print self.updater.needs_rebuild(bundle, self.m)
+        assert self.updater.needs_rebuild(bundle, self.m) == SKIP_CACHE

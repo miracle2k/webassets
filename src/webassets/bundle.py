@@ -1,12 +1,14 @@
 from os import path
 import urlparse
 import glob
+import warnings
 from filter import get_filter
 from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
                    make_url, merge_filters)
+from updater import SKIP_CACHE
 
 
-__all__ = ('Bundle', 'BundleError',)
+__all__ = ('Bundle', 'BundleError', 'get_all_bundle_files',)
 
 
 class BundleError(Exception):
@@ -46,10 +48,12 @@ class Bundle(object):
     def __init__(self, *contents, **options):
         self.env = None
         self.contents = contents
-        self.output = options.get('output')
-        self.filters = options.get('filters')
-        self.debug = options.get('debug')
-        self.depends = options.get('depends', [])
+        self.output = options.pop('output', None)
+        self.filters = options.pop('filters', None)
+        self.debug = options.pop('debug', None)
+        self.depends = options.pop('depends', [])
+        if options:
+            raise TypeError('kwarg "%s" not supported' % options.keys[0])
         self.extra_data = {}
 
     def __repr__(self):
@@ -86,10 +90,12 @@ class Bundle(object):
         self._resolved_contents = None
     contents = property(_get_contents, _set_contents)
 
-    def resolve_contents(self, env):
+    def resolve_contents(self, env=None):
         """Returns contents, with globbed patterns resolved to
         actual filenames.
         """
+        env = self._get_env(env)
+
         # TODO: We cache the values, which in theory is problematic, since
         # due to changes in the env object, the result of the globbing may
         # change. Not to mention that a different env object may be passed
@@ -173,17 +179,10 @@ class Bundle(object):
             raise BundleError('Invalid debug value: %s' % debug)
 
     def get_files(self, env=None):
-        """Return a flattened list of all source files of this bundle,
-        and all the nested bundles.
-        """
-        env = self._get_env(env)
-        files = []
-        for c in self.resolve_contents(env):
-            if isinstance(c, Bundle):
-                files.extend(c.get_files(env))
-            elif not is_url(c):
-                files.append(env.abspath(c))
-        return files
+        warnings.warn('Bundle.get_files() has been replaced '+
+                      'by get_all_bundle_files() utility. '+
+                      'This API be removed in 0.6.')
+        return get_all_bundle_files(self, env)
 
     def __hash__(self):
         """This is used to determine when a bundle definition has
@@ -220,7 +219,8 @@ class Bundle(object):
             raise BundleError('Bundle is not connected to an environment')
         return env
 
-    def _build(self, env, output_path, force, no_filters, parent_filters=[]):
+    def _build(self, env, output_path, force, no_filters, parent_filters=[],
+               disable_cache=False):
         """Internal recursive build method.
         """
 
@@ -256,7 +256,7 @@ class Bundle(object):
         for c in resolved_contents:
             if isinstance(c, Bundle):
                 hunk = c._build(env, output_path, force, no_filters,
-                                combined_filters)
+                                combined_filters, disable_cache)
                 hunks.append(hunk)
             else:
                 if is_url(c):
@@ -267,7 +267,8 @@ class Bundle(object):
                     hunks.append(hunk)
                 else:
                     hunks.append(apply_filters(
-                        hunk, combined_filters, 'input', env.cache,
+                        hunk, combined_filters, 'input',
+                        env.cache, disable_cache,
                         output_path=output_path))
 
         # Return all source hunks as one, with output filters applied
@@ -275,7 +276,8 @@ class Bundle(object):
         if no_filters:
             return final
         else:
-            return apply_filters(final, self.filters, 'output', env.cache)
+            return apply_filters(final, self.filters, 'output',
+                                 env.cache, disable_cache)
 
     def build(self, env=None, force=False, no_filters=False):
         """Build this bundle, meaning create the file given by the
@@ -313,7 +315,8 @@ class Bundle(object):
             # We can simply return the existing output file
             return FileHunk(env.abspath(self.output))
 
-        hunk = self._build(env, self.output, force, no_filters)
+        hunk = self._build(env, self.output, force, no_filters,
+                           disable_cache=update_needed==SKIP_CACHE)
         hunk.save(env.abspath(self.output))
 
         # The updater may need to know this bundle exists and how it
@@ -383,3 +386,22 @@ class Bundle(object):
         for bundle in self.iterbuild(env):
             urls.extend(bundle._urls(env, *args, **kwargs))
         return urls
+
+
+def get_all_bundle_files(bundle, env=None):
+    """Return a flattened list of all source files of the given
+    bundle, all it's dependencies, recursively for all nested
+    bundles.
+
+    Making this a helper function rather than a part of the official
+    Bundle feels right.
+    """
+    env = bundle._get_env(env)
+    files = []
+    for c in bundle.resolve_contents(env):
+        if isinstance(c, Bundle):
+            files.extend(get_all_bundle_files(c, env))
+        elif not is_url(c):
+            files.append(env.abspath(c))
+        files.extend(bundle.resolve_depends(env))
+    return files

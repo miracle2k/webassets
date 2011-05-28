@@ -4,7 +4,8 @@ import logging
 from optparse import OptionParser
 
 from webassets.loaders import PythonLoader
-from webassets.bundle import BuildError
+from webassets.bundle import BuildError, get_all_bundle_files
+from webassets.updater import TimestampUpdater
 
 
 class CommandError(Exception):
@@ -43,7 +44,11 @@ class CommandLineEnvironment():
             # others in the future) need to go through the motions of
             # looping over iterbuild(). Can be move this to the environment?
             for to_build in bundle.iterbuild():
-                self.log.info("Building asset: %s" % to_build.output)
+                if not to_build.output:
+                    self.log.warning("No output target, skipping bundle "
+                                     "%s" % to_build)
+                    continue
+                self.log.info("Building bundle: %s" % to_build.output)
                 try:
                     to_build.build(force=True)
                 except BuildError, e:
@@ -60,7 +65,7 @@ class CommandLineEnvironment():
             changed_bundles = []
             for possibly_container in self.environment:
                 for bundle in possibly_container.iterbuild():
-                    for filename in bundle.get_files():
+                    for filename in get_all_bundle_files(bundle):
                         filename = bundle.env.abspath(filename)
                         stat = os.stat(filename)
                         mtime = stat.st_mtime
@@ -99,13 +104,33 @@ class CommandLineEnvironment():
                 os.unlink(file_path)
                 self.log.info("Deleted asset: %s" % bundle.output)
 
+    def check(self):
+        """Check to see if assets need to be rebuilt.
+
+        A non-zero exit status will be returned if any of the input files are
+        newer (based on mtime) than their output file. This is intended to be
+        used in pre-commit hooks.
+        """
+        needsupdate = False
+        updater = self.environment.updater
+        if not updater:
+            self.log.debug('no updater configured, using TimestampUpdater')
+            updater = TimestampUpdater()
+        for bundle in self.environment:
+            self.log.info('Checking asset: %s', bundle.output)
+            if updater.needs_rebuild(bundle, self.environment):
+                self.log.info('  needs update')
+                needsupdate = True
+        if needsupdate:
+            sys.exit(-1)
+
     # List of command methods
     Commands = {
         'rebuild': rebuild,
         'watch': watch,
         'clean': clean,
+        'check': check,
     }
-
 
 def main(argv, env=None):
     """Generic version of the command line utilities, not specific to

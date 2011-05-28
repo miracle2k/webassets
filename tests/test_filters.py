@@ -150,12 +150,22 @@ def test_get_filter():
     assert_raises(AssertionError, get_filter, lambda: None, 'test')
 
 
-class TestBuiltinFilters(BuildTestHelper):
-    """
-    TODO: Some filters are still lacking tests: closure, cssprefixer,
-       cssutils, less, yui, jspacker, jsmin
+def test_callable_filter():
+    """Simple callables can be used as filters.
 
+    Regression: Ensure that they actually work.
     """
+    def my_filter(_in, out):
+        assert _in.read() == 'initial value'
+        out.write('filter was here')
+    with BuildTestHelper() as helper:
+        helper.create_files({'in': 'initial value'})
+        b = helper.mkbundle('in', filters=my_filter, output='out')
+        b.build()
+        assert helper.get('out') == 'filter was here'
+
+
+class TestBuiltinFilters(BuildTestHelper):
 
     default_files = {
         'foo.css': """
@@ -163,6 +173,12 @@ class TestBuiltinFilters(BuildTestHelper):
                 font-family: "Verdana"  ;
                 color: #FFFFFF;
             }
+        """,
+        'foo.js': """
+        function foo(bar) {
+            var dummy;
+            document.write ( bar ); /* Write */
+        }
         """
     }
 
@@ -170,18 +186,35 @@ class TestBuiltinFilters(BuildTestHelper):
         self.create_files({'in': 'a'*100})
         self.mkbundle('in', filters='gzip', output='out.css').build()
         # GZip contains a timestamp (which additionally Python only
-        # supports changing beginnging with 2.7), so we can't compare
+        # supports changing beginning with 2.7), so we can't compare
         # the full string.
         assert self.get('out.css')[:3] == '\x1f\x8b\x08'
         assert len(self.get('out.css')) == 24
 
+    def test_cssprefixer(self):
+        try:
+            import cssprefixer
+        except ImportError:
+            raise SkipTest()
+        self.create_files({'in': """a { border-radius: 1em; }"""})
+        self.mkbundle('in', filters='cssprefixer', output='out.css').build()
+        assert self.get('out.css') == 'a {\n    -webkit-border-radius: 1em;\n    -moz-border-radius: 1em;\n    border-radius: 1em\n    }'
+
     def test_cssmin(self):
         try:
             self.mkbundle('foo.css', filters='cssmin', output='out.css').build()
-            assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
         except EnvironmentError:
             # cssmin is not installed, that's ok.
             raise SkipTest()
+        assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
+
+    def test_cssutils(self):
+        try:
+            import cssutils
+        except ImportError:
+            raise SkipTest()
+        self.mkbundle('foo.css', filters='cssutils', output='out.css').build()
+        assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
 
     def test_clevercss(self):
         try:
@@ -201,6 +234,57 @@ class TestBuiltinFilters(BuildTestHelper):
   alert("I knew it!");
 }
 """
+
+    def test_less(self):
+        if not find_executable('lessc'):
+            raise SkipTest()
+        self.mkbundle('foo.css', filters='less', output='out.css').build()
+        assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #ffffff;\n}\n'
+
+    def test_jsmin(self):
+        self.mkbundle('foo.js', filters='jsmin', output='out.js').build()
+        assert self.get('out.js') == "\nfunction foo(bar){var dummy;document.write(bar);}"
+
+    def test_rjsmin(self):
+        try:
+            import rjsmin
+        except ImportError:
+            raise SkipTest()
+        self.mkbundle('foo.js', filters='rjsmin', output='out.js').build()
+        assert self.get('out.js') == "function foo(bar){var dummy;document.write(bar);}"
+
+    def test_jspacker(self):
+        self.mkbundle('foo.js', filters='jspacker', output='out.js').build()
+        assert self.get('out.js').startswith('eval(function(p,a,c,k,e,d)')
+
+    def test_closure(self):
+        try:
+            self.mkbundle('foo.js', filters='closure_js', output='out1.js').build()
+            self.m.config['CLOSURE_COMPRESSOR_OPTIMIZATION'] = 'SIMPLE_OPTIMIZATIONS'
+            self.mkbundle('foo.js', filters='closure_js', output='out2.js').build()
+        except EnvironmentError:
+            # We don't really have a way to make this filter work without
+            # configuration. What would be nice is a "closure" Python
+            # package in the spirit of "yuicompressor".
+            raise SkipTest()
+        assert self.get('out1.js') == 'function foo(bar){var dummy;document.write(bar)};\n'
+        assert self.get('out2.js') == 'function foo(a){document.write(a)};\n'
+
+    def test_yui_js(self):
+        try:
+            import yuicompressor
+        except ImportError:
+            raise SkipTest()
+        self.mkbundle('foo.js', filters='yui_js', output='out.js').build()
+        assert self.get('out.js') == "function foo(a){var b;document.write(a)};"
+
+    def test_yui_css(self):
+        try:
+            import yuicompressor
+        except ImportError:
+            raise SkipTest()
+        self.mkbundle('foo.css', filters='yui_css', output='out.css').build()
+        assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
 
 
 class TestCssRewrite(BuildTestHelper):

@@ -110,9 +110,14 @@ def merge(hunks):
     return MemoryHunk("\n".join([h.data() for h in hunks]))
 
 
-def apply_filters(hunk, filters, type, cache=None, **kwargs):
+def apply_filters(hunk, filters, type, cache=None, no_cache_read=False,
+                  **kwargs):
     """Apply the given list of filters to the hunk, returning a new
     ``MemoryHunk`` object.
+
+    If ``no_cache_read`` is given, then the cache will not be
+    considered for this operation (though the result will still be
+    written to the cache).
 
     ``kwargs`` are options that should be passed along to the filters.
     If ``hunk`` is a file hunk, a ``source_path`` key will automatically
@@ -128,9 +133,10 @@ def apply_filters(hunk, filters, type, cache=None, **kwargs):
 
     if cache:
         key = ("hunk", hunk.key(), tuple(filters), type)
-        content = cache.get(key)
-        if not content in (False, None):
-            return MemoryHunk(content)
+        if not no_cache_read:
+            content = cache.get(key)
+            if not content in (False, None):
+                return MemoryHunk(content)
 
     kwargs = kwargs.copy()
     if hasattr(hunk, 'filename'):

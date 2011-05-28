@@ -20,6 +20,12 @@ Javascript compressors
 .. autoclass:: webassets.filter.jsmin.JSMinFilter
 
 
+``rjsmin``
+~~~~~~~~~
+
+.. autoclass:: webassets.filter.rjsmin.RJSMinFilter
+
+
 ``yui_js``
 ~~~~~~~~~~
 
@@ -120,3 +126,9 @@ Other
 ~~~~~~~~
 
 .. autoclass:: webassets.filter.gzip.GZipFilter
+
+
+``coffeescript``
+~~~~~~~~
+
+.. autoclass:: webassets.filter.coffeescript.CoffeeScriptFilter
