@@ -1,6 +1,6 @@
 import tempfile, shutil
 from nose.tools import assert_equals
-from webassets import Bundle, Environment
+from webassets.updater import TimestampUpdater
 from webassets.cache import BaseCache, FilesystemCache, MemoryCache
 from helpers import BuildTestHelper
 
@@ -55,7 +55,7 @@ class TestCacheIsUsed(BuildTestHelper):
 
         self.m.cache = self.cache = MyCache()
         # Note that updater will use the cache also
-        self.m.updater = 'timestamp'
+        self.m.versioner.updater = TimestampUpdater()
 
     def test_cache_disabled(self):
         bundle = self.mkbundle('in1', 'in2', output='out', filters="jsmin")
@@ -81,6 +81,6 @@ class TestCacheIsUsed(BuildTestHelper):
         """
         bundle = self.mkbundle('in1', 'in2', output='out', filters="jsmin")
         self.m.cache = True   # use the filesystem cache
-        self.m.updater = 'timestamp'
+        self.m.versioner.updater = TimestampUpdater()
         bundle.build(force=True)
 

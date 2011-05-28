@@ -129,7 +129,7 @@ class TestSpecialProperties:
         assert self.m.versioner == instance
 
         # Class assign
-        self.m.updater = BaseVersion
+        self.m.versioner = BaseVersion
         assert isinstance(self.m.versioner, BaseVersion)
 
         # Invalid value
