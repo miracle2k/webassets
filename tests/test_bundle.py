@@ -21,7 +21,12 @@ class TestBundleConfig(BuildTestHelper):
         mistakes harder to track down; in particular "filters" vs "filter"
         is confusing. Now we raise an error.
         """
-        assert_raises(TypeError, Bundle, yaddayada=True)
+        try:
+            Bundle(yaddayada=True)
+        except TypeError, e:
+            assert "unexpected keyword argument" in ("%s" % e)
+        else:
+            raise Exception('Expected TypeError not raised')
 
     def test_filter_assign(self):
         """Test the different ways we can assign filters to the bundle.
