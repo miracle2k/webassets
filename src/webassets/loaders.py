@@ -122,7 +122,10 @@ class YAMLLoader(object):
             env = Environment(directory, obj['url'])
 
             # load environment settings
-            for setting in ('debug', 'cache', 'updater', 'expire',):
+            for setting in ('debug', 'cache', 'versioner', 'url_expire',
+                            'auto_build',
+                            # TODO: The deprecated values; remove at some point
+                            'expire', 'updater'):
                 if setting in obj:
                     setattr(env, setting, obj[setting])
 

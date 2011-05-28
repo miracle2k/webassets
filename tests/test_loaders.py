@@ -1,6 +1,7 @@
 from nose.tools import assert_raises
 import textwrap
 from StringIO import StringIO
+from test.test_support import check_warnings
 from webassets.loaders import YAMLLoader, LoaderError
 from nose import SkipTest
 
@@ -60,14 +61,18 @@ class TestYAML(object):
         environment = self.loader("""
         url: /foo
         directory: something
-        updater: 'always'
+        versioner: 'timestamp'
+        auto_build: true
+        url_expire: true
 
         bundles:
             test:
                 output: foo
         """).load_environment()
         assert environment.url == '/foo'
-        assert environment.updater == 'always'
+        assert environment.url_expire == True
+        assert environment.auto_build == True
+        assert environment.config['versioner'] == 'timestamp'
 
         # Because the loader isn't aware of the file location, the
         # directory is read as-is, relative to cwd rather than the
@@ -76,6 +81,15 @@ class TestYAML(object):
 
         # [bug] Make sure the bundles are loaded as well.
         assert len(environment) == 1
+
+    def test_load_deprecated_attrs(self):
+        with check_warnings(("", DeprecationWarning)) as w:
+            environment = self.loader("""
+            url: /foo
+            directory: something
+            updater: false
+            """).load_environment()
+            assert environment.auto_build == False
 
     def test_load_environment_directory_base(self):
         environment = self.loader("""
