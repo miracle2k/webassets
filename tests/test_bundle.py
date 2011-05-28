@@ -151,6 +151,8 @@ class TestVersionSystemDeprecations(BuildTestHelper):
             assert self.m.url_expire == False
             self.m.expire = 'querystring'
             assert self.m.url_expire == True
+            # "filename" needs to be migrated manually
+            assert_raises(DeprecationWarning, setattr, self.m, 'expire', 'filename')
 
     def test_updater_option_passthrough(self):
         """While "updater" no longer exists, we attempt to provide an
@@ -166,6 +168,8 @@ class TestVersionSystemDeprecations(BuildTestHelper):
             assert self.m.auto_build == False
             self.m.updater = 'timestamp'
             assert self.m.auto_build == True
+            # "always" needs to be migrated manually
+            assert_raises(DeprecationWarning, setattr, self.m, 'updater', 'always')
 
 
 class TestBuild(BuildTestHelper):

@@ -79,11 +79,22 @@ class ConfigStorage(object):
     def _set_deprecated(self, key, value):
         self._warn_key_deprecation(key)
         if key == 'expire':
+            if value == 'filename':
+                raise DeprecationWarning(
+                    ('The "expire" option has been deprecated. Instead '
+                     'of the "filesystem" expiry mode, use the %(version)s '
+                     'placeholder in your bundle\'s output filename.'))
             self['url_expire'] = bool(value)
             return True
         if key == 'updater':
-            if not value:
+            if not value or value == 'never':
                 self['auto_build'] = False
+            elif value == 'always':
+                raise DeprecationWarning(
+                    ('The "updater" option has been deprecated. To keep '
+                     'the old "always" behaviour you need to assign '
+                     '"AlwaysUpdater" to "Environment.versioner.updater" '
+                     'in code.'))
             else:
                 self['auto_build'] = True
             return True
