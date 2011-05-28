@@ -182,7 +182,7 @@ class Bundle(object):
     def get_files(self, env=None):
         warnings.warn('Bundle.get_files() has been replaced '+
                       'by get_all_bundle_files() utility. '+
-                      'This API be removed in 0.6.')
+                      'This API is to be removed in 0.6.')
         return get_all_bundle_files(self, env)
 
     def __hash__(self):
@@ -335,7 +335,7 @@ class Bundle(object):
         bundles (and container bundle hierarchies), a list of all the
         non-container leafs will be yielded.
 
-        Essentally, what this does is "skip" bundles which do not need
+        Essentially, what this does is "skip" bundles which do not need
         to be built on their own (container bundles), and gives the
         caller the child bundles instead.
         """
