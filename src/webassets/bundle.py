@@ -154,31 +154,6 @@ class Bundle(object):
             self._resolved_depends = l
         return self._resolved_depends
 
-    def determine_action(self, env):
-        """Decide what needs to be done when this bundle needs to be
-        resolved.
-
-        Specifically, whether to apply filters and whether to merge. This
-        depends on both the global settings, as well as the ``debug``
-        attribute of this bundle.
-
-        Returns a 2-tuple of (should_merge, should_filter). The latter
-        always implies the former.
-        """
-        if not env.debug:
-            return True, True
-
-        debug = self.debug if self.debug is not None else env.debug
-
-        if debug == 'merge':
-            return True, False
-        elif debug is True:
-            return False, False
-        elif debug is False:
-            return True, True
-        else:
-            raise BundleError('Invalid debug value: %s' % debug)
-
     def get_files(self, env=None):
         warnings.warn('Bundle.get_files() has been replaced '+
                       'by get_all_bundle_files() utility. '+
@@ -220,22 +195,27 @@ class Bundle(object):
             raise BundleError('Bundle is not connected to an environment')
         return env
 
-    def _build(self, env, output_path, force, no_filters, parent_filters=[],
-               disable_cache=False):
+    def _build(self, env, output_path, force, no_filters=False,
+               parent_filters=[], disable_cache=False):
         """Internal recursive build method.
         """
 
-        # TODO: We could support a nested bundle downgrading it's debug
-        # setting from "filters" to "merge only", i.e. enabling
-        # ``no_filters``. We cannot support downgrading to
-        # "full debug/no merge" (debug=True), of course.
-        #
-        # Right now we simply use the debug setting of the root bundle
-        # we build, und it overrides all the nested bundles. If we
-        # allow nested bundles to overwrite the debug value of parent
-        # bundles, as described above, then we should also deal with
-        # a child bundle enabling debug=True during a merge, i.e.
-        # raising an error rather than ignoring it as we do now.
+        # Look at the bundle's ``debug`` option to decide what
+        # building it entails.
+        debug = self.debug if self.debug is not None else env.debug
+        if debug is None:
+            # work with whatever no_filters was passed by the parent
+            pass
+        elif debug == 'merge':
+            no_filters = True
+        elif debug is True:
+            # This should be caught by urls().
+            raise BuildError("a bundle with debug=True cannot be built")
+        elif debug is False:
+            no_filters = False
+        else:
+            raise BundleError('Invalid debug value: %s' % debug)
+
         resolved_contents = self.resolve_contents(env)
         if not resolved_contents:
             raise BuildError('empty bundle cannot be built')
@@ -280,7 +260,7 @@ class Bundle(object):
             return apply_filters(final, self.filters, 'output',
                                  env.cache, disable_cache)
 
-    def build(self, env=None, force=False, no_filters=False):
+    def build(self, env=None, force=False):
         """Build this bundle, meaning create the file given by the
         ``output`` attribute, applying the configured filters etc.
 
@@ -315,7 +295,7 @@ class Bundle(object):
             # We can simply return the existing output file
             return FileHunk(env.abspath(self.output))
 
-        hunk = self._build(env, self.output, force, no_filters,
+        hunk = self._build(env, self.output, force,
                            disable_cache=update_needed==SKIP_CACHE)
         hunk.save(env.abspath(self.output))
 
@@ -351,14 +331,24 @@ class Bundle(object):
 
     def _urls(self, env, *args, **kwargs):
         env = self._get_env(env)
-        supposed_to_merge, do_filter = self.determine_action(env)
+
+        # Resolve debug: see whether we have to merge the contents
+        debug = self.debug if self.debug is not None else env.debug
+        if debug == 'merge':
+            supposed_to_merge = True
+        elif debug is True:
+            supposed_to_merge = False
+        elif debug is False:
+            supposed_to_merge = True
+        else:
+            raise BundleError('Invalid debug value: %s' % debug)
 
         if supposed_to_merge and (self.filters or self.output):
             # We need to build this bundle, unless a) the configuration
             # tells us not to ("determine_action"), or b) this bundle
             # isn't actually configured to be built, that is, has no
             # filters and no output target.
-            hunk = self.build(env, no_filters=not do_filter, *args, **kwargs)
+            hunk = self.build(env, *args, **kwargs)
             return [make_url(env, self.output)]
         else:
             # We either have no files (nothing to build), or we are

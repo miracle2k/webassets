@@ -20,6 +20,10 @@ In 0.6
   ``Environment.debug``/``ASSETS_DEBUG`` option. If you want the old
   behavior, you can easily configure it manually.
 
+- The ``Bundle.build`` method no longer takes the ``no_filters``
+  argument. This was always intended for internal use and it's existence
+  not advertised, so it's removal shouldn't cause too many problems.
+
 
 In 0.4
 ~~~~~~
