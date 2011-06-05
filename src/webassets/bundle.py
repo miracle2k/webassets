@@ -229,9 +229,6 @@ class Bundle(object):
         # the parent. We ONLY do those this for the input filters,
         # because we need them to be applied before the apply our own
         # output filters.
-        # TODO: Note that merge_filters() removes duplicates. Is this
-        # really the right thing to do, or does it just confuse things
-        # due to there now being different kinds of behavior...
         combined_filters = merge_filters(self.filters, parent_filters)
         hunks = []
         for c in resolved_contents:
