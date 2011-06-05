@@ -500,21 +500,35 @@ class BaseUrlsTester(BuildTestHelper):
         self.MockBundle = MockBundle
 
 
-def test_urls_with_erroneous_debug_value():
-    """Test the exception Bundle.urls() throws if debug is an invalid
-    value."""
-    with BaseUrlsTester() as helper:
+class TestUrlsCommon(BaseUrlsTester):
+    """Other, general tests for the urls() method.
+    """
+    
+    def test_erroneous_debug_value(self):
+        """Test the exception Bundle.urls() throws if debug is an invalid
+        value."""
         # On the bundle level
-        b = helper.MockBundle('a', 'b', debug="invalid")
-        assert_raises(BundleError, b.urls, env=helper.m)
+        b = self.MockBundle('a', 'b', debug="invalid")
+        assert_raises(BundleError, b.urls, env=self.m)
 
         # On the environment level
-        helper.m.debug = "invalid"
-        b = helper.MockBundle('a', 'b')
-        assert_raises(BundleError, b.urls, env=helper.m)
+        self.m.debug = "invalid"
+        b = self.MockBundle('a', 'b')
+        assert_raises(BundleError, b.urls, env=self.m)
 
         # Self-check - this should work if this test works.
-        helper.MockBundle('a', 'b', debug="merge").urls()
+        self.MockBundle('a', 'b', debug="merge").urls()
+
+    def test_pass_down_env(self):
+        """[Regression] When a root *container* bundle is connected
+        to an environment, the child bundles do not have to be.
+        """
+        child = Bundle('1', '2')
+        child.env = None
+        root = self.MockBundle(child)
+        root.env = self.m
+        # Does no longer raise an "unconnected env" exception
+        assert root.urls() == ['/1', '/2']
 
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):

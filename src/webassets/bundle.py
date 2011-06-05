@@ -330,8 +330,6 @@ class Bundle(object):
             yield self
 
     def _urls(self, env, *args, **kwargs):
-        env = self._get_env(env)
-
         # Resolve debug: see whether we have to merge the contents
         debug = self.debug if self.debug is not None else env.debug
         if debug == 'merge':
@@ -372,6 +370,7 @@ class Bundle(object):
         Insofar necessary, this will automatically create or update
         the files behind these urls.
         """
+        env = self._get_env(env)
         urls = []
         for bundle in self.iterbuild(env):
             urls.extend(bundle._urls(env, *args, **kwargs))
