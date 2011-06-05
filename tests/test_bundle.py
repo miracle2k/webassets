@@ -277,7 +277,7 @@ class TestFilters(BuildTestHelper):
     """Test filter application during building.
     """
 
-    default_files = {'1': 'foo', '2': 'foo'}
+    default_files = {'1': 'foo', '2': 'foo', '3': 'foo'}
 
     def test_input_before_output(self):
         """Ensure that input filters are applied, and that they are applied
@@ -317,6 +317,21 @@ class TestFilters(BuildTestHelper):
                                filters=AppendFilter(input='-parent', unique=False))
         parent_bundle.build()
         assert self.get('out') == 'foo-child\nfoo-child'
+
+    def test_container_bundle_with_filters(self):
+        """If a bundle has no output, but filters, those filters are
+        passed down to each sub-bundle.
+        """
+        self.mkbundle(
+            Bundle('1', output='out1', filters=()),
+            Bundle('2', output='out2', filters=AppendFilter(':childin', ':childout')),
+            Bundle('3', output='out3', filters=AppendFilter(':childin', ':childout', unique=False)),
+            filters=AppendFilter(':rootin', ':rootout', unique=False)
+        ).urls()
+        self.p('out1', 'out2', 'out3')
+        assert self.get('out1') == 'foo:rootin:rootout'
+        assert self.get('out2') == 'foo:childin:rootin:childout:rootout'
+        assert self.get('out3') == 'foo:childin:childout'
 
 
 class TestUpdateAndCreate(BuildTestHelper):
@@ -594,14 +609,6 @@ class TestUrlsWithDebugFalse(BaseUrlsTester):
             output='childout', debug=True)
         assert_equals(bundle.urls(), ['/1', '/2', '/child1'])
         assert len(self.build_called) == 1
-
-    def test_container_bundle_with_filters(self):
-        """If a bundle has no output, but filters, those filters are
-        passed down to each sub-bundle.
-        """
-        # TODO: This still needs to be implemented, but I'm unsure
-        # right now if it's really the behavior I want.
-        raise SkipTest()
 
 
 class TestUrlsWithDebugTrue(BaseUrlsTester):

@@ -92,3 +92,13 @@ class BuildTestHelper:
         for f in files:
             os.utime(self.path(f), (mtime, mtime))
         return mtime
+
+    def p(self, *files):
+        """Print the contents of the given files to stdout; useful
+        for some quick debugging.
+        """
+        for f in files:
+            print f
+            print "-" * len(f)
+            print self.get(f)
+            print

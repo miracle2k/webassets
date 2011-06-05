@@ -206,6 +206,10 @@ def merge_filters(filters1, filters2):
     are always removed from the second filter set if they exist in the
     first.
 
+    The result will always be ``filters1``, with additional unique
+    filters from ``filters2`` appended. Within the context of a
+    hierarchy, you want ``filters2`` to be the parent.
+
     This function presumes that all the given filters inherit from
     ``Filter``, which properly implements operators to determine
     duplicate filters.

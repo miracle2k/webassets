@@ -42,8 +42,9 @@ class CommandLineEnvironment():
         for bundle in self.environment:
             # TODO: Both the build() and the watch() command (and possibly
             # others in the future) need to go through the motions of
-            # looping over iterbuild(). Can be move this to the environment?
-            for to_build in bundle.iterbuild():
+            # looping over iterbuild(). In particular with extra_filters
+            # now this needs to change.
+            for to_build, extra_filters in bundle.iterbuild():
                 if not to_build.output:
                     self.log.warning("No output target, skipping bundle "
                                      "%s" % to_build)
@@ -64,7 +65,7 @@ class CommandLineEnvironment():
         def check_for_changes():
             changed_bundles = []
             for possibly_container in self.environment:
-                for bundle in possibly_container.iterbuild():
+                for bundle, _ in possibly_container.iterbuild():
                     for filename in get_all_bundle_files(bundle):
                         filename = bundle.env.abspath(filename)
                         stat = os.stat(filename)

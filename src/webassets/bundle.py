@@ -196,8 +196,22 @@ class Bundle(object):
         return env
 
     def _build(self, env, output_path, force, no_filters=False,
-               parent_filters=[], disable_cache=False):
+               parent_filters=[], extra_filters=[], disable_cache=False):
         """Internal recursive build method.
+
+        ``no_filters`` disables filter application ("merge" mode).
+
+        ``parent_filters`` are what the direct parent passes along, for
+        us to be applied as input filters.
+
+        ``extra_filters`` may exist if the parent is a container bundle
+        passing filters along to it's children; these are applied as input
+        and output filters (since there is no parent who could do the
+        latter), and they are not passed further down the hierarchy.
+
+        ``disable_cache`` is necessary because in some cases, when an
+        external bundle dependency has changed, we must not rely on the
+        cache.
         """
 
         # Look at the bundle's ``debug`` option to decide what
@@ -216,12 +230,15 @@ class Bundle(object):
         else:
             raise BundleError('Invalid debug value: %s' % debug)
 
+
+        # Prepare contents
         resolved_contents = self.resolve_contents(env)
         if not resolved_contents:
             raise BuildError('empty bundle cannot be built')
 
-        # Ensure that the filters are ready
-        for filter in self.filters:
+        # Prepare filters
+        filters = merge_filters(self.filters, extra_filters)
+        for filter in filters:
             filter.set_environment(env)
 
         # Apply input filters to all the contents. Note that we use
@@ -229,7 +246,7 @@ class Bundle(object):
         # the parent. We ONLY do those this for the input filters,
         # because we need them to be applied before the apply our own
         # output filters.
-        combined_filters = merge_filters(self.filters, parent_filters)
+        combined_filters = merge_filters(filters, parent_filters)
         hunks = []
         for c in resolved_contents:
             if isinstance(c, Bundle):
@@ -254,10 +271,10 @@ class Bundle(object):
         if no_filters:
             return final
         else:
-            return apply_filters(final, self.filters, 'output',
+            return apply_filters(final, filters, 'output',
                                  env.cache, disable_cache)
 
-    def build(self, env=None, force=False):
+    def build(self, env=None, force=False, _extra_filters=[]):
         """Build this bundle, meaning create the file given by the
         ``output`` attribute, applying the configured filters etc.
 
@@ -293,7 +310,8 @@ class Bundle(object):
             return FileHunk(env.abspath(self.output))
 
         hunk = self._build(env, self.output, force,
-                           disable_cache=update_needed==SKIP_CACHE)
+                           disable_cache=update_needed==SKIP_CACHE,
+                           extra_filters=_extra_filters)
         hunk.save(env.abspath(self.output))
 
         # The updater may need to know this bundle exists and how it
@@ -314,19 +332,24 @@ class Bundle(object):
         Essentially, what this does is "skip" bundles which do not need
         to be built on their own (container bundles), and gives the
         caller the child bundles instead.
+
+        The return values are 2-tuples of (bundle, filter_list), with
+        the second item being a list of filters that the parent
+        "container bundles" this method is processing are passing down
+        to the children.
         """
         env = self._get_env(env)
         if self.is_container:
             for bundle in self.resolve_contents(env):
                 if bundle.is_container:
-                    for t in bundle.iterbuild(env):
-                        yield t
+                    for child, child_filters in bundle.iterbuild(env):
+                        yield child, merge_filters(child_filters, self.filters)
                 else:
-                    yield bundle
+                    yield bundle, self.filters
         else:
-            yield self
+            yield self, []
 
-    def _urls(self, env, *args, **kwargs):
+    def _urls(self, env, extra_filters, *args, **kwargs):
         # Resolve debug: see whether we have to merge the contents
         debug = self.debug if self.debug is not None else env.debug
         if debug == 'merge':
@@ -340,10 +363,15 @@ class Bundle(object):
 
         if supposed_to_merge and (self.filters or self.output):
             # We need to build this bundle, unless a) the configuration
-            # tells us not to ("determine_action"), or b) this bundle
+            # tells us not to ("supposed_to_merge"), or b) this bundle
             # isn't actually configured to be built, that is, has no
             # filters and no output target.
-            hunk = self.build(env, *args, **kwargs)
+            # TODO: I'm not a fan of exposing stuff like extra_filters
+            # in the main build() method, which is basically public API.
+            # We probably need to add a third method between build
+            # and _build which _urls() can call directly here. 
+            hunk = self.build(env, _extra_filters=extra_filters,
+                              *args, **kwargs)
             return [make_url(env, self.output)]
         else:
             # We either have no files (nothing to build), or we are
@@ -369,8 +397,8 @@ class Bundle(object):
         """
         env = self._get_env(env)
         urls = []
-        for bundle in self.iterbuild(env):
-            urls.extend(bundle._urls(env, *args, **kwargs))
+        for bundle, extra_filters in self.iterbuild(env):
+            urls.extend(bundle._urls(env, extra_filters, *args, **kwargs))
         return urls
 
 
