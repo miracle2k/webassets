@@ -43,7 +43,7 @@ In 0.2
 ~~~~~~
 
 - The filter API has changed. Rather than defining an ``apply`` method and
-  optinally an ``is_source_filter`` attribute, those now have been replaced
+  optionally an ``is_source_filter`` attribute, those now have been replaced
   by ``input()`` and ``output()`` methods. As a result, a single filter can
   now act as both an input and an output filter.
 
