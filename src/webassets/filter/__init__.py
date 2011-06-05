@@ -9,6 +9,7 @@ import inspect
 __all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',)
 
 
+
 class NameGeneratingMeta(type):
     """Metaclass that will generate a "name" attribute based on the
     class name if none is given.

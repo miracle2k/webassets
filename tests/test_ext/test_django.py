@@ -6,10 +6,10 @@ except ImportError:
 from django.template import Template, Context
 from django_assets import Bundle, register as django_env_register
 from django_assets.env import get_env, reset as django_env_reset
-from webassets.bundle import BuildError
 
 
 AssetsNode = None
+
 
 def setup_module():
     from django.conf import settings

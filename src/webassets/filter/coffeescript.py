@@ -1,13 +1,15 @@
 import os, subprocess
 
 from webassets.filter import Filter
+from webassets.exceptions import FilterError
 
 
 __all__ = ('CoffeeScriptFilter',)
 
 
 class CoffeeScriptFilter(Filter):
-    """Converts `CoffeeScript <http://jashkenas.github.com/coffee-script/>`_ to real JavaScript.
+    """Converts `CoffeeScript <http://jashkenas.github.com/coffee-script/>`_
+    to real JavaScript.
 
     If you want to combine it with other JavaScript filters, make sure this
     one runs first.
@@ -16,7 +18,8 @@ class CoffeeScriptFilter(Filter):
     name = 'coffeescript'
 
     def setup(self):
-        self.coffee = self.get_config('COFFEE_PATH', what='coffee binary', require=False) or 'coffee'
+        self.coffee = self.get_config(
+            'COFFEE_PATH', what='coffee binary', require=False) or 'coffee'
 
     def input(self, _in, out, source_path, output_path):
         old_dir = os.getcwd()

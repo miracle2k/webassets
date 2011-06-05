@@ -2,7 +2,6 @@ import urllib2
 from StringIO import StringIO
 
 from nose.tools import assert_raises, assert_equals
-from nose import SkipTest
 
 from webassets import Bundle
 from webassets.bundle import BuildError, BundleError

@@ -1,6 +1,4 @@
-import time
 import os, subprocess
-import tempfile
 
 from webassets.filter import Filter
 

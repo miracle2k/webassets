@@ -26,8 +26,6 @@ See:
     http://groups.google.com/group/compass-users/browse_thread/thread/daf55acda03656d1
 """
 
-
-import time
 import os, subprocess
 from os import path
 import tempfile
