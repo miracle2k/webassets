@@ -30,8 +30,8 @@ class CoffeeScriptFilter(Filter):
                                     stderr=subprocess.PIPE)
             stdout, stderr = proc.communicate()
             if proc.returncode != 0:
-                raise Exception(('coffeescript: subprocess had error: stderr=%s, '+
-                                'stdout=%s, returncode=%s') % (
+                raise FilterError(('coffeescript: subprocess had error: stderr=%s, '+
+                                   'stdout=%s, returncode=%s') % (
                                                 stderr, stdout, proc.returncode))
             elif stderr:
                 print "coffeescript filter has warnings:", stderr

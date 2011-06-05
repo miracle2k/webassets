@@ -6,17 +6,10 @@ from filter import get_filter
 from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
                    make_url, merge_filters)
 from updater import SKIP_CACHE
+from exceptions import BundleError, BuildError
 
 
-__all__ = ('Bundle', 'BundleError', 'get_all_bundle_files',)
-
-
-class BundleError(Exception):
-    pass
-
-
-class BuildError(BundleError):
-    pass
+__all__ = ('Bundle', 'get_all_bundle_files',)
 
 
 def is_url(s):

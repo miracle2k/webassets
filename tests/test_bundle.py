@@ -4,7 +4,7 @@ from StringIO import StringIO
 from nose.tools import assert_raises, assert_equals
 
 from webassets import Bundle
-from webassets.bundle import BuildError, BundleError
+from webassets.exceptions import BundleError, BuildError
 from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache

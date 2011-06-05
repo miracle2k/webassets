@@ -4,7 +4,8 @@ import logging
 from optparse import OptionParser
 
 from webassets.loaders import PythonLoader
-from webassets.bundle import BuildError, get_all_bundle_files
+from webassets.bundle import get_all_bundle_files
+from webassets.exceptions import BuildError
 from webassets.updater import TimestampUpdater
 
 

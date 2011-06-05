@@ -1,6 +1,7 @@
 import os, subprocess
 
 from webassets.filter import Filter
+from webassets.exceptions import FilterError
 
 
 __all__ = ('SassFilter', 'SCSSFilter')
@@ -43,8 +44,8 @@ class SassFilter(Filter):
             stdout, stderr = proc.communicate(_in.read())
 
             if proc.returncode != 0:
-                raise Exception(('sass: subprocess had error: stderr=%s, '+
-                                'stdout=%s, returncode=%s') % (
+                raise FilterError(('sass: subprocess had error: stderr=%s, '+
+                                   'stdout=%s, returncode=%s') % (
                                                 stderr, stdout, proc.returncode))
             elif stderr:
                 print "sass filter has warnings:", stderr

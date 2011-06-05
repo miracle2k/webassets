@@ -28,7 +28,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 from webassets import Bundle
-from webassets.bundle import BuildError
+from webassets.exceptions import BuildError
 from webassets.script import (CommandLineEnvironment,
                               CommandError as AssetCommandError)
 from django_assets.env import get_env, autoload

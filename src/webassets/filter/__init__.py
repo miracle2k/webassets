@@ -4,6 +4,7 @@ contents (think minification, compression).
 
 import os, subprocess
 import inspect
+from webassets.exceptions import FilterError
 
 
 __all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',)
@@ -198,7 +199,7 @@ class JavaMixin(object):
             stderr=subprocess.PIPE)
         stdout, stderr = proc.communicate(_in.read())
         if proc.returncode:
-            raise Exception('%s: subprocess returned a '
+            raise FilterError('%s: subprocess returned a '
                 'non-success result code: %s' % (self.name, proc.returncode))
             # stderr contains error messages
         else:
