@@ -77,7 +77,10 @@ class CommandLineEnvironment():
                 changed_bundles = check_for_changes()
                 for bundle in changed_bundles:
                     self.log.info("Rebuilding asset: %s" % bundle.output)
-                    bundle.build(force=True)
+                    try:
+                        bundle.build(force=True)
+                    except BuildError, e:
+                        print "Failed: %s" % e
                 time.sleep(0.1)
         except KeyboardInterrupt:
             pass
