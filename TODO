@@ -1,35 +1,7 @@
 There is currently no locking going during auto-rebuilds, that is multiple
 requests could potentially cause multiple builds!
 
-As much as I like the fact that one doesn't need to specify the filters to
-use globally, the fact is that in many cases, the same set of filters is
-going to be used, and for many simple cases, a set of default filters will
-work really well and make things easy for new users. May something like this
-could be added:
-	 - env.default_filters['js'] == 'jsmin'
-    - JSBundle('')
-    - In templates, maybe: {% assets type="js" %}?
-
 Add a switch to the rebuild() command to ignore the cache.
-
-I keep coming back to this idea of having bundles that contain different
-file types. For example, a jQueryUI bundle may reference both the JS and CSS
-files of jQueryUI. Or, a form widget calendar widget could provide a bundle
-with both the necessary JS and CSS files (this would allow things like
-collecting all assets from all form widgets used to built the final bundle).
-This would be much nicer than having to deal with separate bundles.
-How would this be implemented?
-    - The "contents" and "filters" attributes would become dicts:
-      bundle.contents['js']
-    - The template tags could: a) output the type ("js", "css") as a var; b)
-      allow type="js" as an argument.
-    - To maintain backwards-compatibility (and for convienience) the default
-      Bundle() call would automatically separate the files based on
-      extension. bundle.contents.js would expose only the JS files, while
-      bundle.contents would continue to expose all. It would therefor be
-      possible to continue while ignoring the new type-separation, so long
-      as the Bundle only contains files of one type.
-Question: What if a library wants to provide a separate CSS file for IE?
 
 Should bundle names be namespacable, similar to Django urls? At the least,
 we probably want to encourage a convention of prefixing your bundle names
@@ -81,11 +53,6 @@ bundle-by-bundle basis:
     - How to expire assets
 Basically, all the settings should be customizable this way, with the
 settings themselves only serving as a default.
-
-Provide a JSBundle, CSSBundle, AutoDetectBundle (for use in templates)
-base classes which would provide a default set of filters; the idea is
-to make starting with django-assets easier, but I'm not entirely
-convinced it makes sense.
 
 Some filters, like the less filter, cannot work with an input stream,
 but only with the source files directly. To work, they thus need to be

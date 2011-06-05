@@ -20,6 +20,15 @@ In 0.6
   ``Environment.debug``/``ASSETS_DEBUG`` option. If you want the old
   behavior, you can easily configure it manually.
 
+- The ``Bundle.build`` method no longer takes the ``no_filters``
+  argument. This was always intended for internal use and it's existence
+  not advertised, so it's removal shouldn't cause too many problems.
+
+- The ``Bundle.build`` method now returns a list of ``FileHunk`` objects,
+  rather than a single one. It now works for container bundles (bundles
+  which only have other bundles for children, not files), rather than
+  raising an exception.
+
 
 In 0.4
 ~~~~~~
@@ -39,7 +48,7 @@ In 0.2
 ~~~~~~
 
 - The filter API has changed. Rather than defining an ``apply`` method and
-  optinally an ``is_source_filter`` attribute, those now have been replaced
+  optionally an ``is_source_filter`` attribute, those now have been replaced
   by ``input()`` and ``output()`` methods. As a result, a single filter can
   now act as both an input and an output filter.
 

@@ -224,31 +224,6 @@ class Bundle(object):
         return env.abspath(output)
 
 
-    def determine_action(self, env):
-        """Decide what needs to be done when this bundle needs to be
-        resolved.
-
-        Specifically, whether to apply filters and whether to merge. This
-        depends on both the global settings, as well as the ``debug``
-        attribute of this bundle.
-
-        Returns a 2-tuple of (should_merge, should_filter). The latter
-        always implies the former.
-        """
-        if not env.debug:
-            return True, True
-
-        debug = self.debug if self.debug is not None else env.debug
-
-        if debug == 'merge':
-            return True, False
-        elif debug is True:
-            return False, False
-        elif debug is False:
-            return True, True
-        else:
-            raise BundleError('Invalid debug value: %s' % debug)
-
     def get_files(self, env=None):
         warnings.warn('Bundle.get_files() has been replaced '+
                       'by get_all_bundle_files() utility. '+
@@ -290,28 +265,50 @@ class Bundle(object):
             raise BundleError('Bundle is not connected to an environment')
         return env
 
-    def _build(self, env, output_path, force, no_filters, parent_filters=[],
-               disable_cache=False):
+    def _merge_and_apply(self, env, output_path, force, no_filters=False,
+                         parent_filters=[], extra_filters=[],
+                         disable_cache=False):
         """Internal recursive build method.
+
+        ``no_filters`` disables filter application ("merge" mode).
+
+        ``parent_filters`` are what the direct parent passes along, for
+        us to be applied as input filters.
+
+        ``extra_filters`` may exist if the parent is a container bundle
+        passing filters along to it's children; these are applied as input
+        and output filters (since there is no parent who could do the
+        latter), and they are not passed further down the hierarchy.
+
+        ``disable_cache`` is necessary because in some cases, when an
+        external bundle dependency has changed, we must not rely on the
+        cache.
         """
 
-        # TODO: We could support a nested bundle downgrading it's debug
-        # setting from "filters" to "merge only", i.e. enabling
-        # ``no_filters``. We cannot support downgrading to
-        # "full debug/no merge" (debug=True), of course.
-        #
-        # Right now we simply use the debug setting of the root bundle
-        # we build, und it overrides all the nested bundles. If we
-        # allow nested bundles to overwrite the debug value of parent
-        # bundles, as described above, then we should also deal with
-        # a child bundle enabling debug=True during a merge, i.e.
-        # raising an error rather than ignoring it as we do now.
+        # Look at the bundle's ``debug`` option to decide what
+        # building it entails.
+        debug = self.debug if self.debug is not None else env.debug
+        if debug is None:
+            # work with whatever no_filters was passed by the parent
+            pass
+        elif debug == 'merge':
+            no_filters = True
+        elif debug is True:
+            # This should be caught by urls().
+            raise BuildError("a bundle with debug=True cannot be built")
+        elif debug is False:
+            no_filters = False
+        else:
+            raise BundleError('Invalid debug value: %s' % debug)
+
+        # Prepare contents
         resolved_contents = self.resolve_contents(env)
         if not resolved_contents:
             raise BuildError('empty bundle cannot be built')
 
-        # Ensure that the filters are ready
-        for filter in self.filters:
+        # Prepare filters
+        filters = merge_filters(self.filters, extra_filters)
+        for filter in filters:
             filter.set_environment(env)
 
         # Apply input filters to all the contents. Note that we use
@@ -319,15 +316,13 @@ class Bundle(object):
         # the parent. We ONLY do those this for the input filters,
         # because we need them to be applied before the apply our own
         # output filters.
-        # TODO: Note that merge_filters() removes duplicates. Is this
-        # really the right thing to do, or does it just confuse things
-        # due to there now being different kinds of behavior...
-        combined_filters = merge_filters(self.filters, parent_filters)
+        combined_filters = merge_filters(filters, parent_filters)
         hunks = []
         for c in resolved_contents:
             if isinstance(c, Bundle):
-                hunk = c._build(env, output_path, force, no_filters,
-                                combined_filters, disable_cache)
+                hunk = c._merge_and_apply(
+                    env, output_path, force, no_filters,
+                    combined_filters, disable_cache)
                 hunks.append(hunk)
             else:
                 if is_url(c):
@@ -347,12 +342,14 @@ class Bundle(object):
         if no_filters:
             return final
         else:
-            return apply_filters(final, self.filters, 'output',
+            return apply_filters(final, filters, 'output',
                                  env.cache, disable_cache)
 
-    def build(self, env=None, force=False, no_filters=False):
-        """Build this bundle, meaning create the file given by the
-        ``output`` attribute, applying the configured filters etc.
+    def _build(self, env, extra_filters=[], force=False):
+        """Internal bundle build function.
+
+        Check if an update for this bundle is required, and if so,
+        build it.
 
         A ``FileHunk`` will be returned.
 
@@ -364,8 +361,6 @@ class Bundle(object):
 
         if not self.output:
             raise BuildError('No output target found for %s' % self)
-
-        env = self._get_env(env)
 
         # Determine if we really need to build, or if the output file
         # already exists and nothing has changed.
@@ -386,8 +381,10 @@ class Bundle(object):
             # We can simply return the existing output file
             return FileHunk(env.abspath(self.output))
 
-        hunk = self._build(env, self.output, force, no_filters,
-                           disable_cache=update_needed==SKIP_CACHE)
+        hunk = self._merge_and_apply(
+            env, self.output, force,
+            disable_cache=update_needed==SKIP_CACHE,
+            extra_filters=extra_filters)
 
         if not has_placeholder(self.output):
             hunk.save(self.get_output(env))
@@ -412,6 +409,22 @@ class Bundle(object):
 
         return hunk
 
+    def build(self, env=None, force=False):
+        """Build this bundle, meaning create the file given by the
+        ``output`` attribute, applying the configured filters etc.
+
+        If the bundle is a container bundle, then multiple files will
+        be built.
+
+        The return value is a list of ``FileHunk`` objects, one for
+        each bundle that was built.
+        """
+        env = self._get_env(env)
+        hunks = []
+        for bundle, extra_filters in self.iterbuild(env):
+            hunks.append(bundle._build(env, extra_filters, force=force))
+        return hunks
+
     def iterbuild(self, env=None):
         """Iterate over the bundles which actually need to be built.
 
@@ -422,28 +435,42 @@ class Bundle(object):
         Essentially, what this does is "skip" bundles which do not need
         to be built on their own (container bundles), and gives the
         caller the child bundles instead.
+
+        The return values are 2-tuples of (bundle, filter_list), with
+        the second item being a list of filters that the parent
+        "container bundles" this method is processing are passing down
+        to the children.
         """
         env = self._get_env(env)
         if self.is_container:
             for bundle in self.resolve_contents(env):
                 if bundle.is_container:
-                    for t in bundle.iterbuild(env):
-                        yield t
+                    for child, child_filters in bundle.iterbuild(env):
+                        yield child, merge_filters(child_filters, self.filters)
                 else:
-                    yield bundle
+                    yield bundle, self.filters
         else:
-            yield self
+            yield self, []
 
-    def _urls(self, env, *args, **kwargs):
-        env = self._get_env(env)
-        supposed_to_merge, do_filter = self.determine_action(env)
+    def _urls(self, env, extra_filters, *args, **kwargs):
+        # Resolve debug: see whether we have to merge the contents
+        debug = self.debug if self.debug is not None else env.debug
+        if debug == 'merge':
+            supposed_to_merge = True
+        elif debug is True:
+            supposed_to_merge = False
+        elif debug is False:
+            supposed_to_merge = True
+        else:
+            raise BundleError('Invalid debug value: %s' % debug)
 
         if supposed_to_merge and (self.filters or self.output):
             # We need to build this bundle, unless a) the configuration
-            # tells us not to ("determine_action"), or b) this bundle
+            # tells us not to ("supposed_to_merge"), or b) this bundle
             # isn't actually configured to be built, that is, has no
             # filters and no output target.
-            hunk = self.build(env, no_filters=not do_filter, *args, **kwargs)
+            hunk = self._build(env, extra_filters=extra_filters,
+                               *args, **kwargs)
             return [make_url(env, self)]
         else:
             # We either have no files (nothing to build), or we are
@@ -467,9 +494,10 @@ class Bundle(object):
         Insofar necessary, this will automatically create or update
         the files behind these urls.
         """
+        env = self._get_env(env)
         urls = []
-        for bundle in self.iterbuild(env):
-            urls.extend(bundle._urls(env, *args, **kwargs))
+        for bundle, extra_filters in self.iterbuild(env):
+            urls.extend(bundle._urls(env, extra_filters, *args, **kwargs))
         return urls
 
 
