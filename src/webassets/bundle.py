@@ -334,7 +334,7 @@ class Bundle(object):
         bundles (and container bundle hierarchies), a list of all the
         non-container leafs will be yielded.
 
-        Essentally, what this does is "skip" bundles which do not need
+        Essentially, what this does is "skip" bundles which do not need
         to be built on their own (container bundles), and gives the
         caller the child bundles instead.
         """
