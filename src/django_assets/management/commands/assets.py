@@ -88,7 +88,7 @@ class Command(BaseCommand):
         # Using the Jinja loader, if available
         try:
             import jinja2
-        except:
+        except ImportError:
             pass
         else:
             from webassets.ext.jinja2 import Jinja2Loader, AssetsExtension
@@ -104,7 +104,7 @@ class Command(BaseCommand):
 
             try:
                 from coffin.common import get_env as get_coffin_env
-            except:
+            except ImportError:
                 pass
             else:
                 jinja2_envs.append(get_coffin_env())
