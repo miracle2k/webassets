@@ -21,10 +21,10 @@ def make_assets_action(environment, loaders=[]):
     log = logging.getLogger('webassets')
     log.addHandler(logging.StreamHandler())
 
-    def action(rebuild=False, watch=False, clean=False, quiet=('q', False),
-               verbose=('v', False)):
-        if len(filter(bool, [rebuild, watch, clean])) != 1:
-            print "Error: exactly one of --rebuild, --watch or --clean must be given"
+    def action(rebuild=False, watch=False, check=False, clean=False,
+               quiet=('q', False), verbose=('v', False)):
+        if len(filter(bool, [rebuild, watch, clean, check])) != 1:
+            print "Error: exactly one of --rebuild, --watch, --check or --clean must be given"
             return 1
 
         if rebuild:
@@ -33,6 +33,8 @@ def make_assets_action(environment, loaders=[]):
             command = 'watch'
         elif clean:
             command = 'clean'
+        elif check:
+            command = 'check'
 
         log.setLevel(logging.DEBUG if verbose else (logging.WARNING if quiet else logging.INFO))
 
