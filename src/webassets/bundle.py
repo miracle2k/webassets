@@ -195,8 +195,9 @@ class Bundle(object):
             raise BundleError('Bundle is not connected to an environment')
         return env
 
-    def _build(self, env, output_path, force, no_filters=False,
-               parent_filters=[], extra_filters=[], disable_cache=False):
+    def _merge_and_apply(self, env, output_path, force, no_filters=False,
+                         parent_filters=[], extra_filters=[],
+                         disable_cache=False):
         """Internal recursive build method.
 
         ``no_filters`` disables filter application ("merge" mode).
@@ -230,7 +231,6 @@ class Bundle(object):
         else:
             raise BundleError('Invalid debug value: %s' % debug)
 
-
         # Prepare contents
         resolved_contents = self.resolve_contents(env)
         if not resolved_contents:
@@ -250,8 +250,9 @@ class Bundle(object):
         hunks = []
         for c in resolved_contents:
             if isinstance(c, Bundle):
-                hunk = c._build(env, output_path, force, no_filters,
-                                combined_filters, disable_cache)
+                hunk = c._merge_and_apply(
+                    env, output_path, force, no_filters,
+                    combined_filters, disable_cache)
                 hunks.append(hunk)
             else:
                 if is_url(c):
@@ -274,9 +275,11 @@ class Bundle(object):
             return apply_filters(final, filters, 'output',
                                  env.cache, disable_cache)
 
-    def build(self, env=None, force=False, _extra_filters=[]):
-        """Build this bundle, meaning create the file given by the
-        ``output`` attribute, applying the configured filters etc.
+    def _build(self, env, extra_filters=[], force=False):
+        """Internal bundle build function.
+
+        Check if an update for this bundle is required, and if so,
+        build it.
 
         A ``FileHunk`` will be returned.
 
@@ -288,8 +291,6 @@ class Bundle(object):
 
         if not self.output:
             raise BuildError('No output target found for %s' % self)
-
-        env = self._get_env(env)
 
         # Determine if we really need to build, or if the output file
         # already exists and nothing has changed.
@@ -309,9 +310,10 @@ class Bundle(object):
             # We can simply return the existing output file
             return FileHunk(env.abspath(self.output))
 
-        hunk = self._build(env, self.output, force,
-                           disable_cache=update_needed==SKIP_CACHE,
-                           extra_filters=_extra_filters)
+        hunk = self._merge_and_apply(
+            env, self.output, force,
+            disable_cache=update_needed==SKIP_CACHE,
+            extra_filters=extra_filters)
         hunk.save(env.abspath(self.output))
 
         # The updater may need to know this bundle exists and how it
@@ -321,6 +323,22 @@ class Bundle(object):
             env.updater.build_done(self, env)
 
         return hunk
+
+    def build(self, env=None, force=False):
+        """Build this bundle, meaning create the file given by the
+        ``output`` attribute, applying the configured filters etc.
+
+        If the bundle is a container bundle, then multiple files will
+        be built.
+
+        The return value is a list of ``FileHunk`` objects, one for
+        each bundle that was built.
+        """
+        env = self._get_env(env)
+        hunks = []
+        for bundle, extra_filters in self.iterbuild(env):
+            hunks.append(bundle._build(env, extra_filters, force=force))
+        return hunks
 
     def iterbuild(self, env=None):
         """Iterate over the bundles which actually need to be built.
@@ -366,12 +384,8 @@ class Bundle(object):
             # tells us not to ("supposed_to_merge"), or b) this bundle
             # isn't actually configured to be built, that is, has no
             # filters and no output target.
-            # TODO: I'm not a fan of exposing stuff like extra_filters
-            # in the main build() method, which is basically public API.
-            # We probably need to add a third method between build
-            # and _build which _urls() can call directly here. 
-            hunk = self.build(env, _extra_filters=extra_filters,
-                              *args, **kwargs)
+            hunk = self._build(env, extra_filters=extra_filters,
+                               *args, **kwargs)
             return [make_url(env, self.output)]
         else:
             # We either have no files (nothing to build), or we are

@@ -39,20 +39,11 @@ class CommandLineEnvironment():
     def rebuild(self):
         """Rebuild all assets now.
         """
-        for bundle in self.environment:
-            # TODO: Both the build() and the watch() command (and possibly
-            # others in the future) need to go through the motions of
-            # looping over iterbuild(). In particular with extra_filters
-            # now this needs to change.
-            for to_build, extra_filters in bundle.iterbuild():
-                if not to_build.output:
-                    self.log.warning("No output target, skipping bundle "
-                                     "%s" % to_build)
-                    continue
-                self.log.info("Building bundle: %s" % to_build.output)
-                try:
-                    to_build.build(force=True)
-                except BuildError, e:
+        for to_build in self.environment:
+            self.log.info("Building bundle: %s" % to_build.output)
+            try:
+                to_build.build(force=True)
+            except BuildError, e:
                     self.log.error("Failed, error was: %s" % e)
 
     def watch(self):
@@ -64,20 +55,19 @@ class CommandLineEnvironment():
         _win = (sys.platform == "win32")
         def check_for_changes():
             changed_bundles = []
-            for possibly_container in self.environment:
-                for bundle, _ in possibly_container.iterbuild():
-                    for filename in get_all_bundle_files(bundle):
-                        filename = bundle.env.abspath(filename)
-                        stat = os.stat(filename)
-                        mtime = stat.st_mtime
-                        if _win:
-                            mtime -= stat.st_ctime
+            for bundle in self.environment:
+                for filename in get_all_bundle_files(bundle):
+                    filename = bundle.env.abspath(filename)
+                    stat = os.stat(filename)
+                    mtime = stat.st_mtime
+                    if _win:
+                        mtime -= stat.st_ctime
 
-                        if _mtimes.get(filename, mtime) != mtime:
-                            changed_bundles.append(bundle)
-                            _mtimes[filename] = mtime
-                            break
+                    if _mtimes.get(filename, mtime) != mtime:
+                        changed_bundles.append(bundle)
                         _mtimes[filename] = mtime
+                        break
+                    _mtimes[filename] = mtime
             return changed_bundles
 
         try:

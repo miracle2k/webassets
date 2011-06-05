@@ -510,7 +510,7 @@ class BaseUrlsTester(BuildTestHelper):
             def __init__(self, *a, **kw):
                 Bundle.__init__(self, *a, **kw)
                 self.env = env
-            def build(self, *a, **kw):
+            def _build(self, *a, **kw):
                 build_called.append(self.output)
         self.MockBundle = MockBundle
 

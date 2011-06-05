@@ -24,6 +24,11 @@ In 0.6
   argument. This was always intended for internal use and it's existence
   not advertised, so it's removal shouldn't cause too many problems.
 
+- The ``Bundle.build`` method now returns a list of ``FileHunk`` objects,
+  rather than a single one. It now works for container bundles (bundles
+  which only have other bundles for children, not files), rather than
+  raising an exception.
+
 
 In 0.4
 ~~~~~~

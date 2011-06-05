@@ -13,7 +13,7 @@ def test_script():
 
 class MockBundle(Bundle):
     build_called = False
-    def build(self, *a, **kw):
+    def _build(self, *a, **kw):
         self.build_called = True
 
 
