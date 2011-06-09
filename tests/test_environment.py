@@ -67,6 +67,14 @@ class TestEnvApi:
         assert len(self.m) == 1
         assert list(self.m) == [b]
 
+    def test_contains(self):
+        """Test __contains__.
+        """
+        b = Bundle()
+        self.m.register('foo', b)
+        assert 'foo' in self.m
+        assert not 'bar' in self.m
+
 
 class TestEnvConfig:
     """Custom config values through get_config/set_config.
