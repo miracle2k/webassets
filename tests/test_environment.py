@@ -11,16 +11,12 @@ class TestEnvApi:
     def setup(self):
         self.m = Environment(None, None)
 
-    def get(self, name='foo'):
-        return self.m[name]
-
     def test_single_bundle(self):
         """Test self.m.registering a single ``Bundle`` object.
-        """
-
+        """ 
         b = Bundle()
         self.m.register('foo', b)
-        assert self.get() == b
+        assert self.m['foo'] == b
 
     def test_new_bundle(self):
         """Test self.m.registering a new bundle on the fly.
@@ -28,16 +24,16 @@ class TestEnvApi:
 
         b = Bundle()
         self.m.register('foo', b, 's2', 's3')
-        assert b in self.get('foo').contents
+        assert b in self.m['foo'].contents
 
         # Special case of using only a single, non-bundle source argument.
         self.m.register('footon', 's1')
-        assert 's1' in self.get('footon').contents
+        assert 's1' in self.m['footon'].contents
 
         # Special case of specifying only a single bundle as a source, but
         # additional options - this also creates a wrapping bundle.
         self.m.register('foofighters', b, output="bar")
-        assert b in self.get('foofighters').contents
+        assert b in self.m['foofighters'].contents
 
     def test_invalid_call(self):
         """Test calling self.m.register with an invalid syntax.
