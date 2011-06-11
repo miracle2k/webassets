@@ -245,7 +245,7 @@ class Bundle(object):
             if isinstance(c, Bundle):
                 hunk = c._merge_and_apply(
                     env, output_path, force, no_filters,
-                    combined_filters, disable_cache)
+                    combined_filters, disable_cache=disable_cache)
                 hunks.append(hunk)
             else:
                 if is_url(c):

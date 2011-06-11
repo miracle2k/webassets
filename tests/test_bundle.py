@@ -120,6 +120,20 @@ class TestBuild(BuildTestHelper):
         self.mkbundle('in1', self.mkbundle('in3', 'in4'), 'in2', output='out').build()
         assert self.get('out') == 'A\nC\nD\nB'
 
+    def test_nested_bundle_with_skipped_cache(self):
+        """[Regression] There was a bug when doing a build with
+        an updater that returned SKIP_CACHE, due to passing arguments
+        incorrectly.
+        """
+        class SkipCacheUpdater(BaseUpdater):
+            def needs_rebuild(self, *a, **kw):
+                return SKIP_CACHE
+        self.m.updater = SkipCacheUpdater()
+        self.create_files({'out': ''})  # or updater won't come into play
+        self.mkbundle('in1', self.mkbundle('in3', 'in4'), 'in2',
+                      output='out').build()
+        assert self.get('out') == 'A\nC\nD\nB'
+
     def test_no_output_error(self):
         """A bundle without an output configured cannot be built.
         """
