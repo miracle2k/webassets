@@ -70,21 +70,19 @@ class TestTimestampUpdater(BuildTestHelper):
 
     def test_default(self):
         bundle = self.mkbundle('in', output='out')
-        now = time.time()
 
         # Set both times to the same timestamp
-        os.utime(self.path('in'), (now, now))
-        os.utime(self.path('out'), (now, now))
+        now = self.setmtime('in', 'out')
         assert self.m.updater.needs_rebuild(bundle, self.m) == False
 
         # Make in file older than out file
-        os.utime(self.path('in'), (now, now-100))
-        os.utime(self.path('out'), (now, now))
+        now = self.setmtime('in', mtime=now-100)
+        now = self.setmtime('out', mtime=now)
         assert self.m.updater.needs_rebuild(bundle, self.m) == False
 
         # Make in file newer than out file
-        os.utime(self.path('in'), (now, now))
-        os.utime(self.path('out'), (now, now-100))
+        now = self.setmtime('in', mtime=now)
+        now = self.setmtime('out', mtime=now-100)
         assert self.m.updater.needs_rebuild(bundle, self.m) == True
 
     def test_bundle_definition_change(self):
@@ -113,7 +111,8 @@ class TestTimestampUpdater(BuildTestHelper):
 
     def test_depends(self):
         """Test the timestamp updater properly considers additional
-        bundle dependencies."""
+        bundle dependencies.
+        """
         self.create_files({'d.sass': '', 'd.other': ''})
         bundle = self.mkbundle('in', output='out', depends=('*.sass',))
 
@@ -125,18 +124,16 @@ class TestTimestampUpdater(BuildTestHelper):
         now = time.time()
 
         # Make all files older than the output
-        os.utime(self.path('in'), (now, now-100))
-        os.utime(self.path('d.sass'), (now, now-100))
-        os.utime(self.path('d.other'), (now, now-100))
-        os.utime(self.path('out'), (now, now))
+        now = self.setmtime('out')
+        self.setmtime('in', 'd.sass', 'd.other', mtime=now-100)
         assert self.m.updater.needs_rebuild(bundle, self.m) == False
 
         # Touch the file that is supposed to be unrelated
-        os.utime(self.path('d.other'), (now, now+100))
+        self.setmtime('d.other', mtime=now+100)
         assert self.m.updater.needs_rebuild(bundle, self.m) == False
 
         # Touch the dependency file - now a rebuild is required
-        os.utime(self.path('d.sass'), (now, now+100))
+        self.setmtime('d.sass', mtime=now+100)
         assert self.m.updater.needs_rebuild(bundle, self.m) == SKIP_CACHE
 
         # Finally, counter-check that our previous check for the
