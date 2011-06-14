@@ -120,6 +120,22 @@ class TestBuild(BuildTestHelper):
         self.mkbundle('in1', self.mkbundle('in3', 'in4'), 'in2', output='out').build()
         assert self.get('out') == 'A\nC\nD\nB'
 
+    def test_build_return_value(self):
+        """build() method returns list of built hunks.
+        """
+        # Test a simple bundle (single hunk)
+        hunks = self.mkbundle('in1', 'in2', output='out').build()
+        assert len(hunks) == 1
+        assert hunks[0].data() == 'A\nB'
+
+        # Test container bundle (multiple hunks)
+        hunks = self.mkbundle(
+            self.mkbundle('in1', output='out1'),
+            self.mkbundle('in2', output='out2')).build()
+        assert len(hunks) == 2
+        assert hunks[0].data() == 'A'
+        assert hunks[1].data() == 'B'
+
     def test_nested_bundle_with_skipped_cache(self):
         """[Regression] There was a bug when doing a build with
         an updater that returned SKIP_CACHE, due to passing arguments
