@@ -54,6 +54,9 @@ class BuildTestHelper:
         the media directory of the current test run.
         """
         for name, data in files.items():
+            dirs = path.dirname(self.path(name))
+            if not path.exists(dirs):
+                os.makedirs(dirs)
             f = open(self.path(name), 'w')
             f.write(data)
             f.close()

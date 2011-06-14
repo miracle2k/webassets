@@ -1,8 +1,11 @@
-# Libs useful when developing webassets.
+# Libs useful when developing webassets. Many required to run all 
+# the tests.
 Jinja2>=2.5
 Sphinx
 nose
+
 PyYaml
+glob2
 
 # Filters
 clevercss

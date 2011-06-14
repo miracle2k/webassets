@@ -3,6 +3,7 @@ import urllib2
 from StringIO import StringIO
 
 from nose.tools import assert_raises, assert_equals
+from nose import SkipTest
 
 from webassets import Bundle
 from webassets.exceptions import BundleError, BuildError
@@ -792,6 +793,22 @@ class TestGlobbing(BuildTestHelper):
         content = self.get('out').split("\n")
         content.sort()
         assert content == ['bar', 'foo']
+
+    def test_recursive_globbing(self):
+        """Test recursive globbing using python-glob2.
+        """
+        try:
+            import glob2
+        except ImportError:
+            raise SkipTest()
+
+        self.create_files({'sub/file.js': 'sub',})
+        self.mkbundle('**/*.js', output='out').build()
+        content = self.get('out').split("\n")
+        content.sort()
+        assert content == ['bar', 'foo', 'sub']
+
+        #https://github.com/miracle2k/python-glob2
 
 
 class MockHTTPHandler(urllib2.HTTPHandler):

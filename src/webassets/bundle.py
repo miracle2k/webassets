@@ -1,6 +1,12 @@
 from os import path
 import urlparse
-import glob
+try:
+    # Current version of glob2 does not let us access has_magic :/
+    import glob2 as glob
+    from glob import has_magic
+except ImportError:
+    import glob
+    from glob import has_magic
 import warnings
 from filter import get_filter
 from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
@@ -109,7 +115,7 @@ class Bundle(object):
                     # a file's existence though; currently, when in debug
                     # mode, no error would be raised at all, and simply a
                     # broken url sent to the browser.
-                    if glob.has_magic(item):
+                    if has_magic(item):
                         path = env.abspath(item)
                         for f in glob.glob(path):
                             l.append(f[len(path)-len(item):])
@@ -138,7 +144,7 @@ class Bundle(object):
         if getattr(self, '_resolved_depends', None) is None:
             l = []
             for item in self.depends:
-                if glob.has_magic(item):
+                if has_magic(item):
                     dir = env.abspath(item)
                     for f in glob.glob(dir):
                         l.append(f[len(dir)-len(item):])
