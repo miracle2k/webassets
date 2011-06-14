@@ -120,6 +120,15 @@ class TestBuild(BuildTestHelper):
         self.mkbundle('in1', self.mkbundle('in3', 'in4'), 'in2', output='out').build()
         assert self.get('out') == 'A\nC\nD\nB'
 
+    def test_container_bundle(self):
+        """A container bundle.
+        """
+        self.mkbundle(
+            self.mkbundle('in1', output='out1'),
+            self.mkbundle('in2', output='out2')).build()
+        assert self.get('out1') == 'A'
+        assert self.get('out2') == 'B'
+
     def test_build_return_value(self):
         """build() method returns list of built hunks.
         """
