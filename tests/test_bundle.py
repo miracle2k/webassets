@@ -1,3 +1,4 @@
+import os
 import urllib2
 from StringIO import StringIO
 
@@ -179,6 +180,28 @@ class TestBuild(BuildTestHelper):
         assert self.get('out') == 'A\nB'
         self.mkbundle('in1', 'in2', output='out').build()
         assert self.get('out') == 'A\nB'
+
+    def test_deleted_source_files(self):
+        """Bundle contents are cached. However, if a file goes missing
+        that was included via wildcard, this will not cause any problems
+        in subsequent builds.
+
+        If a statically included file goes missing however, the build
+        fails.
+        """
+        self.create_files({'in': 'A', '1.css': '1', '2.css': '2'})
+        bundle = self.mkbundle('in', '*.css', output='out')
+        bundle.build()
+        self.get('out') == 'A12'
+
+        # Delete a wildcard file - we still build fine
+        os.unlink(self.path('1.css'))
+        bundle.build()
+        self.get('out') == 'A1'
+
+        # Delete the static file - now we can't build
+        os.unlink(self.path('in'))
+        assert_raises(BuildError, bundle.build)
 
     def test_cannot_build_in_debug_mode(self):
         """While we are in debug mode, bundles refuse to build.
@@ -808,7 +831,7 @@ class TestUrlContents(BuildTestHelper):
     def test_invalid_url(self):
         """If a bundle contains an invalid url, building will raise an error.
         """
-        assert_raises(urllib2.URLError,
+        assert_raises(BuildError,
                       self.mkbundle('http://bar', output='out').build)
 
     def test_autorebuild_updaters(self):

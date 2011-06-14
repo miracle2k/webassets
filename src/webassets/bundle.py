@@ -84,9 +84,12 @@ class Bundle(object):
         self._resolved_contents = None
     contents = property(_get_contents, _set_contents)
 
-    def resolve_contents(self, env=None):
+    def resolve_contents(self, env=None, force=False):
         """Returns contents, with globbed patterns resolved to
         actual filenames.
+
+        Set ``force`` to ignore any cache, and always re-resolve
+        glob patterns.
         """
         env = self._get_env(env)
 
@@ -94,7 +97,7 @@ class Bundle(object):
         # due to changes in the env object, the result of the globbing may
         # change. Not to mention that a different env object may be passed
         # in. We should find a fix for this.
-        if getattr(self, '_resolved_contents', None) is None:
+        if getattr(self, '_resolved_contents', None) is None or force:
             l = []
             for item in self.contents:
                 if isinstance(item, basestring):
@@ -135,14 +138,14 @@ class Bundle(object):
         if getattr(self, '_resolved_depends', None) is None:
             l = []
             for item in self.depends:
-                if isinstance(item, basestring):
-                    if glob.has_magic(item):
-                        path = env.abspath(item)
-                        for f in glob.glob(path):
-                            l.append(f[len(path)-len(item):])
-                    else:
-                        l.append(item)
+                if glob.has_magic(item):
+                    dir = env.abspath(item)
+                    for f in glob.glob(dir):
+                        l.append(f[len(dir)-len(item):])
                 else:
+                    if not path.exists(env.abspath(item)):
+                        raise BundleError(
+                            'dependency "%s" does not exist' % item)
                     l.append(item)
             self._resolved_depends = l
         return self._resolved_depends
@@ -225,7 +228,7 @@ class Bundle(object):
             raise BundleError('Invalid debug value: %s' % debug)
 
         # Prepare contents
-        resolved_contents = self.resolve_contents(env)
+        resolved_contents = self.resolve_contents(env, force=True)
         if not resolved_contents:
             raise BuildError('empty bundle cannot be built')
 
@@ -261,7 +264,11 @@ class Bundle(object):
                         output_path=output_path))
 
         # Return all source hunks as one, with output filters applied
-        final = merge(hunks)
+        try:
+            final = merge(hunks)
+        except IOError, e:
+            raise BuildError(e)
+
         if no_filters:
             return final
         else:

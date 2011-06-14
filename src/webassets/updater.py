@@ -143,9 +143,15 @@ class TimestampUpdater(BundleDefUpdater):
                     if result:
                         return result
                 elif not is_url(item):
-                    s_modified = os.stat(env.abspath(item)).st_mtime
-                    if s_modified > o_modified:
+                    try:
+                        s_modified = os.stat(env.abspath(item)).st_mtime
+                    except OSError:
+                        # If a file goes missing, always require
+                        # a rebuild.
                         return result
+                    else:
+                        if s_modified > o_modified:
+                            return result
         return False
 
     def needs_rebuild(self, bundle, env):
