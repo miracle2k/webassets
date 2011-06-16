@@ -21,7 +21,7 @@ Javascript compressors
 
 
 ``rjsmin``
-~~~~~~~~~
+~~~~~~~~~~
 
 .. autoclass:: webassets.filter.rjsmin.RJSMinFilter
 
@@ -129,6 +129,6 @@ Other
 
 
 ``coffeescript``
-~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 .. autoclass:: webassets.filter.coffeescript.CoffeeScriptFilter
