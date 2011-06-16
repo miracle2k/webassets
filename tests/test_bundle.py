@@ -416,7 +416,7 @@ class TestUpdateAndCreate(BuildTestHelper):
         self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'A'
 
-    def test_no_auto_create(self):
+    def test_no_autocreate(self):
         """If no updater is given, then the initial build if a previously
         non-existent output file will not happen either.
         """
@@ -424,6 +424,16 @@ class TestUpdateAndCreate(BuildTestHelper):
         assert_raises(BuildError, self.mkbundle('in1', output='out').build)
         # However, it works fine if force is used
         self.mkbundle('in1', output='out').build(force=True)
+
+    def test_no_updater(self):
+        """[Regression] If Environment.updater is set to False/None,
+        this won't cause problems during the build.
+        """
+        self.m.updater = False
+        self.create_files({'out': 'old_value'})
+        self.mkbundle('in1', output='out').build()
+        # And it also means that we don't to auto-rebuilding
+        assert self.get('out') == 'old_value'
 
     def test_no_auto_create_env_via_argument(self):
         """Regression test for a bug that occured when the environment

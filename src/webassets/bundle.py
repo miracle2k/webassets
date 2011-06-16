@@ -310,7 +310,10 @@ class Bundle(object):
             else:
                 update_needed = True
         else:
-            update_needed = env.updater.needs_rebuild(self, env)
+            if env.updater:
+                update_needed = env.updater.needs_rebuild(self, env)
+            else:
+                update_needed = False
 
         if not update_needed:
             # We can simply return the existing output file
