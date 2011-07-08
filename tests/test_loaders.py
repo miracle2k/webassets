@@ -84,7 +84,6 @@ class TestYAML(object):
         directory: ../something
         """, filename='/var/www/project/config/yaml').load_environment()
         # The directory is considered relative to the YAML file location.
-        print environment.directory
         assert environment.directory == '/var/www/project/something'
 
 
