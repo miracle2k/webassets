@@ -95,7 +95,7 @@ class TestPython(object):
         """[bug] Regression test: Python loader does not leave
         sys.path messed up.
         """
-        old_path = sys.path
+        old_path = sys.path[:]
         loader = PythonLoader('sys')
         assert sys.path == old_path
 
