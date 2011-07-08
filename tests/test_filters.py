@@ -350,7 +350,8 @@ class TestSass(BuildTestHelper):
         sass = get_filter('sass', debug_info=False)
         self.create_files({'import-test.sass': '''@import foo.sass'''})
         self.mkbundle('import-test.sass', filters=sass, output='out.css').build()
-        assert self.get('out.css') == """/* line 1, ./foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
+        print repr(self.get('out.css'))
+        assert doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""", self.get('out.css'))
 
     def test_scss(self):
         # SCSS is a CSS superset, should be able to compile the CSS file just fine
