@@ -135,8 +135,10 @@ class TimestampUpdater(BundleDefUpdater):
         # Recurse through the bundle hierarchy. Check the timestamp of all
         # the bundle source files, as well as any additional
         # dependencies that we are supposed to watch.
-        for iterator, result in ((bundle.resolve_contents, True),
-                                 (bundle.resolve_depends, SKIP_CACHE)):
+        for iterator, result in (
+            (lambda e: map(lambda s: s[1], bundle.resolve_contents(e)), True),
+            (bundle.resolve_depends, SKIP_CACHE)
+        ):
             for item in iterator(env):
                 if isinstance(item, Bundle):
                     result = self.check_timestamps(item, env, o_modified)

@@ -202,7 +202,7 @@ class TestBuild(BuildTestHelper):
 
         # Delete the static file - now we can't build
         os.unlink(self.path('in'))
-        assert_raises(BuildError, bundle.build)
+        assert_raises(BundleError, bundle.build)
 
     def test_cannot_build_in_debug_mode(self):
         """While we are in debug mode, bundles refuse to build.
@@ -569,7 +569,7 @@ class BaseUrlsTester(BuildTestHelper):
     into Bundle.build().
     """
 
-    default_files = {}
+    default_files = {'a': '', 'b': '', 'c': '', '1': '', '2': ''}
 
     def setup(self):
         BuildTestHelper.setup(self)
@@ -788,7 +788,7 @@ class TestGlobbing(BuildTestHelper):
         self.m.debug = True
         urls = self.mkbundle('*.js', output='out').urls()
         urls.sort()
-        assert urls == ['/file1.js', '/file2.js']
+        assert_equals(urls, ['/file1.js', '/file2.js'])
 
     def test_empty_pattern(self):
         bundle = self.mkbundle('*.xyz', output='out')

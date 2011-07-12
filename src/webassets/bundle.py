@@ -91,8 +91,25 @@ class Bundle(object):
     contents = property(_get_contents, _set_contents)
 
     def resolve_contents(self, env=None, force=False):
-        """Returns contents, with globbed patterns resolved to
-        actual filenames.
+        """Convert bundle contents into something that can be easily
+        processed.
+
+        - Glob patterns are resolved
+        - Validate all the source paths to complain about
+          missing files early.
+        - Third party extensions get to hook into this to
+          provide a basic virtualized filesystem.
+
+        The return value is a list of 2-tuples (relpath, abspath).
+        The first element is the path that is assumed to be relative
+        to the ``Environment.directory`` value. We need it to construct
+        urls to the source files.
+        The second element is the absolute path to the actual location
+        of the file. Depending on the magic a third party extension
+        does, this may be somewhere completely different.
+
+        URLs and nested Bundles are returned as a 2-tuple where
+        both items are the same.
 
         Set ``force`` to ignore any cache, and always re-resolve
         glob patterns.
@@ -107,22 +124,24 @@ class Bundle(object):
             l = []
             for item in self.contents:
                 if isinstance(item, basestring):
-                    # We only go through glob() if this actually is a
-                    # pattern; this means that invalid filenames will
-                    # remain in the content set, and only raise an error
-                    # at a later point in time.
-                    # TODO: This is possible a good place to check for
-                    # a file's existence though; currently, when in debug
-                    # mode, no error would be raised at all, and simply a
-                    # broken url sent to the browser.
-                    if has_magic(item):
+                    if is_url(item):
+                        # Is a URL
+                        l.append((item, item))
+                    elif has_magic(item):
+                        # Is globbed pattern
                         path = env.abspath(item)
                         for f in glob.glob(path):
-                            l.append(f[len(path)-len(item):])
+                            l.append((f[len(path)-len(item):], f))
                     else:
-                        l.append(item)
+                        # Is just a normal path; Send it through
+                        # _normalize_source_path().
+                        try:
+                            l.append((item, env._normalize_source_path(item)))
+                        except IOError, e:
+                            raise BundleError(e)
                 else:
-                    l.append(item)
+                    # Is probably a nested Bundle
+                    l.append((item, item))
             self._resolved_contents = l
         return self._resolved_contents
 
@@ -138,7 +157,7 @@ class Bundle(object):
     """)
 
     def resolve_depends(self, env):
-        # Caching is as problematic here as it is in resolve_contents().
+        # TODO: Caching is as problematic here as it is in resolve_contents().
         if not self.depends:
             return []
         if getattr(self, '_resolved_depends', None) is None:
@@ -147,12 +166,12 @@ class Bundle(object):
                 if has_magic(item):
                     dir = env.abspath(item)
                     for f in glob.glob(dir):
-                        l.append(f[len(dir)-len(item):])
+                        l.append(f)
                 else:
-                    if not path.exists(env.abspath(item)):
-                        raise BundleError(
-                            'dependency "%s" does not exist' % item)
-                    l.append(item)
+                    try:
+                        l.append(env._normalize_source_path(item))
+                    except IOError, e:
+                        raise BundleError(e)
             self._resolved_depends = l
         return self._resolved_depends
 
@@ -250,7 +269,7 @@ class Bundle(object):
         # output filters.
         combined_filters = merge_filters(filters, parent_filters)
         hunks = []
-        for c in resolved_contents:
+        for _, c in resolved_contents:
             if isinstance(c, Bundle):
                 hunk = c._merge_and_apply(
                     env, output_path, force, no_filters,
@@ -367,7 +386,7 @@ class Bundle(object):
         """
         env = self._get_env(env)
         if self.is_container:
-            for bundle in self.resolve_contents(env):
+            for bundle, _ in self.resolve_contents(env):
                 if bundle.is_container:
                     for child, child_filters in bundle.iterbuild(env):
                         yield child, merge_filters(child_filters, self.filters)
@@ -401,7 +420,7 @@ class Bundle(object):
             # in debug mode: Instead of building the bundle, we
             # source all contents instead.
             urls = []
-            for c in self.resolve_contents(env):
+            for c, _ in self.resolve_contents(env):
                 if isinstance(c, Bundle):
                     urls.extend(c.urls(env, *args, **kwargs))
                 else:
@@ -435,7 +454,7 @@ def get_all_bundle_files(bundle, env=None):
     """
     env = bundle._get_env(env)
     files = []
-    for c in bundle.resolve_contents(env):
+    for _, c in bundle.resolve_contents(env):
         if isinstance(c, Bundle):
             files.extend(get_all_bundle_files(c, env))
         elif not is_url(c):
