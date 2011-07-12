@@ -146,7 +146,7 @@ class TimestampUpdater(BundleDefUpdater):
                         return result
                 elif not is_url(item):
                     try:
-                        s_modified = os.stat(env.abspath(item)).st_mtime
+                        s_modified = os.stat(item).st_mtime
                     except OSError:
                         # If a file goes missing, always require
                         # a rebuild.

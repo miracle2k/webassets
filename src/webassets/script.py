@@ -58,7 +58,6 @@ class CommandLineEnvironment():
             changed_bundles = []
             for bundle in self.environment:
                 for filename in get_all_bundle_files(bundle):
-                    filename = bundle.env.abspath(filename)
                     stat = os.stat(filename)
                     mtime = stat.st_mtime
                     if _win:

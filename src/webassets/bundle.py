@@ -279,7 +279,7 @@ class Bundle(object):
                 if is_url(c):
                     hunk = UrlHunk(c)
                 else:
-                    hunk = FileHunk(env.abspath(c))
+                    hunk = FileHunk(c)
                 if no_filters:
                     hunks.append(hunk)
                 else:
@@ -458,6 +458,6 @@ def get_all_bundle_files(bundle, env=None):
         if isinstance(c, Bundle):
             files.extend(get_all_bundle_files(c, env))
         elif not is_url(c):
-            files.append(env.abspath(c))
+            files.append(c)
         files.extend(bundle.resolve_depends(env))
     return files
