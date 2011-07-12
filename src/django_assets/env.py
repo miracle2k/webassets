@@ -82,7 +82,7 @@ class DjangoEnvironment(BaseEnvironment):
             if f is not None:
                 return f
 
-        return IOError("'%s' not found (using staticfiles finders)")
+        raise IOError("'%s' not found (using staticfiles finders)" % spath)
 
 
 # Django has a global state, a global configuration, and so we need a
