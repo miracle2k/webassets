@@ -797,7 +797,7 @@ class TestGlobbing(BuildTestHelper):
     def test_non_pattern_missing_files(self):
         """Ensure that if we specify a non-existant file, it will still
         be returned in the debug urls(), and build() will raise the IOError
-        rathern than the globbing failing and the bundle being empty
+        rather than the globbing failing and the bundle being empty
         """
         self.mkbundle('*.js', output='out').build()
         content = self.get('out').split("\n")
