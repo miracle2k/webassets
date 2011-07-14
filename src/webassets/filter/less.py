@@ -12,6 +12,9 @@ __all__ = ('LessFilter',)
 class LessFilter(Filter):
     """Converts `Less <http://lesscss.org/>`_ markup to real CSS.
 
+    Only works with versions 1.x of the less gem. 2.x do not yet support
+    command line invocation.
+
     If you want to combine it with other CSS filters, make sure this
     one runs first.
 

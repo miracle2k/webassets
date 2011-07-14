@@ -21,4 +21,4 @@ Django
 # The following Ruby gems are required for some filter tests to run:
 # sudo gem install haml
 # sudo gem install compass
-# sudo gem install less
+# sudo gem install less --version 1.2.21
