@@ -421,3 +421,37 @@ class TestCompass(BuildTestHelper):
         self.create_files({'imguri.scss': 'h1 { background: image-url("test.png") }'})
         self.mkbundle('imguri.scss', filters='compass', output='out.css').build()
         assert doctest_match("""/* ... */\nh1 {\n  background: url('http://assets.host.com/the-images/test.png');\n}\n""", self.get('out.css'))
+
+class TestJST(BuildTestHelper):
+    default_files = {
+        'templates/foo.jst': "<div>Im a normal .jst template.</div>",
+        'templates/bar.html': "<div>Im an html jst template.  Go syntax highlighting!</div>"
+    }
+    def setup(self):
+        BuildTestHelper.setup(self)
+    
+    def test_jst(self):
+        self.mkbundle('templates/*', filters='jst', output='out.js').build()
+        contents = self.get('out.js')
+        assert 'Im a normal .jst template' in contents
+        assert 'Im an html jst template.  Go syntax highlighting!' in contents
+    
+    def test_compiler_config(self):
+        self.m.config['JST_COMPILER'] = '_.template'
+        self.mkbundle('templates/*', filters='jst', output='out.js').build()
+        assert '_.template' in self.get('out.js')
+    
+    def test_namespace_config(self):
+        self.m.config['JST_NAMESPACE'] = 'window.Templates'
+        self.mkbundle('templates/*', filters='jst', output='out.js').build()
+        assert 'window.Templates' in self.get('out.js')
+    
+    def test_nested_naming(self):
+        self.create_files({'templates/foo/bar/baz.jst': """<span>In your foo bars.</span>"""})
+        self.mkbundle('templates/foo/bar/*', 'templates/bar.html', filters='jst', output='out.js').build()
+        assert 'foo/bar/baz' in self.get('out.js')
+
+    def test_single_template(self):
+        self.create_files({'baz.jst': """<span>Baz?</span>"""})
+        self.mkbundle('*.jst', filters='jst', output='out.js').build()
+        assert 'baz' in self.get('out.js')    
