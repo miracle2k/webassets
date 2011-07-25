@@ -28,8 +28,8 @@ class JSTFilter(Filter):
         self._templates = {}
 
     def input(self, _in, out, source_path, output_path):
-        self._templates[source_path] = _in.read().replace('\r?\n', '\\n')\
-            .replace("'", r"\'")
+        data = _in.read()
+        self._templates[source_path] = data.replace('\n', '\\n').replace("'", r"\'")
 
     def output(self, _in, out, **kwargs):
         self._find_base_paths()
