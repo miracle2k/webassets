@@ -116,6 +116,12 @@ Other
 .. autoclass:: webassets.filter.cssrewrite.CSSRewriteFilter
 
 
+``jst``
+~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.jst.JSTFilter
+
+
 ``cssprefixer``
 ~~~~~~~~~~~~~~~
 
