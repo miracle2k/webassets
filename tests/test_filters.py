@@ -234,6 +234,12 @@ class TestBuiltinFilters(BuildTestHelper):
   alert("I knew it!");
 }
 """
+    def test_uglifyjs(self):
+        if not find_executable('uglifyjs'):
+            raise SkipTest()
+        self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
+        print self.get('out.js')
+        assert self.get('out.js') == "function foo(a){var b;document.write(a)}"
 
     def test_less(self):
         if not find_executable('lessc'):

@@ -45,6 +45,12 @@ Javascript compressors
 .. automodule:: webassets.filter.closure
 
 
+``uglifyjs``
+~~~~~~~~~~~
+
+.. automodule:: webassets.filter.uglifyjs
+
+
 CSS compressors
 ---------------
 
