@@ -1,7 +1,11 @@
-from webassets.filter import Filter
+import os
 import re
+from webassets.filter import Filter
+from webassets.utils import common_path_prefix
+
 
 __all__ = ('JSTFilter',)
+
 
 class JSTFilter(Filter):
     """`Jammit Style <http://documentcloud.github.com/jammit/#jst>`_ JavaScript 
@@ -32,8 +36,8 @@ class JSTFilter(Filter):
         self._templates[source_path] = data.replace('\n', '\\n').replace("'", r"\'")
 
     def output(self, _in, out, **kwargs):
-        self._find_base_paths()
-        
+        base_path = self._find_base_path()
+
         if not self._bare:
             out.write("(function(){\n    ")
 
@@ -44,28 +48,19 @@ class JSTFilter(Filter):
 
         for path, contents in self._templates.iteritems():
             out.write("%s['%s'] = %s('%s');\n" % (self._namespace, 
-                self._get_template_name(path), self._template_function, contents))
+                os.path.splitext(path[len(base_path):])[0],
+                self._template_function, contents))
         
         if not self._bare:
             out.write("})();")
 
-    def _find_base_paths(self):
+    def _find_base_path(self):
         """Hmmm.  There should aways be some common base path."""
         paths = self._templates.keys()
         if len(paths) == 1:
-            self._base_path = '/'.join(paths[0].split('/')[:-1])
-        else:
-            first = paths[0].split('/')
-            last  = paths[-1].split('/')
-            i = 0
-            while first[i] == last[i] and i <= len(first):
-                i += 1
+            return os.path.dirname(paths[0])
+        return common_path_prefix(self._templates.keys()) + os.path.sep
 
-            self._base_path = '/'.join(first[0:i])
-    
-    def _get_template_name(self, path):
-        matches = re.findall(r'%s\/(.*)' % re.escape(self._base_path), path)
-        return '.'.join(matches[0].split('.')[:-1])
 
 _jst_script = 'var template = function(str){var fn = new Function(\'obj\', \'var \
 __p=[],print=function(){__p.push.apply(__p,arguments);};\
