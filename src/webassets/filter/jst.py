@@ -25,7 +25,9 @@ class JSTFilter(Filter):
             require=False) or 'window.JST'
         
         self._bare = self.get_config('JST_BARE', 
-            what='Wrap everything in a closure', require=False) or True
+            what='Wrap everything in a closure', require=False)
+        if self._bare is None:
+            self._bare = True
         
         self._include_jst_script = (self._template_function == 'template')
 
