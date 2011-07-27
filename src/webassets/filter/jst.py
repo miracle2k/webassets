@@ -41,7 +41,7 @@ class JSTFilter(Filter):
         if not self._bare:
             out.write("(function(){\n    ")
 
-        out.write("var %s = %s || {};\n" % (self._namespace, self._namespace))
+        out.write("%s = %s || {};\n" % (self._namespace, self._namespace))
 
         if self._include_jst_script:
             out.write("%s\n" % _jst_script)
