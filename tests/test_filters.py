@@ -428,11 +428,14 @@ class TestCompass(BuildTestHelper):
         self.mkbundle('imguri.scss', filters='compass', output='out.css').build()
         assert doctest_match("""/* ... */\nh1 {\n  background: url('http://assets.host.com/the-images/test.png');\n}\n""", self.get('out.css'))
 
+
 class TestJST(BuildTestHelper):
+
     default_files = {
         'templates/foo.jst': "<div>Im a normal .jst template.</div>",
         'templates/bar.html': "<div>Im an html jst template.  Go syntax highlighting!</div>"
     }
+
     def setup(self):
         BuildTestHelper.setup(self)
     
@@ -460,4 +463,12 @@ class TestJST(BuildTestHelper):
     def test_single_template(self):
         self.create_files({'baz.jst': """<span>Baz?</span>"""})
         self.mkbundle('*.jst', filters='jst', output='out.js').build()
-        assert 'baz' in self.get('out.js')    
+        assert 'baz' in self.get('out.js')
+
+    def test_option_bare(self):
+        """[Regression] Test the JST_BARE option can be set to False.
+        """
+        self.create_files({'baz.jst': """<span>Baz?</span>"""})
+        self.m.config['JST_BARE'] = False
+        self.mkbundle('*.jst', filters='jst', output='out.js').build()
+        assert self.get('out.js').startswith('(function()')
