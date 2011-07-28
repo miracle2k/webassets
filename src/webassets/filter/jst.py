@@ -31,11 +31,12 @@ class JSTFilter(Filter):
         
         self._include_jst_script = (self._template_function == 'template')
 
-        self._templates = {}
+        self._templates = []
 
     def input(self, _in, out, source_path, output_path):
         data = _in.read()
-        self._templates[source_path] = data.replace('\n', '\\n').replace("'", r"\'")
+        self._templates.append(
+            (source_path, data.replace('\n', '\\n').replace("'", r"\'")))
 
     def output(self, _in, out, **kwargs):
         base_path = self._find_base_path() + os.path.sep
@@ -48,7 +49,7 @@ class JSTFilter(Filter):
         if self._include_jst_script:
             out.write("%s\n" % _jst_script)
 
-        for path, contents in self._templates.iteritems():
+        for path, contents in self._templates:
             out.write("%s['%s'] = %s('%s');\n" % (self._namespace, 
                 os.path.splitext(path[len(base_path):])[0],
                 self._template_function, contents))
@@ -58,10 +59,10 @@ class JSTFilter(Filter):
 
     def _find_base_path(self):
         """Hmmm.  There should aways be some common base path."""
-        paths = self._templates.keys()
+        paths = [path for path, content in self._templates]
         if len(paths) == 1:
             return os.path.dirname(paths[0])
-        return common_path_prefix(self._templates.keys())
+        return common_path_prefix(paths)
 
 
 _jst_script = 'var template = function(str){var fn = new Function(\'obj\', \'var \
