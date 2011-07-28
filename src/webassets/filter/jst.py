@@ -38,7 +38,7 @@ class JSTFilter(Filter):
         self._templates[source_path] = data.replace('\n', '\\n').replace("'", r"\'")
 
     def output(self, _in, out, **kwargs):
-        base_path = self._find_base_path()
+        base_path = self._find_base_path() + os.path.sep
 
         if not self._bare:
             out.write("(function(){\n    ")
@@ -61,7 +61,7 @@ class JSTFilter(Filter):
         paths = self._templates.keys()
         if len(paths) == 1:
             return os.path.dirname(paths[0])
-        return common_path_prefix(self._templates.keys()) + os.path.sep
+        return common_path_prefix(self._templates.keys())
 
 
 _jst_script = 'var template = function(str){var fn = new Function(\'obj\', \'var \

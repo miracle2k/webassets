@@ -458,12 +458,12 @@ class TestJST(BuildTestHelper):
     def test_nested_naming(self):
         self.create_files({'templates/foo/bar/baz.jst': """<span>In your foo bars.</span>"""})
         self.mkbundle('templates/foo/bar/*', 'templates/bar.html', filters='jst', output='out.js').build()
-        assert 'foo/bar/baz' in self.get('out.js')
+        assert '\'foo/bar/baz\'' in self.get('out.js')
 
     def test_single_template(self):
         self.create_files({'baz.jst': """<span>Baz?</span>"""})
         self.mkbundle('*.jst', filters='jst', output='out.js').build()
-        assert 'baz' in self.get('out.js')
+        assert '\'baz\'' in self.get('out.js')
 
     def test_option_bare(self):
         """[Regression] Test the JST_BARE option can be set to False.
