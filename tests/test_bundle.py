@@ -204,6 +204,20 @@ class TestBuild(BuildTestHelper):
         os.unlink(self.path('in'))
         assert_raises(BuildError, bundle.build)
 
+    def test_debug_mode_inherited(self):
+        """Make sure that if a bundle sets debug=FOO, that values
+        is also used for child bundles.
+        """
+        b = self.mkbundle(
+            'in1',
+            self.mkbundle(
+                'in2', filters=AppendFilter(':childin', ':childout')),
+            output='out', debug='merge',
+            filters=AppendFilter(':rootin', ':rootout'))
+        b.build()
+        # Neither the content of in1 or of in2 have filters applied.
+        assert self.get('out') == 'A\nB'
+
     def test_cannot_build_in_debug_mode(self):
         """While we are in debug mode, bundles refuse to build.
 

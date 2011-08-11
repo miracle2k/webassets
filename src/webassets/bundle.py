@@ -197,33 +197,35 @@ class Bundle(object):
             raise BundleError('Bundle is not connected to an environment')
         return env
 
-    def _merge_and_apply(self, env, output_path, force, no_filters=False,
+    def _merge_and_apply(self, env, output_path, force, parent_debug=None,
                          parent_filters=[], extra_filters=[],
                          disable_cache=False):
         """Internal recursive build method.
 
-        ``no_filters`` disables filter application ("merge" mode).
+        ``parent_debug`` is the debug setting used by the parent bundle.
+        This is not necessarily ``bundle.debug``, but rather what the
+        calling method in the recursion tree is actually using.
 
-        ``parent_filters`` are what the direct parent passes along, for
-        us to be applied as input filters.
+        ``parent_filters`` are what the parent passes along, for
+        us to be applied as input filters. Like ``parent_debug``, it is
+        a collection of the filters of all parents in the hierarchy.
 
         ``extra_filters`` may exist if the parent is a container bundle
         passing filters along to it's children; these are applied as input
         and output filters (since there is no parent who could do the
-        latter), and they are not passed further down the hierarchy.
+        latter), and they are not passed further down the hierarchy
+        (but instead they become part of ``parent_filters``.
 
         ``disable_cache`` is necessary because in some cases, when an
         external bundle dependency has changed, we must not rely on the
         cache.
         """
-
-        # Look at the bundle's ``debug`` option to decide what
-        # building it entails.
-        debug = self.debug if self.debug is not None else env.debug
-        if debug is None:
-            # work with whatever no_filters was passed by the parent
-            pass
-        elif debug == 'merge':
+        # Determine the debug option to work, which will tell us what
+        # building the bundle entails. the reduce chooses the first
+        # non-None value.
+        debug = reduce(lambda x, y: x if not x is None else y,
+            [self.debug, parent_debug, env.debug])
+        if debug == 'merge':
             no_filters = True
         elif debug is True:
             # This should be caught by urls().
@@ -253,7 +255,7 @@ class Bundle(object):
         for c in resolved_contents:
             if isinstance(c, Bundle):
                 hunk = c._merge_and_apply(
-                    env, output_path, force, no_filters,
+                    env, output_path, force, debug,
                     combined_filters, disable_cache=disable_cache)
                 hunks.append(hunk)
             else:
