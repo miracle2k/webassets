@@ -221,7 +221,7 @@ class Bundle(object):
         cache.
         """
         # Determine the debug option to work, which will tell us what
-        # building the bundle entails. the reduce chooses the first
+        # building the bundle entails. The reduce chooses the first
         # non-None value.
         debug = reduce(lambda x, y: x if not x is None else y,
             [self.debug, parent_debug, env.debug])
@@ -229,7 +229,10 @@ class Bundle(object):
             no_filters = True
         elif debug is True:
             # This should be caught by urls().
-            raise BuildError("a bundle with debug=True cannot be built")
+            if any([self.debug, parent_debug]):
+                raise BuildError("a bundle with debug=True cannot be built")
+            else:
+                raise BuildError("cannot build while in debug mode")
         elif debug is False:
             no_filters = False
         else:
