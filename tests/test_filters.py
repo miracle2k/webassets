@@ -230,7 +230,7 @@ class TestBuiltinFilters(BuildTestHelper):
             raise SkipTest()
         self.create_files({'in': "alert \"I knew it!\" if elvis?"})
         self.mkbundle('in', filters='coffeescript', output='out.js').build()
-        assert self.get('out.js') == """if (typeof elvis != "undefined" && elvis !== null) {
+        assert self.get('out.js') == """if (typeof elvis !== "undefined" && elvis !== null) {
   alert("I knew it!");
 }
 """
