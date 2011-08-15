@@ -10,6 +10,7 @@ glob2
 # Filters
 clevercss
 cssutils
+cssmin
 yuicompressor
 # Requiring manual installation:
 #cssprefixer
