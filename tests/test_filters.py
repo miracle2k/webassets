@@ -1,9 +1,12 @@
 import os
+import tempfile
+from StringIO import StringIO
 from nose.tools import assert_raises, with_setup, assert_equals
 from nose import SkipTest
 from distutils.spawn import find_executable
 from webassets import Bundle, Environment
-from webassets.filter import Filter, get_filter, register_filter
+from webassets.exceptions import FilterError
+from webassets.filter import Filter, get_filter, register_filter, JavaMixin
 from helpers import BuildTestHelper
 
 # Sometimes testing filter output can be hard if they generate
@@ -94,6 +97,27 @@ class TestFilter:
                 return 'foo'
         g = AnotherFilter()
         assert f1 != g
+
+    def test_java_mixin_error_handling(self):
+        """The mixin class for java-based external tools.
+
+        Test the codepath that deals with errors raised by the
+        external tool.
+        """
+        class TestFilter(Filter, JavaMixin):
+            def setup(self):
+                # This is not going to be a valid jar
+                self.jar = tempfile.mkstemp()[1]
+                self.java_setup()
+            def input(self, _in, out, *a, **kw):
+                self.java_run(_in, out, [])
+        # Run the filter, which will result in an error
+        try:
+           f1 = TestFilter()
+           f1.setup()
+           assert_raises(FilterError, f1.input, StringIO(), StringIO())
+        finally:
+           os.unlink(f1.jar)
 
 
 def test_register_filter():
