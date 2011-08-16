@@ -4,7 +4,7 @@ from webassets import Environment, Bundle
 from webassets.exceptions import BundleError
 from webassets.updater import TimestampUpdater, BundleDefUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache
-from helpers import BuildTestHelper
+from helpers import TempEnvironmentHelper
 
 
 class TestBundleDefBaseUpdater:
@@ -58,12 +58,12 @@ class TestBundleDefBaseUpdater:
         assert self.updater.needs_rebuild(self.bundle, self.env) == False
 
 
-class TestTimestampUpdater(BuildTestHelper):
+class TestTimestampUpdater(TempEnvironmentHelper):
 
     default_files = {'in': '', 'out': ''}
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
         # Test the timestamp updater with cache disabled, so that the
         # BundleDefUpdater() base class won't interfere.

@@ -11,10 +11,10 @@ from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache
 
-from helpers import BuildTestHelper, noop
+from helpers import TempEnvironmentHelper, noop
 
 
-class TestBundleConfig(BuildTestHelper):
+class TestBundleConfig(TempEnvironmentHelper):
 
     def test_init_kwargs(self):
         """We used to silently ignore unsupported kwargs, which can make
@@ -108,7 +108,7 @@ class TestBundleConfig(BuildTestHelper):
         assert len(b.resolve_depends(self.m)) == 1
 
 
-class TestBuild(BuildTestHelper):
+class TestBuild(TempEnvironmentHelper):
     """Test building various bundle structures, in various debug modes.
     """
 
@@ -349,7 +349,7 @@ class AppendFilter(Filter):
         return self._input, self._output
 
 
-class TestFilters(BuildTestHelper):
+class TestFilters(TempEnvironmentHelper):
     """Test filter application during building.
     """
 
@@ -410,12 +410,12 @@ class TestFilters(BuildTestHelper):
         assert self.get('out3') == 'foo:childin:childout'
 
 
-class TestUpdateAndCreate(BuildTestHelper):
+class TestUpdateAndCreate(TempEnvironmentHelper):
     """Test bundle auto rebuild.
     """
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
         class CustomUpdater(BaseUpdater):
             allow = True
@@ -575,7 +575,7 @@ class TestUpdateAndCreate(BuildTestHelper):
         assert self.get('out') == 'new-value-12345'
 
 
-class BaseUrlsTester(BuildTestHelper):
+class BaseUrlsTester(TempEnvironmentHelper):
     """Baseclass to tes the url generation
 
     It defines a mock bundle class that intercepts calls to build().
@@ -586,7 +586,7 @@ class BaseUrlsTester(BuildTestHelper):
     default_files = {}
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
         self.m.expire = False
 
@@ -782,7 +782,7 @@ class TestUrlsWithDebugMerge(BaseUrlsTester):
         assert len(self.build_called) == 1
 
 
-class TestGlobbing(BuildTestHelper):
+class TestGlobbing(TempEnvironmentHelper):
     """Test the bundle contents support for patterns.
     """
 
@@ -855,12 +855,12 @@ class MockHTTPHandler(urllib2.HTTPHandler):
         return resp
 
 
-class TestUrlContents(BuildTestHelper):
+class TestUrlContents(TempEnvironmentHelper):
     """Test bundles containing a URL.
     """
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
         mock_opener = urllib2.build_opener(MockHTTPHandler({
             'http://foo': 'function() {}'}))
         urllib2.install_opener(mock_opener)

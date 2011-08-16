@@ -7,7 +7,7 @@ from distutils.spawn import find_executable
 from webassets import Bundle, Environment
 from webassets.exceptions import FilterError
 from webassets.filter import Filter, get_filter, register_filter, JavaMixin
-from helpers import BuildTestHelper
+from helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
 # unpredictable text like temp paths or timestamps. doctest has
@@ -182,14 +182,14 @@ def test_callable_filter():
     def my_filter(_in, out):
         assert _in.read() == 'initial value'
         out.write('filter was here')
-    with BuildTestHelper() as helper:
+    with TempEnvironmentHelper() as helper:
         helper.create_files({'in': 'initial value'})
         b = helper.mkbundle('in', filters=my_filter, output='out')
         b.build()
         assert helper.get('out') == 'filter was here'
 
 
-class TestBuiltinFilters(BuildTestHelper):
+class TestBuiltinFilters(TempEnvironmentHelper):
 
     default_files = {
         'foo.css': """
@@ -317,7 +317,7 @@ class TestBuiltinFilters(BuildTestHelper):
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
 
 
-class TestCssRewrite(BuildTestHelper):
+class TestCssRewrite(TempEnvironmentHelper):
 
     def test(self):
         self.create_files({'in.css': '''h1 { background: url(sub/icon.png) }'''})
@@ -349,7 +349,7 @@ class TestCssRewrite(BuildTestHelper):
         assert self.get('out.css') == '''h1 { background: url(/new/sub/icon.png) }'''
 
 
-class TestSass(BuildTestHelper):
+class TestSass(TempEnvironmentHelper):
 
     default_files = {
         'foo.css': """
@@ -367,7 +367,7 @@ class TestSass(BuildTestHelper):
     def setup(self):
         if not find_executable('sass'):
             raise SkipTest()
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
     def test_sass(self):
         sass = get_filter('sass', debug_info=False)
@@ -401,7 +401,7 @@ class TestSass(BuildTestHelper):
         assert '-sass-debug-info' in self.get('out2.css')
 
 
-class TestCompass(BuildTestHelper):
+class TestCompass(TempEnvironmentHelper):
 
     default_files = {
         'foo.scss': """
@@ -422,7 +422,7 @@ class TestCompass(BuildTestHelper):
     def setup(self):
         if not find_executable('compass'):
             raise SkipTest()
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
     def test_compass(self):
         self.mkbundle('foo.sass', filters='compass', output='out.css').build()
@@ -453,7 +453,7 @@ class TestCompass(BuildTestHelper):
         assert doctest_match("""/* ... */\nh1 {\n  background: url('http://assets.host.com/the-images/test.png');\n}\n""", self.get('out.css'))
 
 
-class TestJST(BuildTestHelper):
+class TestJST(TempEnvironmentHelper):
 
     default_files = {
         'templates/foo.jst': "<div>Im a normal .jst template.</div>",
@@ -461,7 +461,7 @@ class TestJST(BuildTestHelper):
     }
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
     
     def test_jst(self):
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
