@@ -39,7 +39,7 @@ Javascript compressors
 .. autoclass:: webassets.filter.jspacker.JSPackerFilter
 
 
-``closure``
+``closure_js``
 ~~~~~~~~~~~
 
 .. automodule:: webassets.filter.closure
