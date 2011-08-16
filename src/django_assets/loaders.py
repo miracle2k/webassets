@@ -1,5 +1,7 @@
 from django.conf import settings
 from django import template
+from webassets.loaders import GlobLoader, LoaderError
+
 from django_assets.templatetags.assets import AssetsNode as AssetsNodeOriginal
 try:
     from django.templatetags.assets import AssetsNode as AssetsNodeMapped
@@ -7,8 +9,8 @@ except ImportError:
     # Since Django #12295, custom templatetags are no longer mapped into
     # the Django namespace. Support both versions.
     AssetsNodeMapped = None
-
-from webassets.loaders import GlobLoader, LoaderError
+AssetsNodeClasses = filter(lambda c: bool(c),
+    (AssetsNodeOriginal, AssetsNodeMapped))
 
 
 __all__ = ('DjangoLoader', 'get_django_template_dirs',)
@@ -60,7 +62,7 @@ class DjangoLoader(GlobLoader):
                 # builtins, or loaded via {% load %}, it will be
                 # available in a different module
                 if node is not None and \
-                   isinstance(node, (AssetsNodeMapped, AssetsNodeOriginal,)):
+                   isinstance(node, AssetsNodeClasses):
                     # try to resolve this node's data; if we fail,
                     # then it depends on view data and we cannot
                     # manually rebuild it.
