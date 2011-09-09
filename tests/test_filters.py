@@ -203,6 +203,12 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             var dummy;
             document.write ( bar ); /* Write */
         }
+        """,
+        'regex_bug.js': """
+        function foo(bar) {
+            // return /\d{1}/.test(bar); <- passes
+            return /\d{1,2}/.test(bar);
+        }
         """
     }
 
@@ -274,6 +280,9 @@ class TestBuiltinFilters(TempEnvironmentHelper):
     def test_jsmin(self):
         self.mkbundle('foo.js', filters='jsmin', output='out.js').build()
         assert self.get('out.js') == "\nfunction foo(bar){var dummy;document.write(bar);}"
+
+        self.mkbundle('regex_bug.js', filters='jsmin', output='regex_out.js').build()
+        assert self.get('regex_out.js') == "\nfunction foo(bar){return /\d{1,2}/.test(bar);}"
 
     def test_rjsmin(self):
         try:
