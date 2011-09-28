@@ -13,10 +13,13 @@ class SassFilter(Filter):
 
     name = 'sass'
 
-    def __init__(self, scss=False, debug_info=None):
+    def __init__(self, scss=False, debug_info=None, as_output=False,
+                 includes_dir=None):
         super(SassFilter, self).__init__()
         self.use_scss = scss
         self.debug_info = debug_info
+        self.as_output = as_output
+        self.includes_dir = includes_dir
 
     def setup(self):
         self.binary = self.get_config('SASS_BIN', what='sass binary',
@@ -24,9 +27,11 @@ class SassFilter(Filter):
         if self.debug_info is None:
             self.debug_info = self.get_config('SASS_DEBUG_INFO', require=False)
 
-    def input(self, _in, out, source_path, output_path):
-        old_dir = os.getcwd()
-        os.chdir(os.path.dirname(source_path))
+    def _apply_sass(self, _in, out, includes_path):
+        if includes_path:
+            old_dir = os.getcwd()
+            os.chdir(includes_path)
+
         try:
             args = [self.binary or 'sass', '--stdin', '--style', 'expanded',
                     '--no-cache', '--line-comments']
@@ -34,6 +39,7 @@ class SassFilter(Filter):
                 args.append('--debug-info')
             if self.use_scss:
                 args.append('--scss')
+
             proc = subprocess.Popen(args,
                                     stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
@@ -52,7 +58,21 @@ class SassFilter(Filter):
 
             out.write(stdout)
         finally:
-            os.chdir(old_dir)
+            if includes_path:
+                os.chdir(old_dir)
+
+    def input(self, _in, out, source_path, output_path):
+        if self.as_output:
+            out.write(_in.read())
+        else:
+            self._apply_sass(
+                _in, out, self.includes_dir or os.path.dirname(source_path))
+
+    def output(self, _in, out, **kwargs):
+        if not self.as_output:
+            out.write(_in.read())
+        else:
+            self._apply_sass(_in, out, self.includes_dir)
 
 
 class SCSSFilter(SassFilter):

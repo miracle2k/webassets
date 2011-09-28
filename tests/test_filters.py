@@ -400,6 +400,27 @@ class TestSass(TempEnvironmentHelper):
         self.mkbundle('foo.sass', filters=get_filter('sass', debug_info=True), output='out2.css').build()
         assert '-sass-debug-info' in self.get('out2.css')
 
+    def test_as_output_filter(self):
+        """The sass filter can be configured to work as on output filter,
+        first merging the sources together, then applying sass.
+        """
+        # To test this, split a sass rules into two files.
+        sass_output = get_filter('sass', debug_info=False, as_output=True)
+        self.create_files({'p1': 'h1', 'p2': '\n  color: #FFFFFF'})
+        self.mkbundle('p1', 'p2', filters=sass_output, output='out.css').build()
+        assert self.get('out.css') == """/* line 1 */\nh1 {\n  color: white;\n}\n"""
+
+    def test_custom_include_path(self):
+        """Test a custom include_path.
+        """
+        sass_output = get_filter('sass', debug_info=False, as_output=True,
+                                 includes_dir=self.path('includes'))
+        self.create_files({
+            'includes/vars.sass': '$a_color: #FFFFFF',
+            'base.sass': '@import vars.sass\nh1\n  color: $a_color'})
+        self.mkbundle('base.sass', filters=sass_output, output='out.css').build()
+        assert self.get('out.css') == """/* line 2 */\nh1 {\n  color: white;\n}\n"""
+
 
 class TestCompass(TempEnvironmentHelper):
 
