@@ -11,10 +11,10 @@ from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache
 
-from helpers import BuildTestHelper, noop
+from helpers import TempEnvironmentHelper, noop
 
 
-class TestBundleConfig(BuildTestHelper):
+class TestBundleConfig(TempEnvironmentHelper):
 
     def test_init_kwargs(self):
         """We used to silently ignore unsupported kwargs, which can make
@@ -108,7 +108,7 @@ class TestBundleConfig(BuildTestHelper):
         assert len(b.resolve_depends(self.m)) == 1
 
 
-class TestBuild(BuildTestHelper):
+class TestBuild(TempEnvironmentHelper):
     """Test building various bundle structures, in various debug modes.
     """
 
@@ -203,6 +203,20 @@ class TestBuild(BuildTestHelper):
         # Delete the static file - now we can't build
         os.unlink(self.path('in'))
         assert_raises(BundleError, bundle.build)
+
+    def test_debug_mode_inherited(self):
+        """Make sure that if a bundle sets debug=FOO, that values
+        is also used for child bundles.
+        """
+        b = self.mkbundle(
+            'in1',
+            self.mkbundle(
+                'in2', filters=AppendFilter(':childin', ':childout')),
+            output='out', debug='merge',
+            filters=AppendFilter(':rootin', ':rootout'))
+        b.build()
+        # Neither the content of in1 or of in2 have filters applied.
+        assert self.get('out') == 'A\nB'
 
     def test_cannot_build_in_debug_mode(self):
         """While we are in debug mode, bundles refuse to build.
@@ -335,7 +349,7 @@ class AppendFilter(Filter):
         return self._input, self._output
 
 
-class TestFilters(BuildTestHelper):
+class TestFilters(TempEnvironmentHelper):
     """Test filter application during building.
     """
 
@@ -396,12 +410,12 @@ class TestFilters(BuildTestHelper):
         assert self.get('out3') == 'foo:childin:childout'
 
 
-class TestUpdateAndCreate(BuildTestHelper):
+class TestUpdateAndCreate(TempEnvironmentHelper):
     """Test bundle auto rebuild.
     """
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
         class CustomUpdater(BaseUpdater):
             allow = True
@@ -561,7 +575,7 @@ class TestUpdateAndCreate(BuildTestHelper):
         assert self.get('out') == 'new-value-12345'
 
 
-class BaseUrlsTester(BuildTestHelper):
+class BaseUrlsTester(TempEnvironmentHelper):
     """Baseclass to tes the url generation
 
     It defines a mock bundle class that intercepts calls to build().
@@ -572,7 +586,7 @@ class BaseUrlsTester(BuildTestHelper):
     default_files = {'a': '', 'b': '', 'c': '', '1': '', '2': ''}
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
         self.m.expire = False
 
@@ -768,7 +782,7 @@ class TestUrlsWithDebugMerge(BaseUrlsTester):
         assert len(self.build_called) == 1
 
 
-class TestGlobbing(BuildTestHelper):
+class TestGlobbing(TempEnvironmentHelper):
     """Test the bundle contents support for patterns.
     """
 
@@ -797,7 +811,7 @@ class TestGlobbing(BuildTestHelper):
     def test_non_pattern_missing_files(self):
         """Ensure that if we specify a non-existant file, it will still
         be returned in the debug urls(), and build() will raise the IOError
-        rathern than the globbing failing and the bundle being empty
+        rather than the globbing failing and the bundle being empty
         """
         self.mkbundle('*.js', output='out').build()
         content = self.get('out').split("\n")
@@ -841,12 +855,12 @@ class MockHTTPHandler(urllib2.HTTPHandler):
         return resp
 
 
-class TestUrlContents(BuildTestHelper):
+class TestUrlContents(TempEnvironmentHelper):
     """Test bundles containing a URL.
     """
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
         mock_opener = urllib2.build_opener(MockHTTPHandler({
             'http://foo': 'function() {}'}))
         urllib2.install_opener(mock_opener)

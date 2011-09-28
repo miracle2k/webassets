@@ -1,10 +1,13 @@
 import os
+import tempfile
+from StringIO import StringIO
 from nose.tools import assert_raises, with_setup, assert_equals
 from nose import SkipTest
 from distutils.spawn import find_executable
 from webassets import Bundle, Environment
-from webassets.filter import Filter, get_filter, register_filter
-from helpers import BuildTestHelper
+from webassets.exceptions import FilterError
+from webassets.filter import Filter, get_filter, register_filter, JavaMixin
+from helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
 # unpredictable text like temp paths or timestamps. doctest has
@@ -95,6 +98,27 @@ class TestFilter:
         g = AnotherFilter()
         assert f1 != g
 
+    def test_java_mixin_error_handling(self):
+        """The mixin class for java-based external tools.
+
+        Test the codepath that deals with errors raised by the
+        external tool.
+        """
+        class TestFilter(Filter, JavaMixin):
+            def setup(self):
+                # This is not going to be a valid jar
+                self.jar = tempfile.mkstemp()[1]
+                self.java_setup()
+            def input(self, _in, out, *a, **kw):
+                self.java_run(_in, out, [])
+        # Run the filter, which will result in an error
+        try:
+           f1 = TestFilter()
+           f1.setup()
+           assert_raises(FilterError, f1.input, StringIO(), StringIO())
+        finally:
+           os.unlink(f1.jar)
+
 
 def test_register_filter():
     """Test registration of custom filters.
@@ -158,14 +182,14 @@ def test_callable_filter():
     def my_filter(_in, out):
         assert _in.read() == 'initial value'
         out.write('filter was here')
-    with BuildTestHelper() as helper:
+    with TempEnvironmentHelper() as helper:
         helper.create_files({'in': 'initial value'})
         b = helper.mkbundle('in', filters=my_filter, output='out')
         b.build()
         assert helper.get('out') == 'filter was here'
 
 
-class TestBuiltinFilters(BuildTestHelper):
+class TestBuiltinFilters(TempEnvironmentHelper):
 
     default_files = {
         'foo.css': """
@@ -230,10 +254,16 @@ class TestBuiltinFilters(BuildTestHelper):
             raise SkipTest()
         self.create_files({'in': "alert \"I knew it!\" if elvis?"})
         self.mkbundle('in', filters='coffeescript', output='out.js').build()
-        assert self.get('out.js') == """if (typeof elvis != "undefined" && elvis !== null) {
+        assert self.get('out.js') == """if (typeof elvis !== "undefined" && elvis !== null) {
   alert("I knew it!");
 }
 """
+    def test_uglifyjs(self):
+        if not find_executable('uglifyjs'):
+            raise SkipTest()
+        self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
+        print self.get('out.js')
+        assert self.get('out.js') == "function foo(a){var b;document.write(a)}"
 
     def test_less(self):
         if not find_executable('lessc'):
@@ -287,7 +317,7 @@ class TestBuiltinFilters(BuildTestHelper):
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
 
 
-class TestCssRewrite(BuildTestHelper):
+class TestCssRewrite(TempEnvironmentHelper):
 
     def test(self):
         self.create_files({'in.css': '''h1 { background: url(sub/icon.png) }'''})
@@ -319,7 +349,7 @@ class TestCssRewrite(BuildTestHelper):
         assert self.get('out.css') == '''h1 { background: url(/new/sub/icon.png) }'''
 
 
-class TestSass(BuildTestHelper):
+class TestSass(TempEnvironmentHelper):
 
     default_files = {
         'foo.css': """
@@ -337,7 +367,7 @@ class TestSass(BuildTestHelper):
     def setup(self):
         if not find_executable('sass'):
             raise SkipTest()
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
     def test_sass(self):
         sass = get_filter('sass', debug_info=False)
@@ -370,8 +400,29 @@ class TestSass(BuildTestHelper):
         self.mkbundle('foo.sass', filters=get_filter('sass', debug_info=True), output='out2.css').build()
         assert '-sass-debug-info' in self.get('out2.css')
 
+    def test_as_output_filter(self):
+        """The sass filter can be configured to work as on output filter,
+        first merging the sources together, then applying sass.
+        """
+        # To test this, split a sass rules into two files.
+        sass_output = get_filter('sass', debug_info=False, as_output=True)
+        self.create_files({'p1': 'h1', 'p2': '\n  color: #FFFFFF'})
+        self.mkbundle('p1', 'p2', filters=sass_output, output='out.css').build()
+        assert self.get('out.css') == """/* line 1 */\nh1 {\n  color: white;\n}\n"""
 
-class TestCompass(BuildTestHelper):
+    def test_custom_include_path(self):
+        """Test a custom include_path.
+        """
+        sass_output = get_filter('sass', debug_info=False, as_output=True,
+                                 includes_dir=self.path('includes'))
+        self.create_files({
+            'includes/vars.sass': '$a_color: #FFFFFF',
+            'base.sass': '@import vars.sass\nh1\n  color: $a_color'})
+        self.mkbundle('base.sass', filters=sass_output, output='out.css').build()
+        assert self.get('out.css') == """/* line 2 */\nh1 {\n  color: white;\n}\n"""
+
+
+class TestCompass(TempEnvironmentHelper):
 
     default_files = {
         'foo.scss': """
@@ -392,7 +443,7 @@ class TestCompass(BuildTestHelper):
     def setup(self):
         if not find_executable('compass'):
             raise SkipTest()
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
     def test_compass(self):
         self.mkbundle('foo.sass', filters='compass', output='out.css').build()
@@ -421,3 +472,48 @@ class TestCompass(BuildTestHelper):
         self.create_files({'imguri.scss': 'h1 { background: image-url("test.png") }'})
         self.mkbundle('imguri.scss', filters='compass', output='out.css').build()
         assert doctest_match("""/* ... */\nh1 {\n  background: url('http://assets.host.com/the-images/test.png');\n}\n""", self.get('out.css'))
+
+
+class TestJST(TempEnvironmentHelper):
+
+    default_files = {
+        'templates/foo.jst': "<div>Im a normal .jst template.</div>",
+        'templates/bar.html': "<div>Im an html jst template.  Go syntax highlighting!</div>"
+    }
+
+    def setup(self):
+        TempEnvironmentHelper.setup(self)
+    
+    def test_jst(self):
+        self.mkbundle('templates/*', filters='jst', output='out.js').build()
+        contents = self.get('out.js')
+        assert 'Im a normal .jst template' in contents
+        assert 'Im an html jst template.  Go syntax highlighting!' in contents
+    
+    def test_compiler_config(self):
+        self.m.config['JST_COMPILER'] = '_.template'
+        self.mkbundle('templates/*', filters='jst', output='out.js').build()
+        assert '_.template' in self.get('out.js')
+    
+    def test_namespace_config(self):
+        self.m.config['JST_NAMESPACE'] = 'window.Templates'
+        self.mkbundle('templates/*', filters='jst', output='out.js').build()
+        assert 'window.Templates' in self.get('out.js')
+    
+    def test_nested_naming(self):
+        self.create_files({'templates/foo/bar/baz.jst': """<span>In your foo bars.</span>"""})
+        self.mkbundle('templates/foo/bar/*', 'templates/bar.html', filters='jst', output='out.js').build()
+        assert '\'foo/bar/baz\'' in self.get('out.js')
+
+    def test_single_template(self):
+        self.create_files({'baz.jst': """<span>Baz?</span>"""})
+        self.mkbundle('*.jst', filters='jst', output='out.js').build()
+        assert '\'baz\'' in self.get('out.js')
+
+    def test_option_bare(self):
+        """[Regression] Test the JST_BARE option can be set to False.
+        """
+        self.create_files({'baz.jst': """<span>Baz?</span>"""})
+        self.m.config['JST_BARE'] = False
+        self.mkbundle('*.jst', filters='jst', output='out.js').build()
+        assert self.get('out.js').startswith('(function()')

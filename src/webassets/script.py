@@ -40,6 +40,11 @@ class CommandLineEnvironment():
     def rebuild(self):
         """Rebuild all assets now.
         """
+        if self.environment.debug != False:
+            self.log.warning(
+                ("Current debug option is '%s'. Building as "
+                 "if in production (debug=False)") % self.environment.debug)
+            self.environment.debug = False
         for to_build in self.environment:
             self.log.info("Building bundle: %s" % to_build.output)
             try:

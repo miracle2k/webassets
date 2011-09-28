@@ -200,7 +200,8 @@ class JavaMixin(object):
         stdout, stderr = proc.communicate(_in.read())
         if proc.returncode:
             raise FilterError('%s: subprocess returned a '
-                'non-success result code: %s' % (self.name, proc.returncode))
+                'non-success result code: %s, stdout=%s, stderr=%s' % (
+                     self.name, proc.returncode, stdout, stderr))
             # stderr contains error messages
         else:
             out.write(stdout)

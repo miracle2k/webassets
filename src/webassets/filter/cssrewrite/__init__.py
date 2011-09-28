@@ -1,5 +1,6 @@
 import os, re, urlparse
-from os.path import join, commonprefix, normpath
+from os.path import join, normpath
+from webassets.utils import common_path_prefix
 import urlpath
 try:
     from collections import OrderedDict
@@ -90,14 +91,14 @@ class CSSRewriteFilter(Filter):
         # based urls (e.g. the following code will consider them absolute
         # within a filesystem chrooted into env.url).
         root = addsep(self.env.directory)
-        # To make commonprefix() work properly in all cases, make sure we
-        # remove stuff like ../ from all paths.
+        # To make common_path_prefix() work properly in all cases, make sure
+        # we remove stuff like ../ from all paths.
         output_path = normpath(join(root, output_path))
         source_path = normpath(join(root, source_path))
         root = normpath(root)
 
-        output_url = path2url(output_path[len(commonprefix([root, output_path])):])
-        source_url = path2url(source_path[len(commonprefix([root, source_path])):])
+        output_url = path2url(output_path[len(common_path_prefix([root, output_path])):])
+        source_url = path2url(source_path[len(common_path_prefix([root, source_path])):])
 
         # For replace mode, make sure we have all the directories to be
         # rewritten in form of a url, so we can later easily match it
@@ -107,7 +108,7 @@ class CSSRewriteFilter(Filter):
             replace = OrderedDict()
             for repldir, sub in self.replace.items():
                 repldir = addsep(os.path.normpath(join(root, repldir)))
-                replurl = path2url(repldir[len(commonprefix([root, repldir])):])
+                replurl = path2url(repldir[len(common_path_prefix([root, repldir])):])
                 replace[replurl] = sub
 
         def _rewrite(m):
