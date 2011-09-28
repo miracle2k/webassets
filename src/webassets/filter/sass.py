@@ -2,6 +2,7 @@ import os, subprocess
 
 from webassets.filter import Filter
 from webassets.exceptions import FilterError
+from webassets.cache import FilesystemCache
 
 
 __all__ = ('SassFilter', 'SCSSFilter')
@@ -34,7 +35,10 @@ class SassFilter(Filter):
 
         try:
             args = [self.binary or 'sass', '--stdin', '--style', 'expanded',
-                    '--no-cache', '--line-comments']
+                    '--line-comments']
+            if isinstance(self.env.cache, FilesystemCache):
+                args.extend(['--cache-location',
+                             os.path.join(self.env.cache.directory, 'sass')])
             if not self.debug_info is False:
                 args.append('--debug-info')
             if self.use_scss:
