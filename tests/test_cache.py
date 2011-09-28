@@ -2,7 +2,7 @@ import tempfile, shutil
 from nose.tools import assert_equals
 from webassets.updater import TimestampUpdater
 from webassets.cache import BaseCache, FilesystemCache, MemoryCache
-from helpers import BuildTestHelper
+from helpers import TempEnvironmentHelper
 
 
 class TestCaches:
@@ -31,12 +31,12 @@ class TestCaches:
         assert c.get('foo') == None
 
 
-class TestCacheIsUsed(BuildTestHelper):
+class TestCacheIsUsed(TempEnvironmentHelper):
     """Ensure the cache is used during the build process.
     """
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
         class MyCache(BaseCache):
             def __init__(self):

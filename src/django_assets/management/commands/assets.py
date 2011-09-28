@@ -28,7 +28,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 from webassets import Bundle
-from webassets.bundle import BuildError
+from webassets.exceptions import BuildError
 from webassets.script import (CommandLineEnvironment,
                               CommandError as AssetCommandError)
 from django_assets.env import get_env, autoload
@@ -88,7 +88,7 @@ class Command(BaseCommand):
         # Using the Jinja loader, if available
         try:
             import jinja2
-        except:
+        except ImportError:
             pass
         else:
             from webassets.ext.jinja2 import Jinja2Loader, AssetsExtension
@@ -104,7 +104,7 @@ class Command(BaseCommand):
 
             try:
                 from coffin.common import get_env as get_coffin_env
-            except:
+            except ImportError:
                 pass
             else:
                 jinja2_envs.append(get_coffin_env())

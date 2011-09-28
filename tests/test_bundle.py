@@ -1,3 +1,4 @@
+import os
 import urllib2
 from StringIO import StringIO
 
@@ -6,15 +7,15 @@ from nose import SkipTest
 from test.test_support import check_warnings
 
 from webassets import Bundle
-from webassets.bundle import BuildError, BundleError
+from webassets.exceptions import BundleError, BuildError
 from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache
 
-from helpers import BuildTestHelper, noop
+from helpers import TempEnvironmentHelper, noop
 
 
-class TestBundleConfig(BuildTestHelper):
+class TestBundleConfig(TempEnvironmentHelper):
 
     def test_init_kwargs(self):
         """We used to silently ignore unsupported kwargs, which can make
@@ -108,7 +109,7 @@ class TestBundleConfig(BuildTestHelper):
         assert len(b.resolve_depends(self.m)) == 1
 
 
-class TestVersionSystemDeprecations(BuildTestHelper):
+class TestVersionSystemDeprecations(TempEnvironmentHelper):
     """With the introduction of the ``Environment.version`` system,
     some functionality has been deprecated.
     """
@@ -171,7 +172,7 @@ class TestVersionSystemDeprecations(BuildTestHelper):
             # "always" needs to be migrated manually
             assert_raises(DeprecationWarning, setattr, self.m, 'updater', 'always')
 
-class TestBuild(BuildTestHelper):
+class TestBuild(TempEnvironmentHelper):
     """Test building various bundle structures, in various debug modes.
     """
 
@@ -183,6 +184,45 @@ class TestBuild(BuildTestHelper):
     def test_nested_bundle(self):
         """A nested bundle."""
         self.mkbundle('in1', self.mkbundle('in3', 'in4'), 'in2', output='out').build()
+        assert self.get('out') == 'A\nC\nD\nB'
+
+    def test_container_bundle(self):
+        """A container bundle.
+        """
+        self.mkbundle(
+            self.mkbundle('in1', output='out1'),
+            self.mkbundle('in2', output='out2')).build()
+        assert self.get('out1') == 'A'
+        assert self.get('out2') == 'B'
+
+    def test_build_return_value(self):
+        """build() method returns list of built hunks.
+        """
+        # Test a simple bundle (single hunk)
+        hunks = self.mkbundle('in1', 'in2', output='out').build()
+        assert len(hunks) == 1
+        assert hunks[0].data() == 'A\nB'
+
+        # Test container bundle (multiple hunks)
+        hunks = self.mkbundle(
+            self.mkbundle('in1', output='out1'),
+            self.mkbundle('in2', output='out2')).build()
+        assert len(hunks) == 2
+        assert hunks[0].data() == 'A'
+        assert hunks[1].data() == 'B'
+
+    def test_nested_bundle_with_skipped_cache(self):
+        """[Regression] There was a bug when doing a build with
+        an updater that returned SKIP_CACHE, due to passing arguments
+        incorrectly.
+        """
+        class SkipCacheUpdater(BaseUpdater):
+            def needs_rebuild(self, *a, **kw):
+                return SKIP_CACHE
+        self.m.updater = SkipCacheUpdater()
+        self.create_files({'out': ''})  # or updater won't come into play
+        self.mkbundle('in1', self.mkbundle('in3', 'in4'), 'in2',
+                      output='out').build()
         assert self.get('out') == 'A\nC\nD\nB'
 
     def test_no_output_error(self):
@@ -204,6 +244,42 @@ class TestBuild(BuildTestHelper):
         self.mkbundle('in1', 'in2', output='out').build()
         assert self.get('out') == 'A\nB'
         self.mkbundle('in1', 'in2', output='out').build()
+        assert self.get('out') == 'A\nB'
+
+    def test_deleted_source_files(self):
+        """Bundle contents are cached. However, if a file goes missing
+        that was included via wildcard, this will not cause any problems
+        in subsequent builds.
+
+        If a statically included file goes missing however, the build
+        fails.
+        """
+        self.create_files({'in': 'A', '1.css': '1', '2.css': '2'})
+        bundle = self.mkbundle('in', '*.css', output='out')
+        bundle.build()
+        self.get('out') == 'A12'
+
+        # Delete a wildcard file - we still build fine
+        os.unlink(self.path('1.css'))
+        bundle.build()
+        self.get('out') == 'A1'
+
+        # Delete the static file - now we can't build
+        os.unlink(self.path('in'))
+        assert_raises(BuildError, bundle.build)
+
+    def test_debug_mode_inherited(self):
+        """Make sure that if a bundle sets debug=FOO, that values
+        is also used for child bundles.
+        """
+        b = self.mkbundle(
+            'in1',
+            self.mkbundle(
+                'in2', filters=AppendFilter(':childin', ':childout')),
+            output='out', debug='merge',
+            filters=AppendFilter(':rootin', ':rootout'))
+        b.build()
+        # Neither the content of in1 or of in2 have filters applied.
         assert self.get('out') == 'A\nB'
 
     def test_cannot_build_in_debug_mode(self):
@@ -337,7 +413,7 @@ class AppendFilter(Filter):
         return self._input, self._output
 
 
-class TestFilters(BuildTestHelper):
+class TestFilters(TempEnvironmentHelper):
     """Test filter application during building.
     """
 
@@ -398,12 +474,12 @@ class TestFilters(BuildTestHelper):
         assert self.get('out3') == 'foo:childin:childout'
 
 
-class TestUpdateAndCreate(BuildTestHelper):
+class TestUpdateAndCreate(TempEnvironmentHelper):
     """Test bundle auto rebuild.
     """
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
         class CustomUpdater(BaseUpdater):
             allow = True
@@ -419,7 +495,7 @@ class TestUpdateAndCreate(BuildTestHelper):
         self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'A'
 
-    def test_no_auto_create(self):
+    def test_no_autocreate(self):
         """If auto_build is disabled, then the initial build of a
         previously non-existent output file will not happen either.
         """
@@ -427,6 +503,16 @@ class TestUpdateAndCreate(BuildTestHelper):
         assert_raises(BuildError, self.mkbundle('in1', output='out').build)
         # However, it works fine if force is used
         self.mkbundle('in1', output='out').build(force=True)
+
+    def test_no_updater(self):
+        """[Regression] If Environment.updater is set to False/None,
+        this won't cause problems during the build.
+        """
+        self.m.updater = False
+        self.create_files({'out': 'old_value'})
+        self.mkbundle('in1', output='out').build()
+        # And it also means that we don't to auto-rebuilding
+        assert self.get('out') == 'old_value'
 
     def test_no_auto_create_env_via_argument(self):
         """Regression test for a bug that occured when the environment
@@ -554,7 +640,7 @@ class TestUpdateAndCreate(BuildTestHelper):
         assert self.get('out') == 'new-value-12345'
 
 
-class BaseUrlsTester(BuildTestHelper):
+class BaseUrlsTester(TempEnvironmentHelper):
     """Baseclass to tes the url generation
 
     It defines a mock bundle class that intercepts calls to build().
@@ -565,7 +651,7 @@ class BaseUrlsTester(BuildTestHelper):
     default_files = {}
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
         self.m.url_expire = False
 
@@ -761,7 +847,7 @@ class TestUrlsWithDebugMerge(BaseUrlsTester):
         assert len(self.build_called) == 1
 
 
-class TestGlobbing(BuildTestHelper):
+class TestGlobbing(TempEnvironmentHelper):
     """Test the bundle contents support for patterns.
     """
 
@@ -790,12 +876,28 @@ class TestGlobbing(BuildTestHelper):
     def test_non_pattern_missing_files(self):
         """Ensure that if we specify a non-existant file, it will still
         be returned in the debug urls(), and build() will raise the IOError
-        rathern than the globbing failing and the bundle being empty
+        rather than the globbing failing and the bundle being empty
         """
         self.mkbundle('*.js', output='out').build()
         content = self.get('out').split("\n")
         content.sort()
         assert content == ['bar', 'foo']
+
+    def test_recursive_globbing(self):
+        """Test recursive globbing using python-glob2.
+        """
+        try:
+            import glob2
+        except ImportError:
+            raise SkipTest()
+
+        self.create_files({'sub/file.js': 'sub',})
+        self.mkbundle('**/*.js', output='out').build()
+        content = self.get('out').split("\n")
+        content.sort()
+        assert content == ['bar', 'foo', 'sub']
+
+        #https://github.com/miracle2k/python-glob2
 
 
 class MockHTTPHandler(urllib2.HTTPHandler):
@@ -818,12 +920,12 @@ class MockHTTPHandler(urllib2.HTTPHandler):
         return resp
 
 
-class TestUrlContents(BuildTestHelper):
+class TestUrlContents(TempEnvironmentHelper):
     """Test bundles containing a URL.
     """
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
         mock_opener = urllib2.build_opener(MockHTTPHandler({
             'http://foo': 'function() {}'}))
         urllib2.install_opener(mock_opener)
@@ -835,7 +937,7 @@ class TestUrlContents(BuildTestHelper):
     def test_invalid_url(self):
         """If a bundle contains an invalid url, building will raise an error.
         """
-        assert_raises(urllib2.URLError,
+        assert_raises(BuildError,
                       self.mkbundle('http://bar', output='out').build)
 
     def test_autorebuild_updaters(self):

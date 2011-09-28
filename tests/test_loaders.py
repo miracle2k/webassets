@@ -1,8 +1,9 @@
+import sys
 from nose.tools import assert_raises
 import textwrap
 from StringIO import StringIO
 from test.test_support import check_warnings
-from webassets.loaders import YAMLLoader, LoaderError
+from webassets.loaders import PythonLoader, YAMLLoader, LoaderError
 from nose import SkipTest
 
 
@@ -97,5 +98,18 @@ class TestYAML(object):
         directory: ../something
         """, filename='/var/www/project/config/yaml').load_environment()
         # The directory is considered relative to the YAML file location.
-        print environment.directory
         assert environment.directory == '/var/www/project/something'
+
+
+class TestPython(object):
+    """Test the PythonLoader.
+    """
+
+    def test_path(self):
+        """[bug] Regression test: Python loader does not leave
+        sys.path messed up.
+        """
+        old_path = sys.path[:]
+        loader = PythonLoader('sys')
+        assert sys.path == old_path
+

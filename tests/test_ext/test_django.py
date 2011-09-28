@@ -4,12 +4,14 @@ try:
 except ImportError:
     raise SkipTest()
 from django.template import Template, Context
+from django_assets.loaders import DjangoLoader
 from django_assets import Bundle, register as django_env_register
 from django_assets.env import get_env, reset as django_env_reset
-from webassets.bundle import BuildError
+from tests.helpers import TempDirHelper
 
 
 AssetsNode = None
+
 
 def setup_module():
     from django.conf import settings
@@ -125,3 +127,32 @@ class TestTemplateTag():
         """
         self.BundleClass.urls_to_fake = ['foo', 'bar']
         assert self.render_template('"file1" "file2" "file3"') == 'foo;bar;'
+
+
+class TestLoader(TempDirHelper):
+
+    def setup(self):
+        TempDirHelper.setup(self)
+
+        self.loader = DjangoLoader()
+        settings.TEMPLATE_LOADERS = [
+            'django.template.loaders.filesystem.Loader',
+        ]
+        settings.TEMPLATE_DIRS = [self.tempdir]
+
+    def test(self):
+        self.create_files({
+            'template.html': """
+            {% load assets %}
+            <h1>Test</h1>
+            {% if foo %}
+                {% assets "A" "B" "C" output="output.html" %}
+                    {{ ASSET_URL }}
+                {% endassets %}
+            {% endif %}
+            """
+        })
+        bundles = self.loader.load_bundles()
+        assert len(bundles) == 1
+        assert bundles[0].output == "output.html"
+

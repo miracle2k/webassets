@@ -152,7 +152,7 @@ class PythonLoader(object):
             except ImportError, e:
                 raise LoaderError(e)
         finally:
-            sys.path.pop()
+            sys.path.pop(0)
 
     def load_bundles(self):
         """Load ``Bundle`` objects defined in the Python module.

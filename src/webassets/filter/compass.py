@@ -26,13 +26,12 @@ See:
     http://groups.google.com/group/compass-users/browse_thread/thread/daf55acda03656d1
 """
 
-
-import time
 import os, subprocess
 from os import path
 import tempfile
 import shutil
 
+from webassets.exceptions import FilterError
 from webassets.filter import Filter
 
 
@@ -170,8 +169,8 @@ http_javascripts_dir = ""
             # compass seems to always write a utf8 header? to stderr, so
             # make sure to not fail just because there's something there.
             if proc.returncode != 0:
-                raise Exception(('compass: subprocess had error: stderr=%s, '+
-                                'stdout=%s, returncode=%s') % (
+                raise FilterError(('compass: subprocess had error: stderr=%s, '+
+                                   'stdout=%s, returncode=%s') % (
                                                 stderr, stdout, proc.returncode))
 
 

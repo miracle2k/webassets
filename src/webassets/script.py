@@ -4,7 +4,8 @@ import logging
 from optparse import OptionParser
 
 from webassets.loaders import PythonLoader
-from webassets.bundle import BuildError, get_all_bundle_files
+from webassets.bundle import get_all_bundle_files
+from webassets.exceptions import BuildError
 from webassets.updater import TimestampUpdater
 
 
@@ -39,6 +40,11 @@ class CommandLineEnvironment():
     def rebuild(self):
         """Rebuild all assets now.
         """
+        if self.environment.debug != False:
+            self.log.warning(
+                ("Current debug option is '%s'. Building as "
+                 "if in production (debug=False)") % self.environment.debug)
+            self.environment.debug = False
         for to_build in self.environment:
             self.log.info("Building bundle: %s" % to_build.output)
             try:
@@ -76,7 +82,10 @@ class CommandLineEnvironment():
                 changed_bundles = check_for_changes()
                 for bundle in changed_bundles:
                     self.log.info("Rebuilding asset: %s" % bundle.output)
-                    bundle.build(force=True)
+                    try:
+                        bundle.build(force=True)
+                    except BuildError, e:
+                        print "Failed: %s" % e
                 time.sleep(0.1)
         except KeyboardInterrupt:
             pass

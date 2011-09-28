@@ -42,7 +42,7 @@ class AssetsExtension(Extension):
 
         # parse the arguments
         first = True
-        while parser.stream.current.type is not 'block_end':
+        while parser.stream.current.type != 'block_end':
             if not first:
                 parser.stream.expect('comma')
             first = False

@@ -21,7 +21,7 @@ Javascript compressors
 
 
 ``rjsmin``
-~~~~~~~~~
+~~~~~~~~~~
 
 .. autoclass:: webassets.filter.rjsmin.RJSMinFilter
 
@@ -39,10 +39,16 @@ Javascript compressors
 .. autoclass:: webassets.filter.jspacker.JSPackerFilter
 
 
-``closure``
+``closure_js``
 ~~~~~~~~~~~
 
 .. automodule:: webassets.filter.closure
+
+
+``uglifyjs``
+~~~~~~~~~~~
+
+.. automodule:: webassets.filter.uglifyjs
 
 
 CSS compressors
@@ -116,6 +122,12 @@ Other
 .. autoclass:: webassets.filter.cssrewrite.CSSRewriteFilter
 
 
+``jst``
+~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.jst.JSTFilter
+
+
 ``cssprefixer``
 ~~~~~~~~~~~~~~~
 
@@ -129,6 +141,6 @@ Other
 
 
 ``coffeescript``
-~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 .. autoclass:: webassets.filter.coffeescript.CoffeeScriptFilter

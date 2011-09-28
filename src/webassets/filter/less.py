@@ -3,6 +3,7 @@ import os, subprocess
 import tempfile
 
 from webassets.filter import Filter
+from webassets.exceptions import FilterError
 
 
 __all__ = ('LessFilter',)
@@ -10,6 +11,9 @@ __all__ = ('LessFilter',)
 
 class LessFilter(Filter):
     """Converts `Less <http://lesscss.org/>`_ markup to real CSS.
+
+    Only works with versions 1.x of the less gem. 2.x do not yet support
+    command line invocation.
 
     If you want to combine it with other CSS filters, make sure this
     one runs first.
@@ -71,8 +75,8 @@ class LessFilter(Filter):
         if stdout or stderr or proc.returncode != 0:
             if os.path.exists(outtemp_name):
                 os.unlink(outtemp_name)
-            raise Exception(('less: subprocess had error: stderr=%s, '+
-                            'stdout=%s, returncode=%s') % (
+            raise FilterError(('less: subprocess had error: stderr=%s, '+
+                               'stdout=%s, returncode=%s') % (
                                             stderr, stdout, proc.returncode))
 
         outtemp = open(outtemp_name)

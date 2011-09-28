@@ -1,23 +1,22 @@
 from os import path
 import urlparse
-import glob
 import os
+try:
+    # Current version of glob2 does not let us access has_magic :/
+    import glob2 as glob
+    from glob import has_magic
+except ImportError:
+    import glob
+    from glob import has_magic
 import warnings
 from filter import get_filter
 from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
                    make_url, merge_filters)
 from updater import SKIP_CACHE
+from exceptions import BundleError, BuildError
 
 
-__all__ = ('Bundle', 'BundleError', 'get_all_bundle_files',)
-
-
-class BundleError(Exception):
-    pass
-
-
-class BuildError(BundleError):
-    pass
+__all__ = ('Bundle', 'get_all_bundle_files',)
 
 
 def is_url(s):
@@ -97,9 +96,12 @@ class Bundle(object):
         self._resolved_contents = None
     contents = property(_get_contents, _set_contents)
 
-    def resolve_contents(self, env=None):
+    def resolve_contents(self, env=None, force=False):
         """Returns contents, with globbed patterns resolved to
         actual filenames.
+
+        Set ``force`` to ignore any cache, and always re-resolve
+        glob patterns.
         """
         env = self._get_env(env)
 
@@ -107,7 +109,7 @@ class Bundle(object):
         # due to changes in the env object, the result of the globbing may
         # change. Not to mention that a different env object may be passed
         # in. We should find a fix for this.
-        if getattr(self, '_resolved_contents', None) is None:
+        if getattr(self, '_resolved_contents', None) is None or force:
             l = []
             for item in self.contents:
                 if isinstance(item, basestring):
@@ -119,7 +121,7 @@ class Bundle(object):
                     # a file's existence though; currently, when in debug
                     # mode, no error would be raised at all, and simply a
                     # broken url sent to the browser.
-                    if glob.has_magic(item):
+                    if has_magic(item):
                         path = env.abspath(item)
                         for f in glob.glob(path):
                             l.append(f[len(path)-len(item):])
@@ -148,14 +150,14 @@ class Bundle(object):
         if getattr(self, '_resolved_depends', None) is None:
             l = []
             for item in self.depends:
-                if isinstance(item, basestring):
-                    if glob.has_magic(item):
-                        path = env.abspath(item)
-                        for f in glob.glob(path):
-                            l.append(f[len(path)-len(item):])
-                    else:
-                        l.append(item)
+                if has_magic(item):
+                    dir = env.abspath(item)
+                    for f in glob.glob(dir):
+                        l.append(f[len(dir)-len(item):])
                 else:
+                    if not path.exists(env.abspath(item)):
+                        raise BundleError(
+                            'dependency "%s" does not exist' % item)
                     l.append(item)
             self._resolved_depends = l
         return self._resolved_depends
@@ -265,44 +267,49 @@ class Bundle(object):
             raise BundleError('Bundle is not connected to an environment')
         return env
 
-    def _merge_and_apply(self, env, output_path, force, no_filters=False,
+    def _merge_and_apply(self, env, output_path, force, parent_debug=None,
                          parent_filters=[], extra_filters=[],
                          disable_cache=False):
         """Internal recursive build method.
 
-        ``no_filters`` disables filter application ("merge" mode).
+        ``parent_debug`` is the debug setting used by the parent bundle.
+        This is not necessarily ``bundle.debug``, but rather what the
+        calling method in the recursion tree is actually using.
 
-        ``parent_filters`` are what the direct parent passes along, for
-        us to be applied as input filters.
+        ``parent_filters`` are what the parent passes along, for
+        us to be applied as input filters. Like ``parent_debug``, it is
+        a collection of the filters of all parents in the hierarchy.
 
         ``extra_filters`` may exist if the parent is a container bundle
         passing filters along to it's children; these are applied as input
         and output filters (since there is no parent who could do the
-        latter), and they are not passed further down the hierarchy.
+        latter), and they are not passed further down the hierarchy
+        (but instead they become part of ``parent_filters``.
 
         ``disable_cache`` is necessary because in some cases, when an
         external bundle dependency has changed, we must not rely on the
         cache.
         """
-
-        # Look at the bundle's ``debug`` option to decide what
-        # building it entails.
-        debug = self.debug if self.debug is not None else env.debug
-        if debug is None:
-            # work with whatever no_filters was passed by the parent
-            pass
-        elif debug == 'merge':
+        # Determine the debug option to work, which will tell us what
+        # building the bundle entails. The reduce chooses the first
+        # non-None value.
+        debug = reduce(lambda x, y: x if not x is None else y,
+            [self.debug, parent_debug, env.debug])
+        if debug == 'merge':
             no_filters = True
         elif debug is True:
             # This should be caught by urls().
-            raise BuildError("a bundle with debug=True cannot be built")
+            if any([self.debug, parent_debug]):
+                raise BuildError("a bundle with debug=True cannot be built")
+            else:
+                raise BuildError("cannot build while in debug mode")
         elif debug is False:
             no_filters = False
         else:
             raise BundleError('Invalid debug value: %s' % debug)
 
         # Prepare contents
-        resolved_contents = self.resolve_contents(env)
+        resolved_contents = self.resolve_contents(env, force=True)
         if not resolved_contents:
             raise BuildError('empty bundle cannot be built')
 
@@ -321,8 +328,8 @@ class Bundle(object):
         for c in resolved_contents:
             if isinstance(c, Bundle):
                 hunk = c._merge_and_apply(
-                    env, output_path, force, no_filters,
-                    combined_filters, disable_cache)
+                    env, output_path, force, debug,
+                    combined_filters, disable_cache=disable_cache)
                 hunks.append(hunk)
             else:
                 if is_url(c):
@@ -338,7 +345,11 @@ class Bundle(object):
                         output_path=output_path))
 
         # Return all source hunks as one, with output filters applied
-        final = merge(hunks)
+        try:
+            final = merge(hunks)
+        except IOError, e:
+            raise BuildError(e)
+
         if no_filters:
             return final
         else:

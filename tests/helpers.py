@@ -6,7 +6,7 @@ import tempfile
 from webassets import Environment, Bundle
 
 
-__all__ = ('BuildTestHelper', 'noop')
+__all__ = ('TempDirHelper', 'TempEnvironmentHelper', 'noop')
 
 
 # Define a noop filter; occasionally in tests we need to define
@@ -14,28 +14,20 @@ __all__ = ('BuildTestHelper', 'noop')
 noop = lambda _in, out: out.write(_in.read())
 
 
-class BuildTestHelper:
-    """Provides some basic helpers for tests that want to simulate
-    building bundles.
+class TempDirHelper:
+    """Base-class for tests which provides a temporary directory
+    (which is properly deleted after the test is done), and various
+    helper methods to do filesystem operations within that directory.
     """
 
-    default_files = {'in1': 'A', 'in2': 'B', 'in3': 'C', 'in4': 'D'}
+    default_files = {}
 
     def setup(self):
-        self.dir_created = tempfile.mkdtemp()
-        self.m = Environment(self.dir_created, '')
-        # Unless we explicitly test it, we don't want to use the cache
-        # during testing.
-        self.m.cache = False
-
-        # Some generic files to be used by simple tests
+        self._tempdir_created = tempfile.mkdtemp()
         self.create_files(self.default_files)
 
     def teardown(self):
-        # Make sure to use a separate attribute for security. We don't
-        # want to delete the actual media directory if a child class
-        # to call super() in setup().
-        shutil.rmtree(self.dir_created)
+        shutil.rmtree(self._tempdir_created)
 
     def __enter__(self):
         self.setup()
@@ -44,16 +36,21 @@ class BuildTestHelper:
     def __exit__(self, type, value, traceback):
         self.teardown()
 
-    def mkbundle(self, *a, **kw):
-        b = Bundle(*a, **kw)
-        b.env = self.m
-        return b
+    @property
+    def tempdir(self):
+        # Use a read-only property here, so the user is
+        # less likely to modify the attribute, and have
+        # his data deleted on teardown.
+        return self._tempdir_created
 
     def create_files(self, files):
         """Helper that allows to quickly create a bunch of files in
         the media directory of the current test run.
         """
         for name, data in files.items():
+            dirs = path.dirname(self.path(name))
+            if not path.exists(dirs):
+                os.makedirs(dirs)
             f = open(self.path(name), 'w')
             f.write(data)
             f.close()
@@ -78,7 +75,7 @@ class BuildTestHelper:
 
     def path(self, name):
         """Return the given file's full path."""
-        return path.join(self.m.directory, name)
+        return path.join(self._tempdir_created, name)
 
     def setmtime(self, *files, **kwargs):
         """Set the mtime of the given files. Useful helper when
@@ -102,3 +99,25 @@ class BuildTestHelper:
             print "-" * len(f)
             print self.get(f)
             print
+
+
+class TempEnvironmentHelper(TempDirHelper):
+    """Base-class for tests which provides a pre-created
+    environment, based in a temporary directory, and utility
+    methods to do filesystem operations within that directory.
+    """
+
+    default_files = {'in1': 'A', 'in2': 'B', 'in3': 'C', 'in4': 'D'}
+
+    def setup(self):
+        TempDirHelper.setup(self)
+
+        self.m = Environment(self._tempdir_created, '')
+        # Unless we explicitly test it, we don't want to use the cache
+        # during testing.
+        self.m.cache = False
+
+    def mkbundle(self, *a, **kw):
+        b = Bundle(*a, **kw)
+        b.env = self.m
+        return b

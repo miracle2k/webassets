@@ -146,6 +146,9 @@ class BaseEnvironment(object):
     def __getitem__(self, name):
         return self._named_bundles[name]
 
+    def __contains__(self, name):
+        return name in self._named_bundles
+
     def __len__(self):
         return len(self._named_bundles) + len(self._anon_bundles)
 

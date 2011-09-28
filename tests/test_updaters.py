@@ -1,8 +1,10 @@
 import os
+from nose.tools import assert_raises
 from webassets import Environment, Bundle
+from webassets.exceptions import BundleError
 from webassets.updater import TimestampUpdater, BundleDefUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache
-from helpers import BuildTestHelper
+from helpers import TempEnvironmentHelper
 
 
 class TestBundleDefBaseUpdater:
@@ -56,19 +58,19 @@ class TestBundleDefBaseUpdater:
         assert self.updater.needs_rebuild(self.bundle, self.env) == False
 
 
-class TestTimestampUpdater(BuildTestHelper):
+class TestTimestampUpdater(TempEnvironmentHelper):
 
     default_files = {'in': '', 'out': ''}
 
     def setup(self):
-        BuildTestHelper.setup(self)
+        TempEnvironmentHelper.setup(self)
 
         # Test the timestamp updater with cache disabled, so that the
         # BundleDefUpdater() base class won't interfere.
         self.m.cache = False
         self.m.versioner.updater = self.updater = TimestampUpdater()
 
-    def test_default(self):
+    def test_timestamp_behavior(self):
         bundle = self.mkbundle('in', output='out')
 
         # Set both times to the same timestamp
@@ -76,13 +78,39 @@ class TestTimestampUpdater(BuildTestHelper):
         assert self.updater.needs_rebuild(bundle, self.m) == False
 
         # Make in file older than out file
-        self.setmtime('in', mtime=now-100)
-        self.setmtime('out', mtime=now)
+        os.utime(self.path('in'), (now, now-100))
+        os.utime(self.path('out'), (now, now))
         assert self.updater.needs_rebuild(bundle, self.m) == False
 
         # Make in file newer than out file
-        self.setmtime('in', mtime=now)
-        self.setmtime('out', mtime=now-100)
+        os.utime(self.path('in'), (now, now))
+        os.utime(self.path('out'), (now, now-100))
+        assert self.updater.needs_rebuild(bundle, self.m) == True
+
+    def test_source_file_deleted(self):
+        """If a source file is deleted, rather than raising an error
+        when failing to check it's timestamp, we ask for a rebuild.
+
+        The reason is that when a wildcard is used to build the list of
+        source files, this is the behavior we want: At the time of the
+        update check, we are presumably using a cached version of the
+        bundle contents. For the rebuild, the contents are refreshed.
+
+        So if the file that is missing was included via a wildcard, the
+        rebuild will go through, without the file. If a file is gone
+        missing that he user specifically added to the bundle, then the
+        build process is going to raise the error (this is tested
+        separately).
+        """
+        self.create_files({'1.css': '', '2.css': ''})
+        bundle = self.mkbundle('in', '*.css', output='out')
+
+        # Set all mtimes to the same timestamp
+        self.setmtime('in', 'out', '1.css', '2.css')
+        assert self.updater.needs_rebuild(bundle, self.m) == False
+
+        # Delete a wildcarded file
+        os.unlink(self.path('1.css'))
         assert self.updater.needs_rebuild(bundle, self.m) == True
 
     def test_bundle_definition_change(self):
@@ -110,7 +138,8 @@ class TestTimestampUpdater(BuildTestHelper):
 
     def test_depends(self):
         """Test the timestamp updater properly considers additional
-        bundle dependencies."""
+        bundle dependencies.
+        """
         self.create_files({'d.sass': '', 'd.other': ''})
         bundle = self.mkbundle('in', output='out', depends=('*.sass',))
 
@@ -146,5 +175,29 @@ class TestTimestampUpdater(BuildTestHelper):
         self.setmtime('in', mtime=now-100)
         self.setmtime('dependency', mtime=now+100)
 
-        print self.updater.needs_rebuild(bundle, self.m)
         assert self.updater.needs_rebuild(bundle, self.m) == SKIP_CACHE
+
+    def test_wildcard_dependency_deleted(self):
+        """If a dependency is deleted, a rebuild is always
+        required.
+
+        [Regression] This used to raise an error.
+        """
+        self.create_files({'1.sass': '', '2.sass': ''})
+        bundle = self.mkbundle('in', output='out', depends=('*.sass',))
+
+        # Set mtimes so that no update is required
+        self.setmtime('1.sass', '2.sass', 'in', 'out')
+        assert self.updater.needs_rebuild(bundle, self.m) == False
+
+        # Delete a dependency
+        os.unlink(self.path('1.sass'))
+        # Now we need to update
+        assert self.updater.needs_rebuild(bundle, self.m) == SKIP_CACHE
+
+    def test_static_dependency_missing(self):
+        """If a statically referenced dependency does not exist,
+        an error is raised.
+        """
+        bundle = self.mkbundle('in', output='out', depends=('file',))
+        assert_raises(BundleError, self.updater.needs_rebuild, bundle, self.m)
