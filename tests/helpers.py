@@ -59,8 +59,12 @@ class TempDirHelper:
         """Helper to create directories within the media directory
         of the current test's environment.
         """
+        result = []
         for dir in dirs:
-            os.makedirs(self.path(dir))
+            full_path = self.path(dir)
+            result.append(full_path)
+            os.makedirs(full_path)
+        return result
 
     def exists(self, name):
         """Ensure the given file exists within the current test run's

@@ -1,9 +1,12 @@
 from nose import SkipTest
+from nose.tools import assert_raises_regexp, assert_raises
+
 try:
     from django.conf import settings
 except ImportError:
     raise SkipTest()
 from django.template import Template, Context
+from webassets.exceptions import BundleError
 from django_assets.loaders import DjangoLoader
 from django_assets import Bundle, register as django_env_register
 from django_assets.env import get_env, reset as django_env_reset
@@ -16,7 +19,6 @@ AssetsNode = None
 def setup_module():
     from django.conf import settings
     settings.configure(INSTALLED_APPS=['django_assets'])
-    settings.INSTALLED_APPS += ('django_assets',)
 
     # After setting up Django properly, try to import the correct node
     # class, and make it globally available.
@@ -27,6 +29,44 @@ def setup_module():
         from django_assets.templatetags.assets import AssetsNode as Node
     global AssetsNode
     AssetsNode = Node
+
+
+
+class TempEnvironmentHelper(TempDirHelper):
+    """Base-class for tests which will:
+
+    - Reset the Django settings after each test.
+    - Reset the django-assets environment after each test.
+    - Initialize MEDIA_ROOT to point to a temporary directory.
+    """
+
+    def setup(self):
+        TempDirHelper.setup(self)
+
+        # Setup a temporary settings object
+        #from django.test.utils import override_settings
+        #self.override_settings = override_settings()
+        #self.override_settings.enable()
+
+        # Reset the webassets environment.
+        django_env_reset()
+        self.m = get_env()
+
+        # Use a temporary directory as MEDIA_ROOT
+        settings.MEDIA_ROOT = self.create_directories('media')[0]
+
+        # Unless we explicitly test it, we don't want to use
+        # the cache during testing.
+        self.m.cache = False
+
+    def teardown(self):
+        #self.override_settings.disable()
+        pass
+
+    def mkbundle(self, *a, **kw):
+        b = Bundle(*a, **kw)
+        b.env = self.m
+        return b
 
 
 class TestConfig(object):
@@ -155,4 +195,71 @@ class TestLoader(TempDirHelper):
         bundles = self.loader.load_bundles()
         assert len(bundles) == 1
         assert bundles[0].output == "output.html"
+
+
+class TestStaticFiles(TempEnvironmentHelper):
+    """Test integration with django.contrib.staticfiles.
+    """
+
+    def setup(self):
+        TempEnvironmentHelper.setup(self)
+
+        try:
+            import django.contrib.staticfiles
+        except ImportError:
+            raise SkipTest()
+
+        # Configure a staticfiles-using project.
+        settings.STATIC_ROOT = settings.MEDIA_ROOT
+        settings.MEDIA_ROOT = self.path('needs_to_differ_from_static_root')
+        settings.STATIC_URL = '/media'
+        settings.INSTALLED_APPS += ('django.contrib.staticfiles',)
+        settings.STATICFILES_DIRS = tuple(self.create_directories('foo', 'bar'))
+        settings.STATICFILES_FINDERS += ('django_assets.finders.AssetsFinder',)
+        self.create_files({'foo/file1': 'foo', 'bar/file2': 'bar'})
+        settings.DEBUG = True
+
+        # Reset the finders cache after each run, since our
+        # STATICFILES_DIRS change every time.
+        from django.contrib.staticfiles import finders
+        finders._finders.clear()
+
+    def test_build(self):
+        """Finders are used to find source files.
+        """
+        self.mkbundle('file1', 'file2', output="out").build()
+        assert self.get("media/out") == "foo\nbar"
+
+    def test_build_nodebug(self):
+        """If debug is disabled, the finders are not used.
+        """
+        settings.DEBUG = False
+        bundle = self.mkbundle('file1', 'file2', output="out")
+        assert_raises(BundleError, bundle.build)
+
+        # After creating the files in the static root directory,
+        # it works (we only look there in production).
+        from django.core.management import call_command
+        call_command("collectstatic", interactive=False)
+
+        bundle.build()
+        assert self.get("media/out") == "foo\nbar"
+
+    def test_missing_file(self):
+        """An error is raised if a source file is missing.
+        """
+        bundle = self.mkbundle('xyz', output="out")
+        assert_raises_regexp(
+            BundleError, 'using staticfiles finders', bundle.build)
+
+    def test_serve_built_files(self):
+        """The files we write to STATIC_ROOT are served in debug mode
+        using "django_assets.finders.AssetsFinder".
+        """
+        self.mkbundle('file1', 'file2', output="out").build()
+        # I tried using the test client for this, but it would
+        # need to be setup using StaticFilesHandler, which is
+        # incompatible with the test client.
+        from django_assets.finders import AssetsFinder
+        assert AssetsFinder().find('out') == self.path("media/out")
 
