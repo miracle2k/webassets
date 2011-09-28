@@ -10,7 +10,46 @@ __all__ = ('SassFilter', 'SCSSFilter')
 
 class SassFilter(Filter):
     """Converts `Sass <http://sass-lang.com/>`_ markup to real CSS.
+
+    Requires the Sass executable to be available externally. To install
+    it, you might be able to do:
+
+         $ sudo gem install sass
+
+    By default, this works as an "input filter", meaning ``sass`` is
+    called for each source file in the bundle. This is because the
+    path of the source file is required so that @import directives
+    within the Sass file can be correctly resolved.
+
+    However, it is possible to use this filter as an "output filter",
+    meaning the source files will first be concatenated, and then the
+    Sass filter is applied in one go. This can provide a speedup for
+    bigger projects.
+
+    To use Sass as an output filter::
+
+        from webassets.filter import get_filter
+        sass = get_filter('sass', as_output=True)
+        Bundle(...., filters=(sass,))
+
+    If you want to use the output filter mode and still also use the
+    @import directive in your Sass files, you will need to pass along
+    the ``includes_dir`` argument, which specifies the path to which
+    the imports are relative to (this is implemented by changing the
+    working directory before calling the ``sass`` executable)::
+
+        sass = get_filter('sass', as_output=True, includes_dir='/tmp')
+
+    If you are confused as to why this is necessary, consider that
+    in the case of an output filter, the source files might come from
+    various places in the filesystem, put are merged together and
+    passed to Sass as one big chunk. The filter cannot by itself know
+    which of the source directories to use as a base.
     """
+    # TODO: If an output filter could be passed the list of all input
+    # files, the filter might be able to do something interesting with
+    # it (for example, determine that all source files are in the same
+    # directory).
 
     name = 'sass'
 
