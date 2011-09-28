@@ -1,10 +1,7 @@
 from nose import SkipTest
 from nose.tools import assert_raises_regexp, assert_raises
 
-try:
-    from django.conf import settings
-except ImportError:
-    raise SkipTest()
+from django.conf import settings
 from django.template import Template, Context
 from webassets.exceptions import BundleError
 from django_assets.loaders import DjangoLoader
@@ -12,24 +9,11 @@ from django_assets import Bundle, register as django_env_register
 from django_assets.env import get_env, reset as django_env_reset
 from tests.helpers import TempDirHelper
 
-
-AssetsNode = None
-
-
-def setup_module():
-    from django.conf import settings
-    settings.configure(INSTALLED_APPS=['django_assets'])
-
-    # After setting up Django properly, try to import the correct node
-    # class, and make it globally available.
-    try:
-        from django.templatetags.assets import AssetsNode as Node
-    except ImportError:
-        # Since #12295, Django no longer maps the tags.
-        from django_assets.templatetags.assets import AssetsNode as Node
-    global AssetsNode
-    AssetsNode = Node
-
+try:
+    from django.templatetags.assets import AssetsNode
+except ImportError:
+    # Since #12295, Django no longer maps the tags.
+    from django_assets.templatetags.assets import AssetsNode
 
 
 class TempEnvironmentHelper(TempDirHelper):
@@ -43,11 +27,6 @@ class TempEnvironmentHelper(TempDirHelper):
     def setup(self):
         TempDirHelper.setup(self)
 
-        # Setup a temporary settings object
-        #from django.test.utils import override_settings
-        #self.override_settings = override_settings()
-        #self.override_settings.enable()
-
         # Reset the webassets environment.
         django_env_reset()
         self.m = get_env()
@@ -55,9 +34,20 @@ class TempEnvironmentHelper(TempDirHelper):
         # Use a temporary directory as MEDIA_ROOT
         settings.MEDIA_ROOT = self.create_directories('media')[0]
 
+        # Some other settings without which we are likely to run
+        # into errors being raised as part of validation.
+        settings.DATABASES['default'] = {'ENGINE': ''}
+
         # Unless we explicitly test it, we don't want to use
         # the cache during testing.
         self.m.cache = False
+
+        # Setup a temporary settings object
+        # TODO: This should be used (from 1.4), but the tests need
+        # to run on 1.3 as well.
+        # from django.test.utils import override_settings
+        # self.override_settings = override_settings()
+        # self.override_settings.enable()
 
     def teardown(self):
         #self.override_settings.disable()
