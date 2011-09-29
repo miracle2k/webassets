@@ -78,6 +78,31 @@ More about the management commands which are available (in generic,
 non-Django specific form) can be found on the :doc:`../script` page.
 
 
+Staticfiles support
+~~~~~~~~~~~~~~~~~~~
+
+When using ``django.contrib.staticfiles``, your CSS/Javascript source files
+are spread across multiple directories.
+
+``django-assets`` tries to "just work" here. When ``DEBUG=True``, and
+``django.contrib.staticfiles`` is in ``INSTALLED_APPS``, it will
+automatically use the staticfiles finder system to look for source files.
+
+Thus, you can reference your media files in a bundle just as you would
+otherwise. Output files are written to ``STATIC_ROOT``, which is however
+not served by Django during development. If you are having bundles
+built while in development mode, you will need to add
+``django_assets.finders.AssetsFinder`` to your ``STATICFILES_FINDERS``
+setting to have Django serve them.
+
+In production mode, ``django-assets`` will expect all source files
+to be located within ``STATIC_ROOT``. You are expected to call the
+``./manage.py collectstatic`` command before running
+``./manage.py assets rebuild``. If you are using automatic rebuilding,
+changes will not be picked up in production until you have run
+``collectstatic``.
+
+
 Jinja2 support
 ~~~~~~~~~~~~~~
 
