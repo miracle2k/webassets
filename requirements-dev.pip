@@ -12,6 +12,7 @@ clevercss
 cssutils
 cssmin
 yuicompressor
+closure
 # Requiring manual installation:
 #cssprefixer
 #rjsmin

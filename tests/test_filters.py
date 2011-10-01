@@ -292,19 +292,6 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('foo.js', filters='jspacker', output='out.js').build()
         assert self.get('out.js').startswith('eval(function(p,a,c,k,e,d)')
 
-    def test_closure(self):
-        try:
-            self.mkbundle('foo.js', filters='closure_js', output='out1.js').build()
-            self.m.config['CLOSURE_COMPRESSOR_OPTIMIZATION'] = 'SIMPLE_OPTIMIZATIONS'
-            self.mkbundle('foo.js', filters='closure_js', output='out2.js').build()
-        except EnvironmentError:
-            # We don't really have a way to make this filter work without
-            # configuration. What would be nice is a "closure" Python
-            # package in the spirit of "yuicompressor".
-            raise SkipTest()
-        assert self.get('out1.js') == 'function foo(bar){var dummy;document.write(bar)};\n'
-        assert self.get('out2.js') == 'function foo(a){document.write(a)};\n'
-
     def test_yui_js(self):
         try:
             import yuicompressor
@@ -320,6 +307,35 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             raise SkipTest()
         self.mkbundle('foo.css', filters='yui_css', output='out.css').build()
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
+
+
+class TestClosure(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.js': """
+        function foo(bar) {
+            var dummy;
+            document.write ( bar ); /* Write */
+        }
+        """
+    }
+
+    def setup(self):
+        try:
+            import closure
+        except ImportError:
+            raise SkipTest()
+
+        TempEnvironmentHelper.setup(self)
+
+    def test_closure(self):
+        self.mkbundle('foo.js', filters='closure_js', output='out.js').build()
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)};\n'
+
+    def test_optimization(self):
+        self.m.config['CLOSURE_COMPRESSOR_OPTIMIZATION'] = 'SIMPLE_OPTIMIZATIONS'
+        self.mkbundle('foo.js', filters='closure_js', output='out.js').build()
+        assert self.get('out.js') == 'function foo(a){document.write(a)};\n'
 
 
 class TestCssRewrite(TempEnvironmentHelper):

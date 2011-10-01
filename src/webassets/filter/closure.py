@@ -2,7 +2,14 @@
 <https://code.google.com/p/closure-compiler/>`_.
 
 Google Closure Compiler is an external tool written in Java, which needs
-to be available. You can define a ``CLOSURE_COMPRESSOR_PATH`` setting that
+to be available. One way to get it is to install the
+`closure <http://pypi.python.org/pypi/closure>`_ package::
+
+    pip install closure
+
+No configuration is necessary in this case.
+
+You can also define a ``CLOSURE_COMPRESSOR_PATH`` setting that
 points to the ``.jar`` file. Otherwise, an environment variable by
 the same name is tried. The filter will also look for a ``JAVA_HOME``
 environment variable to run the ``.jar`` file, or will otherwise
@@ -13,6 +20,7 @@ to Google Closure's `compilation level parameter
 <https://code.google.com/closure/compiler/docs/compilation_levels.html>`_.
 """
 
+from __future__ import absolute_import
 from webassets.filter import Filter, JavaMixin
 
 
@@ -25,8 +33,23 @@ class ClosureJSFilter(Filter, JavaMixin):
     mode = 'js'
 
     def setup(self):
-        self.jar = self.get_config('CLOSURE_COMPRESSOR_PATH',
-                                   what='Google Closure Compiler')
+        try:
+            self.jar = self.get_config('CLOSURE_COMPRESSOR_PATH',
+                                       what='Google Closure Compiler')
+        except EnvironmentError:
+            try:
+                import closure
+                self.jar = closure.get_jar_filename()
+            except ImportError:
+                raise EnvironmentError(
+                    "\nClosure Compiler jar can't be found."
+                    "\nPlease either install the closure package:"
+                    "\n\n    pip install closure\n"
+                    "\nor provide a CLOSURE_COMPRESSOR_PATH setting "
+                    "or an environment variable with the full path to "
+                    "the Closure compiler jar."
+                )
+
         self.opt = self.get_config('CLOSURE_COMPRESSOR_OPTIMIZATION',
                                    require=False,
                                    what='Google Closure optimization level')
