@@ -14,12 +14,6 @@ You can also write :doc:`custom filters <custom_filters>`.
 Javascript compressors
 ----------------------
 
-``jsmin``
-~~~~~~~~~
-
-.. autoclass:: webassets.filter.jsmin.JSMinFilter
-
-
 ``rjsmin``
 ~~~~~~~~~~
 
@@ -33,22 +27,28 @@ Javascript compressors
 .. autoclass:: webassets.filter.yui.YUIJSFilter
 
 
-``jspacker``
-~~~~~~~~~~~~
-
-.. autoclass:: webassets.filter.jspacker.JSPackerFilter
-
-
 ``closure_js``
-~~~~~~~~~~~
+~~~~~~~~~~~~~~
 
 .. automodule:: webassets.filter.closure
 
 
 ``uglifyjs``
-~~~~~~~~~~~
+~~~~~~~~~~~~
 
 .. automodule:: webassets.filter.uglifyjs
+
+
+``jsmin``
+~~~~~~~~~
+
+.. autoclass:: webassets.filter.jsmin.JSMinFilter
+
+
+``jspacker``
+~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.jspacker.JSPackerFilter
 
 
 CSS compressors
