@@ -378,6 +378,24 @@ class BaseEnvironment(object):
             return filename
         return path.abspath(path.join(self.directory, filename))
 
+    def _normalize_source_path(self, spath):
+        """Called once for every source item processed by a Bundle.
+
+        It is supposed to return the absolute path to the file, or
+        raise an exception. It is primarily intended as a hook for
+        third party integration libraries to provide support for
+        virtual paths (like Flask Blueprints, or Django staticfiles).
+
+        The function is not called for urls. It is also currently
+        not called for paths that use glob patterns, meaning those
+        cannot be virtualized at this point (TODO: See if we can
+        do something about this).
+        """
+        spath = self.abspath(spath)
+        if not path.exists(spath):
+            raise IOError("'%s' does not exist" % spath)
+        return spath
+
 
 class DictConfigStorage(ConfigStorage):
     """Using a lower-case dict for configuration values.

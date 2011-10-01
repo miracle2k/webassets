@@ -29,6 +29,9 @@ In 0.6
   which only have other bundles for children, not files), rather than
   raising an exception.
 
+- The ``rebuild`` command now ignores a ``debug=False`` setting, and
+  forces a build in production mode instead.
+
 
 In 0.4
 ~~~~~~

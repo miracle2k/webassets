@@ -1,7 +1,11 @@
 import imp
 from django.conf import settings
 from webassets.env import BaseEnvironment, ConfigStorage
-from webassets.importlib import import_module
+try:
+    from django.contrib.staticfiles import finders
+except ImportError:
+    # Support pre-1.3 versions.
+    finders = None
 
 
 __all__ = ('register',)
@@ -64,6 +68,21 @@ class DjangoEnvironment(BaseEnvironment):
     """
 
     config_storage_class = DjangoConfigStorage
+
+    def _normalize_source_path(self, spath):
+        """In DEBUG mode, if the staticfiles app is enabled,
+        use it's finders to access bundle source files.
+        """
+        if not settings.DEBUG or \
+           not 'django.contrib.staticfiles' in settings.INSTALLED_APPS:
+            return super(DjangoEnvironment, self)._normalize_source_path(spath)
+
+        if finders:
+            f = finders.find(spath)
+            if f is not None:
+                return f
+
+        raise IOError("'%s' not found (using staticfiles finders)" % spath)
 
 
 # Django has a global state, a global configuration, and so we need a

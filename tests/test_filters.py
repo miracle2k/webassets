@@ -273,7 +273,12 @@ class TestBuiltinFilters(TempEnvironmentHelper):
 
     def test_jsmin(self):
         self.mkbundle('foo.js', filters='jsmin', output='out.js').build()
-        assert self.get('out.js') == "\nfunction foo(bar){var dummy;document.write(bar);}"
+        assert self.get('out.js') in (
+            # Builtin jsmin
+            "\nfunction foo(bar){var dummy;document.write(bar);}",
+            # jsmin from PyPI
+            "function foo(bar){var dummy;document.write(bar);}",
+        )
 
     def test_rjsmin(self):
         try:
@@ -286,19 +291,6 @@ class TestBuiltinFilters(TempEnvironmentHelper):
     def test_jspacker(self):
         self.mkbundle('foo.js', filters='jspacker', output='out.js').build()
         assert self.get('out.js').startswith('eval(function(p,a,c,k,e,d)')
-
-    def test_closure(self):
-        try:
-            self.mkbundle('foo.js', filters='closure_js', output='out1.js').build()
-            self.m.config['CLOSURE_COMPRESSOR_OPTIMIZATION'] = 'SIMPLE_OPTIMIZATIONS'
-            self.mkbundle('foo.js', filters='closure_js', output='out2.js').build()
-        except EnvironmentError:
-            # We don't really have a way to make this filter work without
-            # configuration. What would be nice is a "closure" Python
-            # package in the spirit of "yuicompressor".
-            raise SkipTest()
-        assert self.get('out1.js') == 'function foo(bar){var dummy;document.write(bar)};\n'
-        assert self.get('out2.js') == 'function foo(a){document.write(a)};\n'
 
     def test_yui_js(self):
         try:
@@ -315,6 +307,40 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             raise SkipTest()
         self.mkbundle('foo.css', filters='yui_css', output='out.css').build()
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
+
+
+class TestClosure(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.js': """
+        function foo(bar) {
+            var dummy;
+            document.write ( bar ); /* Write */
+        }
+        """
+    }
+
+    def setup(self):
+        try:
+            import closure
+        except ImportError:
+            raise SkipTest()
+
+        TempEnvironmentHelper.setup(self)
+
+    def test_closure(self):
+        self.mkbundle('foo.js', filters='closure_js', output='out.js').build()
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)};\n'
+
+    def test_optimization(self):
+        self.m.config['CLOSURE_COMPRESSOR_OPTIMIZATION'] = 'SIMPLE_OPTIMIZATIONS'
+        self.mkbundle('foo.js', filters='closure_js', output='out.js').build()
+        assert self.get('out.js') == 'function foo(a){document.write(a)};\n'
+
+    def test_extra_args(self):
+        self.m.config['CLOSURE_EXTRA_ARGS'] = ['--output_wrapper', 'hello: %output%']
+        self.mkbundle('foo.js', filters='closure_js', output='out.js').build()
+        assert self.get('out.js') == 'hello: function foo(bar){var dummy;document.write(bar)};\n'
 
 
 class TestCssRewrite(TempEnvironmentHelper):
@@ -393,12 +419,24 @@ class TestSass(TempEnvironmentHelper):
         # The debug_info argument to the sass filter can be configured via
         # a global SASS_DEBUG_INFO option.
         self.m.config['SASS_DEBUG_INFO'] = False
-        self.mkbundle('foo.sass', filters=get_filter('sass'), output='out.css').build()
+        self.mkbundle('foo.sass', filters=get_filter('sass'), output='out.css').build(force=True)
         assert not '-sass-debug-info' in self.get('out.css')
 
         # However, an instance-specific debug_info option takes precedence.
-        self.mkbundle('foo.sass', filters=get_filter('sass', debug_info=True), output='out2.css').build()
-        assert '-sass-debug-info' in self.get('out2.css')
+        self.mkbundle('foo.sass', filters=get_filter('sass', debug_info=True), output='out.css').build(force=True)
+        assert '-sass-debug-info' in self.get('out.css')
+
+        # If the value is None (the default), then the filter will look
+        # at the debug setting to determine whether to include debug info.
+        self.m.config['SASS_DEBUG_INFO'] = None
+        self.m.debug  = True
+        self.mkbundle('foo.sass', filters=get_filter('sass'),
+                      output='out.css', debug=False).build(force=True)
+        assert '-sass-debug-info' in self.get('out.css')
+        self.m.debug  = False
+        self.mkbundle('foo.sass', filters=get_filter('sass'),
+                      output='out.css').build(force=True)
+        assert not '-sass-debug-info' in self.get('out.css')
 
     def test_as_output_filter(self):
         """The sass filter can be configured to work as on output filter,

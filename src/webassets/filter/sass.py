@@ -12,7 +12,7 @@ class SassFilter(Filter):
     """Converts `Sass <http://sass-lang.com/>`_ markup to real CSS.
 
     Requires the Sass executable to be available externally. To install
-    it, you might be able to do:
+    it, you might be able to do::
 
          $ sudo gem install sass
 
@@ -45,6 +45,24 @@ class SassFilter(Filter):
     various places in the filesystem, put are merged together and
     passed to Sass as one big chunk. The filter cannot by itself know
     which of the source directories to use as a base.
+
+    Support configuration options:
+
+    SASS_BIN
+        The path to the Sass binary. If not set, the filter will
+        try to run ``sass`` as if it's in the system path.
+
+    SASS_DEBUG_INFO
+        If set to ``True``, will cause Sass to output debug information
+        to be used by the FireSass Firebug plugin. Corresponds to the
+        ``--debug-info`` command line option of Sass.
+
+        Note that for this, Sass uses ``@media`` rules, which are
+        not removed by a CSS compressor. You will thus want to make
+        sure that this option is disabled in production.
+
+        By default, the value of this option will depend on the
+        environment ``DEBUG`` setting.
     """
     # TODO: If an output filter could be passed the list of all input
     # files, the filter might be able to do something interesting with
@@ -78,7 +96,7 @@ class SassFilter(Filter):
             if isinstance(self.env.cache, FilesystemCache):
                 args.extend(['--cache-location',
                              os.path.join(self.env.cache.directory, 'sass')])
-            if not self.debug_info is False:
+            if (self.env.debug if self.debug_info is None else self.debug_info):
                 args.append('--debug-info')
             if self.use_scss:
                 args.append('--scss')

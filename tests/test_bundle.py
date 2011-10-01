@@ -266,7 +266,7 @@ class TestBuild(TempEnvironmentHelper):
 
         # Delete the static file - now we can't build
         os.unlink(self.path('in'))
-        assert_raises(BuildError, bundle.build)
+        assert_raises(BundleError, bundle.build)
 
     def test_debug_mode_inherited(self):
         """Make sure that if a bundle sets debug=FOO, that values
@@ -648,7 +648,7 @@ class BaseUrlsTester(TempEnvironmentHelper):
     into Bundle.build().
     """
 
-    default_files = {}
+    default_files = {'a': '', 'b': '', 'c': '', '1': '', '2': ''}
 
     def setup(self):
         TempEnvironmentHelper.setup(self)
@@ -867,7 +867,7 @@ class TestGlobbing(TempEnvironmentHelper):
         self.m.debug = True
         urls = self.mkbundle('*.js', output='out').urls()
         urls.sort()
-        assert urls == ['/file1.js', '/file2.js']
+        assert_equals(urls, ['/file1.js', '/file2.js'])
 
     def test_empty_pattern(self):
         bundle = self.mkbundle('*.xyz', output='out')
