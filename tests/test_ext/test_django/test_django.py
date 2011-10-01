@@ -1,5 +1,5 @@
 from nose import SkipTest
-from nose.tools import assert_raises_regexp, assert_raises
+from nose.tools import assert_raises
 
 from django.conf import settings
 from django.template import Template, Context
@@ -7,7 +7,7 @@ from webassets.exceptions import BundleError
 from django_assets.loaders import DjangoLoader
 from django_assets import Bundle, register as django_env_register
 from django_assets.env import get_env, reset as django_env_reset
-from tests.helpers import TempDirHelper
+from tests.helpers import TempDirHelper, assert_raises_regexp
 
 try:
     from django.templatetags.assets import AssetsNode
@@ -36,6 +36,7 @@ class TempEnvironmentHelper(TempDirHelper):
 
         # Some other settings without which we are likely to run
         # into errors being raised as part of validation.
+        setattr(settings, 'DATABASES', {})
         settings.DATABASES['default'] = {'ENGINE': ''}
 
         # Unless we explicitly test it, we don't want to use
@@ -59,6 +60,19 @@ class TempEnvironmentHelper(TempDirHelper):
         return b
 
 
+def delsetting(name):
+    """Helper to delete a Django setting from the settings
+    object.
+
+    Required because the Django 1.1. LazyObject does not implement
+    __delattr__.
+    """
+    if '__delattr__' in settings.__class__.__dict__:
+        delattr(settings, name)
+    else:
+        delattr(settings._wrapped, name)
+
+
 class TestConfig(object):
     """The environment configuration is backed by the Django settings
     object.
@@ -68,6 +82,7 @@ class TestConfig(object):
         """The builtin options have different names within the Django
         settings, to make it obvious they belong to django-assets.
         """
+
         settings.ASSETS_EXPIRE = 'timestamp'
         assert get_env().config['expire'] == settings.ASSETS_EXPIRE
 
@@ -79,7 +94,7 @@ class TestConfig(object):
         get_env().directory = 'BAR'
         assert settings.ASSETS_ROOT == 'BAR'
         # Pointing to STATIC_ROOT
-        delattr(settings, 'ASSETS_ROOT')
+        delsetting('ASSETS_ROOT')
         assert get_env().directory == 'FOO_STATIC'
         get_env().directory = 'BAR'
         assert settings.STATIC_ROOT == 'BAR'
