@@ -15,9 +15,19 @@ the same name is tried. The filter will also look for a ``JAVA_HOME``
 environment variable to run the ``.jar`` file, or will otherwise
 assume that ``java`` is on the system path.
 
-There is also a ``CLOSURE_COMPRESSOR_OPTIMIZATION`` option, which corresponds
-to Google Closure's `compilation level parameter
-<https://code.google.com/closure/compiler/docs/compilation_levels.html>`_.
+Supported configuration options:
+
+CLOSURE_COMPRESSOR_OPTIMIZATION
+    Corresponds to Google Closure's `compilation level parameter
+    <https://code.google.com/closure/compiler/docs/compilation_levels.html>`_.
+
+CLOSURE_EXTRA_ARGS
+    A list of further options to be passed to the Closure compiler.
+    There are a lot of them.
+
+    For options which take values you want to use two items in the list::
+
+        ['--output_wrapper', 'foo: %output%']
 """
 
 from __future__ import absolute_import
@@ -55,8 +65,12 @@ class ClosureJSFilter(Filter, JavaMixin):
                                    what='Google Closure optimization level')
         if not self.opt:
             self.opt = 'WHITESPACE_ONLY'
+        self.extra_args = self.get_config('CLOSURE_EXTRA_ARGS',
+                                          require=False)
         self.java_setup()
 
     def output(self, _in, out, **kw):
-        self.java_run(_in, out, ['--charset', 'UTF-8',
-                                 '--compilation_level', self.opt])
+        args = ['--charset', 'UTF-8', '--compilation_level', self.opt]
+        if self.extra_args:
+            args.extend(self.extra_args)
+        self.java_run(_in, out, args)

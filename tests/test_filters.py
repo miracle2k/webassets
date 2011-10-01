@@ -337,6 +337,11 @@ class TestClosure(TempEnvironmentHelper):
         self.mkbundle('foo.js', filters='closure_js', output='out.js').build()
         assert self.get('out.js') == 'function foo(a){document.write(a)};\n'
 
+    def test_extra_args(self):
+        self.m.config['CLOSURE_EXTRA_ARGS'] = ['--output_wrapper', 'hello: %output%']
+        self.mkbundle('foo.js', filters='closure_js', output='out.js').build()
+        assert self.get('out.js') == 'hello: function foo(bar){var dummy;document.write(bar)};\n'
+
 
 class TestCssRewrite(TempEnvironmentHelper):
 
