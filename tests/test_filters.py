@@ -273,7 +273,12 @@ class TestBuiltinFilters(TempEnvironmentHelper):
 
     def test_jsmin(self):
         self.mkbundle('foo.js', filters='jsmin', output='out.js').build()
-        assert self.get('out.js') == "\nfunction foo(bar){var dummy;document.write(bar);}"
+        assert self.get('out.js') in (
+            # Builtin jsmin
+            "\nfunction foo(bar){var dummy;document.write(bar);}",
+            # jsmin from PyPI
+            "function foo(bar){var dummy;document.write(bar);}",
+        )
 
     def test_rjsmin(self):
         try:
