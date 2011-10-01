@@ -2,12 +2,12 @@
 `YUI Compressor <http://developer.yahoo.com/yui/compressor/>`_.
 
 YUI Compressor is an external tool written in Java, which needs to be
-available. One way to get it is to install
+available. One way to get it is to install the
 `yuicompressor <http://pypi.python.org/pypi/yuicompressor>`_ package::
 
     pip install yuicompressor
 
-No configuration would be necessary in this case.
+No configuration is necessary in this case.
 
 You can also get YUI compressor a different way and define
 a ``YUI_COMPRESSOR_PATH`` setting that points to the ``.jar`` file.
@@ -39,10 +39,10 @@ class YUIBase(Filter, JavaMixin):
             except ImportError:
                 raise EnvironmentError(
                     "\nYUI Compressor jar can't be found."
-                    "\nPlease either install yuicompressor package:"
+                    "\nPlease either install the yuicompressor package:"
                     "\n\n    pip install yuicompressor\n"
-                    "\nor provide YUI_COMPRESSOR_PATH setting or an "
-                    "environment variable with full path to "
+                    "\nor provide a YUI_COMPRESSOR_PATH setting or an "
+                    "environment variable with the full path to the "
                     "YUI compressor jar."
                 )
 
