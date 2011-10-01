@@ -1,5 +1,29 @@
 0.6 (unreleased)
-	- Bundles may now contain URLs (as supported by urllib2).
+    - The Django 1.3 staticfiles contrib app is now supported.
+    - Bundles may now contain URLs (as supported by urllib2).
+    - Support for recursive globbing using the python-glob2 package.
+    - Support for Javascript templates via a new "jst" filter
+      (Lucas Hrabovsky).
+    - "watch" command no longer crashes if a build fails.
+    - Added a "check" command (Ross McFarland).
+    - Bundles now support dependencies - files that are observed
+      for the purposes of automatic rebuilding, but are not part
+      of the build as far as webassets is concerned (for example,
+      Sass include files).
+    - Improved Sass filter:
+        - No longer include debug info while in production.
+        - Use the webassets cache if possible.
+        - Allow to be used as an output filter.
+    - Java-based filters: Expose stdout messages.
+    - Added new rJSmin filter, which ships with the module.
+      Deprecated the shipped jsmin module. The jsmin filter will
+      require an external dependency in the future.
+    - Added UglifyJS filter.
+    - Fixed the gzip filter.
+    - Made the Compass filter more reliable.
+    - Allow container bundles to pass filters to children.
+    - The cache is now enabled in production mode as well (by
+      default).
 
 0.5 (2011-03-30)
 	- Added ``CSSPrefixer`` and ``CoffeeScript`` filters (by myfreeweb).
