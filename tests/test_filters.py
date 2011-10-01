@@ -393,12 +393,24 @@ class TestSass(TempEnvironmentHelper):
         # The debug_info argument to the sass filter can be configured via
         # a global SASS_DEBUG_INFO option.
         self.m.config['SASS_DEBUG_INFO'] = False
-        self.mkbundle('foo.sass', filters=get_filter('sass'), output='out.css').build()
+        self.mkbundle('foo.sass', filters=get_filter('sass'), output='out.css').build(force=True)
         assert not '-sass-debug-info' in self.get('out.css')
 
         # However, an instance-specific debug_info option takes precedence.
-        self.mkbundle('foo.sass', filters=get_filter('sass', debug_info=True), output='out2.css').build()
-        assert '-sass-debug-info' in self.get('out2.css')
+        self.mkbundle('foo.sass', filters=get_filter('sass', debug_info=True), output='out.css').build(force=True)
+        assert '-sass-debug-info' in self.get('out.css')
+
+        # If the value is None (the default), then the filter will look
+        # at the debug setting to determine whether to include debug info.
+        self.m.config['SASS_DEBUG_INFO'] = None
+        self.m.debug  = True
+        self.mkbundle('foo.sass', filters=get_filter('sass'),
+                      output='out.css', debug=False).build(force=True)
+        assert '-sass-debug-info' in self.get('out.css')
+        self.m.debug  = False
+        self.mkbundle('foo.sass', filters=get_filter('sass'),
+                      output='out.css').build(force=True)
+        assert not '-sass-debug-info' in self.get('out.css')
 
     def test_as_output_filter(self):
         """The sass filter can be configured to work as on output filter,
