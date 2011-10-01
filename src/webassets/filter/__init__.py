@@ -5,6 +5,7 @@ contents (think minification, compression).
 import os, subprocess
 import inspect
 from webassets.exceptions import FilterError
+from webassets.importlib import import_module
 
 
 __all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',)
@@ -267,7 +268,7 @@ def load_builtin_filters():
 
         module_name = 'webassets.filter.%s' % name
         try:
-            module = __import__(module_name, {}, {}, [''])
+            module = import_module(module_name)
         except Exception, e:
             warnings.warn('Error while loading builtin filter '
                           'module \'%s\': %s' % (module_name, e))
