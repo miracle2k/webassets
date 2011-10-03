@@ -178,7 +178,7 @@ class Bundle(object):
     def get_files(self, env=None):
         warnings.warn('Bundle.get_files() has been replaced '+
                       'by get_all_bundle_files() utility. '+
-                      'This API be removed in 0.6.')
+                      'This API be removed in 0.7.')
         return get_all_bundle_files(self, env)
 
     def __hash__(self):
