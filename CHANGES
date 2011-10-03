@@ -1,4 +1,4 @@
-0.6 (unreleased)
+0.6 (2011-10-03)
     - The Django 1.3 staticfiles contrib app is now supported.
     - Bundles may now contain URLs (as supported by urllib2).
     - Support for recursive globbing using the python-glob2 package.
