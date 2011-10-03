@@ -7,7 +7,9 @@ from webassets.exceptions import BundleError
 from django_assets.loaders import DjangoLoader
 from django_assets import Bundle, register as django_env_register
 from django_assets.env import get_env, reset as django_env_reset
-from tests.helpers import TempDirHelper, assert_raises_regexp
+from tests.helpers import (
+    TempDirHelper,
+    TempEnvironmentHelper as BaseTempEnvironmentHelper, assert_raises_regexp)
 
 try:
     from django.templatetags.assets import AssetsNode
@@ -16,7 +18,7 @@ except ImportError:
     from django_assets.templatetags.assets import AssetsNode
 
 
-class TempEnvironmentHelper(TempDirHelper):
+class TempEnvironmentHelper(BaseTempEnvironmentHelper):
     """Base-class for tests which will:
 
     - Reset the Django settings after each test.
@@ -53,11 +55,6 @@ class TempEnvironmentHelper(TempDirHelper):
     def teardown(self):
         #self.override_settings.disable()
         pass
-
-    def mkbundle(self, *a, **kw):
-        b = Bundle(*a, **kw)
-        b.env = self.m
-        return b
 
 
 def delsetting(name):

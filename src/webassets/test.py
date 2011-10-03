@@ -10,9 +10,10 @@ import os
 from os import path
 import time
 
+from webassets import Environment, Bundle
 
 
-__all__ = ('TempDirHelper',)
+__all__ = ('TempDirHelper', 'TempEnvironmentHelper',)
 
 
 class TempDirHelper:
@@ -104,3 +105,30 @@ class TempDirHelper:
             print "-" * len(f)
             print self.get(f)
             print
+
+
+class TempEnvironmentHelper(TempDirHelper):
+    """Base-class for tests which provides a pre-created
+    environment, based in a temporary directory, and utility
+    methods to do filesystem operations within that directory.
+    """
+
+    default_files = {'in1': 'A', 'in2': 'B', 'in3': 'C', 'in4': 'D'}
+
+    def setup(self):
+        TempDirHelper.setup(self)
+
+        # Not sure why this was called "m", but let's migrate
+        # to self.env.
+        self.m = self.env = self._create_environment()
+        # Unless we explicitly test it, we don't want to use the cache
+        # during testing.
+        self.m.cache = False
+
+    def _create_environment(self):
+        return Environment(self._tempdir_created, '')
+
+    def mkbundle(self, *a, **kw):
+        b = Bundle(*a, **kw)
+        b.env = self.m
+        return b
