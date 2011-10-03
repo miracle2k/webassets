@@ -66,6 +66,8 @@ For an example, you could have a look at the ``werkzeug.script``
 integration in ``webassets.ext.werkzeug``.
 
 
+.. _script-commands:
+
 -----------------
 Included Commands
 -----------------
