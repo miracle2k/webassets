@@ -49,6 +49,9 @@ class TempDirHelper:
         """Helper that allows to quickly create a bunch of files in
         the media directory of the current test run.
         """
+        # Allow passing a list of filenames to create empty files
+        if not hasattr(files, 'items'):
+            files = dict(map(lambda n: (n, ''), files))
         for name, data in files.items():
             dirs = path.dirname(self.path(name))
             if not path.exists(dirs):
