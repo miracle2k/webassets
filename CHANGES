@@ -26,48 +26,48 @@
       default).
 
 0.5 (2011-03-30)
-	- Added ``CSSPrefixer`` and ``CoffeeScript`` filters (by myfreeweb).
-	- Compass filter: support .scss compilation (by Olivier Poitrey).
-	- Compass filter: added plugin support (by Olivier Poitrey).
-	- Compass filter: properly support imports.
-	- YUI filters: Support for ``yuicompressor`` PyPI package (by 
-	  Mikhail Korobov).
-	- Django 1.3 compatibility improvements.
-	- YUI filter: properly deal with UTF-8 encoded files (by Olivier
-	  Poitrey).
-	- Added Google Closure filter (by Mark Lee).
-	- ``django-assets``: Now also loads from an application-level
-	  ``assets.py`` file (by David Guaraglia).
-	- Minor bug fixes.
-	- Globbing support: Patterns may not be used when specifying
-	  Bundle contents.
+    - Added ``CSSPrefixer`` and ``CoffeeScript`` filters (by myfreeweb).
+    - Compass filter: support .scss compilation (by Olivier Poitrey).
+    - Compass filter: added plugin support (by Olivier Poitrey).
+    - Compass filter: properly support imports.
+    - YUI filters: Support for ``yuicompressor`` PyPI package (by 
+      Mikhail Korobov).
+    - Django 1.3 compatibility improvements.
+    - YUI filter: properly deal with UTF-8 encoded files (by Olivier
+      Poitrey).
+    - Added Google Closure filter (by Mark Lee).
+    - ``django-assets``: Now also loads from an application-level
+      ``assets.py`` file (by David Guaraglia).
+    - Minor bug fixes.
+    - Globbing support: Patterns may not be used when specifying
+      Bundle contents.
 
 0.4 (2010-08-21)
-	- Renamed project to ``webassets``, no longer Django specific;
-	  instead, the Django app is an optional addon.
-	- With the change to ``webassets``, a bunch of new things are
-	  included which now make sense, like loading from YAML files.
-	- Got rid of the ASSETS_AUTO_CREATE option.
+    - Renamed project to ``webassets``, no longer Django specific;
+      instead, the Django app is an optional addon.
+    - With the change to ``webassets``, a bunch of new things are
+      included which now make sense, like loading from YAML files.
+    - Got rid of the ASSETS_AUTO_CREATE option.
 
 0.3 (unreleased)
-	- Fixed: YUI filter JAVA_HOME handling (Ian Langworth,
-	  Asheesh Laroia).
-	- 1.2 compatibility.
-	- Don't apply cache busting to source files in debug mode.
-	- Fixed ASSETS_AUTO_CREATE behavior.
+    - Fixed: YUI filter JAVA_HOME handling (Ian Langworth,
+      Asheesh Laroia).
+    - 1.2 compatibility.
+    - Don't apply cache busting to source files in debug mode.
+    - Fixed ASSETS_AUTO_CREATE behavior.
 
 0.2 (2009-12-08)
-	- Compatibility with Django >= 1.0.
-	- Added some actual documentation.
-	- Allow assets to be defined in code, through ``Bundles``.
-	- Improved, more powerful way to define filters.
-	- Support for Jinja2 templates; support for Coffin, if installed.
-	- New CleverCSS filter (thanks to Florian Schachter).
-	- New less filter.
-	- Various bug fixes.
+    - Compatibility with Django >= 1.0.
+    - Added some actual documentation.
+    - Allow assets to be defined in code, through ``Bundles``.
+    - Improved, more powerful way to define filters.
+    - Support for Jinja2 templates; support for Coffin, if installed.
+    - New CleverCSS filter (thanks to Florian Schachter).
+    - New less filter.
+    - Various bug fixes.
 
-	This release introduces some backwards-incompatible changes. See
-	the ``Upgrading`` page in the documentation for details.
+    This release introduces some backwards-incompatible changes. See
+    the ``Upgrading`` page in the documentation for details.
 
 0.1 (2008-07-27)
-	Initial release.
+    Initial release.
