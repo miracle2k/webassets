@@ -13,6 +13,12 @@ class CoffeeScriptFilter(Filter):
 
     If you want to combine it with other JavaScript filters, make sure this
     one runs first.
+
+    Supported configuration options:
+
+    COFFEE_NO_BARE
+        Set to ``True`` to compile without the top-level function
+        wrapper (corresponds to the --bare option to ``coffee``).
     """
 
     name = 'coffeescript'
