@@ -249,15 +249,6 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('in', filters='clevercss', output='out.css').build()
         assert self.get('out.css') == """a {\n  color: #7f7f7f;\n}"""
 
-    def test_coffeescript(self):
-        if not find_executable('coffee'):
-            raise SkipTest()
-        self.create_files({'in': "alert \"I knew it!\" if elvis?"})
-        self.mkbundle('in', filters='coffeescript', output='out.js').build()
-        assert self.get('out.js') == """if (typeof elvis !== "undefined" && elvis !== null) {
-  alert("I knew it!");
-}
-"""
     def test_uglifyjs(self):
         if not find_executable('uglifyjs'):
             raise SkipTest()
@@ -307,6 +298,34 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             raise SkipTest()
         self.mkbundle('foo.css', filters='yui_css', output='out.css').build()
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
+
+
+class TestCoffeeScript(TempEnvironmentHelper):
+
+    def setup(self):
+        if not find_executable('coffee'):
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test_default_options(self):
+        self.create_files({'in': "alert \"I knew it!\" if elvis?"})
+        self.mkbundle('in', filters='coffeescript', output='out.js').build()
+        assert self.get('out.js') == """if (typeof elvis !== "undefined" && elvis !== null) {
+  alert("I knew it!");
+}
+"""
+
+    def test_bare_option(self):
+        self.env.config['COFFEE_NO_BARE'] = True
+        self.create_files({'in': "@a = 1"})
+        self.mkbundle('in', filters='coffeescript', output='out.js').build()
+        assert self.get('out.js') == '(function() {\n  this.a = 1;\n}).call(this);\n'
+
+        self.env.config['COFFEE_NO_BARE'] = False
+        self.create_files({'in': "@a = 1"})
+        self.mkbundle('in', filters='coffeescript', output='out.js').build(force=True)
+        print repr(self.get('out.js'))
+        assert self.get('out.js') == 'this.a = 1;\n'
 
 
 class TestClosure(TempEnvironmentHelper):
