@@ -19,7 +19,7 @@ __all__ = ('Bundle', 'get_all_bundle_files',)
 
 
 def is_url(s):
-    return bool(urlparse.urlsplit(s).scheme)
+    return isinstance(s, str) and bool(urlparse.urlsplit(s).scheme)
 
 
 class Bundle(object):
@@ -123,11 +123,13 @@ class Bundle(object):
         if getattr(self, '_resolved_contents', None) is None or force:
             l = []
             for item in self.contents:
-                if isinstance(item, basestring):
+                if isinstance(item, Bundle):
+                    l.append((item, item))
+                else:
                     if is_url(item):
                         # Is a URL
                         l.append((item, item))
-                    elif has_magic(item):
+                    elif isinstance(item, basestring) and has_magic(item):
                         # Is globbed pattern
                         path = env.abspath(item)
                         for f in glob.glob(path):
@@ -139,9 +141,6 @@ class Bundle(object):
                             l.append((item, env._normalize_source_path(item)))
                         except IOError, e:
                             raise BundleError(e)
-                else:
-                    # Is probably a nested Bundle
-                    l.append((item, item))
             self._resolved_contents = l
         return self._resolved_contents
 
