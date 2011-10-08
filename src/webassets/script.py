@@ -48,7 +48,7 @@ class CommandLineEnvironment():
         for to_build in self.environment:
             self.log.info("Building bundle: %s" % to_build.output)
             try:
-                to_build.build(force=True)
+                to_build.build(force=True, env=self.environment)
             except BuildError, e:
                     self.log.error("Failed, error was: %s" % e)
 
