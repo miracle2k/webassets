@@ -40,7 +40,6 @@ __all__ = ('ClosureJSFilter',)
 class ClosureJSFilter(Filter, JavaMixin):
 
     name = 'closure_js'
-    mode = 'js'
 
     def setup(self):
         try:
