@@ -897,3 +897,70 @@ class TestUrlContents(TempEnvironmentHelper):
         self.create_files({'out': 'foo'})
         bundle = self.mkbundle('http://foo', output='out')
         TimestampUpdater().needs_rebuild(bundle, bundle.env)
+
+
+class TestNormalizeSourcePath(TempEnvironmentHelper):
+    """The Environment class allows overriding a
+    _normalize_source_path() method, which can be used to
+    support some simple filesystem virtualization, and other
+    hackaries.
+    """
+
+    def test(self):
+        """Test the method is properly used in the build process.
+        """
+        class MyEnv(self.env.__class__):
+            def _normalize_source_path(self, path):
+                return self.abspath("foo")
+        self.env.__class__ = MyEnv
+        self.create_files({'foo': 'foo'})
+        self.mkbundle('bar', output='out').build()
+        assert self.get('out') == 'foo'
+
+    def test_non_string(self):
+        """Non-String values can be passed to the bundle, without
+        breaking anything (as long as they are resolved to strings
+        by _normalize_source_path).
+
+        See https://github.com/miracle2k/webassets/issues/71
+        """
+        class MyEnv(self.env.__class__):
+            def _normalize_source_path(self, path):
+                return self.abspath(".".join(path))
+            def absurl(self, url):
+                return url[0]
+        self.env.__class__ = MyEnv
+        self.create_files({'foo.css': 'foo'})
+        bundle = self.mkbundle(('foo', 'css'), output='out')
+
+        # Urls
+        bundle.urls()
+        assert self.get('out') == 'foo'
+
+        # Building
+        bundle.build(force=True)
+        assert self.get('out') == 'foo'
+
+        # Urls in debug mode
+        self.env.debug = True
+        urls = bundle.urls()
+        assert len(urls) == 1
+        assert 'foo' in urls[0]
+
+    def test_depends(self):
+        """The bundle dependencies also go through
+        normalization.
+        """
+        class MyEnv(self.env.__class__):
+            def _normalize_source_path(self, path):
+                return self.abspath(path[::-1])
+        self.env.__class__ = MyEnv
+        self.create_files(['foo', 'dep', 'out'])
+        b = self.mkbundle('oof', depends=('ped',), output='out')
+
+        now = self.setmtime('foo', 'dep', 'out')
+        # At this point, no rebuild is required
+        assert self.m.updater.needs_rebuild(b, self.m) == False
+        # But it is if we update the dependency
+        now = self.setmtime('dep', mtime=now+10)
+        assert self.m.updater.needs_rebuild(b, self.m) == SKIP_CACHE
