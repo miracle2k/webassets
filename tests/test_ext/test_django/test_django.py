@@ -10,6 +10,7 @@ from django_assets.env import get_env, reset as django_env_reset
 from tests.helpers import (
     TempDirHelper,
     TempEnvironmentHelper as BaseTempEnvironmentHelper, assert_raises_regexp)
+from webassets.filter import get_filter
 
 try:
     from django.templatetags.assets import AssetsNode
@@ -265,3 +266,11 @@ class TestStaticFiles(TempEnvironmentHelper):
         from django_assets.finders import AssetsFinder
         assert AssetsFinder().find('out') == self.path("media/out")
 
+
+class TestFilter(TempEnvironmentHelper):
+
+    def test_template(self):
+        self.create_files({'media/foo.html': '{{ num|filesizeformat }}'})
+        self.mkbundle('foo.html', output="out",
+                      filters=get_filter('template', context={'num': 23232323})).build()
+        assert self.get('media/out') == '22.2 MB'
