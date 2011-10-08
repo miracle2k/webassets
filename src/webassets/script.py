@@ -50,7 +50,7 @@ class CommandLineEnvironment():
             try:
                 to_build.build(force=True, env=self.environment)
             except BuildError, e:
-                    self.log.error("Failed, error was: %s" % e)
+                self.log.error("Failed, error was: %s" % e)
 
     def watch(self):
         """Watch assets for changes.
