@@ -631,6 +631,20 @@ class TestUrlsCommon(BaseUrlsTester):
         # Does no longer raise an "unconnected env" exception
         assert root.urls() == ['/1', '/2']
 
+    def test_invalid_source_file(self):
+        """If a source file is missing, an error is raised even
+        when rendering the urls (as opposed to just outputting
+        the url to the missing file (this is cached and only
+        done once).
+
+        It's helpful for debugging (in particular when rewriting
+        takes place by things like the django-staticfiles
+        extension, or Flask's blueprints).
+        """
+        self.env.debug = True
+        bundle = self.mkbundle('non-existant-file', output="out")
+        assert_raises(BundleError, bundle.urls)
+
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):
     """Test url generation in production mode - everything is always
