@@ -71,10 +71,11 @@ class SassFilter(Filter):
 
     name = 'sass'
 
-    def __init__(self, scss=False, debug_info=None, as_output=False,
-                 includes_dir=None):
+    def __init__(self, scss=False, compass=False, debug_info=None, 
+                 as_output=False, includes_dir=None):
         super(SassFilter, self).__init__()
         self.use_scss = scss
+        self.use_compass = compass
         self.debug_info = debug_info
         self.as_output = as_output
         self.includes_dir = includes_dir
@@ -100,6 +101,8 @@ class SassFilter(Filter):
                 args.append('--debug-info')
             if self.use_scss:
                 args.append('--scss')
+            if self.use_compass:
+                args.append('--compass')
 
             proc = subprocess.Popen(args,
                                     stdin=subprocess.PIPE,
