@@ -11,10 +11,10 @@ from webassets.exceptions import FilterError
 from webassets.filter import Filter
 
 
-__all__ = ('UglifySFilter',)
+__all__ = ('UglifyJSFilter',)
 
 
-class UglifySFilter(Filter):
+class UglifyJSFilter(Filter):
 
     name = 'uglifyjs'
 
