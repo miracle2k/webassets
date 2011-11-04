@@ -2,7 +2,8 @@
 
 UglifyJS is an external tool written for NodeJS; this filter assumes that
 the ``uglifyjs`` executable is in the path. Otherwise, you may define
-a ``UGLIFYJS_BIN`` setting.
+a ``UGLIFYJS_BIN`` setting. Additional options may be passed to ``uglifyjs``
+by setting ``UGLIFYJS_EXTRA_ARGS``, which expects a list of strings.
 """
 
 import subprocess
@@ -20,9 +21,13 @@ class UglifySFilter(Filter):
     def setup(self):
         self.binary = self.get_config(
             'UGLIFYJS_BIN', require=False) or 'uglifyjs'
+        self.extra_args = self.get_config('UGLIFYJS_EXTRA_ARGS',
+                                          require=False)
 
     def output(self, _in, out, **kw):
         args = [self.binary]
+        if self.extra_args:
+            args.extend(self.extra_args)
         proc = subprocess.Popen(
             args, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
