@@ -36,7 +36,7 @@ Javascript compressors
 ``uglifyjs``
 ~~~~~~~~~~~~
 
-.. automodule:: webassets.filter.uglifyjs
+.. autoclass:: webassets.filter.uglifyjs.UglifyJSFilter
 
 
 ``jsmin``
