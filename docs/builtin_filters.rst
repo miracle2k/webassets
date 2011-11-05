@@ -186,3 +186,9 @@ Other
 ~~~~~~~~~~~~~~~~
 
 .. autoclass:: webassets.filter.coffeescript.CoffeeScriptFilter
+
+
+``spritemapper``
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.spritemapper.SpritemapperFilter
