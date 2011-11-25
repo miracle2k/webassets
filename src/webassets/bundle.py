@@ -19,8 +19,10 @@ __all__ = ('Bundle', 'get_all_bundle_files',)
 
 
 def is_url(s):
-    return isinstance(s, str) and bool(urlparse.urlsplit(s).scheme)
-
+    if not isinstance(s, str):
+        return False
+    scheme = urlparse.urlsplit(s).scheme
+    return bool(scheme) and len(scheme) > 1
 
 class Bundle(object):
     """A bundle is the unit webassets uses to organize groups of
