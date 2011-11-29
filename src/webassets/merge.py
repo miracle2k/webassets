@@ -1,7 +1,6 @@
 """Contains the core functionality that manages merging of assets.
 """
 
-import os
 import urllib2
 try:
     import cStringIO as StringIO
@@ -18,7 +17,7 @@ else:
     md5_constructor = md5.new
 
 
-__all__ = ('FileHunk', 'MemoryHunk', 'make_url', 'merge', 'apply_filters')
+__all__ = ('FileHunk', 'MemoryHunk', 'merge', 'apply_filters')
 
 
 class BaseHunk(object):
@@ -168,34 +167,6 @@ def apply_filters(hunk, filters, type, cache=None, no_cache_read=False,
     if cache:
         cache.set(key, content)
     return MemoryHunk(content)
-
-
-def make_url(env, filename, expire=True):
-    """Return a output url, modified for expire header handling.
-
-    Set ``expire`` to ``False`` if you do not want the URL to
-    be modified for cache busting.
-    """
-    if expire:
-        path = env.abspath(filename)
-        if env.expire == 'querystring':
-            last_modified = os.stat(path).st_mtime
-            result = "%s?%d" % (filename, last_modified)
-        elif env.expire == 'filename':
-            last_modified = os.stat(path).st_mtime
-            name = filename.rsplit('.', 1)
-            if len(name) > 1:
-                result = "%s.%d.%s" % (name[0], last_modified, name[1])
-            else:
-                result = "%s.%d" % (name, last_modified)
-        elif not env.expire:
-            result = filename
-        else:
-            raise ValueError('Unknown value for ASSETS_EXPIRE option: %s' %
-                                 env.expire)
-    else:
-        result = filename
-    return env.absurl(result)
 
 
 def merge_filters(filters1, filters2):

@@ -1,3 +1,4 @@
+import os
 from os import path
 import urlparse
 try:
@@ -10,7 +11,7 @@ except ImportError:
 import warnings
 from filter import get_filter
 from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
-                   make_url, merge_filters)
+                   merge_filters)
 from updater import SKIP_CACHE
 from exceptions import BundleError, BuildError
 
@@ -416,6 +417,33 @@ class Bundle(object):
         else:
             yield self, []
 
+    def _make_url(self, env, filename, expire=True):
+        """Return a output url, modified for expire header handling.
+
+        Set ``expire`` to ``False`` if you do not want the URL to
+        be modified for cache busting.
+        """
+        if expire:
+            path = env.abspath(filename)
+            if env.expire == 'querystring':
+                last_modified = os.stat(path).st_mtime
+                result = "%s?%d" % (filename, last_modified)
+            elif env.expire == 'filename':
+                last_modified = os.stat(path).st_mtime
+                name = filename.rsplit('.', 1)
+                if len(name) > 1:
+                    result = "%s.%d.%s" % (name[0], last_modified, name[1])
+                else:
+                    result = "%s.%d" % (name, last_modified)
+            elif not env.expire:
+                result = filename
+            else:
+                raise ValueError('Unknown value for ASSETS_EXPIRE option: %s' %
+                                     env.expire)
+        else:
+            result = filename
+        return env.absurl(result)
+
     def _urls(self, env, extra_filters, *args, **kwargs):
         # Resolve debug: see whether we have to merge the contents
         debug = self.debug if self.debug is not None else env.debug
@@ -435,7 +463,7 @@ class Bundle(object):
             # filters and no output target.
             hunk = self._build(env, extra_filters=extra_filters,
                                force=False, *args, **kwargs)
-            return [make_url(env, self.output)]
+            return [self._make_url(env, self.output)]
         else:
             # We either have no files (nothing to build), or we are
             # in debug mode: Instead of building the bundle, we
@@ -445,7 +473,7 @@ class Bundle(object):
                 if isinstance(c, Bundle):
                     urls.extend(c.urls(env, *args, **kwargs))
                 else:
-                    urls.append(make_url(env, c, expire=False))
+                    urls.append(self._make_url(env, c, expire=False))
             return urls
 
     def urls(self, env=None, *args, **kwargs):
