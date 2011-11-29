@@ -42,3 +42,7 @@ servers. This means you will not get url expiration functionality. This will
 be fixed in the future. In the meantime, you can write some custom code
 to provide the feature. See `this gist <https://gist.github.com/1307521>`_
 for an example.
+
+There is a barebone Google App Engine example in the
+`examples/appengine/ <https://github.com/miracle2k/webassets/blob/master/tests/>`_
+folder.
