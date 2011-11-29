@@ -1,7 +1,8 @@
 #!/usr/bin/env python
+from os import path
 from webassets import Bundle, Environment
 
-env = Environment('static', '/stylesheets')
+env = Environment(path.join(path.dirname(__file__), 'static'), '/stylesheets')
 # App Engine doesn't support automatic rebuilding.
 env.updater = False
 # URL expiry not currently supported on App Engine

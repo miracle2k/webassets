@@ -5,6 +5,8 @@ but just shows the bare minimum approach.
 
 To run the sample, use:
 
-    $./appengine-sdk/dev_appserver.py examples/appengine
+    $ ./appengine-sdk/dev_appserver.py examples/appengine
 
 Remember, you need to build your assets manually:
+
+    $ examples/appengine/assets.py
