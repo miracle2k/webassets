@@ -364,7 +364,12 @@ class Bundle(object):
             env, self.output, force,
             disable_cache=update_needed==SKIP_CACHE,
             extra_filters=extra_filters)
-        hunk.save(env.abspath(self.output))
+        # If it doesn't exist yet, create the target directory.
+        output = env.abspath(self.output)
+        output_dir = path.dirname(output)
+        if not path.exists(output_dir):
+            os.makedirs(output_dir)
+        hunk.save(output)
 
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the

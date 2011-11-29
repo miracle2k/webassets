@@ -109,7 +109,9 @@ class TestBundleConfig(TempEnvironmentHelper):
 
 
 class TestBuild(TempEnvironmentHelper):
-    """Test building various bundle structures, in various debug modes.
+    """Test building various bundle structures, in various debug modes,
+    in various different circumstances. Generally all things "building"
+    which don't have a better place.
     """
 
     def test_simple_bundle(self):
@@ -295,6 +297,13 @@ class TestBuild(TempEnvironmentHelper):
         b = self.mkbundle('a', 'b')
         assert_raises(BundleError, b.build)
 
+    def test_auto_create_target_directory(self):
+        """A bundle output's target directory is automatically
+        created, if it doesn't exist yet.
+        """
+        self.mkbundle('in1', 'in2', output='out/nested/x/foo').build()
+        assert self.get('out/nested/x/foo') == 'A\nB'
+
 
 class ReplaceFilter(Filter):
     """Filter that does a simple string replacement.
@@ -411,7 +420,8 @@ class TestFilters(TempEnvironmentHelper):
 
 
 class TestUpdateAndCreate(TempEnvironmentHelper):
-    """Test bundle auto rebuild.
+    """Test bundle auto rebuild, and generally everything involving
+    the updater from the bundle's perspective.
     """
 
     def setup(self):
