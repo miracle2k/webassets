@@ -431,13 +431,25 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         assert self.get('out') == 'A'
 
     def test_no_autocreate(self):
-        """If no updater is given, then the initial build if a previously
-        non-existent output file will not happen either.
+        """If no updater is given, and a build is not forced, then the
+        initial build if a previously non-existent output file will not
+        happen either.
+
+        Note: This used to raise an exception, no it is simply a noop.
         """
         self.m.updater = False
-        assert_raises(BuildError, self.mkbundle('in1', output='out').build)
+        assert self.mkbundle('in1', output='out').build(force=False) == [False]
         # However, it works fine if force is used
         self.mkbundle('in1', output='out').build(force=True)
+        assert self.get('out') == 'A'
+
+    def test_no_auto_create_env_via_argument(self):
+        """Regression test for a bug that occurred when the environment
+        was only given via an argument to build(), rather than at Bundle
+        __init__ time.
+        """
+        self.m.updater = False
+        assert Bundle('in1', output='out').build(force=False, env=self.m) == [False]
 
     def test_no_updater(self):
         """[Regression] If Environment.updater is set to False/None,
@@ -445,17 +457,31 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         """
         self.m.updater = False
         self.create_files({'out': 'old_value'})
-        self.mkbundle('in1', output='out').build()
+        self.mkbundle('in1', output='out').build(force=False)
         # And it also means that we don't to auto-rebuilding
         assert self.get('out') == 'old_value'
 
-    def test_no_auto_create_env_via_argument(self):
-        """Regression test for a bug that occured when the environment
-        was only given via an argument to build(), rather than at Bundle
-        __init__ time.
+    def test_no_updater_force_defaults_true_if(self):
+        """If no updater is configured, then bundle.build() will
+        assume force=False by default.
         """
-        self.m.updater = False
-        assert_raises(BuildError, Bundle('in1', output='out').build, env=self.m)
+        self.env.updater = False
+        self.env.debug = False
+        self.env.expire = False # can't use this if there is no output file
+
+        # With explicit False, file is not built
+        self.mkbundle('in1', output='out').build(force=False)
+        assert not self.exists('out')
+        # When calling urls(), file is not built either
+        assert len(self.mkbundle('in1', output='out').urls()) == 1
+        assert not self.exists('out')
+        # But when specifically calling the build() API, even
+        # without asking for "force", then a build does happen.
+        self.mkbundle('in1', output='out').build()
+        assert self.get('out') == 'A'
+
+    # test that with no updater, force defaults to true
+    # that with calling urls() with no updater will not cause a build
 
     def test_updater_says_no(self):
         """If the updater says 'no change', then we never do a build.

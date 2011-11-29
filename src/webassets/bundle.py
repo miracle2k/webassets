@@ -306,13 +306,19 @@ class Bundle(object):
             return apply_filters(final, filters, 'output',
                                  env.cache, disable_cache)
 
-    def _build(self, env, extra_filters=[], force=False):
+    def _build(self, env, extra_filters=[], force=None):
         """Internal bundle build function.
 
         Check if an update for this bundle is required, and if so,
-        build it.
+        build it. If ``force`` is given, the bundle will always be
+        built, without checking for an update.
 
-        A ``FileHunk`` will be returned.
+        If no ``updater`` is configured, then ``force`` defaults to
+        ``True``.
+
+        A ``FileHunk`` will be returned, or in a certain case, with
+        no updater defined and force=False, the return value may be
+        ``False``.
 
         TODO: Support locking. When called from inside a template tag,
         this should lock, so that multiple requests don't all start
@@ -323,17 +329,26 @@ class Bundle(object):
         if not self.output:
             raise BuildError('No output target found for %s' % self)
 
+        # Default force to True if no updater is given, as otherwise
+        # no build would happen. This is only a question of API design.
+        # We want updater=False users to be able to call bundle.build()
+        # and have it have an effect.
+        if force is None:
+            force = not bool(env.updater)
+
         # Determine if we really need to build, or if the output file
         # already exists and nothing has changed.
         if force:
             update_needed = True
+        elif not env.updater:
+            # If the user disables the updater, he expects to be able
+            # to manage builds all on his one. Don't even bother wasting
+            # IO ops on an update check. It's also convenient for
+            # deployment scenarios where the media files are on a different
+            # server, and we can't even access the output file.
+            return False
         elif not path.exists(env.abspath(self.output)):
-            if not env.updater:
-                raise BuildError(('\'%s\' needs to be created, but '
-                                  'automatic building is disabled  ('
-                                  'configure an updater)') % self)
-            else:
-                update_needed = True
+            update_needed = True
         else:
             if env.updater:
                 update_needed = env.updater.needs_rebuild(self, env)
@@ -358,7 +373,7 @@ class Bundle(object):
 
         return hunk
 
-    def build(self, env=None, force=False):
+    def build(self, env=None, force=None):
         """Build this bundle, meaning create the file given by the
         ``output`` attribute, applying the configured filters etc.
 
@@ -419,7 +434,7 @@ class Bundle(object):
             # isn't actually configured to be built, that is, has no
             # filters and no output target.
             hunk = self._build(env, extra_filters=extra_filters,
-                               *args, **kwargs)
+                               force=False, *args, **kwargs)
             return [make_url(env, self.output)]
         else:
             # We either have no files (nothing to build), or we are
