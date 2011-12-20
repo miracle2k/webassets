@@ -15,6 +15,11 @@ In 0.7
   This should not case any problems, since it is the only call signature
   that really makes sense in this case.
 
+- The former ``less`` filter, based on the old Ruby version of lessCSS
+  (still available as the 1.x Ruby gems, but no longer developed) has been
+  renamed ``less_ruby``, and ``less`` now uses the new NodeJS/Javascript
+  implementation, which a while ago superseded the Ruby one.
+
 
 In 0.6
 ~~~~~~

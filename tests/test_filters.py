@@ -260,6 +260,13 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         if not find_executable('lessc'):
             raise SkipTest()
         self.mkbundle('foo.css', filters='less', output='out.css').build()
+        print repr(self.get('out.css'))
+        assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n'
+
+    def test_less_ruby(self):
+        if not find_executable('lessc'):
+            raise SkipTest()
+        self.mkbundle('foo.css', filters='less_ruby', output='out.css').build()
         assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #ffffff;\n}\n'
 
     def test_jsmin(self):
