@@ -10,7 +10,19 @@ incompatibility. The ``webassets`` API is not stable yet.
 In 0.7
 ~~~~~~
 
-- If ``Environment.updater`` is disabled, the API of Bundle.build()
+There are some significant backwards incompatible changes in this release.
+
+- The ``Environment.updater`` property (corresponds to the 
+  ``ASSETS_UPDATER`` setting) has been removed. In the unlikely case that
+  you really need to customize how changed files are identified, go the
+  detour route via ``versioner.updater``. Mostly the ``updater`` setting
+  was used to disable the automatic rebuilding during production. This can
+  now be done using ``Environment.auto_build``, or the corresponding
+  ``ASSETS_AUTO_BUILD`` setting.
+
+Other changes:
+
+- If ``Environment.auto_build`` is disabled, the API of Bundle.build()
   now assumes a default value of ``True`` for the ``force`` argument.
   This should not case any problems, since it is the only call signature
   that really makes sense in this case.
