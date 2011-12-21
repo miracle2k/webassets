@@ -105,14 +105,14 @@ class ConfigStorage(object):
         import warnings
         if  key == 'expire':
             warnings.warn((
-                'The "expire" option has been deprecated in 0.6, and '
+                'The "expire" option has been deprecated in 0.7, and '
                 'replaced with a boolean option "url_expire". If you '
                 'want to append something other than a timestamp to '
                 'your URLs, check out the "versioner" option.'),
                           DeprecationWarning)
         if key == 'updater':
             warnings.warn((
-                'The "updater" option has been deprecated in 0.6, and '
+                'The "updater" option has been deprecated in 0.7, and '
                 'replaced with a boolean option "auto_build". If you '
                 'want to use something other than a timestamp check '
                 'for this, see the "versioner" option, and the "updater" '
