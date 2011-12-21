@@ -416,7 +416,7 @@ class Bundle(object):
         timestamps.
 
         Note: The default value of ``force`` is normally ``False``,
-        unless no ``updater`` is configured, in which case ``True``
+        unless ``auto_build`` is disabled, in which case ``True``
         is assumed.
 
         A ``FileHunk`` will be returned, or in a certain case, with
@@ -509,8 +509,8 @@ class Bundle(object):
 
         Unless ``force`` is given, the configured ``updater`` will be
         used to check whether a build is even necessary. However,
-        if the updater has been explicitly disabled, then ``True``
-        is assumed for ``force``.
+        if ``auto_build`` has been disabled, then ``True`` is assumed
+        for ``force``.
 
         The return value is a list of ``FileHunk`` objects, one for
         each bundle that was built.
