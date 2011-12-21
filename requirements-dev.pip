@@ -24,3 +24,4 @@ Django
 # sudo gem install haml
 # sudo gem install compass
 # sudo gem install less --version 1.2.21
+# npm install less
