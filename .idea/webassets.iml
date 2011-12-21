@@ -6,6 +6,7 @@
       <excludeFolder url="file://$MODULE_DIR$/.tox" />
       <excludeFolder url="file://$MODULE_DIR$/.webassets-cache" />
       <excludeFolder url="file://$MODULE_DIR$/build" />
+      <excludeFolder url="file://$MODULE_DIR$/examples/appengine-sdk" />
       <excludeFolder url="file://$MODULE_DIR$/src/webassets.egg-info" />
       <excludeFolder url="file://$MODULE_DIR$/tests/.webassets-cache" />
     </content>

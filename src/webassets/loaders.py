@@ -52,6 +52,7 @@ class YAMLLoader(object):
             bundles[key] = Bundle(
                 filters=data.get('filters', None),
                 output=data.get('output', None),
+                debug=data.get('debug', None),
                 *contents
             )
         return bundles

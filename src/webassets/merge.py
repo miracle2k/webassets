@@ -1,7 +1,6 @@
 """Contains the core functionality that manages merging of assets.
 """
 
-import os
 import urllib2
 try:
     import cStringIO as StringIO
@@ -18,7 +17,7 @@ else:
     md5_constructor = md5.new
 
 
-__all__ = ('FileHunk', 'MemoryHunk', 'make_url', 'merge', 'apply_filters')
+__all__ = ('FileHunk', 'MemoryHunk', 'merge', 'apply_filters')
 
 
 class BaseHunk(object):
@@ -168,16 +167,6 @@ def apply_filters(hunk, filters, type, cache=None, no_cache_read=False,
     if cache:
         cache.set(key, content)
     return MemoryHunk(content)
-
-
-def make_url(env, bundle):
-    """Return a output url, modified for expire header handling.
-    """
-    if env.url_expire:
-        result = "%s?%d" % (bundle.get_output(env), bundle.get_version(env))
-    else:
-        result = bundle.output
-    return env.absurl(result)
 
 
 def merge_filters(filters1, filters2):

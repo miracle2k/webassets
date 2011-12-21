@@ -1,0 +1,12 @@
+Example using Google App Engine
+
+This is not using any framework wrapper (e.g. django-assets, flask-assets),
+but just shows the bare minimum approach.
+
+To run the sample, use:
+
+    $ ./appengine-sdk/dev_appserver.py examples/appengine
+
+Remember, you need to build your assets manually:
+
+    $ examples/appengine/assets.py

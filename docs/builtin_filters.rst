@@ -36,7 +36,7 @@ Javascript compressors
 ``uglifyjs``
 ~~~~~~~~~~~~
 
-.. automodule:: webassets.filter.uglifyjs
+.. autoclass:: webassets.filter.uglifyjs.UglifyJSFilter
 
 
 ``jsmin``
@@ -89,6 +89,12 @@ CSS Compilers
 ~~~~~~~~
 
 .. autoclass:: webassets.filter.less.LessFilter
+
+
+``less_ruby``
+~~~~~~~~
+
+.. autoclass:: webassets.filter.less.LessRubyFilter
 
 
 .. _filters-sass:

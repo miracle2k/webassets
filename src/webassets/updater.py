@@ -28,10 +28,14 @@ import os
 
 __all__ = ('SKIP_CACHE', 'TimestampUpdater', 'AlwaysUpdater',)
 SKIP_CACHE = object()
-"""An updater can return this value to indicate that a cache, if enabled,
-should not be used for the rebuild. This is currently used for bundle
-dependencies, which if they change, may cause the cache to be used
-incorrectly."""
+"""An updater can return this value as hint that a cache, if enabled,
+should probably not be used for the rebuild; This is currently used
+as a return value when a bundle's dependencies have changed, which
+would currently not cause a different cache key to be used.
+
+This is marked a hint, because in the future, the bundle may be smart
+enough to make this decision by itself.
+"""
 
 class BaseUpdater(object):
     """Base updater class.

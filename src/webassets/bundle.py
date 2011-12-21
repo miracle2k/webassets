@@ -1,3 +1,4 @@
+import os
 from os import path
 import urlparse
 import os
@@ -11,7 +12,7 @@ except ImportError:
 import warnings
 from filter import get_filter
 from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
-                   make_url, merge_filters)
+                   merge_filters)
 from updater import SKIP_CACHE
 from exceptions import BundleError, BuildError
 
@@ -20,12 +21,14 @@ __all__ = ('Bundle', 'get_all_bundle_files',)
 
 
 def is_url(s):
-    return bool(urlparse.urlsplit(s).scheme)
+    if not isinstance(s, str):
+        return False
+    scheme = urlparse.urlsplit(s).scheme
+    return bool(scheme) and len(scheme) > 1
 
 
 def has_placeholder(s):
     return '%(version)s' in s
-
 
 class Bundle(object):
     """A bundle is the unit webassets uses to organize groups of
@@ -129,11 +132,13 @@ class Bundle(object):
         if getattr(self, '_resolved_contents', None) is None or force:
             l = []
             for item in self.contents:
-                if isinstance(item, basestring):
+                if isinstance(item, Bundle):
+                    l.append((item, item))
+                else:
                     if is_url(item):
                         # Is a URL
                         l.append((item, item))
-                    elif has_magic(item):
+                    elif isinstance(item, basestring) and has_magic(item):
                         # Is globbed pattern
                         path = env.abspath(item)
                         for f in glob.glob(path):
@@ -145,9 +150,6 @@ class Bundle(object):
                             l.append((item, env._normalize_source_path(item)))
                         except IOError, e:
                             raise BundleError(e)
-                else:
-                    # Is probably a nested Bundle
-                    l.append((item, item))
             self._resolved_contents = l
         return self._resolved_contents
 
@@ -248,7 +250,7 @@ class Bundle(object):
     def get_files(self, env=None):
         warnings.warn('Bundle.get_files() has been replaced '+
                       'by get_all_bundle_files() utility. '+
-                      'This API is to be removed in 0.6.')
+                      'This API is to be removed in 0.7.')
         return get_all_bundle_files(self, env)
 
     def __hash__(self):
@@ -288,7 +290,7 @@ class Bundle(object):
 
     def _merge_and_apply(self, env, output_path, force, parent_debug=None,
                          parent_filters=[], extra_filters=[],
-                         disable_cache=False):
+                         disable_cache=None):
         """Internal recursive build method.
 
         ``parent_debug`` is the debug setting used by the parent bundle.
@@ -307,7 +309,8 @@ class Bundle(object):
 
         ``disable_cache`` is necessary because in some cases, when an
         external bundle dependency has changed, we must not rely on the
-        cache.
+        cache, since the cache key is not taking into account changes
+        in those dependencies (for now).
         """
         # Determine the debug option to work, which will tell us what
         # building the bundle entails. The reduce chooses the first
@@ -337,6 +340,25 @@ class Bundle(object):
         for filter in filters:
             filter.set_environment(env)
 
+        # Unless we have been told by our caller to use or not use the
+        # cache for this, try to decide for ourselves. The issue here
+        # is that when a bundle has dependencies, like a sass file with
+        # includes otherwise not listed in the bundle sources, a change
+        # in such an external include would not influence the cache key,
+        # those the use of the cache causing such a change to be ignored.
+        # For now, we simply do not use the cache for any bundle with
+        # dependencies.  Another option would be to read the contents of
+        # all files declared via "depends", and use them as a cache key
+        # modifier. For now I am worried about the performance impact.
+        #
+        # Note: This decision only affects the current bundle instance.
+        # Even if dependencies cause us to ignore the cache for this
+        # bundle instance, child bundles may still use it!
+        if disable_cache is None:
+            actually_skip_cache_here = bool(self.resolve_depends(env))
+        else:
+            actually_skip_cache_here = disable_cache
+
         # Apply input filters to all the contents. Note that we use
         # both this bundle's filters as well as those given to us by
         # the parent. We ONLY do those this for the input filters,
@@ -360,7 +382,7 @@ class Bundle(object):
                 else:
                     hunks.append(apply_filters(
                         hunk, combined_filters, 'input',
-                        env.cache, disable_cache,
+                        env.cache, actually_skip_cache_here,
                         output_path=output_path))
 
         # Return all source hunks as one, with output filters applied
@@ -372,16 +394,34 @@ class Bundle(object):
         if no_filters:
             return final
         else:
+            # TODO: So far, all the situations where bundle dependencies
+            # are used/useful, are based on input filters having those
+            # dependencies. Is it even required to consider them here
+            # with respect to the cache?
             return apply_filters(final, filters, 'output',
-                                 env.cache, disable_cache)
+                                 env.cache, actually_skip_cache_here)
 
-    def _build(self, env, extra_filters=[], force=False):
+    def _build(self, env, extra_filters=[], force=None):
         """Internal bundle build function.
 
-        Check if an update for this bundle is required, and if so,
-        build it.
+        This actually tries to build this very bundle instance, as
+        opposed to the public-facing ``build()``, which first deals
+        with the possibility that we are a container bundle, i.e.
+        having no files of our own.
 
-        A ``FileHunk`` will be returned.
+        First checks whether an update for this bundle is required,
+        via the configured ``updater`` (which is almost always the
+        timestamp-based one). Unless ``force`` is given, in which
+        case the bundle will always be built, without considering
+        timestamps.
+
+        Note: The default value of ``force`` is normally ``False``,
+        unless no ``updater`` is configured, in which case ``True``
+        is assumed.
+
+        A ``FileHunk`` will be returned, or in a certain case, with
+        no updater defined and force=False, the return value may be
+        ``False``.
 
         TODO: Support locking. When called from inside a template tag,
         this should lock, so that multiple requests don't all start
@@ -392,20 +432,36 @@ class Bundle(object):
         if not self.output:
             raise BuildError('No output target found for %s' % self)
 
+        # Default force to True if no updater is given, as otherwise
+        # no build would happen. This is only a question of API design.
+        # We want updater=False users to be able to call bundle.build()
+        # and have it have an effect.
+        if force is None:
+            force = not bool(env.updater)
+
         # Determine if we really need to build, or if the output file
         # already exists and nothing has changed.
-        update_needed = False
+        disable_cache = None
         if force:
             update_needed = True
+        elif not env.auto_build:
+            # If the user disables the updater, he expects to be able
+            # to manage builds all on his one. Don't even bother wasting
+            # IO ops on an update check. It's also convenient for
+            # deployment scenarios where the media files are on a different
+            # server, and we can't even access the output file.
+            return False
         elif not path.exists(env.abspath(self.output)):
-            if not env.auto_build:
-                raise BuildError(('\'%s\' needs to be created, but '
-                                  'automatic building is disabled (set '
-                                  'the "auto_build" option') % self)
+            update_needed = True
+        else:
+            if env.auto_build:
+                update_needed = env.versioner.updater.needs_rebuild(self, env)
+                # _merge_and_apply() is now smart enough to do without
+                # this disable_cache hint, but for now, keep passing it
+                # along if we get the info from the updater.
+                disable_cache = update_needed==SKIP_CACHE
             else:
-                update_needed = True
-        elif env.auto_build:
-            update_needed = env.versioner.updater.needs_rebuild(self, env)
+                update_needed = False
 
         if not update_needed:
             # We can simply return the existing output file
@@ -413,8 +469,13 @@ class Bundle(object):
 
         hunk = self._merge_and_apply(
             env, self.output, force,
-            disable_cache=update_needed==SKIP_CACHE,
+            disable_cache=disable_cache,
             extra_filters=extra_filters)
+        # If it doesn't exist yet, create the target directory.
+        output = env.abspath(self.output)
+        output_dir = path.dirname(output)
+        if not path.exists(output_dir):
+            os.makedirs(output_dir)
 
         if not has_placeholder(self.output):
             hunk.save(self.get_output(env))
@@ -439,12 +500,17 @@ class Bundle(object):
 
         return hunk
 
-    def build(self, env=None, force=False):
+    def build(self, env=None, force=None):
         """Build this bundle, meaning create the file given by the
         ``output`` attribute, applying the configured filters etc.
 
         If the bundle is a container bundle, then multiple files will
         be built.
+
+        Unless ``force`` is given, the configured ``updater`` will be
+        used to check whether a build is even necessary. However,
+        if the updater has been explicitly disabled, then ``True``
+        is assumed for ``force``.
 
         The return value is a list of ``FileHunk`` objects, one for
         each bundle that was built.
@@ -482,6 +548,15 @@ class Bundle(object):
         else:
             yield self, []
 
+    def _make_url(self, env):
+        """Return a output url, modified for expire header handling.
+        """
+        if env.url_expire:
+            result = "%s?%d" % (self.get_output(env), self.get_version(env))
+        else:
+            result = self.output
+        return env.absurl(result)
+
     def _urls(self, env, extra_filters, *args, **kwargs):
         # Resolve debug: see whether we have to merge the contents
         debug = self.debug if self.debug is not None else env.debug
@@ -500,8 +575,8 @@ class Bundle(object):
             # isn't actually configured to be built, that is, has no
             # filters and no output target.
             hunk = self._build(env, extra_filters=extra_filters,
-                               *args, **kwargs)
-            return [make_url(env, self)]
+                               force=False, *args, **kwargs)
+            return [self._make_url(env)]
         else:
             # We either have no files (nothing to build), or we are
             # in debug mode: Instead of building the bundle, we

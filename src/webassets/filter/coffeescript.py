@@ -13,6 +13,12 @@ class CoffeeScriptFilter(Filter):
 
     If you want to combine it with other JavaScript filters, make sure this
     one runs first.
+
+    Supported configuration options:
+
+    COFFEE_NO_BARE
+        Set to ``True`` to compile without the top-level function
+        wrapper (corresponds to the --bare option to ``coffee``).
     """
 
     name = 'coffeescript'
@@ -20,12 +26,15 @@ class CoffeeScriptFilter(Filter):
     def setup(self):
         self.coffee = self.get_config(
             'COFFEE_PATH', what='coffee binary', require=False) or 'coffee'
+        self.no_bare = self.get_config(
+            'COFFEE_NO_BARE', require=False) or False
 
     def input(self, _in, out, source_path, output_path):
         old_dir = os.getcwd()
         os.chdir(os.path.dirname(source_path))
         try:
-            proc = subprocess.Popen([self.coffee, '-bp', source_path],
+            args = "-p" + ("" if self.no_bare else 'b')
+            proc = subprocess.Popen([self.coffee, args, source_path],
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
             stdout, stderr = proc.communicate()
