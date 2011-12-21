@@ -471,7 +471,7 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         # And it also means that we don't to auto-rebuilding
         assert self.get('out') == 'old_value'
 
-    def test_no_updater_force_defaults_true_if(self):
+    def test_no_updater_force_defaults_true(self):
         """If no updater is configured, then bundle.build() will
         assume force=False by default.
         """
@@ -489,9 +489,6 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         # without asking for "force", then a build does happen.
         self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'A'
-
-    # test that with no updater, force defaults to true
-    # that with calling urls() with no updater will not cause a build
 
     def test_updater_says_no(self):
         """If the updater says 'no change', then we never do a build.
@@ -929,8 +926,6 @@ class TestGlobbing(TempEnvironmentHelper):
         content = self.get('out').split("\n")
         content.sort()
         assert content == ['bar', 'foo', 'sub']
-
-        #https://github.com/miracle2k/python-glob2
 
 
 class MockHTTPHandler(urllib2.HTTPHandler):
