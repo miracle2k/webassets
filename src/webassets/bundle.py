@@ -220,7 +220,7 @@ class Bundle(object):
 
     def _merge_and_apply(self, env, output_path, force, parent_debug=None,
                          parent_filters=[], extra_filters=[],
-                         disable_cache=False):
+                         disable_cache=None):
         """Internal recursive build method.
 
         ``parent_debug`` is the debug setting used by the parent bundle.
@@ -239,7 +239,8 @@ class Bundle(object):
 
         ``disable_cache`` is necessary because in some cases, when an
         external bundle dependency has changed, we must not rely on the
-        cache.
+        cache, since the cache key is not taking into account changes
+        in those dependencies (for now).
         """
         # Determine the debug option to work, which will tell us what
         # building the bundle entails. The reduce chooses the first
@@ -269,6 +270,25 @@ class Bundle(object):
         for filter in filters:
             filter.set_environment(env)
 
+        # Unless we have been told by our caller to use or not use the
+        # cache for this, try to decide for ourselves. The issue here
+        # is that when a bundle has dependencies, like a sass file with
+        # includes otherwise not listed in the bundle sources, a change
+        # in such an external include would not influence the cache key,
+        # those the use of the cache causing such a change to be ignored.
+        # For now, we simply do not use the cache for any bundle with
+        # dependencies.  Another option would be to read the contents of
+        # all files declared via "depends", and use them as a cache key
+        # modifier. For now I am worried about the performance impact.
+        #
+        # Note: This decision only affects the current bundle instance.
+        # Even if dependencies cause us to ignore the cache for this
+        # bundle instance, child bundles may still use it!
+        if disable_cache is None:
+            actually_skip_cache_here = bool(self.resolve_depends(env))
+        else:
+            actually_skip_cache_here = disable_cache
+
         # Apply input filters to all the contents. Note that we use
         # both this bundle's filters as well as those given to us by
         # the parent. We ONLY do those this for the input filters,
@@ -292,7 +312,7 @@ class Bundle(object):
                 else:
                     hunks.append(apply_filters(
                         hunk, combined_filters, 'input',
-                        env.cache, disable_cache,
+                        env.cache, actually_skip_cache_here,
                         output_path=output_path))
 
         # Return all source hunks as one, with output filters applied
@@ -304,18 +324,30 @@ class Bundle(object):
         if no_filters:
             return final
         else:
+            # TODO: So far, all the situations where bundle dependencies
+            # are used/useful, are based on input filters having those
+            # dependencies. Is it even required to consider them here
+            # with respect to the cache?
             return apply_filters(final, filters, 'output',
-                                 env.cache, disable_cache)
+                                 env.cache, actually_skip_cache_here)
 
     def _build(self, env, extra_filters=[], force=None):
         """Internal bundle build function.
 
-        Check if an update for this bundle is required, and if so,
-        build it. If ``force`` is given, the bundle will always be
-        built, without checking for an update.
+        This actually tries to build this very bundle instance, as
+        opposed to the public-facing ``build()``, which first deals
+        with the possibility that we are a container bundle, i.e.
+        having no files of our own.
 
-        If no ``updater`` is configured, then ``force`` defaults to
-        ``True``.
+        First checks whether an update for this bundle is required,
+        via the configured ``updater`` (which is almost always the
+        timestamp-based one). Unless ``force`` is given, in which
+        case the bundle will always be built, without considering
+        timestamps.
+
+        Note: The default value of ``force`` is normally ``False``,
+        unless no ``updater`` is configured, in which case ``True``
+        is assumed.
 
         A ``FileHunk`` will be returned, or in a certain case, with
         no updater defined and force=False, the return value may be
@@ -339,6 +371,7 @@ class Bundle(object):
 
         # Determine if we really need to build, or if the output file
         # already exists and nothing has changed.
+        disable_cache = None
         if force:
             update_needed = True
         elif not env.updater:
@@ -353,6 +386,10 @@ class Bundle(object):
         else:
             if env.updater:
                 update_needed = env.updater.needs_rebuild(self, env)
+                # _merge_and_apply() is now smart enough to do without
+                # this disable_cache hint, but for now, keep passing it
+                # along if we get the info from the updater.
+                disable_cache = update_needed==SKIP_CACHE
             else:
                 update_needed = False
 
@@ -362,7 +399,7 @@ class Bundle(object):
 
         hunk = self._merge_and_apply(
             env, self.output, force,
-            disable_cache=update_needed==SKIP_CACHE,
+            disable_cache=disable_cache,
             extra_filters=extra_filters)
         # If it doesn't exist yet, create the target directory.
         output = env.abspath(self.output)
@@ -385,6 +422,11 @@ class Bundle(object):
 
         If the bundle is a container bundle, then multiple files will
         be built.
+
+        Unless ``force`` is given, the configured ``updater`` will be
+        used to check whether a build is even necessary. However,
+        if the updater has been explicitly disabled, then ``True``
+        is assumed for ``force``.
 
         The return value is a list of ``FileHunk`` objects, one for
         each bundle that was built.

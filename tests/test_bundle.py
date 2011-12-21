@@ -583,36 +583,84 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         the cache, where we really need to do a refresh, because,
         for example, an included file has changed.
         """
-        def depends_fake(in_, out):
-            out.write(self.get('d.sass'))
+        # Run once with the rebuild using force=False
+        yield self._dependency_refresh_with_cache, False
+        # [Regression] And once using force=True (used to be a bug
+        # which caused the change in the dependency to not cause a
+        # cache invalidation).
+        yield self._dependency_refresh_with_cache, True
 
+    def _dependency_refresh_with_cache(self, rebuild_with_force):
+        # We have to repeat these a lot
+        DEPENDENCY = 'dependency.sass'
+        DEPENDENCY_SUB = 'dependency_sub.sass'
+
+        # Init a environment with a cache
         self.m.updater = 'timestamp'
         self.m.cache = MemoryCache(100)
-        self.create_files({'d.sass': 'initial', 'in': ''})
-        bundle = self.mkbundle('in', output='out', depends=('*.sass',),
-                               filters=depends_fake)
+        self.create_files({
+            DEPENDENCY: '-main',
+            DEPENDENCY_SUB: '-sub',
+            'in': '',
+            'in_sub': ''})
+
+        # Create a bundle with a dependency, and a filter which
+        # will cause the dependency content to be written. If
+        # everything works as it should, a change in the
+        # dependency should thus cause the output to change.
+        bundle = self.mkbundle(
+            'in',
+            output='out',
+            depends=(DEPENDENCY,),
+            filters=lambda in_, out: out.write(in_.read()+self.get(DEPENDENCY)))
+
+        # Additionally, to test how the cache usage of the parent
+        # bundle affects child bundles, create a child bundle.
+        # This one also writes the final content based on a dependency,
+        # but one that is undeclared, so to not override the parent
+        # cache behavior, the passing down of which we intend to test.
+        #
+        # This is a constructed setup so we can test whether the child
+        # bundle was using the cache by looking at the output, not
+        # something that makes sense in real usage.
+        bundle.contents += (self.mkbundle(
+            'in_sub',
+            filters=lambda in_, out: out.write(self.get(DEPENDENCY_SUB))),)
 
         # Do an initial build to ensure we have the build steps in
         # the cache.
         bundle.build()
-        assert self.get('out') == 'initial'
+        assert self.get('out') == '\n-sub-main'
         assert self.m.cache.keys
 
-        # Change the dependency
-        self.create_files({'d.sass': 'new-value-12345'})
+        # Change the dependencies
+        self.create_files({DEPENDENCY: '-main12345'})
+        self.create_files({DEPENDENCY_SUB: '-subABCDE'})
+
         # Ensure the timestamps are such that dependency will
         # cause the rebuild.
         now = self.setmtime('out')
-        self.setmtime('in', mtime=now-100)
-        self.setmtime('d.sass', mtime=now+100)
+        self.setmtime('in', 'in_sub', mtime=now-100)
+        self.setmtime(DEPENDENCY, DEPENDENCY_SUB, mtime=now+100)
 
         # Build again, verify result
-        bundle.build()
-        assert self.get('out') == 'new-value-12345'
+        bundle.build(force=rebuild_with_force)
+        # The main bundle has always updated (i.e. the cache
+        # was invalidated/not used).
+        #
+        # The child bundle is still using the cache if force=True is
+        # used, but will inherit the 'skip the cache' flag from the
+        # parent when force=False.
+        # There is no reason for this, it's just the way the code
+        # currently works, and liable to change in the future.
+        if rebuild_with_force:
+            assert self.get('out') == '\n-sub-main12345'
+        else:
+            assert self.get('out') == '\n-subABCDE-main12345'
 
 
 class BaseUrlsTester(TempEnvironmentHelper):
-    """Baseclass to tes the url generation
+    """Baseclass to test the url generation
 
     It defines a mock bundle class that intercepts calls to build().
     This allows us to test the Bundle.url() method up to it calling
