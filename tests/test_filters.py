@@ -581,3 +581,25 @@ class TestJST(TempEnvironmentHelper):
         self.m.config['JST_BARE'] = False
         self.mkbundle('*.jst', filters='jst', output='out.js').build()
         assert self.get('out.js').startswith('(function()')
+
+    def test_cache(self):
+        """[Regression] Test that jst filter does not break the caching.
+        """
+        # Enable use of cache
+        self.env.cache = True
+
+        self.create_files({'baz.jst': """old value"""})
+        bundle = self.mkbundle('*.jst', filters='jst', output='out.js')
+        bundle.build()
+
+        # Change the file
+        self.create_files({'baz.jst': """new value"""})
+
+        # Rebuild with force=True, so it's not a question of the updater
+        # not doing it's job.
+        bundle.build(force=True)
+
+        assert 'new value' in self.get('out.js')
+
+
+

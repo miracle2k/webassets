@@ -38,6 +38,9 @@ class JSTFilter(Filter):
         self._templates.append(
             (source_path, data.replace('\n', '\\n').replace("'", r"\'")))
 
+        # Write back or the cache would not detect changes
+        out.write(data)
+
     def output(self, _in, out, **kwargs):
         base_path = self._find_base_path() + os.path.sep
 
