@@ -6,6 +6,7 @@ from nose.tools import assert_raises, assert_equals
 from nose import SkipTest
 
 from webassets import Bundle
+from webassets.bundle import get_all_bundle_files
 from webassets.exceptions import BundleError, BuildError
 from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
@@ -926,6 +927,13 @@ class TestGlobbing(TempEnvironmentHelper):
         content = self.get('out').split("\n")
         content.sort()
         assert content == ['bar', 'foo', 'sub']
+
+    def test_do_not_glob_directories(self):
+        """[Regression] Glob should be smart enough not to pick
+        up directories."""
+        self.create_directories('subdir')
+        assert not filter(lambda s: 'subdir' in s,
+                           get_all_bundle_files(self.mkbundle('*')))
 
 
 class MockHTTPHandler(urllib2.HTTPHandler):

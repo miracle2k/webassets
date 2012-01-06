@@ -136,7 +136,8 @@ class Bundle(object):
                         # Is globbed pattern
                         path = env.abspath(item)
                         for f in glob.glob(path):
-                            l.append((f[len(path)-len(item):], f))
+                            if not os.path.isdir(f):
+                                l.append((f[len(path)-len(item):], f))
                     else:
                         # Is just a normal path; Send it through
                         # _normalize_source_path().
