@@ -4,6 +4,10 @@ contents (think minification, compression).
 
 import os, subprocess
 import inspect
+try:
+    frozenset
+except NameError:
+    from sets import ImmutableSet as frozenset
 from webassets.exceptions import FilterError
 from webassets.importlib import import_module
 
@@ -31,6 +35,19 @@ class NameGeneratingMeta(type):
                 filter_name = filter_name.lower()
                 attrs['name'] = filter_name
         return type.__new__(cls, name, bases, attrs)
+
+
+def freezedicts(obj):
+    """Recursively iterate over ``obj``, supporting dicts, tuples
+    and lists, and freeze ``dicts`` such that ``obj`` can be used
+    with hash().
+    """
+    if isinstance(obj, (list, tuple)):
+        return type(obj)([freezedicts(sub) for sub in obj])
+    if isinstance(obj, dict):
+        return frozenset(obj.iteritems())
+    return obj
+
 
 
 class Filter(object):
@@ -130,7 +147,9 @@ class Filter(object):
         It should therefore not depend on instance data, but yield
         the same result across multiple python invocations.
         """
-        return hash((self.name, self.unique(),))
+        # freezedicts() allows filters to return dict objects as part
+        # of unique(), which are not per-se supported by hash().
+        return hash((self.name, freezedicts(self.unique()),))
 
     def setup(self):
         """Overwrite this to have the filter to initial setup work,

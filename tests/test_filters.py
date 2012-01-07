@@ -400,6 +400,17 @@ class TestCssRewrite(TempEnvironmentHelper):
         self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
         assert self.get('out.css') == '''h1 { background: url(/new/sub/icon.png) }'''
 
+    def test_replace_with_cache(self):
+        """[Regression] Test replace mode while cache is active.
+
+        This used to fail due to an unhashable key being returned by
+        the filter."""
+        cssrewrite = get_filter('cssrewrite', replace={'old': 'new'})
+        self.env.cache = True
+        self.create_files({'in.css': '''h1 { background: url(old/sub/icon.png) }'''})
+        # Does not raise an exception.
+        self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
+
 
 class TestSass(TempEnvironmentHelper):
 
