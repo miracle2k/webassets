@@ -935,6 +935,13 @@ class TestGlobbing(TempEnvironmentHelper):
         assert not filter(lambda s: 'subdir' in s,
                            get_all_bundle_files(self.mkbundle('*')))
 
+    def test_glob_exclude_output(self):
+        """Never include the output file in the globbinb result.
+        """
+        self.create_files(['out.js'])
+        assert not filter(lambda s: 'out.js' in s,
+            get_all_bundle_files(self.mkbundle('*', output='out.js')))
+
 
 class MockHTTPHandler(urllib2.HTTPHandler):
 

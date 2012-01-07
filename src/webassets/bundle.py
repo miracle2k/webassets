@@ -136,8 +136,19 @@ class Bundle(object):
                         # Is globbed pattern
                         path = env.abspath(item)
                         for f in glob.glob(path):
-                            if not os.path.isdir(f):
-                                l.append((f[len(path)-len(item):], f))
+                            if os.path.isdir(f):
+                                continue
+                            if self.output and env.abspath(self.output) == f:
+                                # Exclude the output file. Note this will
+                                # not work if nested bundles do the
+                                # including. TODO: Should be even have this
+                                # test if it doesn't work properly? Should
+                                # be throw an error during building instead?
+                                # Or can be give this method access to the
+                                # parent bundle, since allowing env settings
+                                # overrides in bundles is planned anyway?
+                                continue
+                            l.append((f[len(path)-len(item):], f))
                     else:
                         # Is just a normal path; Send it through
                         # _normalize_source_path().
