@@ -29,6 +29,9 @@ class TestTemplateTag(object):
             def __init__(self, *a, **kw):
                 Bundle.__init__(self, *a, **kw)
                 self.env = assets_env
+
+                self.dbg = kw.get('debug', None)
+
                 # Kind of hacky, but gives us access to the last Bundle
                 # instance used by the extension.
                 test_instance.the_bundle = self
@@ -71,3 +74,9 @@ class TestTemplateTag(object):
         """
         self.BundleClass.urls_to_fake = ['foo', 'bar']
         assert self.render_template('"file1" "file2" "file3"') == 'foo;bar;'
+
+    def test_debug_on_tag(self):
+        content = self.jinja_env.from_string(
+            '{% assets debug="True", "debug1.txt" %}{{ ASSET_URL }};{% endassets %}').render({})
+        assert self.the_bundle.dbg == 'True'
+
