@@ -24,9 +24,9 @@ class CommandLineEnvironment():
         self.environment = env
         self.log = log
         if callable(post_build):
-            self.post_build = post_build
+            self.post_build = lambda s: post_build()
         else:
-            self.post_build = lambda: True
+            self.post_build = lambda s: True
 
     def invoke(self, command):
         """Invoke ``command``, or throw a CommandError.
