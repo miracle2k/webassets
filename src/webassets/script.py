@@ -20,9 +20,13 @@ class CommandLineEnvironment():
     as a Django management command.
     """
 
-    def __init__(self, env, log):
+    def __init__(self, env, log, post_build=None):
         self.environment = env
         self.log = log
+        if callable(post_build):
+            self.post_build = post_build
+        else:
+            self.post_build = lambda: True
 
     def invoke(self, command):
         """Invoke ``command``, or throw a CommandError.
@@ -45,12 +49,16 @@ class CommandLineEnvironment():
                 ("Current debug option is '%s'. Building as "
                  "if in production (debug=False)") % self.environment.debug)
             self.environment.debug = False
+        success = True
         for to_build in self.environment:
             self.log.info("Building bundle: %s" % to_build.output)
             try:
                 to_build.build(force=True, env=self.environment)
             except BuildError, e:
                 self.log.error("Failed, error was: %s" % e)
+                success = False
+        if success:
+            self.post_build()
 
     def watch(self):
         """Watch assets for changes.
@@ -79,12 +87,16 @@ class CommandLineEnvironment():
             self.log.info("Watching %d bundles for changes..." % len(self.environment))
             while True:
                 changed_bundles = check_for_changes()
+                success = True
                 for bundle in changed_bundles:
                     self.log.info("Rebuilding asset: %s" % bundle.output)
                     try:
                         bundle.build(force=True)
                     except BuildError, e:
                         print "Failed: %s" % e
+                        success = False
+                if success:
+                    self.post_build()
                 time.sleep(0.1)
         except KeyboardInterrupt:
             pass
