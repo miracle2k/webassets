@@ -48,15 +48,15 @@ class CommandLineEnvironment():
                 ("Current debug option is '%s'. Building as "
                  "if in production (debug=False)") % self.environment.debug)
             self.environment.debug = False
-        success = True
+        built = []
         for to_build in self.environment:
             self.log.info("Building bundle: %s" % to_build.output)
             try:
                 to_build.build(force=True, env=self.environment)
+                built.append(to_build)
             except BuildError, e:
                 self.log.error("Failed, error was: %s" % e)
-                success = False
-        if success:
+        if len(built):
             self.event_handlers['post_build']()
 
     def watch(self):
@@ -86,15 +86,15 @@ class CommandLineEnvironment():
             self.log.info("Watching %d bundles for changes..." % len(self.environment))
             while True:
                 changed_bundles = check_for_changes()
-                success = True
+                built = []
                 for bundle in changed_bundles:
                     self.log.info("Rebuilding asset: %s" % bundle.output)
                     try:
                         bundle.build(force=True)
+                        built.append(bundle)
                     except BuildError, e:
                         print "Failed: %s" % e
-                        success = False
-                if success:
+                if len(built):
                     self.event_handlers['post_build']()
                 time.sleep(0.1)
         except KeyboardInterrupt:
