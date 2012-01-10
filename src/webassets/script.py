@@ -23,10 +23,9 @@ class CommandLineEnvironment():
     def __init__(self, env, log, post_build=None):
         self.environment = env
         self.log = log
+        self.event_handlers = dict(post_build=lambda: True)
         if callable(post_build):
-            self.post_build = lambda s: post_build()
-        else:
-            self.post_build = lambda s: True
+            self.event_handlers['post_build'] = post_build
 
     def invoke(self, command):
         """Invoke ``command``, or throw a CommandError.
@@ -58,7 +57,7 @@ class CommandLineEnvironment():
                 self.log.error("Failed, error was: %s" % e)
                 success = False
         if success:
-            self.post_build()
+            self.event_handlers['post_build']()
 
     def watch(self):
         """Watch assets for changes.
@@ -96,7 +95,7 @@ class CommandLineEnvironment():
                         print "Failed: %s" % e
                         success = False
                 if success:
-                    self.post_build()
+                    self.event_handlers['post_build']()
                 time.sleep(0.1)
         except KeyboardInterrupt:
             pass
