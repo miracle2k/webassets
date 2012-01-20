@@ -531,6 +531,8 @@ class Bundle(object):
             for c, _ in self.resolve_contents(env):
                 if isinstance(c, Bundle):
                     urls.extend(c.urls(env, *args, **kwargs))
+                elif is_url(c):
+                    urls.append(c)
                 else:
                     urls.append(self._make_url(env, c, expire=False))
             return urls

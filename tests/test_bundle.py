@@ -673,6 +673,7 @@ class BaseUrlsTester(TempEnvironmentHelper):
         self.m.expire = False
 
         self.build_called = build_called = []
+        self.makeurl_called = makeurl_called = []
         env = self.m
         class MockBundle(Bundle):
             def __init__(self, *a, **kw):
@@ -680,6 +681,9 @@ class BaseUrlsTester(TempEnvironmentHelper):
                 self.env = env
             def _build(self, *a, **kw):
                 build_called.append(self.output)
+            def _make_url(self, *a, **kw):
+                makeurl_called.append(self.output)
+                return Bundle._make_url(self, *a, **kw)
         self.MockBundle = MockBundle
 
 
@@ -821,6 +825,22 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
             self.MockBundle('a', output='child2'))
         assert bundle.urls() == ['/a', '/a']
         assert len(self.build_called) == 0
+
+    def test_url_source(self):
+        """[Regression] Test a Bundle that contains a source URL.
+        """
+        bundle = self.MockBundle('http://test.de', output='out')
+        assert_equals(bundle.urls(), ['http://test.de'])
+        assert_equals(len(self.build_called), 0)
+
+        # This is the important test. It proves that the url source
+        # was handled separately, and not processed like any other
+        # source file, which would be passed through makeurl().
+        # This is a bit convoluted to test because the code that
+        # converts a bundle content into an url operates just fine
+        # on a url source, so there is no easy other way to determine
+        # whether the url source was treated special.
+        assert_equals(len(self.makeurl_called), 0)
 
     def test_root_bundle_asks_for_debug_false(self):
         """A bundle explicitly says it wants to be processed with
