@@ -29,6 +29,31 @@ class TestFilter:
         assert type('Foo', (Filter,), {'name': 'custom'}).name == 'custom'
         assert type('Foo', (Filter,), {'name': None}).name == None
 
+    def test_options(self):
+        """Test option declaration.
+        """
+        class TestFilter(Filter):
+            options = {
+                'attr1': 'ATTR1',
+                'attr2': ('secondattr', 'ATTR2'),
+                'attr3': (False, 'ATTR3'),
+                'attr4': ('attr4', False),
+            }
+
+        # Test __init__ arguments
+        assert TestFilter(attr1='foo').attr1 == 'foo'
+        assert TestFilter(secondattr='foo').attr2 == 'foo'
+        assert_raises(TypeError, TestFilter, attr3='foo')
+        assert TestFilter(attr4='foo').attr4 == 'foo'
+
+        # Test config vars
+        env = Environment(None, None)
+        env.config['attr1'] = 'bar'
+        env.config['attr4'] = 'bar'
+        f = TestFilter(); f.env = env; f.setup()
+        assert f.attr1 == 'bar'
+        assert f.attr4 == None    # Was configured to not support env
+
     def test_get_config(self):
         """Test the ``get_config`` helper.
         """

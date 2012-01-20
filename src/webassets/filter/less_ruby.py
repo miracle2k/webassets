@@ -27,6 +27,7 @@ class LessRubyFilter(Filter):
     **Note**: Currently, this needs to be the very first filter
     applied. Changes by filters that ran before will be lost.
     """
+    # XXX Deprecate this one.
     """XXX: This currently needs to be the very first filter applied. This is
     because it uses the "source filter" mechanism to support "@includes"
     in less, i.e. it let's the less compiler work directly with the source
@@ -49,10 +50,9 @@ class LessRubyFilter(Filter):
     """
 
     name = 'less-ruby'
-
-    def setup(self):
-        self.less = self.get_config('LESS_RUBY_PATH', what='less binary',
-                                    require=False)
+    options = {
+        'less': ('binary', 'LESS_RUBY_PATH')
+    }
 
     def input(self, _in, out, source_path, output_path):
         """Less currently doesn't take data from stdin, and doesn't allow

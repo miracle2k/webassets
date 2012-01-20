@@ -70,29 +70,38 @@ class SassFilter(Filter):
     # directory).
 
     name = 'sass'
+    options = {
+        'binary': 'SASS_BIN',
+        'use_scss': ('scss', 'SASS_USE_SCSS'),
+        'use_compass': ('use_compass', 'SASS_COMPASS'),
+        'debug_info': 'SASS_DEBUG_INFO',
+        'as_output': 'SASS_AS_OUTPUT',
+        'includes_dir': 'SASS_INCLUDES_DIR',  # deprecated!
+        'load_paths': 'SASS_LOAD_PATHS',
+    }
 
-    def __init__(self, scss=False, compass=False, debug_info=None, 
-                 as_output=False, includes_dir=None):
-        super(SassFilter, self).__init__()
-        self.use_scss = scss
-        self.use_compass = compass
-        self.debug_info = debug_info
-        self.as_output = as_output
-        self.includes_dir = includes_dir
-
-    def setup(self):
-        self.binary = self.get_config('SASS_BIN', what='sass binary',
-                                      require=False)
-        if self.debug_info is None:
-            self.debug_info = self.get_config('SASS_DEBUG_INFO', require=False)
-
-    def _apply_sass(self, _in, out, includes_path):
-        if includes_path:
+    def _apply_sass(self, _in, out, cd=None):
+        # Switch to source file directory if asked, so that  this directory
+        # is by default on the load path. We could pass it via -I, but then
+        # files in the (undefined) wd could shadow the correct files.
+        if cd:
             old_dir = os.getcwd()
-            os.chdir(includes_path)
+            os.chdir(cd)
+
+        # Put together the load path.
+        load_paths = self.load_paths or []
+        if self.includes_dir:
+            load_paths.append(self.includes_dir)
+            import warnings
+            warnings.warn(
+                'The INCLUDES_DIR option of the "sass" filter has '
+                'been deprecated and will be removed. Use LOAD_PATHS'
+                'instead.', DeprecationWarning)
 
         try:
-            args = [self.binary or 'sass', '--stdin', '--style', 'expanded',
+            args = [self.binary or 'sass',
+                    '--stdin',
+                    '--style', 'expanded',
                     '--line-comments']
             if isinstance(self.env.cache, FilesystemCache):
                 args.extend(['--cache-location',
@@ -103,6 +112,8 @@ class SassFilter(Filter):
                 args.append('--scss')
             if self.use_compass:
                 args.append('--compass')
+            for path in load_paths:
+                args.extend(['-I', path])
 
             proc = subprocess.Popen(args,
                                     stdin=subprocess.PIPE,
@@ -122,21 +133,20 @@ class SassFilter(Filter):
 
             out.write(stdout)
         finally:
-            if includes_path:
+            if cd:
                 os.chdir(old_dir)
 
     def input(self, _in, out, source_path, output_path):
         if self.as_output:
             out.write(_in.read())
         else:
-            self._apply_sass(
-                _in, out, self.includes_dir or os.path.dirname(source_path))
+            self._apply_sass(_in, out, os.path.dirname(source_path))
 
     def output(self, _in, out, **kwargs):
         if not self.as_output:
             out.write(_in.read())
         else:
-            self._apply_sass(_in, out, self.includes_dir)
+            self._apply_sass(_in, out)
 
 
 class SCSSFilter(SassFilter):

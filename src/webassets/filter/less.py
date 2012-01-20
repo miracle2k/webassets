@@ -15,10 +15,9 @@ class NodeLessFilter(Filter):
     """
 
     name = 'less'
-
-    def setup(self):
-        self.less = self.get_config('LESS_BIN', what='less binary',
-            require=False)
+    options = {
+        'less': ('binary', 'LESS_BIN')
+    }
 
     def input(self, _in, out, source_path, output_path):
         proc = subprocess.Popen(

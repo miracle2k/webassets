@@ -22,19 +22,26 @@ class CoffeeScriptFilter(Filter):
     """
 
     name = 'coffeescript'
-
-    def setup(self):
-        self.coffee = self.get_config(
-            'COFFEE_PATH', what='coffee binary', require=False) or 'coffee'
-        self.no_bare = self.get_config(
-            'COFFEE_NO_BARE', require=False) or False
+    options = {
+        'coffee_deprecated': (False, 'COFFEE_PATH'),
+        'coffee_bin': ('binary', 'COFFEE_BIN'),
+        'no_bare': 'COFFEE_NO_BARE',
+    }
 
     def input(self, _in, out, source_path, output_path):
         old_dir = os.getcwd()
         os.chdir(os.path.dirname(source_path))
         try:
+            binary = self.coffee_bin or self.coffee_deprecated or 'coffee'
+            if self.coffee_deprecated:
+                import warnings
+                warnings.warn(
+                    'The COFFEE_PATH option of the "coffeescript" '
+                    +'filter has been deprecated and will be removed.'
+                    +'Use COFFEE_BIN instead.', DeprecationWarning)
+
             args = "-p" + ("" if self.no_bare else 'b')
-            proc = subprocess.Popen([self.coffee, args, source_path],
+            proc = subprocess.Popen([binary, args, source_path],
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
             stdout, stderr = proc.communicate()

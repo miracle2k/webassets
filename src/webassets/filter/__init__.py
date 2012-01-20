@@ -49,6 +49,22 @@ def freezedicts(obj):
     return obj
 
 
+def parse_options(options):
+    # Normalize different ways to specify a filter option.
+    # Option format is one of:
+    #    attribute: ('__init__ arg', 'config variable')
+    #    attribute: ('config variable,')
+    #    attribute: 'config variable'
+    result = {}
+    for internal, external in options.items():
+        if not isinstance(external, (list, tuple)):
+            external = (external,)
+        assert 1 <= len(external) <= 2
+        if len(external) == 1:
+            external = (internal, external[0])
+        result[internal] = external
+    return result
+
 
 class Filter(object):
     """Base class for a filter.
@@ -65,8 +81,29 @@ class Filter(object):
     # automatically for subclasses if not explicitly given.
     name = None
 
-    def __init__(self):
+    # Options the filter supports. The base class will ensure that
+    # these are both accepted by __init__ as kwargs, and may also be
+    # defined in the environment config, or the OS environment (i.e.
+    # a setup() implementation will be generated which uses
+    # get_config() calls).
+    options = {}
+
+    def __init__(self, **kwargs):
         self.env = None
+        self.options = parse_options(self.__class__.options)
+
+        # Resolve options given directly to the filter. This
+        # allows creating filter instances with options that
+        # deviate from the global default.
+        # TODO: can the metaclass generate a init signature?
+        for attribute, (initarg, _) in self.options.items():
+            if initarg in kwargs:
+                setattr(self, attribute, kwargs.pop(initarg))
+            else:
+                setattr(self, attribute, None)
+        if kwargs:
+            raise TypeError('got an unexpected keyword argument: %s' %
+                            kwargs.keys()[0])
 
     def __hash__(self):
         return self.id()
@@ -152,16 +189,28 @@ class Filter(object):
         return hash((self.name, freezedicts(self.unique()),))
 
     def setup(self):
-        """Overwrite this to have the filter to initial setup work,
+        """Overwrite this to have the filter do initial setup work,
         like determining whether required modules are available etc.
 
         Since this will only be called when the user actually
         attempts to use the filter, you can raise an error here if
         dependencies are not matched.
 
+        Note: In most cases, it should be enough to simply define
+        the ``options`` attribute. If you override this method and
+        want to use options as well, don't forget to call super().
+
         Note: This may be called multiple times if one filter instance
         is used with different asset environment instances.
         """
+        for attribute, (_, configvar) in self.options.items():
+            if not configvar:
+                continue
+            if getattr(self, attribute) is None:
+                # No value specified for this filter instance ,
+                # specifically attempt to load it from the environment.
+                setattr(self, attribute,
+                    self.get_config(setting=configvar, require=False))
 
     def input(self, _in, out):
         """Implement your actual filter here.

@@ -70,12 +70,10 @@ class CompassFilter(Filter):
     # to be first" issue.
 
     name = 'compass'
-
-    def setup(self):
-        self.compass = self.get_config('COMPASS_BIN', what='compass binary',
-                                       require=False) or 'compass'
-        self.plugins = self.get_config('COMPASS_PLUGINS', what='compass plugins',
-                                       require=False) or []
+    options = {
+        'compass': ('binary', 'COMPASS_BIN'),
+        'plugins': 'COMPASS_PLUGINS',
+    }
 
     def input(self, _in, out, source_path, output_path):
         """Compass currently doesn't take data from stdin, and doesn't allow
@@ -156,8 +154,8 @@ http_javascripts_dir = ""
             finally:
                 f.close()
 
-            command = [self.compass, 'compile']
-            for plugin in self.plugins:
+            command = [self.compass or 'compass', 'compile']
+            for plugin in self.plugins or []:
                 command.extend(('--require', plugin))
             command.extend(['--sass-dir', sassdir,
                             '--css-dir', tempout,

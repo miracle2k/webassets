@@ -14,28 +14,23 @@ class JSTFilter(Filter):
 
     """
     name = 'jst'
+    options = {
+        # The JavaScript compiler function to use
+        'template_function': 'JST_COMPILER',
+        # The JavaScript namespace to put templates in
+        'namespace': 'JST_NAMESPACE',
+        # Wrap everything in a closure
+        'bare': 'JST_BARE',
+    }
 
     def setup(self):
-        self._template_function = self.get_config('JST_COMPILER', 
-            what='The JavaScript compiler function to use', 
-            require=False) or 'template'
-
-        self._namespace = self.get_config('JST_NAMESPACE', 
-            what='The JavaScript namespace to put templates in', 
-            require=False) or 'window.JST'
-        
-        self._bare = self.get_config('JST_BARE', 
-            what='Wrap everything in a closure', require=False)
-        if self._bare is None:
-            self._bare = True
-        
-        self._include_jst_script = (self._template_function == 'template')
-
-        self._templates = []
+        super(JSTFilter, self).setup()
+        self.include_jst_script = (self.template_function == 'template')
+        self.templates = []
 
     def input(self, _in, out, source_path, output_path):
         data = _in.read()
-        self._templates.append(
+        self.templates.append(
             (source_path, data.replace('\n', '\\n').replace("'", r"\'")))
 
         # Write back or the cache would not detect changes
@@ -43,26 +38,27 @@ class JSTFilter(Filter):
 
     def output(self, _in, out, **kwargs):
         base_path = self._find_base_path() + os.path.sep
+        namespace = self.namespace or 'window.JST'
 
-        if not self._bare:
+        if self.bare is False:
             out.write("(function(){\n    ")
 
-        out.write("%s = %s || {};\n" % (self._namespace, self._namespace))
+        out.write("%s = %s || {};\n" % (namespace, namespace))
 
-        if self._include_jst_script:
+        if self.include_jst_script:
             out.write("%s\n" % _jst_script)
 
-        for path, contents in self._templates:
-            out.write("%s['%s'] = %s('%s');\n" % (self._namespace, 
+        for path, contents in self.templates:
+            out.write("%s['%s'] = %s('%s');\n" % (namespace,
                 os.path.splitext(path[len(base_path):])[0],
-                self._template_function, contents))
+                self.template_function or 'template', contents))
         
-        if not self._bare:
+        if not self.bare:
             out.write("})();")
 
     def _find_base_path(self):
         """Hmmm.  There should aways be some common base path."""
-        paths = [path for path, content in self._templates]
+        paths = [path for path, content in self.templates]
         if len(paths) == 1:
             return os.path.dirname(paths[0])
         return common_path_prefix(paths)
