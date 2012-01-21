@@ -49,7 +49,7 @@ class LessRubyFilter(Filter):
     file separately, and the compiler would fail at undefined variables.
     """
 
-    name = 'less-ruby'
+    name = 'less_ruby'
     options = {
         'less': ('binary', 'LESS_RUBY_PATH')
     }
