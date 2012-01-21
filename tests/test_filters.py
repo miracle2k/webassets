@@ -278,8 +278,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         if not find_executable('uglifyjs'):
             raise SkipTest()
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
-        print self.get('out.js')
-        assert self.get('out.js') == "function foo(a){var b;document.write(a)}"
+        assert self.get('out.js') == 'function foo(a){var b;document.write(a)};'
 
     def test_less(self):
         if not find_executable('lessc'):
@@ -289,8 +288,9 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n'
 
     def test_less_ruby(self):
-        if not find_executable('lessc'):
-            raise SkipTest()
+        # TODO: Currently no way to differentiate the ruby lessc from the
+        # JS one. Maybe the solution is just to remove the old ruby filter.
+        raise SkipTest()
         self.mkbundle('foo.css', filters='less_ruby', output='out.css').build()
         assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #ffffff;\n}\n'
 
@@ -342,21 +342,17 @@ class TestCoffeeScript(TempEnvironmentHelper):
     def test_default_options(self):
         self.create_files({'in': "alert \"I knew it!\" if elvis?"})
         self.mkbundle('in', filters='coffeescript', output='out.js').build()
-        assert self.get('out.js') == """if (typeof elvis !== "undefined" && elvis !== null) {
-  alert("I knew it!");
-}
-"""
+        assert self.get('out.js') == """if (typeof elvis !== "undefined" && elvis !== null) alert("I knew it!");\n"""
 
     def test_bare_option(self):
         self.env.config['COFFEE_NO_BARE'] = True
         self.create_files({'in': "@a = 1"})
         self.mkbundle('in', filters='coffeescript', output='out.js').build()
-        assert self.get('out.js') == '(function() {\n  this.a = 1;\n}).call(this);\n'
+        assert self.get('out.js') == '(function() {\n\n  this.a = 1;\n\n}).call(this);\n'
 
         self.env.config['COFFEE_NO_BARE'] = False
         self.create_files({'in': "@a = 1"})
         self.mkbundle('in', filters='coffeescript', output='out.js').build(force=True)
-        print repr(self.get('out.js'))
         assert self.get('out.js') == 'this.a = 1;\n'
 
 
@@ -468,7 +464,6 @@ class TestSass(TempEnvironmentHelper):
         sass = get_filter('sass', debug_info=False)
         self.create_files({'import-test.sass': '''@import foo.sass'''})
         self.mkbundle('import-test.sass', filters=sass, output='out.css').build()
-        print repr(self.get('out.css'))
         assert doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""", self.get('out.css'))
 
     def test_scss(self):
