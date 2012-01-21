@@ -4,7 +4,7 @@ import warnings
 from django import template
 from django_assets import Bundle
 from django_assets.env import get_env
-from webassets.exceptions import ImmanentDeprecationWarning
+from webassets.exceptions import ImminentDeprecationWarning
 
 
 class AssetsNode(template.Node):
@@ -95,7 +95,7 @@ def assets(parser, token):
             warnings.warn('The "filter" option of the {% assets %} '
                           'template tag has been renamed to '
                           '"filters" for consistency reasons.',
-                            ImmanentDeprecationWarning)
+                            ImminentDeprecationWarning)
         # positional arguments are source files
         elif name is None:
             files.append(value)

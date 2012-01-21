@@ -1,5 +1,5 @@
 __all__ = ('BundleError', 'BuildError', 'FilterError',
-           'ImmanentDeprecationWarning')
+           'ImminentDeprecationWarning')
 
 
 class BundleError(Exception):
@@ -14,7 +14,7 @@ class FilterError(BuildError):
     pass
 
 
-class ImmanentDeprecationWarning(Warning):
+class ImminentDeprecationWarning(Warning):
     """Warning category for deprecated features, since the default
     DeprecationWarning is silenced on Python 2.7+.
 

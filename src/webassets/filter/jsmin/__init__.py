@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import warnings
 
 from webassets.filter import Filter
-from webassets.exceptions import ImmanentDeprecationWarning
+from webassets.exceptions import ImminentDeprecationWarning
 
 
 __all__ = ('JSMinFilter',)
@@ -39,7 +39,7 @@ class JSMinFilter(Filter):
             warnings.warn('The jsmin implementation shipping with webassets will '+
                           'be deprecated. Install your own jsmin implementation '+
                           '(e.g. "pip install jsmin"), or switch to the rjsmin '+
-                          'filter.', ImmanentDeprecationWarning)
+                          'filter.', ImminentDeprecationWarning)
         self.jsmin = jsmin
 
     def output(self, _in, out, **kw):
