@@ -78,6 +78,7 @@ class SassFilter(Filter):
         'as_output': 'SASS_AS_OUTPUT',
         'includes_dir': 'SASS_INCLUDES_DIR',  # deprecated!
         'load_paths': 'SASS_LOAD_PATHS',
+        'libs': 'SASS_LIBS',
     }
 
     def _apply_sass(self, _in, out, cd=None):
@@ -114,6 +115,8 @@ class SassFilter(Filter):
                 args.append('--compass')
             for path in load_paths:
                 args.extend(['-I', path])
+            for lib in self.libs or []:
+                args.extend(['-r', lib])
 
             proc = subprocess.Popen(args,
                                     stdin=subprocess.PIPE,
