@@ -1,7 +1,7 @@
 import os, subprocess
 
 from webassets.filter import Filter
-from webassets.exceptions import FilterError
+from webassets.exceptions import FilterError, ImmanentDeprecationWarning
 from webassets.cache import FilesystemCache
 
 
@@ -97,7 +97,7 @@ class SassFilter(Filter):
             warnings.warn(
                 'The INCLUDES_DIR option of the "sass" filter has '
                 'been deprecated and will be removed. Use LOAD_PATHS'
-                'instead.', DeprecationWarning)
+                'instead.', ImmanentDeprecationWarning)
 
         try:
             args = [self.binary or 'sass',

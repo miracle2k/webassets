@@ -6,6 +6,7 @@ from jinja2.ext import Extension
 from jinja2 import nodes
 from webassets import Bundle
 from webassets.loaders import GlobLoader, LoaderError
+from webassets.exceptions import ImmanentDeprecationWarning
 
 
 __all__ = ('assets', 'Jinja2Loader',)
@@ -61,7 +62,7 @@ class AssetsExtension(Extension):
                                   'template tag has been renamed to '
                                   '"filters" for consistency reasons '
                                   '(line %s).' % lineno,
-                                  DeprecationWarning)
+                                    ImmanentDeprecationWarning)
                 elif name == 'output':
                     output = value
                 elif name == 'debug':

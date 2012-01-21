@@ -1,7 +1,7 @@
 import os, subprocess
 
 from webassets.filter import Filter
-from webassets.exceptions import FilterError
+from webassets.exceptions import FilterError, ImmanentDeprecationWarning
 
 
 __all__ = ('CoffeeScriptFilter',)
@@ -38,7 +38,7 @@ class CoffeeScriptFilter(Filter):
                 warnings.warn(
                     'The COFFEE_PATH option of the "coffeescript" '
                     +'filter has been deprecated and will be removed.'
-                    +'Use COFFEE_BIN instead.', DeprecationWarning)
+                    +'Use COFFEE_BIN instead.', ImmanentDeprecationWarning)
 
             args = "-p" + ("" if self.no_bare else 'b')
             proc = subprocess.Popen([binary, args, source_path],
