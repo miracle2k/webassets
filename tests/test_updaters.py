@@ -204,3 +204,21 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         """
         bundle = self.mkbundle('in', output='out', depends=('file',))
         assert_raises(BundleError, self.m.updater.needs_rebuild, bundle, self.m)
+
+    def test_changed_file_after_nested_bundle(self):
+        """[Regression] Regression-test for a particular bug where the
+        changed file was listed after a nested bundle and the change
+        was not picked up.
+        """
+        self.m.updater = 'timestamp'
+        self.m.cache = False
+        self.create_files(['nested', 'main', 'out'])
+        b = self.mkbundle(Bundle('nested'), 'main', output='out')
+
+        # Set timestamps
+        now = self.setmtime('out')
+        self.setmtime('nested', mtime=now-100)  # unchanged
+        self.setmtime('main', mtime=now+100)  # changed
+
+        # At this point, a rebuild is required.
+        assert self.m.updater.needs_rebuild(b, self.m) == True
