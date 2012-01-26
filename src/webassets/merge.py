@@ -89,6 +89,8 @@ class MemoryHunk(BaseHunk):
         pass
 
     def data(self):
+        if hasattr(self._data, 'read'):
+            return self._data.read()
         return self._data
 
     def save(self, filename):

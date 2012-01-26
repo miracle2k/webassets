@@ -2,10 +2,16 @@ import os, sys
 import time
 import logging
 
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
+
 from webassets.loaders import PythonLoader
 from webassets.bundle import get_all_bundle_files
 from webassets.exceptions import BuildError, ImminentDeprecationWarning
 from webassets.updater import TimestampUpdater
+from webassets.merge import MemoryHunk
 
 
 __all__ = ('CommandError', 'CommandLineEnvironment', 'main')
@@ -49,20 +55,119 @@ class CommandLineEnvironment():
             ImminentDeprecationWarning)
         return self.build()
 
-    def build(self):
+    def build(self, bundles=None, output=None, directory=None):
         """Build/Rebuild assets.
+
+        ``bundles``
+            A list of bundle names. If given, only this list of bundles
+            should be built.
+
+        ``output``
+            List of (bundle, filename) 2-tuples. If given, only these
+            bundles will be built, using the custom output filenames.
+            Cannot be used with ``bundles``.
+
+        ``directory``
+            Custom output directory to use for the bundles. The original
+            basenames defined in the bundle ``output`` attribute will be
+            used. If the ``output`` of the bundles are pointing to different
+            directories, they will be offset by their common prefix.
+            Cannot be used with ``output``.
         """
         if self.environment.debug != False:
             self.log.warning(
                 ("Current debug option is '%s'. Building as "
                  "if in production (debug=False)") % self.environment.debug)
             self.environment.debug = False
+
+        # Validate arguments
+        if bundles and output:
+            raise CommandError(
+                'When specifying explicit output filenames you must '
+                'do so for all bundles you want to build.')
+        if directory and output:
+            raise CommandError('A custom output directory cannot be '
+                               'combined with explicit output filenames '
+                               'for individual bundles.')
+
+        # Use output as a dict.
+        if output:
+            output = dict(output)
+
+        # Validate bundle names
+        bundle_names = bundles if bundles else (output.keys() if output else [])
+        for name in bundle_names:
+            if not name in self.environment:
+                raise CommandError(
+                    'I do not know a bundle name named "%s".' % name)
+
+        # Make a list of bundles to build, and the filename to write to.
+        if bundle_names:
+            # TODO: It's not ok to use an internal property here.
+            bundles = [(n,b) for n, b in self.environment._named_bundles.items()
+                       if n in bundle_names]
+        else:
+            # Includes unnamed bundles as well.
+            bundles = [(None, b) for b in self.environment]
+
+        # Determine common prefix for use with ``directory`` option.
+        if directory:
+            prefix = os.path.commonprefix(
+                [os.path.normpath(self.environment.abspath(b.output))
+                 for _, b in bundles if b.output])
+            # dirname() gives the right value for a single file.
+            prefix = os.path.dirname(prefix)
+
+        to_build = []
+        for name, bundle in bundles:
+            # TODO: We really should support this. This error here
+            # is just in place of a less understandable error that would
+            # otherwise occur.
+            if bundle.is_container and directory:
+                raise CommandError(
+                    'A custom output directory cannot currently be '
+                    'used with container bundles.')
+
+            # Determine which filename to use, if not the default.
+            overwrite_filename = None
+            if output:
+                overwrite_filename = output[name]
+            elif directory:
+                offset = os.path.normpath(self.environment.abspath(
+                    bundle.output))[len(prefix)+1:]
+                overwrite_filename = os.path.join(directory, offset)
+            to_build.append((bundle, overwrite_filename, name,))
+
+        # Build.
         built = []
-        for to_build in self.environment:
-            self.log.info("Building bundle: %s" % to_build.output)
+        for bundle, overwrite_filename, name in to_build:
+            if name:
+                # A name is not necessary available of the bundle was
+                # registered without one.
+                self.log.info("Building bundle: %s (to %s)" % (
+                    name, overwrite_filename or bundle.output))
+            else:
+                self.log.info("Building bundle: %s" % bundle.output)
+
             try:
-                to_build.build(force=True, env=self.environment)
-                built.append(to_build)
+                if not overwrite_filename:
+                    bundle.build(force=True, env=self.environment)
+                else:
+                    # TODO: Rethink how we deal with container bundles here.
+                    # As it currently stands, we write all child bundles
+                    # to the target output, merged (which is also why we
+                    # create and force writing to a StringIO instead of just
+                    # using the ``Hunk`` objects that build() would return
+                    # anyway.
+                    output = StringIO()
+                    bundle.build(force=True, env=self.environment, output=output)
+                    if directory:
+                        # Only auto-create directories in this mode.
+                        output_dir = os.path.dirname(overwrite_filename)
+                        if not os.path.exists(output_dir):
+                            os.makedirs(output_dir)
+                    MemoryHunk(output.getvalue()).save(overwrite_filename)
+                built.append(bundle)
             except BuildError, e:
                 self.log.error("Failed, error was: %s" % e)
         if len(built):
@@ -204,7 +309,21 @@ class GenericArgparseImplementation(object):
 
     @staticmethod
     def make_build_parser(parser):
-        pass
+        parser.add_argument(
+            'bundles', nargs='*', metavar='BUNDLE',
+            help='Optional bundle names to process. If none are '
+                 'specified, then all known bundles will be built.')
+        parser.add_argument(
+            '--output', '-o', nargs=2, action='append',
+            metavar=('BUNDLE', 'FILE'),
+            help='Build the given bundle, and use a custom output '
+                 'file. Can be given multiple times.')
+        parser.add_argument(
+            '--directory', '-d',
+            help='Write built files to this directory, using the '
+                 'basename defined by the bundle. Will offset '
+                 'the original bundle output paths on their common '
+                 'prefix. Cannot be used with --output.')
 
     def main(self, argv):
         """Parse the given command line.
@@ -212,7 +331,12 @@ class GenericArgparseImplementation(object):
         The command ine is expected to NOT including what would be
         sys.argv[0].
         """
-        ns = self.parser.parse_args(argv)
+        try:
+            ns = self.parser.parse_args(argv)
+        except SystemExit:
+            # We do not want the main() function to exit the program.
+            # See run() instead.
+            return 1
 
         # Setup logging
         log = logging.getLogger('webassets')

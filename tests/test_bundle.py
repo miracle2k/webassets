@@ -305,6 +305,14 @@ class TestBuild(TempEnvironmentHelper):
         self.mkbundle('in1', 'in2', output='out/nested/x/foo').build()
         assert self.get('out/nested/x/foo') == 'A\nB'
 
+    def test_with_custom_output(self):
+        """build() method can write to a custom file object."""
+        from StringIO import StringIO
+        buffer = StringIO()
+        self.mkbundle('in1', 'in2', output='out').build(output=buffer)
+        assert buffer.getvalue() == 'A\nB'
+        assert not self.exists('out')    # file was not written.
+
 
 class ReplaceFilter(Filter):
     """Filter that does a simple string replacement.

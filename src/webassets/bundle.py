@@ -343,7 +343,7 @@ class Bundle(object):
             return apply_filters(final, filters, 'output',
                                  env.cache, actually_skip_cache_here)
 
-    def _build(self, env, extra_filters=[], force=None):
+    def _build(self, env, extra_filters=[], force=None, output=None):
         """Internal bundle build function.
 
         This actually tries to build this very bundle instance, as
@@ -413,12 +413,15 @@ class Bundle(object):
             env, self.output, force,
             disable_cache=disable_cache,
             extra_filters=extra_filters)
-        # If it doesn't exist yet, create the target directory.
-        output = env.abspath(self.output)
-        output_dir = path.dirname(output)
-        if not path.exists(output_dir):
-            os.makedirs(output_dir)
-        hunk.save(output)
+        if not output:
+            # If it doesn't exist yet, create the target directory.
+            filename = env.abspath(self.output)
+            output_dir = path.dirname(filename)
+            if not path.exists(output_dir):
+                os.makedirs(output_dir)
+            hunk.save(filename)
+        else:
+            output.write(hunk.data())
 
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
@@ -428,7 +431,7 @@ class Bundle(object):
 
         return hunk
 
-    def build(self, env=None, force=None):
+    def build(self, env=None, force=None, output=None):
         """Build this bundle, meaning create the file given by the
         ``output`` attribute, applying the configured filters etc.
 
@@ -440,13 +443,17 @@ class Bundle(object):
         if the updater has been explicitly disabled, then ``True``
         is assumed for ``force``.
 
+        If ``output`` is a file object, the result will be written to it
+        rather than to the filesystem.
+
         The return value is a list of ``FileHunk`` objects, one for
         each bundle that was built.
         """
         env = self._get_env(env)
         hunks = []
         for bundle, extra_filters in self.iterbuild(env):
-            hunks.append(bundle._build(env, extra_filters, force=force))
+            hunks.append(bundle._build(
+                env, extra_filters, force=force, output=output))
         return hunks
 
     def iterbuild(self, env=None):
