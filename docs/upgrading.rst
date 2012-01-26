@@ -23,6 +23,10 @@ In 0.7
 - The ``rebuild`` command (of the command line mode) has ben renamed to
   ``build``.
 
+- The command line interface now requires to external dependency
+  ``argparse`` on Python versions 2.6 and before. ``argparse`` is included
+  with Python starting with version 2.7.
+
 
 In 0.6
 ~~~~~~

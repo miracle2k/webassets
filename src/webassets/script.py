@@ -1,12 +1,14 @@
 import os, sys
 import time
 import logging
-from optparse import OptionParser
 
 from webassets.loaders import PythonLoader
 from webassets.bundle import get_all_bundle_files
 from webassets.exceptions import BuildError, ImminentDeprecationWarning
 from webassets.updater import TimestampUpdater
+
+
+__all__ = ('CommandError', 'CommandLineEnvironment', 'main')
 
 
 class CommandError(Exception):
@@ -27,7 +29,7 @@ class CommandLineEnvironment():
         if callable(post_build):
             self.event_handlers['post_build'] = post_build
 
-    def invoke(self, command):
+    def invoke(self, command, args):
         """Invoke ``command``, or throw a CommandError.
 
         This is essentially a simple validation mechanism. Feel free
@@ -38,7 +40,7 @@ class CommandLineEnvironment():
         except KeyError, e:
             raise CommandError('unknown command: %s' % e)
         else:
-            return function(self)
+            return function(self, **args)
 
     def rebuild(self):
         import warnings
@@ -147,53 +149,116 @@ class CommandLineEnvironment():
         'watch': watch,
         'clean': clean,
         'check': check,
+        'rebuild': rebuild,  # Deprecated
     }
 
-def main(argv, env=None):
-    """Generic version of the command line utilities, not specific to
-    any framework.
 
-    TODO: Support -c option to load from YAML config file
+class GenericArgparseImplementation(object):
+    """Generic command line utility to interact with an webassets
+    environment.
+
+    This is effectively a reference implementation of a command line
+    utility based on the ``CommandLineEnvironment`` class.
+    Implementers may find it feasible to simple base their own command
+    line utility on this, rather than implementing something custom on
+    top of ``CommandLineEnvironment``. In fact, if that is possible,
+    you are encouraged to do so for greater consistency across
+    implementations.
     """
-    parser = OptionParser(usage="usage: %%prog [options] [%s]" % (
-        " | ".join(CommandLineEnvironment.Commands)))
-    parser.add_option("-v", dest="verbose", action="store_true",
-                      help="be verbose")
-    parser.add_option("-q", action="store_true", dest="quiet",
-                      help="be quiet")
-    if env is None:
-        parser.add_option("-m", "--module", dest="module",
-                          help="read environment from a Python module")
-    (options, args) = parser.parse_args(argv)
 
-    if len(args) != 1:
-        parser.print_help()
-        return 1
+    def __init__(self, env, prog=None):
+        try:
+            import argparse
+        except ImportError:
+            raise RuntimeError(
+                'The webassets command line now requires the '
+                '"argparse" library on Python versions <= 2.6.')
+        else:
+            self.argparse = argparse
+        self.env = env
+        self._construct_parser(prog)
 
-    # Setup logging
-    log = logging.getLogger('webassets')
-    log.setLevel(logging.DEBUG if options.verbose else (
-        logging.WARNING if options.quiet else logging.INFO))
-    log.addHandler(logging.StreamHandler())
+    def _construct_parser(self,prog=None):
+        self.parser = parser = self.argparse.ArgumentParser(
+            description="Manage assets.",
+            prog=prog)
 
-    # Load the bundles we shall work with
-    if env is None and options.module:
-        env = PythonLoader(options.module).load_environment()
+        # Start with the base arguments that are valid for any command.
+        # XXX: Add those to the subparser?
+        parser.add_argument("-v", dest="verbose", action="store_true",
+            help="be verbose")
+        parser.add_argument("-q", action="store_true", dest="quiet",
+            help="be quiet")
+        if self.env is None:
+            # TODO: Support -c option to load from YAML config file
+            parser.add_argument("-m", "--module", dest="module",
+                help="read environment from a Python module")
 
-    if env is None:
-        print "Error: No environment given or found. Maybe use -m?"
-        return 1
+        # Add subparsers.
+        subparsers = parser.add_subparsers(dest='command')
+        for command in CommandLineEnvironment.Commands.keys():
+            command_parser = subparsers.add_parser(command)
+            maker = getattr(self, 'make_%s_parser' % command, False)
+            if maker:
+                maker(command_parser)
 
-    # Run the selected command
-    cmd = CommandLineEnvironment(env, log)
-    try:
-        return cmd.invoke(args[0])
-    except CommandError, e:
-        print e
-        return 1
+    @staticmethod
+    def make_build_parser(parser):
+        pass
+
+    def main(self, argv):
+        """Parse the given command line.
+
+        The command ine is expected to NOT including what would be
+        sys.argv[0].
+        """
+        ns = self.parser.parse_args(argv)
+
+        # Setup logging
+        log = logging.getLogger('webassets')
+        log.setLevel(logging.DEBUG if ns.verbose else (
+            logging.WARNING if ns.quiet else logging.INFO))
+        log.addHandler(logging.StreamHandler())
+
+        # Load the bundles we shall work with
+        if self.env is None and ns.module:
+            env = PythonLoader(ns.module).load_environment()
+
+        if self.env is None:
+            print "Error: No environment given or found. Maybe use -m?"
+            return 1
+
+        # Prepare a dict of arguments cleaned of values that are not
+        # command-specific, and which the command method would not accept.
+        args = vars(ns).copy()
+        for name in ('verbose', 'quiet', 'module', 'command'):
+            if name in args:
+                del args[name]
+
+        # Run the selected command
+        cmd = CommandLineEnvironment(self.env, log)
+        try:
+            return cmd.invoke(ns.command, args)
+        except CommandError, e:
+            print e
+            return 1
+
+
+def main(argv, env=None):
+    """Execute the generic version of the command line interface.
+
+    You only need to work directly with ``GenericArgparseImplementation``
+    if you desire to customize things.
+
+    If no environment is givne, additional arguments will be supported to
+    allow the user to specify/construct the environment on the command line.
+    """
+    return GenericArgparseImplementation(env).main(argv)
 
 
 def run():
+    """Runs the command line interface via ``main``, then exists the
+    process with the proper return code."""
     sys.exit(main(sys.argv[1:]) or 0)
 
 
