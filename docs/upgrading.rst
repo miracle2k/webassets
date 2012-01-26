@@ -20,6 +20,9 @@ In 0.7
   renamed ``less_ruby``, and ``less`` now uses the new NodeJS/Javascript
   implementation, which a while ago superseded the Ruby one.
 
+- The ``rebuild`` command (of the command line mode) has ben renamed to
+  ``build``.
+
 
 In 0.6
 ~~~~~~

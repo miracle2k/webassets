@@ -5,7 +5,7 @@ from optparse import OptionParser
 
 from webassets.loaders import PythonLoader
 from webassets.bundle import get_all_bundle_files
-from webassets.exceptions import BuildError
+from webassets.exceptions import BuildError, ImminentDeprecationWarning
 from webassets.updater import TimestampUpdater
 
 
@@ -41,7 +41,14 @@ class CommandLineEnvironment():
             return function(self)
 
     def rebuild(self):
-        """Rebuild all assets now.
+        import warnings
+        warnings.warn(
+            'The rebuild() method has been renamed to build().',
+            ImminentDeprecationWarning)
+        return self.build()
+
+    def build(self):
+        """Build/Rebuild assets.
         """
         if self.environment.debug != False:
             self.log.warning(
@@ -136,7 +143,7 @@ class CommandLineEnvironment():
 
     # List of command methods
     Commands = {
-        'rebuild': rebuild,
+        'build': build,
         'watch': watch,
         'clean': clean,
         'check': check,
