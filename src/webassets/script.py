@@ -271,7 +271,7 @@ class GenericArgparseImplementation(object):
     implementations.
     """
 
-    def __init__(self, env, prog=None):
+    def __init__(self, env=None, log=None, prog=None, no_global_options=False):
         try:
             import argparse
         except ImportError:
@@ -281,23 +281,25 @@ class GenericArgparseImplementation(object):
         else:
             self.argparse = argparse
         self.env = env
-        self._construct_parser(prog)
+        self.log = log
+        self._construct_parser(prog, no_global_options)
 
-    def _construct_parser(self,prog=None):
+    def _construct_parser(self, prog=None, no_global_options=False):
         self.parser = parser = self.argparse.ArgumentParser(
             description="Manage assets.",
             prog=prog)
 
-        # Start with the base arguments that are valid for any command.
-        # XXX: Add those to the subparser?
-        parser.add_argument("-v", dest="verbose", action="store_true",
-            help="be verbose")
-        parser.add_argument("-q", action="store_true", dest="quiet",
-            help="be quiet")
-        if self.env is None:
-            # TODO: Support -c option to load from YAML config file
-            parser.add_argument("-m", "--module", dest="module",
-                help="read environment from a Python module")
+        if not no_global_options:
+            # Start with the base arguments that are valid for any command.
+            # XXX: Add those to the subparser?
+            parser.add_argument("-v", dest="verbose", action="store_true",
+                help="be verbose")
+            parser.add_argument("-q", action="store_true", dest="quiet",
+                help="be quiet")
+            if self.env is None:
+                # TODO: Support -c option to load from YAML config file
+                parser.add_argument("-m", "--module", dest="module",
+                    help="read environment from a Python module")
 
         # Add subparsers.
         subparsers = parser.add_subparsers(dest='command')
@@ -325,12 +327,7 @@ class GenericArgparseImplementation(object):
                  'the original bundle output paths on their common '
                  'prefix. Cannot be used with --output.')
 
-    def main(self, argv):
-        """Parse the given command line.
-
-        The command ine is expected to NOT including what would be
-        sys.argv[0].
-        """
+    def run_with_argv(self, argv):
         try:
             ns = self.parser.parse_args(argv)
         except SystemExit:
@@ -339,16 +336,21 @@ class GenericArgparseImplementation(object):
             return 1
 
         # Setup logging
-        log = logging.getLogger('webassets')
-        log.setLevel(logging.DEBUG if ns.verbose else (
-            logging.WARNING if ns.quiet else logging.INFO))
-        log.addHandler(logging.StreamHandler())
+        if self.log:
+            log = self.log
+        else:
+            log = logging.getLogger('webassets')
+            log.setLevel(logging.DEBUG if ns.verbose else (
+                logging.WARNING if ns.quiet else logging.INFO))
+            log.addHandler(logging.StreamHandler())
 
         # Load the bundles we shall work with
-        if self.env is None and ns.module:
+        if self.env is None and getattr(ns, 'module', None):
             env = PythonLoader(ns.module).load_environment()
+        else:
+            env = self.env
 
-        if self.env is None:
+        if env is None:
             print "Error: No environment given or found. Maybe use -m?"
             return 1
 
@@ -361,11 +363,20 @@ class GenericArgparseImplementation(object):
 
         # Run the selected command
         cmd = CommandLineEnvironment(self.env, log)
+        return cmd.invoke(ns.command, args)
+
+    def main(self, argv):
+        """Parse the given command line.
+
+        The command ine is expected to NOT including what would be
+        sys.argv[0].
+        """
         try:
-            return cmd.invoke(ns.command, args)
+            self.run_with_argv(argv)
         except CommandError, e:
             print e
             return 1
+
 
 
 def main(argv, env=None):
