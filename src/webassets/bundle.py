@@ -60,7 +60,8 @@ class Bundle(object):
         self.extra_data = {}
 
     def __repr__(self):
-        return "<Bundle output=%s, filters=%s, contents=%s>" % (
+        return "<%s output=%s, filters=%s, contents=%s>" % (
+            self.__class__.__name__,
             self.output,
             self.filters,
             self.contents,
