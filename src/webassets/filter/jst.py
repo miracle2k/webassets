@@ -40,7 +40,7 @@ class JSTFilter(Filter):
         base_path = self._find_base_path() + os.path.sep
         namespace = self.namespace or 'window.JST'
 
-        if self.bare is False:
+        if self.bare == False:
             out.write("(function(){\n    ")
 
         out.write("%s = %s || {};\n" % (namespace, namespace))
@@ -53,7 +53,7 @@ class JSTFilter(Filter):
                 os.path.splitext(path[len(base_path):])[0],
                 self.template_function or 'template', contents))
         
-        if not self.bare:
+        if self.bare == False:
             out.write("})();")
 
     def _find_base_path(self):
