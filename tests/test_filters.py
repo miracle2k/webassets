@@ -609,9 +609,18 @@ class TestJST(TempEnvironmentHelper):
         """[Regression] Test the JST_BARE option can be set to False.
         """
         self.create_files({'baz.jst': """<span>Baz?</span>"""})
+        b = self.mkbundle('*.jst', filters='jst', output='out.js')
+
+        # The default is bare==True (i.e. no closure)
+        b.build(force=True)
+        assert not self.get('out.js').startswith('(function()')
+        assert not self.get('out.js').endswith('})();')
+
+        # If set to False, the closure is added.
         self.m.config['JST_BARE'] = False
-        self.mkbundle('*.jst', filters='jst', output='out.js').build()
+        self.mkbundle('*.jst', filters='jst', output='out.js').build(force=True)
         assert self.get('out.js').startswith('(function()')
+        assert self.get('out.js').endswith('})();')
 
     def test_cache(self):
         """[Regression] Test that jst filter does not break the caching.
