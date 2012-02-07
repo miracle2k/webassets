@@ -362,7 +362,7 @@ class GenericArgparseImplementation(object):
                 del args[name]
 
         # Run the selected command
-        cmd = CommandLineEnvironment(self.env, log)
+        cmd = CommandLineEnvironment(env, log)
         return cmd.invoke(ns.command, args)
 
     def main(self, argv):
