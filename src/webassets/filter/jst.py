@@ -25,7 +25,8 @@ class JSTFilter(Filter):
 
     def setup(self):
         super(JSTFilter, self).setup()
-        self.include_jst_script = (self.template_function == 'template')
+        self.include_jst_script = \
+            (self.template_function == 'template') or not self.template_function
         self.templates = []
 
     def input(self, _in, out, source_path, output_path):
