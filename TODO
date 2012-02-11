@@ -16,9 +16,6 @@ Since running an external tool is not uncommon for a filter, the Filter
 base class could support a helper function that simplifies the calls to
 the subprocess module.
 
-Automatically create (and delete, i.e. manage) symlinks to make the
-ASSETS_EXPIRE="filename" option work without server rewrites.
-
 Support functionality for applying a filter directly within a template,
 i.e. pack inline scripts. On the other end, allow piping an assets
 directly into the template. The latter is probably best using
@@ -72,7 +69,3 @@ or the requirement that the Jinja2Loader need to know about the extensions
 used, if we can somehow hack Jinja2 to ignore unknown tags.
 
 The input filter step can be parallelised. Is this worth it?
-
-Creating a custom CLI is too complex currently. It should be possible
-to use an existing class which does all the parsing, only providing
-an environment instance.
