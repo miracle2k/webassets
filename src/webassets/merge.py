@@ -101,14 +101,16 @@ class MemoryHunk(BaseHunk):
             f.close()
 
 
-def merge(hunks):
+def merge(hunks, separator=None):
     """Merge the given list of hunks, returning a new ``MemoryHunk``
     object.
     """
     # TODO: combine the list of source files, we'd like to collect them
     # The linebreak is important in certain cases for Javascript
     # files, like when a last line is a //-comment.
-    return MemoryHunk("\n".join([h.data() for h in hunks]))
+    if not separator:
+        separator = '\n'
+    return MemoryHunk(separator.join([h.data() for h in hunks]))
 
 
 def apply_filters(hunk, filters, type, cache=None, no_cache_read=False,

@@ -330,7 +330,8 @@ class Bundle(object):
 
         # Return all source hunks as one, with output filters applied
         try:
-            final = merge(hunks)
+            # TODO: The joiner API is not final.
+            final = merge(hunks, getattr(self, 'joiner', None))
         except IOError, e:
             raise BuildError(e)
 
