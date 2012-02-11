@@ -20,7 +20,7 @@ class MockBundle(Bundle):
     build_called = False
     on_build = None
     def _build(self, *a, **kw):
-        self.build_called = True
+        self.build_called = (True, a, kw)
         self.on_build(*a, **kw) if self.on_build else None
 
 
@@ -107,3 +107,13 @@ class TestBuildCommand(TestCLI):
         self.assets_env.add(b)
         assert_raises(CommandError, self.cmd_env.build,
             directory=self.path('some/path'))
+
+    def test_no_cache(self):
+        """Test the no_cache option."""
+        a = MockBundle(output='a')
+        self.assets_env.register('a', a)
+        self.cmd_env.build(no_cache=True)
+        assert a.build_called[2].get('disable_cache') == True
+
+        self.cmd_env.build(no_cache=False)
+        assert a.build_called[2].get('disable_cache') == False

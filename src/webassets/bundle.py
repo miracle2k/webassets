@@ -344,7 +344,8 @@ class Bundle(object):
             return apply_filters(final, filters, 'output',
                                  env.cache, actually_skip_cache_here)
 
-    def _build(self, env, extra_filters=[], force=None, output=None):
+    def _build(self, env, extra_filters=[], force=None, output=None,
+               disable_cache=None):
         """Internal bundle build function.
 
         This actually tries to build this very bundle instance, as
@@ -384,7 +385,6 @@ class Bundle(object):
 
         # Determine if we really need to build, or if the output file
         # already exists and nothing has changed.
-        disable_cache = None
         if force:
             update_needed = True
         elif not env.updater:
@@ -402,7 +402,8 @@ class Bundle(object):
                 # _merge_and_apply() is now smart enough to do without
                 # this disable_cache hint, but for now, keep passing it
                 # along if we get the info from the updater.
-                disable_cache = update_needed==SKIP_CACHE
+                if update_needed==SKIP_CACHE:
+                    disable_cache = True
             else:
                 update_needed = False
 
@@ -432,7 +433,7 @@ class Bundle(object):
 
         return hunk
 
-    def build(self, env=None, force=None, output=None):
+    def build(self, env=None, force=None, output=None, disable_cache=None):
         """Build this bundle, meaning create the file given by the
         ``output`` attribute, applying the configured filters etc.
 
@@ -454,7 +455,8 @@ class Bundle(object):
         hunks = []
         for bundle, extra_filters in self.iterbuild(env):
             hunks.append(bundle._build(
-                env, extra_filters, force=force, output=output))
+                env, extra_filters, force=force, output=output,
+                disable_cache=disable_cache))
         return hunks
 
     def iterbuild(self, env=None):

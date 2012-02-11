@@ -1,8 +1,6 @@
 There is currently no locking going during auto-rebuilds, that is multiple
 requests could potentially cause multiple builds!
 
-Add a switch to the rebuild() command to ignore the cache.
-
 Should bundle names be namespacable, similar to Django urls? At the least,
 we probably want to encourage a convention of prefixing your bundle names
 with an id. Everything else would just intend to make this easier or more

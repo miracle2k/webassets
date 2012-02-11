@@ -55,7 +55,7 @@ class CommandLineEnvironment():
             ImminentDeprecationWarning)
         return self.build()
 
-    def build(self, bundles=None, output=None, directory=None):
+    def build(self, bundles=None, output=None, directory=None, no_cache=None):
         """Build/Rebuild assets.
 
         ``bundles``
@@ -73,6 +73,9 @@ class CommandLineEnvironment():
             used. If the ``output`` of the bundles are pointing to different
             directories, they will be offset by their common prefix.
             Cannot be used with ``output``.
+
+        ``no_cache``
+            If set, a cache (if one is configured) will not be used.
         """
         if self.environment.debug != False:
             self.log.warning(
@@ -151,7 +154,8 @@ class CommandLineEnvironment():
 
             try:
                 if not overwrite_filename:
-                    bundle.build(force=True, env=self.environment)
+                    bundle.build(force=True, env=self.environment,
+                                 disable_cache=no_cache)
                 else:
                     # TODO: Rethink how we deal with container bundles here.
                     # As it currently stands, we write all child bundles
@@ -160,7 +164,8 @@ class CommandLineEnvironment():
                     # using the ``Hunk`` objects that build() would return
                     # anyway.
                     output = StringIO()
-                    bundle.build(force=True, env=self.environment, output=output)
+                    bundle.build(force=True, env=self.environment, output=output,
+                                 disable_cache=no_cache)
                     if directory:
                         # Only auto-create directories in this mode.
                         output_dir = os.path.dirname(overwrite_filename)
@@ -215,7 +220,7 @@ class CommandLineEnvironment():
             pass
 
     def clean(self):
-        """ Delete generated assets.
+        """Delete generated assets.
 
         TODO: Clean the cache?
         """
@@ -326,6 +331,9 @@ class GenericArgparseImplementation(object):
                  'basename defined by the bundle. Will offset '
                  'the original bundle output paths on their common '
                  'prefix. Cannot be used with --output.')
+        parser.add_argument(
+            '--no-cache', action='store_true',
+            help='Do not use a cache that might be configured.')
 
     def run_with_argv(self, argv):
         try:
