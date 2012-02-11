@@ -67,3 +67,8 @@ or the requirement that the Jinja2Loader need to know about the extensions
 used, if we can somehow hack Jinja2 to ignore unknown tags.
 
 The input filter step can be parallelised. Is this worth it?
+
+Currently, all files need to be within the media directory. It would be
+nice to be able to include files from arbitrary paths. The problem with
+this is the debug mode, where the files need to be served directly. For
+this, webassets could support copying them to the media directory.
