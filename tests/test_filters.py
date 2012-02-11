@@ -601,9 +601,22 @@ class TestJST(TempEnvironmentHelper):
         assert '\'foo/bar/baz\'' in self.get('out.js')
 
     def test_single_template(self):
+        """Template name is properly determined if there is only a single file."""
         self.create_files({'baz.jst': """<span>Baz?</span>"""})
         self.mkbundle('*.jst', filters='jst', output='out.js').build()
         assert '\'baz\'' in self.get('out.js')
+
+    def test_repeated_calls(self):
+        """[Regression] Does not break if used multiple times."""
+        self.create_files({'baz.jst': """<span>Baz?</span>"""})
+        bundle = self.mkbundle('*.jst', filters='jst', output='out.js')\
+
+        bundle.build(force=True)
+        first_output = self.get('out.js')
+        assert '\'baz\'' in first_output
+
+        bundle.build(force=True)
+        assert self.get('out.js') == first_output
 
     def test_option_bare(self):
         """[Regression] Test the JST_BARE option can be set to False.

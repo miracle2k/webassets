@@ -282,6 +282,13 @@ class Bundle(object):
         filters = merge_filters(self.filters, extra_filters)
         for filter in filters:
             filter.set_environment(env)
+            # Since we call this now every single time before the filter
+            # is used, we might pass the bundle instance it is going
+            # to be used with. For backwards-compatibility reasons, this
+            # is problematic. However, by inspecting the support arguments,
+            # we can deal with it. We probably then want to deprecate
+            # the old syntax before 1.0 (TODO).
+            filter.setup()
 
         # Unless we have been told by our caller to use or not use the
         # cache for this, try to decide for ourselves. The issue here

@@ -114,11 +114,8 @@ class Filter(object):
         return NotImplemented
 
     def set_environment(self, env):
-        """This is called just before the filter is used.
-        """
-        if self.env is None or self.env != env:
-            self.env = env
-            self.setup()
+        """This is called before the filter is used."""
+        self.env = env
 
     def get_config(self, setting=False, env=None, require=True,
                    what='dependency'):
