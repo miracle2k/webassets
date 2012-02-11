@@ -116,7 +116,7 @@ class Filter(object):
     def set_environment(self, env):
         """This is called just before the filter is used.
         """
-        if not self.env or self.env != env:
+        if self.env is None or self.env != env:
             self.env = env
             self.setup()
 
