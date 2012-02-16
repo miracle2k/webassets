@@ -2,6 +2,7 @@ import sys
 from nose.tools import assert_raises
 import textwrap
 from StringIO import StringIO
+from webassets.bundle import Bundle
 from webassets.loaders import PythonLoader, YAMLLoader, LoaderError
 from nose import SkipTest
 
@@ -31,14 +32,34 @@ class TestYAML(object):
         empty-bundle:
         single-content-as-string-bundle:
             contents: only-this
+        nested:
+            output: nested.css
+            filters: cssmin
+            contents:
+                - cssfile1
+                - filters: less
+                  contents:
+                    - lessfile1
+                    - lessfile2
+                    - contents:
+                        reallynested.css
+                    - lessfile3
+                
         """).load_bundles()
-
-        assert len(bundles) == 3
+        assert len(bundles) == 4
         assert bundles['standard'].output == 'output.css'
         assert len(bundles['standard'].filters) == 2
         assert bundles['standard'].contents == ('file1', 'file2')
         assert bundles['empty-bundle'].contents == ()
         assert bundles['single-content-as-string-bundle'].contents == ('only-this',)
+        assert bundles['nested'].output == 'nested.css'
+        assert len(bundles['nested'].filters) == 1
+        assert len(bundles['nested'].contents) == 2
+        nested_bundle = bundles['nested'].contents[1]
+        assert isinstance(nested_bundle, Bundle)
+        assert len(nested_bundle.filters) == 1
+        assert len(nested_bundle.contents) == 4
+        assert isinstance(nested_bundle.contents[2], Bundle)
 
     def test_empty_files(self):
         """YAML loader can deal with empty files.
