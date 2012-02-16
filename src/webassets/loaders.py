@@ -41,20 +41,33 @@ class YAMLLoader(object):
             self.yaml = yaml
         self.file_or_filename = file_or_filename
 
+    def _yield_bundle_contents(self, data):
+        """Yield bundle contents from the given dict.
+
+        Each item yielded will be either a string representing a file path
+        or a bundle."""
+        contents = data.get('contents', [])
+        if isinstance(contents, basestring):
+            contents = contents,
+        for content in contents:
+            if isinstance(content, dict):
+                content = self._get_bundle(content)
+            yield content
+
+    def _get_bundle(self, data):
+        """Return a bundle initialised by the given dict."""
+        return Bundle(*list(self._yield_bundle_contents(data)),
+                      filters=data.get('filters', None),
+                      output=data.get('output', None),
+                      debug=data.get('debug', None))
+
     def _get_bundles(self, obj):
+        """Return a dict that keys bundle names to bundles."""
         bundles = {}
         for key, data in obj.iteritems():
             if data is None:
                 data = {}
-            contents = data.get('contents', [])
-            if isinstance(contents, basestring):
-                contents = [contents]
-            bundles[key] = Bundle(
-                filters=data.get('filters', None),
-                output=data.get('output', None),
-                debug=data.get('debug', None),
-                *contents
-            )
+            bundles[key] = self._get_bundle(data)
         return bundles
 
     def _open(self):
