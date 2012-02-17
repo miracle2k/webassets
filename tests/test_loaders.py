@@ -120,3 +120,13 @@ class TestPython(object):
         loader = PythonLoader('sys')
         assert sys.path == old_path
 
+    def test_load_bundles(self):
+        import types
+        module = types.ModuleType('test')
+        module.foo = Bundle('bar')
+
+        loader = PythonLoader(module)
+        bundles = loader.load_bundles()
+        assert len(bundles) == 1
+        assert bundles.values()[0].contents[0] == 'bar'
+

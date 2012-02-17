@@ -7,7 +7,7 @@ This can be used as an alternative to an imperative setup.
 import os, sys
 from os import path
 import glob, fnmatch
-import importlib
+import types
 try:
     import yaml
 except ImportError:
@@ -156,25 +156,28 @@ class PythonLoader(object):
     """
 
     def __init__(self, module_name):
-        sys.path.insert(0, '')  # Ensure the current directory is on the path
-        try:
+        if isinstance(module_name, types.ModuleType):
+            self.module = module_name
+        else:
+            sys.path.insert(0, '')  # Ensure the current directory is on the path
             try:
-                self.module = import_module(module_name)
-            except ImportError, e:
-                raise LoaderError(e)
-        finally:
-            sys.path.pop(0)
+                try:
+                    self.module = import_module(module_name)
+                except ImportError, e:
+                    raise LoaderError(e)
+            finally:
+                sys.path.pop(0)
 
     def load_bundles(self):
         """Load ``Bundle`` objects defined in the Python module.
 
         Collects all bundles in the global namespace.
         """
-        bundles = []
+        bundles = {}
         for name in dir(self.module):
             value = getattr(self.module, name)
             if isinstance(value, Bundle):
-                bundles.append(value)
+                bundles[name] = value
         return bundles
 
     def load_environment(self):

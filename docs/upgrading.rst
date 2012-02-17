@@ -7,8 +7,8 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
-In 0.7
-~~~~~~
+In Development version
+~~~~~~~~~~~~~~~~~~~~~~
 
 - If ``Environment.updater`` is disabled, the API of Bundle.build()
   now assumes a default value of ``True`` for the ``force`` argument.
@@ -26,6 +26,9 @@ In 0.7
 - The command line interface now requires to external dependency
   ``argparse`` on Python versions 2.6 and before. ``argparse`` is included
   with Python starting with version 2.7.
+
+- ``PythonLoader.load_bundles()`` now returns a dict with the bundle names
+  as keys, rather than a list.
 
 
 In 0.6
