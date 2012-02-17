@@ -160,6 +160,14 @@ class TestTemplateTag():
         self.render_template('var1 var2', {'var1': self.foo_bundle, 'var2': 'a_file'})
         assert self.the_bundle.contents == (self.foo_bundle, 'a_file',)
 
+    def test_debug_option(self):
+        self.render_template('"file", debug="true"')
+        assert self.the_bundle.debug == True
+        self.render_template('"file", debug="false"')
+        assert self.the_bundle.debug == False
+        self.render_template('"file", debug="merge"')
+        assert self.the_bundle.debug == "merge"
+
     def test_with_no_commas(self):
         """Using commas is optional.
         """
