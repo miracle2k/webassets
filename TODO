@@ -72,3 +72,6 @@ Currently, all files need to be within the media directory. It would be
 nice to be able to include files from arbitrary paths. The problem with
 this is the debug mode, where the files need to be served directly. For
 this, webassets could support copying them to the media directory.
+
+Get rid of the global parts. The shipped filters would be loaded globally,
+but the filter registry would be maintained by the environment.
