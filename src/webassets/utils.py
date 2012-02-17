@@ -1,8 +1,9 @@
+import contextlib
 import os
 from itertools import takewhile
 
 
-__all__ = ('common_path_prefix',)
+__all__ = ('common_path_prefix', 'working_directory')
 
 
 def common_path_prefix(paths, sep=os.path.sep):
@@ -17,3 +18,16 @@ def common_path_prefix(paths, sep=os.path.sep):
         return all(n==name[0] for n in name[1:])
     bydirectorylevels = zip(*[p.split(sep) for p in paths])
     return sep.join(x[0] for x in takewhile(allnamesequal, bydirectorylevels))
+
+
+@contextlib.contextmanager
+def working_directory(path):
+    """A context manager which changes the working directory to the given
+    path, and then changes it back to its previous value on exit.
+
+    Filters will often find this helpful.
+    """
+    prev_cwd = os.getcwd()
+    os.chdir(path)
+    yield
+    os.chdir(prev_cwd)

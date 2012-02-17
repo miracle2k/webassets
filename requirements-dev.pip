@@ -1,5 +1,4 @@
-# Libs useful when developing webassets. Many required to run all 
-# the tests.
+# Libs useful when developing webassets. Many required to run all the tests.
 Jinja2>=2.5
 Sphinx
 nose
@@ -8,11 +7,13 @@ PyYaml
 glob2
 
 # Filters
+PIL
 clevercss
 cssutils
 cssmin
 yuicompressor
 closure
+pyScss
 
 # Default rsmin package is not installable via pip
 http://michael.elsdoerfer.name/rjsmin/rjsmin-1.0.1-webassets.tar.gz

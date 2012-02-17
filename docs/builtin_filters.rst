@@ -117,6 +117,12 @@ CSS Compilers
 .. autoclass:: webassets.filter.compass.CompassFilter
 
 
+``pyscss``
+~~~~~~~~
+
+.. autoclass:: webassets.filter.pyscss.PyScssFilter
+
+
 Other
 -----
 

@@ -517,6 +517,40 @@ class TestSass(TempEnvironmentHelper):
         assert self.get('out.css') == """/* line 2 */\nh1 {\n  color: white;\n}\n"""
 
 
+class TestPyScss(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.scss': """@import "bar"; a {color: red + green; }""",
+        'bar.scss': 'h1{color:red}'
+    }
+
+    def setup(self):
+        try:
+            import scss
+            self.scss = scss
+        except ImportError:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.mkbundle('foo.scss', filters='pyscss', output='out.css').build()
+        assert doctest_match(
+            '/* ... */\nh1 {\n  color: #ff0000;\n}\na {\n  color: #ff8000;\n}\n\n',
+            self.get('out.css'),)
+
+    def test_assets(self):
+        try:
+            import PIL
+        except ImportError:
+            pass
+        self.create_files({'noise.scss': 'h1 {background: background-noise()}'})
+        self.mkbundle('noise.scss', filters='pyscss', output='out.css').build()
+
+        assert doctest_match(
+            '/* ... */\nh1 {\n  background: url("...png");\n}\n\n',
+            self.get('out.css'),)
+
+
 class TestCompass(TempEnvironmentHelper):
 
     default_files = {
