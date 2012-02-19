@@ -20,7 +20,6 @@ class HandlebarsFilter(Filter):
     def setup(self):
         self.binary = self.get_config(
             'HANDLEBARS_BIN', require=False) or 'handlebars'
-        self._paths = []
 
     def input(self, _in, out, source_path, output_path):
         args = [self.binary, source_path]
