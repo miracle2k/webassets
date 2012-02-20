@@ -22,7 +22,7 @@ class HandlebarsFilter(Filter):
             'HANDLEBARS_BIN', require=False) or 'handlebars'
 
     def input(self, _in, out, source_path, output_path):
-        args = [self.binary, source_path]
+        args = [self.binary, '-r', self.get_config('directory'), source_path]
         proc = subprocess.Popen(
             args, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
