@@ -228,6 +228,12 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             var dummy;
             document.write ( bar ); /* Write */
         }
+        """,
+        'foo.html': """
+        <div class="foo">bar</div>
+        """,
+        'dir/foo.html': """
+        <div class="dir-foo">dir-bar</div>
         """
     }
 
@@ -293,6 +299,19 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         raise SkipTest()
         self.mkbundle('foo.css', filters='less_ruby', output='out.css').build()
         assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #ffffff;\n}\n'
+
+    def test_handlebars(self):
+        if not find_executable('handlebars'):
+            raise SkipTest()
+        self.mkbundle('foo.html', filters='handlebars', output='out.js').build()
+        assert self.get('out.js').find('Handlebars')
+
+    def test_handlebars_dir(self):
+        if not find_executable('handlebars'):
+            raise SkipTest()
+        self.mkbundle('dir/foo.html', filters='handlebars', output='out.js').build()
+        assert self.get('out.js').find('Handlebars')
+        assert self.get('out.js').find('dir/foo.html')
 
     def test_jsmin(self):
         self.mkbundle('foo.js', filters='jsmin', output='out.js').build()
