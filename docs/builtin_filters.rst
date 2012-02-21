@@ -140,6 +140,12 @@ Other
 .. autoclass:: webassets.filter.jst.JSTFilter
 
 
+``handlebars``
+~~~~~~~~~~~~~~
+
+.. automodule:: webassets.filter.handlebars
+
+
 ``cssprefixer``
 ~~~~~~~~~~~~~~~
 
