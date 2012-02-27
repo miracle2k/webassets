@@ -12,7 +12,7 @@ In Development version
 
 - If ``Environment.updater`` is disabled, the API of Bundle.build()
   now assumes a default value of ``True`` for the ``force`` argument.
-  This should not case any problems, since it is the only call signature
+  This should not cause any problems, since it is the only call signature
   that really makes sense in this case.
 
 - The former ``less`` filter, based on the old Ruby version of lessCSS
@@ -20,10 +20,10 @@ In Development version
   renamed ``less_ruby``, and ``less`` now uses the new NodeJS/Javascript
   implementation, which a while ago superseded the Ruby one.
 
-- The ``rebuild`` command (of the command line mode) has ben renamed to
+- The ``rebuild`` command (of the command line mode) has been renamed to
   ``build``.
 
-- The command line interface now requires to external dependency
+- The command line interface now requires the external dependency
   ``argparse`` on Python versions 2.6 and before. ``argparse`` is included
   with Python starting with version 2.7.
 
