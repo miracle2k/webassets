@@ -83,7 +83,7 @@ class option(tuple):
     See ``parse_options()`` and ``Filter.options``.
     """
     def __new__(cls, initarg, configvar=None, type=None):
-        if not configvar:  # If only one argument given, it is the configvar
+        if configvar is None:  # If only one argument given, it is the configvar
             configvar = initarg
             initarg = None
         return tuple.__new__(cls, (initarg, configvar, type))
@@ -145,8 +145,9 @@ class Filter(object):
         # deviate from the global default.
         # TODO: can the metaclass generate a init signature?
         for attribute, (initarg, _, _) in self._options.items():
-            if (initarg or attribute) in kwargs:
-                setattr(self, attribute, kwargs.pop(initarg or attribute))
+            arg = initarg if initarg is not None else attribute
+            if arg in kwargs:
+                setattr(self, attribute, kwargs.pop(arg))
             else:
                 setattr(self, attribute, None)
         if kwargs:
