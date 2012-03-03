@@ -1,6 +1,6 @@
 import tempfile, shutil
 from nose.tools import assert_equals
-from webassets import Bundle, Environment
+from webassets.filter import Filter
 from webassets.cache import BaseCache, FilesystemCache, MemoryCache
 from helpers import TempEnvironmentHelper
 
@@ -53,23 +53,30 @@ class TestCacheIsUsed(TempEnvironmentHelper):
                 self.getops = 0
                 self.setops = 0
 
+        class CompleteFilter(Filter):
+            # Support all possible filter operations
+            def input(self, _in, out, **kw):
+                pass
+            output = first = input
+        self.filter = CompleteFilter
+
         self.m.cache = self.cache = MyCache()
         # Note that updater will use the cache also
         self.m.updater = 'timestamp'
 
     def test_cache_disabled(self):
-        bundle = self.mkbundle('in1', 'in2', output='out', filters="jsmin")
+        bundle = self.mkbundle('in1', 'in2', output='out', filters=self.filter)
         self.cache.enabled = False
         bundle.build()
-        assert_equals(self.cache.getops, 3)
-        assert_equals(self.cache.setops, 4)  # one hit by updater
+        assert_equals(self.cache.getops, 5)  # 2x first, 2x input, 1x output
+        assert_equals(self.cache.setops, 6)  # like getops + 1x bdef
 
     def test_cache_enabled(self):
-        bundle = self.mkbundle('in1', 'in2', output='out', filters="jsmin")
+        bundle = self.mkbundle('in1', 'in2', output='out', filters=self.filter)
         self.cache.enabled = True
         bundle.build()
-        assert_equals(self.cache.getops, 3)
-        assert_equals(self.cache.setops, 1)  # one hit by updater
+        assert_equals(self.cache.getops, 5)  # 2x first, 2x input, 1x output
+        assert_equals(self.cache.setops, 1)  # one hit by (bdef)
 
     def test_filesystem_cache(self):
         """Regresssion test for two bugs:

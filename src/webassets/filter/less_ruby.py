@@ -23,24 +23,9 @@ class LessRubyFilter(Filter):
 
     If you want to combine it with other CSS filters, make sure this
     one runs first.
-
-    **Note**: Currently, this needs to be the very first filter
-    applied. Changes by filters that ran before will be lost.
     """
     # XXX Deprecate this one.
-    """XXX: This currently needs to be the very first filter applied. This is
-    because it uses the "source filter" mechanism to support "@includes"
-    in less, i.e. it let's the less compiler work directly with the source
-    file, and ignores the input stream. Filters previously already applied
-    will be lost. Ways to solve this:
-        - Let filters specify that they need to be first (and auto do so,
-          or raise an exception).
-        - Rewrite the less filter:
-             - It could properly use the input stream, and just create the
-               temp file in the same directory as the input path.
-             - It could rewrite @includes via regex, as the cssrewrite filter
-               does, before passing the tempfile on to lessc.
-
+    """
     XXX: Depending on how less is actually used in practice, it might actually
     be a valid use case to NOT have this be a source filter, so that one can
     split the css files into various less files, referencing variables in other
@@ -54,7 +39,7 @@ class LessRubyFilter(Filter):
         'less': ('binary', 'LESS_RUBY_PATH')
     }
 
-    def input(self, _in, out, source_path, output_path):
+    def first(self, _in, out, source_path, output_path):
         """Less currently doesn't take data from stdin, and doesn't allow
         us from stdout either. Neither does it return a proper non-0 error
         code when an error occurs, or even write to stderr (stdout instead)!

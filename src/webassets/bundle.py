@@ -10,8 +10,8 @@ except ImportError:
     from glob import has_magic
 import warnings
 from filter import get_filter
-from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
-                   merge_filters)
+from merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
+                  MoreThanOneFilterError)
 from updater import SKIP_CACHE
 from exceptions import BundleError, BuildError
 
@@ -24,6 +24,7 @@ def is_url(s):
         return False
     scheme = urlparse.urlsplit(s).scheme
     return bool(scheme) and len(scheme) > 1
+
 
 class Bundle(object):
     """A bundle is the unit webassets uses to organize groups of
@@ -309,6 +310,10 @@ class Bundle(object):
         else:
             actually_skip_cache_here = disable_cache
 
+        filtertool = FilterTool(
+            env.cache, no_cache_read=actually_skip_cache_here,
+            kwargs={'output_path': output_path})
+
         # Apply input filters to all the contents. Note that we use
         # both this bundle's filters as well as those given to us by
         # the parent. We ONLY do those this for the input filters,
@@ -327,30 +332,38 @@ class Bundle(object):
                     hunk = UrlHunk(c)
                 else:
                     hunk = FileHunk(c)
+
                 if no_filters:
                     hunks.append(hunk)
                 else:
-                    hunks.append(apply_filters(
-                        hunk, combined_filters, 'input',
-                        env.cache, actually_skip_cache_here,
-                        output_path=output_path))
+                    try:
+                        hunk = filtertool.apply_one(
+                            hunk, combined_filters, 'first')
+                    except MoreThanOneFilterError, e:
+                        raise BuildError(
+                            'These filters cannot be combined: %s' % (
+                                ', '.join([f.name for f in e.filters])))
+                    hunks.append(filtertool.apply(
+                        hunk, combined_filters, 'input'))
 
-        # Return all source hunks as one, with output filters applied
+        # Merge the individual files together.
         try:
             # TODO: The joiner API is not final.
             final = merge(hunks, getattr(self, 'joiner', None))
         except IOError, e:
             raise BuildError(e)
 
+        # Apply output filters, if there are any.
         if no_filters:
             return final
         else:
             # TODO: So far, all the situations where bundle dependencies
             # are used/useful, are based on input filters having those
             # dependencies. Is it even required to consider them here
-            # with respect to the cache?
-            return apply_filters(final, filters, 'output',
-                                 env.cache, actually_skip_cache_here)
+            # with respect to the cache? We might be able to run this
+            # operation with the cache on (the FilterTool being possibly
+            # configured with cache reads off).
+            return filtertool.apply(final, filters, 'output')
 
     def _build(self, env, extra_filters=[], force=None, output=None,
                disable_cache=None):

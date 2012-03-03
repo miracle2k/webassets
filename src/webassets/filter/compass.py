@@ -51,9 +51,6 @@ class CompassFilter(Filter):
     If you want to combine the filter with other CSS filters, make
     sure this one runs first.
 
-    **Note**: Currently, this needs to be the very first filter
-    applied. Changes by filters that ran before will be lost.
-
     Supported configuration options:
 
     COMPASS_BIN
@@ -75,7 +72,7 @@ class CompassFilter(Filter):
         'plugins': option('COMPASS_PLUGINS', type=list)
     }
 
-    def input(self, _in, out, source_path, output_path):
+    def first(self, _in, out, source_path, output_path):
         """Compass currently doesn't take data from stdin, and doesn't allow
         us accessing the result from stdout either.
 

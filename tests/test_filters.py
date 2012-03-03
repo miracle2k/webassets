@@ -190,11 +190,6 @@ def test_register_filter():
     # But the same name cannot be registered multiple times.
     assert_raises(KeyError, register_filter, MyFilter)
 
-    # A filter needs to have at least one of the input or output methods.
-    class BrokenFilter(Filter):
-        name = 'broken'
-    assert_raises(TypeError, register_filter, BrokenFilter)
-
 
 def test_get_filter():
     """Test filter resolving.
@@ -228,6 +223,7 @@ def test_callable_filter():
 
     Regression: Ensure that they actually work.
     """
+    # Note how this filter specifically does not receive any **kwargs.
     def my_filter(_in, out):
         assert _in.read() == 'initial value'
         out.write('filter was here')

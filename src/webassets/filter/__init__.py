@@ -280,9 +280,18 @@ class Filter(object):
         This will be called for every output file.
         """
 
+    def first(self, _in, out, **kw):
+        """Implement your actual filter here.
+
+        This is like input(), but only one filter may provide this.
+        Use this if your filter needs to read from the source file
+        directly, and would ignore any processing by earlier filters.
+        """
+
     # We just declared those for demonstration purposes
     del input
     del output
+    del first
 
 
 class CallableFilter(Filter):
@@ -297,7 +306,7 @@ class CallableFilter(Filter):
     def unique(self):
         return self.callable
 
-    def output(self, _in, out):
+    def output(self, _in, out, **kw):
         return self.callable(_in, out)
 
 
@@ -343,8 +352,6 @@ def register_filter(f):
         raise ValueError('Must have a name')
     if f.name in _FILTERS:
         raise KeyError('Filter with name %s already registered' % f.name)
-    if not hasattr(f, 'input') and not hasattr(f, 'output'):
-        raise TypeError('Filter lacks both an input() and output() method: %s' % f)
     _FILTERS[f.name] = f
 
 

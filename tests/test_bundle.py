@@ -427,6 +427,21 @@ class TestFilters(TempEnvironmentHelper):
         assert self.get('out2') == 'foo:childin:rootin:childout:rootout'
         assert self.get('out3') == 'foo:childin:childout'
 
+    def test_duplicate_first_filters(self):
+        """Test that only one first() filter can be used.
+        """
+        # TOOD: For performance reasons, this check could possibly be
+        # done earlier, when assigning to the filter property. It wouldn't
+        # catch all cases involving bundle nesting though.
+        class FirstFilter(Filter):
+            def first(self, *a, **kw): pass
+            def __init__(self, id): Filter.__init__(self); self.id = id
+            def id(self): return self.id
+        self.create_files({'xyz'})
+        bundle = self.mkbundle(
+            'xyz', filters=(FirstFilter('a'), FirstFilter('b')), output='foo')
+        assert_raises(BuildError, bundle.build)
+
 
 class TestUpdateAndCreate(TempEnvironmentHelper):
     """Test bundle auto rebuild, and generally everything involving

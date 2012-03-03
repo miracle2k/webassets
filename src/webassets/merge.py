@@ -17,7 +17,8 @@ else:
     md5_constructor = md5.new
 
 
-__all__ = ('FileHunk', 'MemoryHunk', 'merge', 'apply_filters')
+__all__ = ('FileHunk', 'MemoryHunk', 'merge', 'FilterTool',
+           'MoreThanOneFilterError')
 
 
 class BaseHunk(object):
@@ -113,64 +114,95 @@ def merge(hunks, separator=None):
     return MemoryHunk(separator.join([h.data() for h in hunks]))
 
 
-def apply_filters(hunk, filters, type, cache=None, no_cache_read=False,
-                  **kwargs):
-    """Apply the given list of filters to the hunk, returning a new
-    ``MemoryHunk`` object.
+class MoreThanOneFilterError(Exception):
+
+    def __init__(self, filters):
+        self.filters = filters
+
+
+class FilterTool(object):
+    """Can apply filters to hunk objects, while using the cache.
 
     If ``no_cache_read`` is given, then the cache will not be
     considered for this operation (though the result will still be
     written to the cache).
 
     ``kwargs`` are options that should be passed along to the filters.
-    If ``hunk`` is a file hunk, a ``source_path`` key will automatically
-    be added to ``kwargs``.
     """
-    assert type in ('input', 'output')
 
-    # Short-circuit
-    # TODO: This can actually be improved by looking at "type" and
-    # whether any of the existing filters handles this type.
-    if not filters:
-        return hunk
+    VALID_TYPES = ('first', 'input', 'output', 'concat')
 
-    if cache:
+    def __init__(self, cache=None, no_cache_read=False, kwargs=None):
+        self.cache = cache
+        self.no_cache_read = no_cache_read
+        self.kwargs = kwargs or {}
+
+    def _check_cache(self, key):
+        if self.cache:
+            key = key
+            if not self.no_cache_read:
+                content = self.cache.get(key)
+                if not content in (False, None):
+                    return MemoryHunk(content)
+
+    def _write_cache(self, key, content):
+        if self.cache:
+            self.cache.set(key, content)
+
+    def apply(self, hunk, filters, type, kwargs=None, only_one=False):
+        """Apply the given list of filters to the hunk, returning a new
+        ``MemoryHunk`` object.
+
+        ``kwargs`` are options that should be passed along to the filters.
+        If ``hunk`` is a file hunk, a ``source_path`` key will automatically
+        be added to ``kwargs``.
+        """
+        assert type in self.VALID_TYPES
+
+        filters = [f for f in filters if hasattr(f, type)]
+        if not filters:  # Short-circuit
+            return hunk
+
+        if only_one and len(filters) > 1:
+            raise MoreThanOneFilterError(filters)
+
+        # Note that the key used to cache this hunk is different from the key
+        # the hunk will expose to subsequent merges, i.e. hunk.key() is always
+        # based on the actual content, and does not match the cache key. The
+        # latter also includes information about for example the filters used.
+        #
+        # It wouldn't have to be this way. Hunk could subsequently expose their
+        # cache key through hunk.key(). This would work as well, but would be
+        # an inferior solution: Imagine a source file which receives
+        # non-substantial changes, in the sense that they do not affect the
+        # filter output, for example whitespace. If a hunk's key is the cache
+        # key, such a change would invalidate the caches for all subsequent
+        # operations on this hunk as well, even though it didn't actually
+        # change after all.
         key = ("hunk", hunk.key(), tuple(filters), type)
-        if not no_cache_read:
-            content = cache.get(key)
-            if not content in (False, None):
-                return MemoryHunk(content)
+        data = self._check_cache(key)
+        if data:
+            return data
 
-    kwargs = kwargs.copy()
-    if hasattr(hunk, 'filename'):
-        kwargs.setdefault('source_path', hunk.filename)
+        kwargs_final = self.kwargs.copy()
+        kwargs_final.update(kwargs or {})
+        if hasattr(hunk, 'filename'):
+            kwargs_final.setdefault('source_path', hunk.filename)
 
-    data = StringIO.StringIO(hunk.data())
-    for filter in filters:
-        func = getattr(filter, type, False)
-        if func:
+        data = StringIO.StringIO(hunk.data())
+        for filter in filters:
             out = StringIO.StringIO()
-            func(data, out, **kwargs)
+            getattr(filter, type)(data, out, **kwargs_final)
             data = out
             data.seek(0)
 
-    # Note that the key used to cache this hunk is different from the key
-    # the hunk will expose to subsequent merges, i.e. hunk.key() is always
-    # based on the actual content, and does not match the cache key. The
-    # latter also includes information about for example the filters used.
-    #
-    # It wouldn't have to be this way. Hunk could subsequently expose their
-    # cache key through hunk.key(). This would work as well, but would be
-    # an inferior solution: Imagine a source file which receives
-    # non-substantial changes, in the sense that they do not affect the
-    # filter output, for example whitespace. If a hunk's key is the cache
-    # key, such a change would invalidate the caches for all subsequent
-    # operations on this hunk as well, even though it didn't actually change
-    # after all.
-    content = data.getvalue()
-    if cache:
-        cache.set(key, content)
-    return MemoryHunk(content)
+        content = data.getvalue()
+        self._write_cache(key, content)
+        return MemoryHunk(content)
+
+    def apply_one(self, *a, **kw):
+        kw['only_one'] = True
+        return self.apply(*a, **kw)
 
 
 def merge_filters(filters1, filters2):

@@ -30,6 +30,10 @@ In Development version
 - ``PythonLoader.load_bundles()`` now returns a dict with the bundle names
   as keys, rather than a list.
 
+- The ``Filter.output()`` method now receives keyword arguments. All builtin
+  filters have defined this method with ``**kwargs`` for a while now, though
+  so far this was not used. Your custom filters may need updating.
+
 
 In 0.6
 ~~~~~~
