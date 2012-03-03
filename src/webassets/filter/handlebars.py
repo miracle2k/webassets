@@ -5,6 +5,7 @@ Otherwise, you may define a ``HANDLEBARS_BIN`` setting.
 """
 
 import subprocess
+from os import path
 
 from webassets.exceptions import FilterError
 from webassets.filter import Filter
@@ -19,14 +20,21 @@ class HandlebarsFilter(Filter):
     options = {
         'binary': 'HANDLEBARS_BIN',
         'extra_args': 'HANDLEBARS_EXTRA_ARGS',
+        'root': 'HANDLEBARS_ROOT',
     }
 
     def input(self, _in, out, source_path, output_path):
-        args = [self.binary or 'handlebars']
-        args.extend(['-r', self.get_config('directory')])
+        if self.root:
+            root = path.join(self.get_config('directory'), self.root)
+        else:
+            root = self.get_config('directory')
+
+        args = [self.binary or 'handlebars',
+                '-r', root]
         if self.extra_args:
             args.extend(self.extra_args)
         args.extend([source_path])
+
         proc = subprocess.Popen(
             args, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

@@ -229,12 +229,6 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             document.write ( bar ); /* Write */
         }
         """,
-        'foo.html': """
-        <div class="foo">bar</div>
-        """,
-        'dir/foo.html': """
-        <div class="dir-foo">dir-bar</div>
-        """
     }
 
     def test_gzip(self):
@@ -299,19 +293,6 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         raise SkipTest()
         self.mkbundle('foo.css', filters='less_ruby', output='out.css').build()
         assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #ffffff;\n}\n'
-
-    def test_handlebars(self):
-        if not find_executable('handlebars'):
-            raise SkipTest()
-        self.mkbundle('foo.html', filters='handlebars', output='out.js').build()
-        assert self.get('out.js').find('Handlebars')
-
-    def test_handlebars_dir(self):
-        if not find_executable('handlebars'):
-            raise SkipTest()
-        self.mkbundle('dir/foo.html', filters='handlebars', output='out.js').build()
-        assert self.get('out.js').find('Handlebars')
-        assert self.get('out.js').find('dir/foo.html')
 
     def test_jsmin(self):
         self.mkbundle('foo.js', filters='jsmin', output='out.js').build()
@@ -708,4 +689,31 @@ class TestJST(TempEnvironmentHelper):
         assert 'new value' in self.get('out.js')
 
 
+class TestHandlebars(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.html': """
+            <div class="foo">foo</div>
+            """,
+        'dir/bar.html': """
+            <div class="bar">bar</div>
+            """
+    }
+
+    def setup(self):
+        if not find_executable('handlebars'):
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test_basic(self):
+        self.mkbundle('foo.html', 'dir/bar.html',
+                      filters='handlebars', output='out.js').build()
+        assert 'Handlebars' in self.get('out.js')
+        assert "'foo.html'" in self.get('out.js')
+        assert "'dir/bar.html'" in self.get('out.js')
+
+    def test_custom_root(self):
+        self.env.config['handlebars_root'] = 'dir'
+        self.mkbundle('dir/bar.html', filters='handlebars', output='out.js').build()
+        assert "'bar.html'" in self.get('out.js')
 
