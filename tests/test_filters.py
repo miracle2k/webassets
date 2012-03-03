@@ -1,5 +1,6 @@
 import os
 import tempfile
+from contextlib import contextmanager
 from StringIO import StringIO
 from nose.tools import assert_raises, with_setup, assert_equals
 from nose import SkipTest
@@ -13,6 +14,16 @@ from helpers import TempEnvironmentHelper
 # unpredictable text like temp paths or timestamps. doctest has
 # the same problem, so we just steal it's solution.
 from doctest import _ellipsis_match as doctest_match
+
+
+@contextmanager
+def os_environ_sandbox():
+    backup = os.environ.copy()
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(backup)
 
 
 class TestFilter:
@@ -69,7 +80,7 @@ class TestFilter:
         assert NAME != NAME2
         assert not NAME in os.environ and not NAME2 in os.environ
 
-        try:
+        with os_environ_sandbox():
             # Test raising of error, and test not raising it.
             assert_raises(EnvironmentError, get_config, NAME)
             assert get_config(NAME, require=False) == None
@@ -92,9 +103,6 @@ class TestFilter:
             assert get_config(NAME) == 'foo'
             assert get_config(setting=NAME, env=False) == 'foo'
             assert_raises(EnvironmentError, get_config, env=NAME)
-        finally:
-            if NAME in os.environ:
-                del os.environ[NAME]
 
     def test_equality(self):
         """Test the ``unique`` method used to determine equality.
