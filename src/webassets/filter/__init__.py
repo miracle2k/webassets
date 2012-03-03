@@ -4,6 +4,7 @@ contents (think minification, compression).
 
 import os, subprocess
 import inspect
+import shlex
 try:
     frozenset
 except NameError:
@@ -49,19 +50,60 @@ def freezedicts(obj):
     return obj
 
 
+def smartsplit(string, sep):
+    """Split while allowing escaping.
+
+    So far, this seems to do what I expect - split at the separator,
+    allow escaping via \, and allow the backslash itself to be escaped.
+
+    One problem is that it can raise a ValueError when given a backslash
+    without a character to escape. I'd really like a smart splitter
+    without manually scan the string. But maybe that is exactly what should
+    be done.
+    """
+    assert string is not None   # or shlex will read from stdin
+    # shlex fails miserably with unicode input
+    is_unicode = isinstance(sep, unicode)
+    if is_unicode:
+        string = string.encode('utf8')
+    l = shlex.shlex(string, posix=True)
+    l.whitespace += ','
+    l.whitespace_split = True
+    #l.quotes = ''
+    if is_unicode:
+        return map(lambda s: s.decode('utf8'), list(l))
+    else:
+        return list(l)
+
+
+class option(tuple):
+    """Micro option system. I want this to remain small and simple,
+    which is why this class is lower-case.
+
+    See ``parse_options()`` and ``Filter.options``.
+    """
+    def __new__(cls, initarg, configvar=None, type=None):
+        if not configvar:  # If only one argument given, it is the configvar
+            configvar = initarg
+            initarg = None
+        return tuple.__new__(cls, (initarg, configvar, type))
+
+
 def parse_options(options):
-    # Normalize different ways to specify a filter option.
-    # Option format is one of:
+    """Parses the filter ``options`` dict attribute.
+    The result is a dict of ``option`` tuples.
+    """
+    # Normalize different ways to specify the dict items:
+    #    attribute: option()
     #    attribute: ('__init__ arg', 'config variable')
     #    attribute: ('config variable,')
     #    attribute: 'config variable'
     result = {}
     for internal, external in options.items():
-        if not isinstance(external, (list, tuple)):
-            external = (external,)
-        assert 1 <= len(external) <= 2
-        if len(external) == 1:
-            external = (internal, external[0])
+        if not isinstance(external, option):
+            if not isinstance(external, (list, tuple)):
+                external = (external,)
+            external = option(*external)
         result[internal] = external
     return result
 
@@ -86,19 +128,25 @@ class Filter(object):
     # defined in the environment config, or the OS environment (i.e.
     # a setup() implementation will be generated which uses
     # get_config() calls).
+    #
+    # Can look like this:
+    #    options = {
+    #        'binary': 'COMPASS_BINARY',
+    #        'plugins': option('COMPASS_PLUGINS', type=list),
+    #    }
     options = {}
 
     def __init__(self, **kwargs):
         self.env = None
-        self.options = parse_options(self.__class__.options)
+        self._options = parse_options(self.__class__.options)
 
         # Resolve options given directly to the filter. This
         # allows creating filter instances with options that
         # deviate from the global default.
         # TODO: can the metaclass generate a init signature?
-        for attribute, (initarg, _) in self.options.items():
-            if initarg in kwargs:
-                setattr(self, attribute, kwargs.pop(initarg))
+        for attribute, (initarg, _, _) in self._options.items():
+            if (initarg or attribute) in kwargs:
+                setattr(self, attribute, kwargs.pop(initarg or attribute))
             else:
                 setattr(self, attribute, None)
         if kwargs:
@@ -118,7 +166,7 @@ class Filter(object):
         self.env = env
 
     def get_config(self, setting=False, env=None, require=True,
-                   what='dependency'):
+                   what='dependency', type=None):
         """Helper function that subclasses can use if they have
         dependencies which they cannot automatically resolve, like
         an external binary.
@@ -137,8 +185,15 @@ class Filter(object):
 
         ``what`` is a string that is used in the exception message;
         you can use it to give the user an idea what he is lacking,
-        i.e. 'xyz filter binary'
+        i.e. 'xyz filter binary'.
+
+        Specifying values via the OS environment is obviously limited. If
+        you are expecting a special type, you may set the ``type`` argument
+        and a value from the OS environment will be parsed into that type.
+        Currently only ``list`` is supported.
         """
+        assert type in (None, list), "%s not supported for type" % type
+
         if env is None:
             env = setting
 
@@ -150,6 +205,8 @@ class Filter(object):
 
         if value is None and not env is False:
             value = os.environ.get(env)
+            if value and type == list:
+                value = smartsplit(value, ',')
 
         if value is None and require:
             err_msg = '%s was not found. Define a ' % what
@@ -200,14 +257,15 @@ class Filter(object):
         Note: This may be called multiple times if one filter instance
         is used with different asset environment instances.
         """
-        for attribute, (_, configvar) in self.options.items():
+        for attribute, (_, configvar, type) in self._options.items():
             if not configvar:
                 continue
             if getattr(self, attribute) is None:
                 # No value specified for this filter instance ,
                 # specifically attempt to load it from the environment.
                 setattr(self, attribute,
-                    self.get_config(setting=configvar, require=False))
+                    self.get_config(setting=configvar, require=False,
+                                    type=type))
 
     def input(self, _in, out):
         """Implement your actual filter here.

@@ -104,6 +104,22 @@ class TestFilter:
             assert get_config(setting=NAME, env=False) == 'foo'
             assert_raises(EnvironmentError, get_config, env=NAME)
 
+    def test_getconfig_os_env_types(self):
+        """Test type conversion for values read from the environment.
+        """
+        m = Environment(None, None)
+        f = Filter()
+        f.set_environment(m)
+        get_config = f.get_config
+
+        with os_environ_sandbox():
+            os.environ['foo'] = 'one,two\,three'
+            assert get_config(env='foo', type=list) == ['one', 'two,three']
+
+            # Make sure the split is not applied to env config values
+            m.config['foo'] = 'one,two\,three'
+            assert get_config(setting='foo', type=list) == 'one,two\,three'
+
     def test_equality(self):
         """Test the ``unique`` method used to determine equality.
         """

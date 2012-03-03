@@ -32,7 +32,7 @@ import tempfile
 import shutil
 
 from webassets.exceptions import FilterError
-from webassets.filter import Filter
+from webassets.filter import Filter, option
 
 
 __all__ = ('CompassFilter',)
@@ -72,7 +72,7 @@ class CompassFilter(Filter):
     name = 'compass'
     options = {
         'compass': ('binary', 'COMPASS_BIN'),
-        'plugins': 'COMPASS_PLUGINS',
+        'plugins': option('COMPASS_PLUGINS', type=list)
     }
 
     def input(self, _in, out, source_path, output_path):
