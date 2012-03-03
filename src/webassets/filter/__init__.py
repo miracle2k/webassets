@@ -267,13 +267,13 @@ class Filter(object):
                     self.get_config(setting=configvar, require=False,
                                     type=type))
 
-    def input(self, _in, out):
+    def input(self, _in, out, **kw):
         """Implement your actual filter here.
 
         This will be called for every source file.
         """
 
-    def output(self, _in, out):
+    def output(self, _in, out, **kw):
         """Implement your actual filter here.
 
         This will be called for every output file.
