@@ -81,9 +81,9 @@ class MemoryHunk(BaseHunk):
     the result of merging multiple individual source files together.
     """
 
-    def __init__(self, data, files=[]):
+    def __init__(self, data, files=None):
         self._data = data
-        self.files = files
+        self.files = files or []
 
     def mtime(self):
         pass
