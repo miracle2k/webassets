@@ -16,13 +16,18 @@ __all__ = ('HandlebarsFilter',)
 class HandlebarsFilter(Filter):
 
     name = 'handlebars'
-
-    def setup(self):
-        self.binary = self.get_config(
-            'HANDLEBARS_BIN', require=False) or 'handlebars'
+    options = {
+        'binary': 'HANDLEBARS_BIN',
+        'extra_args': 'HANDLEBARS_EXTRA_ARGS',
+    }
 
     def input(self, _in, out, source_path, output_path):
-        args = [self.binary, '-r', self.get_config('directory'), source_path]
+        args = [self.binary or 'handlebars']
+        if self.extra_args:
+            args.extend(self.extra_args)
+        else:
+            args.extend(['-r', self.get_config('directory')])
+        args.extend([source_path])
         proc = subprocess.Popen(
             args, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
