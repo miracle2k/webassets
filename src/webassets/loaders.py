@@ -112,6 +112,9 @@ class YAMLLoader(object):
             url: /media
             debug: True
             updater: timestamp
+            config:
+                compass_bin: /opt/compass
+                another_custom_config_value: foo
 
             bundles:
                 bundle-name:
@@ -139,6 +142,10 @@ class YAMLLoader(object):
             for setting in ('debug', 'cache', 'updater', 'expire',):
                 if setting in obj:
                     setattr(env, setting, obj[setting])
+
+            # load custom config options
+            if 'config' in obj:
+                env.config.update(obj['config'])
 
             # load bundles
             bundles = self._get_bundles(obj.get('bundles', {}))

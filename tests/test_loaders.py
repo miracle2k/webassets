@@ -83,6 +83,8 @@ class TestYAML(object):
         url: /foo
         directory: something
         updater: 'always'
+        config:
+            compass_bin: /opt/compass
 
         bundles:
             test:
@@ -90,6 +92,8 @@ class TestYAML(object):
         """).load_environment()
         assert environment.url == '/foo'
         assert environment.updater == 'always'
+
+        assert environment.config['COMPASS_BIN'] == '/opt/compass'
 
         # Because the loader isn't aware of the file location, the
         # directory is read as-is, relative to cwd rather than the
