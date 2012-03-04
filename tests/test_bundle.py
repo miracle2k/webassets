@@ -10,7 +10,7 @@ from webassets.bundle import get_all_bundle_files
 from webassets.exceptions import BundleError, BuildError
 from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
-from webassets.cache import MemoryCache
+from webassets.cache import MemoryCache, FilesystemCache
 
 from helpers import TempEnvironmentHelper, noop
 

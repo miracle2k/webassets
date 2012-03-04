@@ -8,15 +8,6 @@ except:
     import StringIO
 
 
-import sys
-if sys.version_info >= (2, 5):
-    import hashlib
-    md5_constructor = hashlib.md5
-else:
-    import md5
-    md5_constructor = md5.new
-
-
 __all__ = ('FileHunk', 'MemoryHunk', 'merge', 'FilterTool',
            'MoreThanOneFilterError')
 
@@ -28,16 +19,14 @@ class BaseHunk(object):
     def mtime(self):
         raise NotImplementedError()
 
-    def key(self):
-        """Return a key we can use to cache this hunk.
-        """
-        # MD5 is faster than sha, and we don't care so much about collisions.
-        # We care enough however not to use hash().
-        # XXX The Filesystem cache uses hash(), negating any efforts here.
-        # We should probably use md5 there as well.
-        md5 = md5_constructor()
-        md5.update(self.data())
-        return md5.hexdigest()
+    def __hash__(self):
+        return hash(self.data())
+
+    def __eq__(self, other):
+        if isinstance(other, BaseHunk):
+            # Allow class to be used as a unique dict key.
+            return hash(self) == hash(other)
+        return object.__eq__(other)
 
     def data(self):
         raise NotImplementedError()

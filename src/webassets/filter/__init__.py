@@ -315,6 +315,7 @@ class CallableFilter(Filter):
         self.callable = callable
 
     def unique(self):
+        # XXX This means the cache will never work for those filters.
         return self.callable
 
     def output(self, _in, out, **kw):

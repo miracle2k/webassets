@@ -1,34 +1,72 @@
-import tempfile, shutil
+import random
 from nose.tools import assert_equals
 from webassets.filter import Filter
 from webassets.cache import BaseCache, FilesystemCache, MemoryCache
-from helpers import TempEnvironmentHelper
+from webassets.merge import MemoryHunk
+from helpers import TempEnvironmentHelper, TempDirHelper
 
 
 class TestCaches:
     """Test the individual cache classes directly.
     """
 
-    def test_filesystem_cache(self):
-        cachedir = tempfile.mkdtemp()
-        try:
-            c = FilesystemCache(cachedir)
-            assert c.get('non-existant') == None
-            c.set('foo', 'bar')
-            assert c.get('foo') == 'bar'
-        finally:
-            shutil.rmtree(cachedir)
+    def test_basic(self):
+        with TempDirHelper() as helper:
+            for cache in (
+                FilesystemCache(helper.tempdir),
+                MemoryCache(capacity=10000)
+            ):
+                yield self._test_simple, cache
+                yield self._test_hunks, cache
+                yield self._test_filters, cache
+                yield self._test_dicts, cache
 
-    def test_memory_cache(self):
+    def _test_simple(self, c):
+        # Simple get,set
+        assert c.get('non-existant') is None
+        c.set('foo', 'bar')
+        assert c.get('foo') == 'bar'
+
+    def _test_hunks(self, c):
+        """Test hunks as keys."""
+        key = (MemoryHunk('bla'), 42)
+        assert c.get(key) is None
+        c.set(key, 'foo')
+        assert c.get(key) == 'foo'
+        assert c.get((MemoryHunk('bla'), 42)) == 'foo'
+
+    def _test_filters(self, c):
+        """Test filters as keys."""
+        class MyFilter(Filter):
+            pass
+        key = (MyFilter(), 42)
+        assert c.get(key) is None
+        c.set(key, 'foo')
+        assert c.get(key) == 'foo'
+        assert c.get((MyFilter(), 42)) == 'foo'
+
+    def _test_dicts(self, c):
+        """Attention needs to be paid here due to undefined order."""
+        values = ['%s'% i for i in range(0, 10)]
+        key = dict([(v, v) for v in values])
+        assert c.get(key) is None
+        c.set(key, 'foo')
+        assert c.get(key) == 'foo'
+
+        # Shuffling really doesn't seem to have any effect on the key order.
+        # This test is pretty meaningless then.
+        random.shuffle(values)
+        assert c.get(dict([(v, v) for v in values])) == 'foo'
+
+    def test_memory_cache_capacity(self):
         c = MemoryCache(capacity=2)
-        assert c.get('non-existant') == None
         c.set('foo', 'bar')
         assert c.get('foo') == 'bar'
         # Since we have capacity=2, adding two more keys will
         # remove the first one.
         c.set('key2', 'value2')
         c.set('key3', 'value3')
-        assert c.get('foo') == None
+        assert c.get('foo') is None
 
 
 class TestCacheIsUsed(TempEnvironmentHelper):
