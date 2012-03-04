@@ -737,3 +737,7 @@ class TestHandlebars(TempEnvironmentHelper):
         self.mkbundle('dir/bar.html', filters='handlebars', output='out.js').build()
         assert "'bar.html'" in self.get('out.js')
 
+    def test_auto_root(self):
+        self.mkbundle('dir/bar.html', filters='handlebars', output='out.js').build()
+        assert "'bar.html'" in self.get('out.js')
+

@@ -12,13 +12,14 @@ import subprocess
 from os import path
 
 from webassets.exceptions import FilterError
-from webassets.filter import Filter
+from webassets.filter.jst import JSTemplateFilter
+from webassets.merge import FileHunk
 
 
 __all__ = ('HandlebarsFilter',)
 
 
-class HandlebarsFilter(Filter):
+class HandlebarsFilter(JSTemplateFilter):
 
     name = 'handlebars'
     options = {
@@ -27,17 +28,28 @@ class HandlebarsFilter(Filter):
         'root': 'HANDLEBARS_ROOT',
     }
 
-    def input(self, _in, out, source_path, output_path):
-        if self.root:
+    # XXX Due to the way this filter works, any other filters applied
+    # WILL BE IGNORED. Maybe this method should be allowed to return True
+    # to indicate that the input() processor is not supported.
+    def open(self, out, source, **kw):
+        self.templates.append(source)
+        # Write back or the cache would not detect changes
+        out.write(FileHunk(source).data())
+
+    def output(self, _in, out, **kw):
+        if self.root is True:
+            root = self.get_config('directory')
+        elif self.root:
             root = path.join(self.get_config('directory'), self.root)
         else:
-            root = self.get_config('directory')
+            root = self._find_base_path(self.templates)
 
-        args = [self.binary or 'handlebars',
-                '-r', root]
+        args = [self.binary or 'handlebars']
+        if root:
+            args.extend(['-r', root])
         if self.extra_args:
             args.extend(self.extra_args)
-        args.extend([source_path])
+        args.extend(self.templates)
 
         proc = subprocess.Popen(
             args, stdin=subprocess.PIPE,

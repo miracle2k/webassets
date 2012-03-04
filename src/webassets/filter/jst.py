@@ -7,7 +7,26 @@ from webassets.utils import common_path_prefix
 __all__ = ('JSTFilter',)
 
 
-class JSTFilter(Filter):
+class JSTemplateFilter(Filter):
+    """Common base class for the JST and Handlebars filters, and
+    possibly other Javascript templating systems in the future.
+    """
+
+    name = None  # abstract
+
+    def setup(self):
+        super(JSTemplateFilter, self).setup()
+        # Reset template collection (same instance may run multiple times)
+        self.templates = []
+
+    def _find_base_path(self, paths):
+        """Hmmm.  There should aways be some common base path."""
+        if len(paths) == 1:
+            return os.path.dirname(paths[0])
+        return common_path_prefix(paths)
+
+
+class JSTFilter(JSTemplateFilter):
     """`Jammit Style <http://documentcloud.github.com/jammit/#jst>`_ JavaScript 
     templates. For a list of files, pulls out their contents and creates a 
     JavaScript object where the key is the name of the file.
@@ -27,12 +46,10 @@ class JSTFilter(Filter):
         super(JSTFilter, self).setup()
         self.include_jst_script = \
             (self.template_function == 'template') or not self.template_function
-        self.templates = []
 
     def input(self, _in, out, source_path, output_path):
         data = _in.read()
-        self.templates.append(
-            (source_path, data.replace('\n', '\\n').replace("'", r"\'")))
+        self.templates.append((source_path, data))
 
         # Write back or the cache would not detect changes
         out.write(data)
@@ -50,6 +67,8 @@ class JSTFilter(Filter):
             out.write("%s\n" % _jst_script)
 
         for path, contents in self.templates:
+            # Make it a valid Javascript string. Is this smart enough?
+            contents = contents.replace('\n', '\\n').replace("'", r"\'")
             out.write("%s['%s'] = %s('%s');\n" % (namespace,
                 os.path.splitext(path[len(base_path):])[0],
                 self.template_function or 'template', contents))
@@ -60,9 +79,7 @@ class JSTFilter(Filter):
     def _find_base_path(self):
         """Hmmm.  There should aways be some common base path."""
         paths = [path for path, content in self.templates]
-        if len(paths) == 1:
-            return os.path.dirname(paths[0])
-        return common_path_prefix(paths)
+        return JSTemplateFilter._find_base_path(self, paths)
 
 
 _jst_script = 'var template = function(str){var fn = new Function(\'obj\', \'var \
