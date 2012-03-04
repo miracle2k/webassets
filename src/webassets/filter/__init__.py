@@ -69,7 +69,7 @@ def smartsplit(string, sep):
     l = shlex.shlex(string, posix=True)
     l.whitespace += ','
     l.whitespace_split = True
-    #l.quotes = ''
+    l.quotes = ''
     if is_unicode:
         return map(lambda s: s.decode('utf8'), list(l))
     else:
