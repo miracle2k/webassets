@@ -316,6 +316,14 @@ class CallableFilter(Filter):
 
     def unique(self):
         # XXX This means the cache will never work for those filters.
+        # This is actually a deeper problem: Originally unique() was
+        # used to remove duplicate filters. Now it is also for the cache
+        # key. The latter would benefit from ALL the filter's options being
+        # included. Possibly this might just be what we should do, at the
+        # expense of the "remove duplicates" functionality (because it
+        # is never really needed anyway). It's also illdefined when a filter
+        # should be a removable duplicate - most options probably SHOULD make
+        # a filter no longer being considered duplicate.
         return self.callable
 
     def output(self, _in, out, **kw):
