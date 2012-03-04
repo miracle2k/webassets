@@ -288,10 +288,21 @@ class Filter(object):
         directly, and would ignore any processing by earlier filters.
         """
 
+    def concat(self, out, hunks, **kw):
+        """Implement your actual filter here.
+
+       Will be called once between the input() and output()
+       steps, and should concat all the source files (given as hunks)
+       together, and return a string.
+
+       Only one such filter is allowed.
+       """
+
     # We just declared those for demonstration purposes
     del input
     del output
     del open
+    del concat
 
 
 class CallableFilter(Filter):

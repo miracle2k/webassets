@@ -332,9 +332,7 @@ class Bundle(object):
                 try:
                     hunk = filtertool.apply_func(combined_filters, 'open', [c])
                 except MoreThanOneFilterError, e:
-                    raise BuildError(
-                        'These filters cannot be combined: %s' % (
-                            ', '.join([f.name for f in e.filters])))
+                    raise BuildError(e)
 
                 if not hunk:
                     if is_url(c):
@@ -350,9 +348,10 @@ class Bundle(object):
 
         # Merge the individual files together.
         try:
-            # TODO: The joiner API is not final.
-            final = merge(hunks, getattr(self, 'joiner', None))
-        except IOError, e:
+            final = filtertool.apply_func(combined_filters, 'concat', [hunks])
+            if final is None:
+                final = merge(hunks)
+        except (IOError, MoreThanOneFilterError), e:
             raise BuildError(e)
 
         # Apply output filters, if there are any.

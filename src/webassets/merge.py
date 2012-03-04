@@ -118,7 +118,8 @@ def merge(hunks, separator=None):
 
 class MoreThanOneFilterError(Exception):
 
-    def __init__(self, filters):
+    def __init__(self, message, filters):
+        Exception.__init__(self, message)
         self.filters = filters
 
 
@@ -220,7 +221,9 @@ class FilterTool(object):
             return None
 
         if len(filters) > 1:
-            raise MoreThanOneFilterError(filters)
+            raise MoreThanOneFilterError(
+                'These filters cannot be combined: %s' % (
+                    ', '.join([f.name for f in filters])), filters)
 
         def func():
             filter = filters[0]

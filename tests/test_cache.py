@@ -57,7 +57,7 @@ class TestCacheIsUsed(TempEnvironmentHelper):
             # Support all possible filter operations
             def input(self, *a, **kw):
                 pass
-            output = open = input
+            output = open = concat = input
         self.filter = CompleteFilter
 
         self.m.cache = self.cache = MyCache()
@@ -68,14 +68,14 @@ class TestCacheIsUsed(TempEnvironmentHelper):
         bundle = self.mkbundle('in1', 'in2', output='out', filters=self.filter)
         self.cache.enabled = False
         bundle.build()
-        assert_equals(self.cache.getops, 5)  # 2x first, 2x input, 1x output
-        assert_equals(self.cache.setops, 6)  # like getops + 1x bdef
+        assert_equals(self.cache.getops, 6)  # 2x first, 2x input, 1x output, 1x cache
+        assert_equals(self.cache.setops, 7)  # like getops + 1x bdef
 
     def test_cache_enabled(self):
         bundle = self.mkbundle('in1', 'in2', output='out', filters=self.filter)
         self.cache.enabled = True
         bundle.build()
-        assert_equals(self.cache.getops, 5)  # 2x first, 2x input, 1x output
+        assert_equals(self.cache.getops, 6)  # # 2x first, 2x input, 1x output, 1x cache
         assert_equals(self.cache.setops, 1)  # one hit by (bdef)
 
     def test_filesystem_cache(self):

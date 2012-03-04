@@ -442,6 +442,16 @@ class TestFilters(TempEnvironmentHelper):
             'xyz', filters=(FirstFilter('a'), FirstFilter('b')), output='foo')
         assert_raises(BuildError, bundle.build)
 
+    def test_concat(self):
+        """Test the concat() filter type.
+        """
+        class ConcatFilter(Filter):
+            def concat(self, out, hunks, **kw):
+                out.write('%%%'.join([h.data() for h in hunks]))
+        self.create_files({'a': '1', 'b': '2'})
+        self.mkbundle('a', 'b', filters=ConcatFilter, output='out').build()
+        assert self.get('out') == '1%%%2'
+
 
 class TestUpdateAndCreate(TempEnvironmentHelper):
     """Test bundle auto rebuild, and generally everything involving
