@@ -33,6 +33,8 @@ class BaseHunk(object):
         """
         # MD5 is faster than sha, and we don't care so much about collisions.
         # We care enough however not to use hash().
+        # XXX The Filesystem cache uses hash(), negating any efforts here.
+        # We should probably use md5 there as well.
         md5 = md5_constructor()
         md5.update(self.data())
         return md5.hexdigest()
@@ -130,24 +132,27 @@ class FilterTool(object):
     ``kwargs`` are options that should be passed along to the filters.
     """
 
-    VALID_TYPES = ('first', 'input', 'output', 'concat')
+    VALID_TRANSFORMS = ('input', 'output',)
+    VALID_FUNCS =  ('open', 'concat',)
 
     def __init__(self, cache=None, no_cache_read=False, kwargs=None):
         self.cache = cache
         self.no_cache_read = no_cache_read
         self.kwargs = kwargs or {}
 
-    def _check_cache(self, key):
+    def _wrap_cache(self, key, func):
+        """Return cache value ``key``, or run ``func``.
+        """
         if self.cache:
-            key = key
             if not self.no_cache_read:
                 content = self.cache.get(key)
                 if not content in (False, None):
                     return MemoryHunk(content)
 
-    def _write_cache(self, key, content):
+        content = func().getvalue()
         if self.cache:
             self.cache.set(key, content)
+        return MemoryHunk(content)
 
     def apply(self, hunk, filters, type, kwargs=None, only_one=False):
         """Apply the given list of filters to the hunk, returning a new
@@ -157,7 +162,7 @@ class FilterTool(object):
         If ``hunk`` is a file hunk, a ``source_path`` key will automatically
         be added to ``kwargs``.
         """
-        assert type in self.VALID_TYPES
+        assert type in self.VALID_TRANSFORMS
 
         filters = [f for f in filters if hasattr(f, type)]
         if not filters:  # Short-circuit
@@ -165,6 +170,21 @@ class FilterTool(object):
 
         if only_one and len(filters) > 1:
             raise MoreThanOneFilterError(filters)
+
+        def func():
+            kwargs_final = self.kwargs.copy()
+            kwargs_final.update(kwargs or {})
+            if hasattr(hunk, 'filename'):
+                kwargs_final.setdefault('source_path', hunk.filename)
+
+            data = StringIO.StringIO(hunk.data())
+            for filter in filters:
+                out = StringIO.StringIO()
+                getattr(filter, type)(data, out, **kwargs_final)
+                data = out
+                data.seek(0)
+
+            return data
 
         # Note that the key used to cache this hunk is different from the key
         # the hunk will expose to subsequent merges, i.e. hunk.key() is always
@@ -179,30 +199,39 @@ class FilterTool(object):
         # key, such a change would invalidate the caches for all subsequent
         # operations on this hunk as well, even though it didn't actually
         # change after all.
-        key = ("hunk", hunk.key(), tuple(filters), type)
-        data = self._check_cache(key)
-        if data:
-            return data
-
-        kwargs_final = self.kwargs.copy()
-        kwargs_final.update(kwargs or {})
-        if hasattr(hunk, 'filename'):
-            kwargs_final.setdefault('source_path', hunk.filename)
-
-        data = StringIO.StringIO(hunk.data())
-        for filter in filters:
-            out = StringIO.StringIO()
-            getattr(filter, type)(data, out, **kwargs_final)
-            data = out
-            data.seek(0)
-
-        content = data.getvalue()
-        self._write_cache(key, content)
-        return MemoryHunk(content)
+        key = ("hunk", hunk, tuple(filters), type)
+        return self._wrap_cache(key, func)
 
     def apply_one(self, *a, **kw):
         kw['only_one'] = True
         return self.apply(*a, **kw)
+
+    def apply_func(self, filters, type, args, kwargs=None):
+        """Apply a filter that is not a transform (stream in,
+        stream out). Instead, is supposed to operate on argument
+        ``args`` and should then produce an output stream.
+
+        Only one such filter can run per operation.
+        """
+        assert type in self.VALID_FUNCS
+
+        filters = [f for f in filters if hasattr(f, type)]
+        if not filters:  # Short-circuit
+            return None
+
+        if len(filters) > 1:
+            raise MoreThanOneFilterError(filters)
+
+        def func():
+            filter = filters[0]
+            out = StringIO.StringIO()
+            kwargs_final = self.kwargs.copy()
+            kwargs_final.update(kwargs or {})
+            getattr(filter, type)(out, *args, **kwargs_final)
+            return out
+
+        key = ("hunk", args, tuple(filters), type)
+        return self._wrap_cache(key, func)
 
 
 def merge_filters(filters1, filters2):

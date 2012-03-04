@@ -15,11 +15,26 @@ also serve in other places.
 
 import os
 from os import path
-
-from filter import Filter
+from webassets.merge import BaseHunk
 
 
 __all__ = ('FilesystemCache', 'MemoryCache', 'get_cache',)
+
+
+def make_key(data):
+    """Create an integer cache key for this data.
+
+    Specifically, this knows about ``Hunk`` objects, and makes sure
+    the actual content is hashed.
+    """
+    if isinstance(data, (tuple, list)):
+        return hash(tuple([make_key(i) for i in data]))
+    if isinstance(data, dict):
+        return hash(tuple([(make_key(k), make_key(v))
+                           for k, v in data.iteritems()]))
+    if isinstance(data, BaseHunk):
+        return hash(data.key())
+    return hash(data)
 
 
 class BaseCache(object):
@@ -64,47 +79,11 @@ class MemoryCache(BaseCache):
                id(self) == id(other)
 
     def get(self, key):
+        key = make_key(key)
         return self.cache.get(key, None)
 
     def set(self, key, value):
-        self.cache[key] = value
-        try:
-            self.keys.remove(key)
-        except ValueError:
-            pass
-        self.keys.append(key)
-
-        # limit cache to the given capacity
-        to_delete = self.keys[0:max(0, len(self.keys)-self.capacity)]
-        self.keys = self.keys[len(to_delete):]
-        for item in to_delete:
-            del self.cache[key]
-
-
-class MemoryCache(BaseCache):
-    """Caches stuff in the process memory.
-
-    WARNING: Do NOT use this in a production environment, where you
-    are likely going to have multiple processes serving the same app!
-    """
-
-    def __init__(self, capacity):
-        self.capacity = capacity
-        self.keys = []
-        self.cache = {}
-
-    def __eq__(self, other):
-        """Return equality with the config values
-        that instantiate this instance.
-        """
-        return False == other or \
-               None == other or \
-               id(self) == id(other)
-
-    def get(self, key):
-        return self.cache.get(key, None)
-
-    def set(self, key, value):
+        key = make_key(key)
         self.cache[key] = value
         try:
             self.keys.remove(key)
@@ -135,7 +114,7 @@ class FilesystemCache(BaseCache):
                id(self) == id(other)
 
     def get(self, key):
-        filename = path.join(self.directory, '%s' % hash(key))
+        filename = path.join(self.directory, '%s' % make_key(key))
         if not path.exists(filename):
             return None
         f = open(filename, 'rb')
@@ -145,7 +124,7 @@ class FilesystemCache(BaseCache):
             f.close()
 
     def set(self, key, data):
-        filename = path.join(self.directory, '%s' % hash(key))
+        filename = path.join(self.directory, '%s' % make_key(key))
         f = open(filename, 'wb')
         try:
             f.write(data)

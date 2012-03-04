@@ -16,9 +16,9 @@ class NodeLessFilter(Filter):
         'less': ('binary', 'LESS_BIN')
     }
 
-    def first(self, _in, out, source_path, output_path):
+    def open(self, out, source, **kw):
         proc = subprocess.Popen(
-            [self.less or 'lessc', source_path],
+            [self.less or 'lessc', source],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE
         )

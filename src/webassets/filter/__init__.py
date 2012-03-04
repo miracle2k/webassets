@@ -280,7 +280,7 @@ class Filter(object):
         This will be called for every output file.
         """
 
-    def first(self, _in, out, **kw):
+    def open(self, out, source, **kw):
         """Implement your actual filter here.
 
         This is like input(), but only one filter may provide this.
@@ -291,7 +291,7 @@ class Filter(object):
     # We just declared those for demonstration purposes
     del input
     del output
-    del first
+    del open
 
 
 class CallableFilter(Filter):

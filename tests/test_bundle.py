@@ -434,7 +434,7 @@ class TestFilters(TempEnvironmentHelper):
         # done earlier, when assigning to the filter property. It wouldn't
         # catch all cases involving bundle nesting though.
         class FirstFilter(Filter):
-            def first(self, *a, **kw): pass
+            def open(self, *a, **kw): pass
             def __init__(self, id): Filter.__init__(self); self.id = id
             def id(self): return self.id
         self.create_files({'xyz'})

@@ -55,9 +55,9 @@ class TestCacheIsUsed(TempEnvironmentHelper):
 
         class CompleteFilter(Filter):
             # Support all possible filter operations
-            def input(self, _in, out, **kw):
+            def input(self, *a, **kw):
                 pass
-            output = first = input
+            output = open = input
         self.filter = CompleteFilter
 
         self.m.cache = self.cache = MyCache()

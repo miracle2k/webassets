@@ -328,21 +328,23 @@ class Bundle(object):
                     combined_filters, disable_cache=disable_cache)
                 hunks.append(hunk)
             else:
-                if is_url(c):
-                    hunk = UrlHunk(c)
-                else:
-                    hunk = FileHunk(c)
+                # Give a filter the change to open his file.
+                try:
+                    hunk = filtertool.apply_func(combined_filters, 'open', [c])
+                except MoreThanOneFilterError, e:
+                    raise BuildError(
+                        'These filters cannot be combined: %s' % (
+                            ', '.join([f.name for f in e.filters])))
+
+                if not hunk:
+                    if is_url(c):
+                        hunk = UrlHunk(c)
+                    else:
+                        hunk = FileHunk(c)
 
                 if no_filters:
                     hunks.append(hunk)
                 else:
-                    try:
-                        hunk = filtertool.apply_one(
-                            hunk, combined_filters, 'first')
-                    except MoreThanOneFilterError, e:
-                        raise BuildError(
-                            'These filters cannot be combined: %s' % (
-                                ', '.join([f.name for f in e.filters])))
                     hunks.append(filtertool.apply(
                         hunk, combined_filters, 'input'))
 

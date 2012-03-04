@@ -39,7 +39,7 @@ class LessRubyFilter(Filter):
         'less': ('binary', 'LESS_RUBY_PATH')
     }
 
-    def first(self, _in, out, source_path, output_path):
+    def open(self, out, source, **kw):
         """Less currently doesn't take data from stdin, and doesn't allow
         us from stdout either. Neither does it return a proper non-0 error
         code when an error occurs, or even write to stderr (stdout instead)!
@@ -53,7 +53,7 @@ class LessRubyFilter(Filter):
                                     'assets_temp_%d.css' % int(time.time()))
 
         proc = subprocess.Popen(
-            [self.less or 'lessc', source_path, outtemp_name],
+            [self.less or 'lessc', source, outtemp_name],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             # shell: necessary on windows to execute
