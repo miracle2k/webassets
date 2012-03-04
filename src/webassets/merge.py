@@ -155,7 +155,7 @@ class FilterTool(object):
             self.cache.set(key, content)
         return MemoryHunk(content)
 
-    def apply(self, hunk, filters, type, kwargs=None, only_one=False):
+    def apply(self, hunk, filters, type, kwargs=None):
         """Apply the given list of filters to the hunk, returning a new
         ``MemoryHunk`` object.
 
@@ -168,9 +168,6 @@ class FilterTool(object):
         filters = [f for f in filters if hasattr(f, type)]
         if not filters:  # Short-circuit
             return hunk
-
-        if only_one and len(filters) > 1:
-            raise MoreThanOneFilterError(filters)
 
         def func():
             kwargs_final = self.kwargs.copy()
@@ -202,10 +199,6 @@ class FilterTool(object):
         # change after all.
         key = ("hunk", hunk, tuple(filters), type)
         return self._wrap_cache(key, func)
-
-    def apply_one(self, *a, **kw):
-        kw['only_one'] = True
-        return self.apply(*a, **kw)
 
     def apply_func(self, filters, type, args, kwargs=None):
         """Apply a filter that is not a transform (stream in,
