@@ -2,8 +2,9 @@ import sys
 from nose.tools import assert_raises
 import textwrap
 from StringIO import StringIO
-from test.test_support import check_warnings
+from webassets.bundle import Bundle
 from webassets.loaders import PythonLoader, YAMLLoader, LoaderError
+from test.test_support import check_warnings
 from nose import SkipTest
 
 
@@ -32,14 +33,34 @@ class TestYAML(object):
         empty-bundle:
         single-content-as-string-bundle:
             contents: only-this
+        nested:
+            output: nested.css
+            filters: cssmin
+            contents:
+                - cssfile1
+                - filters: less
+                  contents:
+                    - lessfile1
+                    - lessfile2
+                    - contents:
+                        reallynested.css
+                    - lessfile3
+                
         """).load_bundles()
-
-        assert len(bundles) == 3
+        assert len(bundles) == 4
         assert bundles['standard'].output == 'output.css'
         assert len(bundles['standard'].filters) == 2
         assert bundles['standard'].contents == ('file1', 'file2')
         assert bundles['empty-bundle'].contents == ()
         assert bundles['single-content-as-string-bundle'].contents == ('only-this',)
+        assert bundles['nested'].output == 'nested.css'
+        assert len(bundles['nested'].filters) == 1
+        assert len(bundles['nested'].contents) == 2
+        nested_bundle = bundles['nested'].contents[1]
+        assert isinstance(nested_bundle, Bundle)
+        assert len(nested_bundle.filters) == 1
+        assert len(nested_bundle.contents) == 4
+        assert isinstance(nested_bundle.contents[2], Bundle)
 
     def test_empty_files(self):
         """YAML loader can deal with empty files.
@@ -65,6 +86,8 @@ class TestYAML(object):
         versioner: 'timestamp'
         auto_build: true
         url_expire: true
+		config:
+            compass_bin: /opt/compass
 
         bundles:
             test:
@@ -74,6 +97,7 @@ class TestYAML(object):
         assert environment.url_expire == True
         assert environment.auto_build == True
         assert environment.config['versioner'] == 'timestamp'
+		assert environment.config['COMPASS_BIN'] == '/opt/compass'
 
         # Because the loader isn't aware of the file location, the
         # directory is read as-is, relative to cwd rather than the
@@ -112,4 +136,14 @@ class TestPython(object):
         old_path = sys.path[:]
         loader = PythonLoader('sys')
         assert sys.path == old_path
+
+    def test_load_bundles(self):
+        import types
+        module = types.ModuleType('test')
+        module.foo = Bundle('bar')
+
+        loader = PythonLoader(module)
+        bundles = loader.load_bundles()
+        assert len(bundles) == 1
+        assert bundles.values()[0].contents[0] == 'bar'
 

@@ -9,20 +9,16 @@ class NodeLessFilter(Filter):
     This depends on the NodeJS implementation of less, installable
     via npm. To use the old Ruby-based version (implemented in the
     1.x Ruby gem).
-
-    **Note**: Currently, this needs to be the very first filter
-    applied. Changes by filters that ran before will be lost.
     """
 
     name = 'less'
+    options = {
+        'less': ('binary', 'LESS_BIN')
+    }
 
-    def setup(self):
-        self.less = self.get_config('LESS_BIN', what='less binary',
-            require=False)
-
-    def input(self, _in, out, source_path, output_path):
+    def open(self, out, source, **kw):
         proc = subprocess.Popen(
-            [self.less or 'lessc', source_path],
+            [self.less or 'lessc', source],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE
         )

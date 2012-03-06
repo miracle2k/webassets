@@ -6,6 +6,7 @@ from jinja2.ext import Extension
 from jinja2 import nodes
 from webassets import Bundle
 from webassets.loaders import GlobLoader, LoaderError
+from webassets.exceptions import ImminentDeprecationWarning
 
 
 __all__ = ('assets', 'Jinja2Loader',)
@@ -39,6 +40,7 @@ class AssetsExtension(Extension):
         files = []
         output = nodes.Const(None)
         filters = nodes.Const(None)
+        dbg = nodes.Const(None)
 
         # parse the arguments
         first = True
@@ -60,9 +62,11 @@ class AssetsExtension(Extension):
                                   'template tag has been renamed to '
                                   '"filters" for consistency reasons '
                                   '(line %s).' % lineno,
-                                  DeprecationWarning)
+                                    ImminentDeprecationWarning)
                 elif name == 'output':
                     output = value
+                elif name == 'debug':
+                    dbg = value
                 else:
                     parser.fail('Invalid keyword argument: %s' % name)
             # otherwise assume a source file is given, which may
@@ -73,9 +77,10 @@ class AssetsExtension(Extension):
 
         # parse the contents of this tag, and return a block
         body = parser.parse_statements(['name:endassets'], drop_needle=True)
+
         return nodes.CallBlock(
                 self.call_method('_render_assets',
-                                 args=[filters, output, nodes.List(files)]),
+                                 args=[filters, output, dbg, nodes.List(files)]),
                 [nodes.Name('ASSET_URL', 'store')], [], body).\
                     set_lineno(lineno)
 
@@ -90,16 +95,22 @@ class AssetsExtension(Extension):
                 result.append(f)
         return result
 
-    def _render_assets(self, filter, output, files, caller=None):
+    def _render_assets(self, filter, output, dbg, files, caller=None):
         env = self.environment.assets_environment
         if env is None:
             raise RuntimeError('No assets environment configured in '+
                                'Jinja2 environment')
 
         result = u""
+        kwargs = {'output': output,
+                  'filters': filter,
+                }
+
+        if dbg != None:
+            kwargs['debug'] = dbg
+
         urls = self.BundleClass(*self.resolve_contents(files, env),
-                                **{'output': output,
-                                   'filters': filter}).urls(env=env)
+                                **kwargs).urls(env=env)
         for f in urls:
             result += caller(f)
         return result

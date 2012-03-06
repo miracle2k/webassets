@@ -11,8 +11,8 @@ except ImportError:
     from glob import has_magic
 import warnings
 from filter import get_filter
-from merge import (FileHunk, MemoryHunk, UrlHunk, apply_filters, merge,
-                   merge_filters)
+from merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
+                  MoreThanOneFilterError)
 from updater import SKIP_CACHE
 from exceptions import BundleError, BuildError
 
@@ -66,7 +66,8 @@ class Bundle(object):
         self.extra_data = {}
 
     def __repr__(self):
-        return "<Bundle output=%s, filters=%s, contents=%s>" % (
+        return "<%s output=%s, filters=%s, contents=%s>" % (
+            self.__class__.__name__,
             self.output,
             self.filters,
             self.contents,
@@ -142,6 +143,18 @@ class Bundle(object):
                         # Is globbed pattern
                         path = env.abspath(item)
                         for f in glob.glob(path):
+                            if os.path.isdir(f):
+                                continue
+                            if self.output and env.abspath(self.output) == f:
+                                # Exclude the output file. Note this will
+                                # not work if nested bundles do the
+                                # including. TODO: Should be even have this
+                                # test if it doesn't work properly? Should
+                                # be throw an error during building instead?
+                                # Or can be give this method access to the
+                                # parent bundle, since allowing env settings
+                                # overrides in bundles is planned anyway?
+                                continue
                             l.append((f[len(path)-len(item):], f))
                     else:
                         # Is just a normal path; Send it through
@@ -339,6 +352,13 @@ class Bundle(object):
         filters = merge_filters(self.filters, extra_filters)
         for filter in filters:
             filter.set_environment(env)
+            # Since we call this now every single time before the filter
+            # is used, we might pass the bundle instance it is going
+            # to be used with. For backwards-compatibility reasons, this
+            # is problematic. However, by inspecting the support arguments,
+            # we can deal with it. We probably then want to deprecate
+            # the old syntax before 1.0 (TODO).
+            filter.setup()
 
         # Unless we have been told by our caller to use or not use the
         # cache for this, try to decide for ourselves. The issue here
@@ -359,6 +379,10 @@ class Bundle(object):
         else:
             actually_skip_cache_here = disable_cache
 
+        filtertool = FilterTool(
+            env.cache, no_cache_read=actually_skip_cache_here,
+            kwargs={'output_path': output_path})
+
         # Apply input filters to all the contents. Note that we use
         # both this bundle's filters as well as those given to us by
         # the parent. We ONLY do those this for the input filters,
@@ -373,35 +397,46 @@ class Bundle(object):
                     combined_filters, disable_cache=disable_cache)
                 hunks.append(hunk)
             else:
-                if is_url(c):
-                    hunk = UrlHunk(c)
-                else:
-                    hunk = FileHunk(c)
+                # Give a filter the change to open his file.
+                try:
+                    hunk = filtertool.apply_func(combined_filters, 'open', [c])
+                except MoreThanOneFilterError, e:
+                    raise BuildError(e)
+
+                if not hunk:
+                    if is_url(c):
+                        hunk = UrlHunk(c)
+                    else:
+                        hunk = FileHunk(c)
+
                 if no_filters:
                     hunks.append(hunk)
                 else:
-                    hunks.append(apply_filters(
-                        hunk, combined_filters, 'input',
-                        env.cache, actually_skip_cache_here,
-                        output_path=output_path))
+                    hunks.append(filtertool.apply(
+                        hunk, combined_filters, 'input'))
 
-        # Return all source hunks as one, with output filters applied
+        # Merge the individual files together.
         try:
-            final = merge(hunks)
-        except IOError, e:
+            final = filtertool.apply_func(combined_filters, 'concat', [hunks])
+            if final is None:
+                final = merge(hunks)
+        except (IOError, MoreThanOneFilterError), e:
             raise BuildError(e)
 
+        # Apply output filters, if there are any.
         if no_filters:
             return final
         else:
             # TODO: So far, all the situations where bundle dependencies
             # are used/useful, are based on input filters having those
             # dependencies. Is it even required to consider them here
-            # with respect to the cache?
-            return apply_filters(final, filters, 'output',
-                                 env.cache, actually_skip_cache_here)
+            # with respect to the cache? We might be able to run this
+            # operation with the cache on (the FilterTool being possibly
+            # configured with cache reads off).
+            return filtertool.apply(final, filters, 'output')
 
-    def _build(self, env, extra_filters=[], force=None):
+    def _build(self, env, extra_filters=[], force=None, output=None,
+               disable_cache=None):
         """Internal bundle build function.
 
         This actually tries to build this very bundle instance, as
@@ -441,7 +476,6 @@ class Bundle(object):
 
         # Determine if we really need to build, or if the output file
         # already exists and nothing has changed.
-        disable_cache = None
         if force:
             update_needed = True
         elif not env.auto_build:
@@ -459,7 +493,8 @@ class Bundle(object):
                 # _merge_and_apply() is now smart enough to do without
                 # this disable_cache hint, but for now, keep passing it
                 # along if we get the info from the updater.
-                disable_cache = update_needed==SKIP_CACHE
+                if update_needed==SKIP_CACHE:
+                    disable_cache = True
             else:
                 update_needed = False
 
@@ -471,26 +506,30 @@ class Bundle(object):
             env, self.output, force,
             disable_cache=disable_cache,
             extra_filters=extra_filters)
-        # If it doesn't exist yet, create the target directory.
-        output = env.abspath(self.output)
-        output_dir = path.dirname(output)
-        if not path.exists(output_dir):
-            os.makedirs(output_dir)
 
-        if not has_placeholder(self.output):
-            hunk.save(self.get_output(env))
-        else:
-            temp = make_temp_output(self)
-            hunk.save(temp)
-            # refresh the version
-            self.version = env.versioner.get_version_for(temp)
-            os.rename(temp, self.get_output())
-            if not (env.cache and env.cache.is_persistent):
-                static = self.get_output(version='static')
-                hunk.save(static)
-                # Give timestamp versioner a change to set the timestamp
-                # to the same value as the actual versioned file.
-                env.versioner.set_version(static, self.version)
+		if output:
+			output.write(hunk.data())
+		else:
+	        # If it doesn't exist yet, create the target directory.
+	        output = env.abspath(self.output)
+	        output_dir = path.dirname(output)
+	        if not path.exists(output_dir):
+	            os.makedirs(output_dir)
+
+	        if not has_placeholder(self.output):
+	            hunk.save(self.get_output(env))
+	        else:
+	            temp = make_temp_output(self)
+	            hunk.save(temp)
+	            # refresh the version
+	            self.version = env.versioner.get_version_for(temp)
+	            os.rename(temp, self.get_output())
+	            if not (env.cache and env.cache.is_persistent):
+	                static = self.get_output(version='static')
+	                hunk.save(static)
+	                # Give timestamp versioner a change to set the timestamp
+	                # to the same value as the actual versioned file.
+	                env.versioner.set_version(static, self.version)
 
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
@@ -500,7 +539,7 @@ class Bundle(object):
 
         return hunk
 
-    def build(self, env=None, force=None):
+    def build(self, env=None, force=None, output=None, disable_cache=None):
         """Build this bundle, meaning create the file given by the
         ``output`` attribute, applying the configured filters etc.
 
@@ -512,13 +551,18 @@ class Bundle(object):
         if ``auto_build`` has been disabled, then ``True`` is assumed
         for ``force``.
 
+        If ``output`` is a file object, the result will be written to it
+        rather than to the filesystem.
+
         The return value is a list of ``FileHunk`` objects, one for
         each bundle that was built.
         """
         env = self._get_env(env)
         hunks = []
         for bundle, extra_filters in self.iterbuild(env):
-            hunks.append(bundle._build(env, extra_filters, force=force))
+            hunks.append(bundle._build(
+                env, extra_filters, force=force, output=output,
+                disable_cache=disable_cache))
         return hunks
 
     def iterbuild(self, env=None):
@@ -585,8 +629,10 @@ class Bundle(object):
             for c, _ in self.resolve_contents(env):
                 if isinstance(c, Bundle):
                     urls.extend(c.urls(env, *args, **kwargs))
+                elif is_url(c):
+                    urls.append(c)
                 else:
-                    urls.append(env.absurl(c))
+                    urls.append(self._make_url(env, c, expire=False))
             return urls
 
     def urls(self, env=None, *args, **kwargs):

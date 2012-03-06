@@ -22,15 +22,16 @@ Usage:
         time.
 """
 
+import sys
+from os import path
 import logging
 from optparse import make_option
 from django.conf import settings
+from django.core.management import LaxOptionParser
 from django.core.management.base import BaseCommand, CommandError
 
-from webassets import Bundle
-from webassets.exceptions import BuildError
-from webassets.script import (CommandLineEnvironment,
-                              CommandError as AssetCommandError)
+from webassets.script import (CommandError as AssetCommandError,
+                              GenericArgparseImplementation)
 from django_assets.env import get_env, autoload
 from django_assets.loaders import get_django_template_dirs, DjangoLoader
 
@@ -45,14 +46,21 @@ class Command(BaseCommand):
     args = 'subcommand'
     requires_model_validation = False
 
+    def create_parser(self, prog_name, subcommand):
+        # Overwrite parser creation with a LaxOptionParser that will
+        # ignore arguments it doesn't know, allowing us to pass those
+        # along to the webassets command.
+        # Hooking into run_from_argv() would be another thing to try
+        # if this turns out to be problematic.
+        return LaxOptionParser(prog=prog_name,
+            usage=self.usage(subcommand),
+            version=self.get_version(),
+            option_list=self.option_list)
+
     def handle(self, *args, **options):
-        valid_commands = CommandLineEnvironment.Commands
-        if len(args) > 1:
-            raise CommandError('Invalid number of subcommands passed: %s' %
-                ", ".join(args))
-        elif len(args) == 0:
-            raise CommandError('You need to specify a subcommand: %s' %
-                               ', '.join(valid_commands))
+        # Due to the use of LaxOptionParser ``args`` now contains all
+        # unparsed options, and ``options`` those that the Django command
+        # has declared.
 
         # Create log
         log = logging.getLogger('django-assets')
@@ -74,10 +82,11 @@ class Command(BaseCommand):
                 'templates, you want to use the --parse-templates '
                 'option.')
 
-        # Execute the requested subcommand
-        cmd = CommandLineEnvironment(get_env(), log)
+        prog = "%s assets" % path.basename(sys.argv[0])
+        impl = GenericArgparseImplementation(
+            env=get_env(), log=log, no_global_options=True, prog=prog)
         try:
-            cmd.invoke(args[0])
+            impl.run_with_argv(args)
         except AssetCommandError, e:
             raise CommandError(e)
 

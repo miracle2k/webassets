@@ -111,9 +111,9 @@ class TimestampUpdater(BundleDefUpdater):
         ):
             for item in iterator(env):
                 if isinstance(item, Bundle):
-                    result = self.check_timestamps(item, env, o_modified)
-                    if result:
-                        return result
+                    nested_result = self.check_timestamps(item, env, o_modified)
+                    if nested_result:
+                        return nested_result
                 elif not is_url(item):
                     try:
                         s_modified = os.stat(item).st_mtime

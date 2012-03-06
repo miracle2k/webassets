@@ -19,15 +19,13 @@ class UglifyJSFilter(Filter):
     """
 
     name = 'uglifyjs'
-
-    def setup(self):
-        self.binary = self.get_config(
-            'UGLIFYJS_BIN', require=False) or 'uglifyjs'
-        self.extra_args = self.get_config('UGLIFYJS_EXTRA_ARGS',
-                                          require=False)
+    options = {
+        'binary': 'UGLIFYJS_BIN',
+        'extra_args': 'UGLIFYJS_EXTRA_ARGS',
+    }
 
     def output(self, _in, out, **kw):
-        args = [self.binary]
+        args = [self.binary or 'uglifyjs']
         if self.extra_args:
             args.extend(self.extra_args)
         proc = subprocess.Popen(

@@ -14,3 +14,4 @@ and libraries.
    Flask-Assets <http://elsdoerfer.name/docs/flask-assets/>
    jinja2
    werkzeug
+   pyramid <https://github.com/sontek/pyramid_webassets>

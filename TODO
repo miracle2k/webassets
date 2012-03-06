@@ -1,8 +1,6 @@
 There is currently no locking going during auto-rebuilds, that is multiple
 requests could potentially cause multiple builds!
 
-Add a switch to the rebuild() command to ignore the cache.
-
 Should bundle names be namespacable, similar to Django urls? At the least,
 we probably want to encourage a convention of prefixing your bundle names
 with an id. Everything else would just intend to make this easier or more
@@ -15,9 +13,6 @@ like "js" or "js-all". "admin:js" works much nicer.
 Since running an external tool is not uncommon for a filter, the Filter
 base class could support a helper function that simplifies the calls to
 the subprocess module.
-
-Automatically create (and delete, i.e. manage) symlinks to make the
-ASSETS_EXPIRE="filename" option work without server rewrites.
 
 Support functionality for applying a filter directly within a template,
 i.e. pack inline scripts. On the other end, allow piping an assets
@@ -73,6 +68,10 @@ used, if we can somehow hack Jinja2 to ignore unknown tags.
 
 The input filter step can be parallelised. Is this worth it?
 
-Creating a custom CLI is too complex currently. It should be possible
-to use an existing class which does all the parsing, only providing
-an environment instance.
+Currently, all files need to be within the media directory. It would be
+nice to be able to include files from arbitrary paths. The problem with
+this is the debug mode, where the files need to be served directly. For
+this, webassets could support copying them to the media directory.
+
+Get rid of the global parts. The shipped filters would be loaded globally,
+but the filter registry would be maintained by the environment.

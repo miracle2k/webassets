@@ -7,10 +7,11 @@ from nose import SkipTest
 from test.test_support import check_warnings
 
 from webassets import Bundle
+from webassets.bundle import get_all_bundle_files
 from webassets.exceptions import BundleError, BuildError
 from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
-from webassets.cache import MemoryCache
+from webassets.cache import MemoryCache, FilesystemCache
 
 from helpers import TempEnvironmentHelper, noop
 
@@ -369,6 +370,14 @@ class TestBuild(TempEnvironmentHelper):
         self.mkbundle('in1', 'in2', output='out/nested/x/foo').build()
         assert self.get('out/nested/x/foo') == 'A\nB'
 
+    def test_with_custom_output(self):
+        """build() method can write to a custom file object."""
+        from StringIO import StringIO
+        buffer = StringIO()
+        self.mkbundle('in1', 'in2', output='out').build(output=buffer)
+        assert buffer.getvalue() == 'A\nB'
+        assert not self.exists('out')    # file was not written.
+
 
 class ReplaceFilter(Filter):
     """Filter that does a simple string replacement.
@@ -483,6 +492,31 @@ class TestFilters(TempEnvironmentHelper):
         assert self.get('out2') == 'foo:childin:rootin:childout:rootout'
         assert self.get('out3') == 'foo:childin:childout'
 
+    def test_duplicate_open_filters(self):
+        """Test that only one open() filter can be used.
+        """
+        # TOOD: For performance reasons, this check could possibly be
+        # done earlier, when assigning to the filter property. It wouldn't
+        # catch all cases involving bundle nesting though.
+        class OpenFilter(Filter):
+            def open(self, *a, **kw): pass
+            def __init__(self, id): Filter.__init__(self); self.id = id
+            def id(self): return self.id
+        self.create_files({'xyz'})
+        bundle = self.mkbundle(
+            'xyz', filters=(OpenFilter('a'), OpenFilter('b')))
+        assert_raises(BuildError, bundle.build)
+
+    def test_concat(self):
+        """Test the concat() filter type.
+        """
+        class ConcatFilter(Filter):
+            def concat(self, out, hunks, **kw):
+                out.write('%%%'.join([h.data() for h in hunks]))
+        self.create_files({'a': '1', 'b': '2'})
+        self.mkbundle('a', 'b', filters=ConcatFilter, output='out').build()
+        assert self.get('out') == '1%%%2'
+
 
 class TestUpdateAndCreate(TempEnvironmentHelper):
     """Test bundle auto rebuild, and generally everything involving
@@ -537,7 +571,7 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         # And it also means that we don't to auto-rebuilding
         assert self.get('out') == 'old_value'
 
-    def test_no_updater_force_defaults_true_if(self):
+    def test_no_updater_force_defaults_true(self):
         """If no updater is configured, then bundle.build() will
         assume force=False by default.
         """
@@ -555,9 +589,6 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         # without asking for "force", then a build does happen.
         self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'A'
-
-    # test that with no updater, force defaults to true
-    # that with calling urls() with no updater will not cause a build
 
     def test_updater_says_no(self):
         """If the updater says 'no change', then we never do a build.
@@ -741,6 +772,7 @@ class BaseUrlsTester(TempEnvironmentHelper):
         self.m.url_expire = False
 
         self.build_called = build_called = []
+        self.makeurl_called = makeurl_called = []
         env = self.m
         class MockBundle(Bundle):
             def __init__(self, *a, **kw):
@@ -748,6 +780,9 @@ class BaseUrlsTester(TempEnvironmentHelper):
                 self.env = env
             def _build(self, *a, **kw):
                 build_called.append(self.output)
+            def _make_url(self, *a, **kw):
+                makeurl_called.append(self.output)
+                return Bundle._make_url(self, *a, **kw)
         self.MockBundle = MockBundle
 
 
@@ -890,6 +925,22 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
         assert bundle.urls() == ['/a', '/a']
         assert len(self.build_called) == 0
 
+    def test_url_source(self):
+        """[Regression] Test a Bundle that contains a source URL.
+        """
+        bundle = self.MockBundle('http://test.de', output='out')
+        assert_equals(bundle.urls(), ['http://test.de'])
+        assert_equals(len(self.build_called), 0)
+
+        # This is the important test. It proves that the url source
+        # was handled separately, and not processed like any other
+        # source file, which would be passed through makeurl().
+        # This is a bit convoluted to test because the code that
+        # converts a bundle content into an url operates just fine
+        # on a url source, so there is no easy other way to determine
+        # whether the url source was treated special.
+        assert_equals(len(self.makeurl_called), 0)
+
     def test_root_bundle_asks_for_debug_false(self):
         """A bundle explicitly says it wants to be processed with
         debug=False, overriding the global "debug" setting.
@@ -996,7 +1047,19 @@ class TestGlobbing(TempEnvironmentHelper):
         content.sort()
         assert content == ['bar', 'foo', 'sub']
 
-        #https://github.com/miracle2k/python-glob2
+    def test_do_not_glob_directories(self):
+        """[Regression] Glob should be smart enough not to pick
+        up directories."""
+        self.create_directories('subdir')
+        assert not filter(lambda s: 'subdir' in s,
+                           get_all_bundle_files(self.mkbundle('*')))
+
+    def test_glob_exclude_output(self):
+        """Never include the output file in the globbinb result.
+        """
+        self.create_files(['out.js'])
+        assert not filter(lambda s: 'out.js' in s,
+            get_all_bundle_files(self.mkbundle('*', output='out.js')))
 
 
 class MockHTTPHandler(urllib2.HTTPHandler):

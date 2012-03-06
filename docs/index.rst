@@ -12,6 +12,7 @@ you are using one of the supported frameworks, to go the respective page:
 
    With Django <django/index>
    With Flask <http://elsdoerfer.name/docs/flask-assets/>
+   With Pyramid <https://github.com/sontek/pyramid_webassets>
    Other or no framework <generic/index>
 
 This documentation also includes some pages with are applicable regardless

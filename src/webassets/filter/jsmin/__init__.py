@@ -1,17 +1,8 @@
 from __future__ import absolute_import
 import warnings
 
-try:
-    import jsmin
-except ImportError:
-    from . import jsmin
-    warnings.warn('The jsmin implementation shipping with webassets will '+
-                  'be deprecated. Install your own jsmin implementation '+
-                  '(e.g. "pip install jsmin"), or switch to the rjsmin '+
-                  'filter.', DeprecationWarning)
-
-
 from webassets.filter import Filter
+from webassets.exceptions import ImminentDeprecationWarning
 
 
 __all__ = ('JSMinFilter',)
@@ -40,5 +31,16 @@ class JSMinFilter(Filter):
 
     name = 'jsmin'
 
+    def setup(self):
+        try:
+            import jsmin
+        except ImportError:
+            from . import jsmin
+            warnings.warn('The jsmin implementation shipping with webassets will '+
+                          'be deprecated. Install your own jsmin implementation '+
+                          '(e.g. "pip install jsmin"), or switch to the rjsmin '+
+                          'filter.', ImminentDeprecationWarning)
+        self.jsmin = jsmin
+
     def output(self, _in, out, **kw):
-        jsmin.JavascriptMinify().minify(_in, out)
+        self.jsmin.JavascriptMinify().minify(_in, out)

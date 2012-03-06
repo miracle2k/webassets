@@ -1,5 +1,18 @@
 0.7 (unreleased)
     - CoffeeScript: Support COFFEE_NO_BARE option (Maxim Bodyansky).
+    - UglifyJS filter: Now supports UGLIFYJS_EXTRA_ARGS setting (Bryan Chow).
+    - Added filter that compiles Django templates.
+    - Various Sass filter improvements (partially by Simon Pantzare).
+    - Works again on Windows (Jon Morton).
+    - No longer requires access to filesystem if configured without updater.
+    - Output directory is now auto-created if necessary.
+    - Fixed various issues where the updater did not pick up changes, mostly
+      when dependencies changed.
+    - Switched the less filter to the NodeJS implementation. The old Ruby
+      implementation can be used via the less_ruby filter.
+    - Fixed JST filter when the cache was enabled.
+    - CLI: Renamed the "rebuild command to "build". Now supports custom
+      output files. Now requires argparse or Python 2.7.
 
 0.6 (2011-10-03)
     - The Django 1.3 staticfiles contrib app is now supported.

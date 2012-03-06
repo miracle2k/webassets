@@ -7,8 +7,8 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
-In 0.7
-~~~~~~
+In Development version
+~~~~~~~~~~~~~~~~~~~~~~
 
 There are some significant backwards incompatible changes in this release.
 
@@ -24,13 +24,27 @@ Other changes:
 
 - If ``Environment.auto_build`` is disabled, the API of Bundle.build()
   now assumes a default value of ``True`` for the ``force`` argument.
-  This should not case any problems, since it is the only call signature
+  This should not cause any problems, since it is the only call signature
   that really makes sense in this case.
 
 - The former ``less`` filter, based on the old Ruby version of lessCSS
   (still available as the 1.x Ruby gems, but no longer developed) has been
   renamed ``less_ruby``, and ``less`` now uses the new NodeJS/Javascript
   implementation, which a while ago superseded the Ruby one.
+
+- The ``rebuild`` command (of the command line mode) has been renamed to
+  ``build``.
+
+- The command line interface now requires the external dependency
+  ``argparse`` on Python versions 2.6 and before. ``argparse`` is included
+  with Python starting with version 2.7.
+
+- ``PythonLoader.load_bundles()`` now returns a dict with the bundle names
+  as keys, rather than a list.
+
+- The ``Filter.output()`` method now receives keyword arguments. All builtin
+  filters have defined this method with ``**kwargs`` for a while now, though
+  so far this was not used. Your custom filters may need updating.
 
 
 In 0.6

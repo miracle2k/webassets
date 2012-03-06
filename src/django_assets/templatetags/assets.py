@@ -4,18 +4,38 @@ import warnings
 from django import template
 from django_assets import Bundle
 from django_assets.env import get_env
+from webassets.exceptions import ImminentDeprecationWarning
 
+
+
+def parse_debug_value(value):
+    """Django templates do not know what a boolean is,
+    and anyway we need to support the 'merge' option."""
+    if value is None:
+        return value
+    value = value.lower()
+    if value in ('true', '1'):
+        return True
+    elif value in ('false', '0'):
+        return False
+    elif value in ('merge',):
+        return 'merge'
+    else:
+        raise template.TemplateSyntaxError(
+            '"debug" argument must be one of the strings '
+            '"true", "false" or "merge", not "%s"' % value)
 
 class AssetsNode(template.Node):
 
     # For testing, to inject a mock bundle
     BundleClass = Bundle
 
-    def __init__(self, filters, output, files, childnodes):
+    def __init__(self, filters, output, debug, files, childnodes):
         self.childnodes = childnodes
         self.output = output
         self.files = files
         self.filters = filters
+        self.debug = debug
 
     def resolve(self, context={}):
         """We allow variables to be used for all arguments; this function
@@ -45,7 +65,8 @@ class AssetsNode(template.Node):
         return self.BundleClass(
             *[resolve_bundle(resolve_var(f)) for f in self.files],
             **{'output': resolve_var(self.output),
-            'filters': resolve_var(self.filters)})
+            'filters': resolve_var(self.filters),
+            'debug': parse_debug_value(resolve_var(self.debug))})
 
     def render(self, context):
         bundle = self.resolve(context)
@@ -63,6 +84,7 @@ class AssetsNode(template.Node):
 def assets(parser, token):
     filters = None
     output = None
+    debug = None
     files = []
 
     # parse the arguments
@@ -87,6 +109,8 @@ def assets(parser, token):
         # handle known keyword arguments
         if name == 'output':
             output = value
+        elif name == 'debug':
+            debug = value
         elif name == 'filters':
             filters = value
         elif name == 'filter':
@@ -94,7 +118,7 @@ def assets(parser, token):
             warnings.warn('The "filter" option of the {% assets %} '
                           'template tag has been renamed to '
                           '"filters" for consistency reasons.',
-                          DeprecationWarning)
+                            ImminentDeprecationWarning)
         # positional arguments are source files
         elif name is None:
             files.append(value)
@@ -104,7 +128,7 @@ def assets(parser, token):
     # capture until closing tag
     childnodes = parser.parse(("endassets",))
     parser.delete_first_token()
-    return AssetsNode(filters, output, files, childnodes)
+    return AssetsNode(filters, output, debug, files, childnodes)
 
 
 

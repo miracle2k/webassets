@@ -117,6 +117,12 @@ CSS Compilers
 .. autoclass:: webassets.filter.compass.CompassFilter
 
 
+``pyscss``
+~~~~~~~~
+
+.. autoclass:: webassets.filter.pyscss.PyScssFilter
+
+
 Other
 -----
 
@@ -132,6 +138,12 @@ Other
 ~~~~~~~~~~~~~~
 
 .. autoclass:: webassets.filter.jst.JSTFilter
+
+
+``handlebars``
+~~~~~~~~~~~~~~
+
+.. automodule:: webassets.filter.handlebars
 
 
 ``cssprefixer``

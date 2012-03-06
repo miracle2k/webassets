@@ -16,7 +16,7 @@ from webassets import Environment, Bundle
 __all__ = ('TempDirHelper', 'TempEnvironmentHelper',)
 
 
-class TempDirHelper:
+class TempDirHelper(object):
     """Base-class for tests which provides a temporary directory
     (which is properly deleted after the test is done), and various
     helper methods to do filesystem operations within that directory.
