@@ -86,7 +86,7 @@ class TestYAML(object):
         versioner: 'timestamp'
         auto_build: true
         url_expire: true
-		config:
+        config:
             compass_bin: /opt/compass
 
         bundles:
@@ -97,7 +97,7 @@ class TestYAML(object):
         assert environment.url_expire == True
         assert environment.auto_build == True
         assert environment.config['versioner'] == 'timestamp'
-		assert environment.config['COMPASS_BIN'] == '/opt/compass'
+        assert environment.config['COMPASS_BIN'] == '/opt/compass'
 
         # Because the loader isn't aware of the file location, the
         # directory is read as-is, relative to cwd rather than the

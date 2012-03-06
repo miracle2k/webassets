@@ -507,29 +507,29 @@ class Bundle(object):
             disable_cache=disable_cache,
             extra_filters=extra_filters)
 
-		if output:
-			output.write(hunk.data())
-		else:
-	        # If it doesn't exist yet, create the target directory.
-	        output = env.abspath(self.output)
-	        output_dir = path.dirname(output)
-	        if not path.exists(output_dir):
-	            os.makedirs(output_dir)
+        if output:
+            output.write(hunk.data())
+        else:
+            # If it doesn't exist yet, create the target directory.
+            output = env.abspath(self.output)
+            output_dir = path.dirname(output)
+            if not path.exists(output_dir):
+                os.makedirs(output_dir)
 
-	        if not has_placeholder(self.output):
-	            hunk.save(self.get_output(env))
-	        else:
-	            temp = make_temp_output(self)
-	            hunk.save(temp)
-	            # refresh the version
-	            self.version = env.versioner.get_version_for(temp)
-	            os.rename(temp, self.get_output())
-	            if not (env.cache and env.cache.is_persistent):
-	                static = self.get_output(version='static')
-	                hunk.save(static)
-	                # Give timestamp versioner a change to set the timestamp
-	                # to the same value as the actual versioned file.
-	                env.versioner.set_version(static, self.version)
+            if not has_placeholder(self.output):
+                hunk.save(self.get_output(env))
+            else:
+                temp = make_temp_output(self)
+                hunk.save(temp)
+                # refresh the version
+                self.version = env.versioner.get_version_for(temp)
+                os.rename(temp, self.get_output())
+                if not (env.cache and env.cache.is_persistent):
+                    static = self.get_output(version='static')
+                    hunk.save(static)
+                    # Give timestamp versioner a change to set the timestamp
+                    # to the same value as the actual versioned file.
+                    env.versioner.set_version(static, self.version)
 
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
