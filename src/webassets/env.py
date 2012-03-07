@@ -125,7 +125,7 @@ class BaseEnvironment(object):
         self.config.setdefault('url_expire', False)
         self.config.setdefault('auto_build', True)
         self.config.setdefault('manifest', None)
-        self.config.setdefault('versioner', 'timestamp')
+        self.config.setdefault('versioner', 'hash')
         self.config.setdefault('updater', 'timestamp')
 
         self.config.update(config)
