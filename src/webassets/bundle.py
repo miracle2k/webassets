@@ -2,6 +2,7 @@ import os
 from os import path
 import urlparse
 import os
+
 try:
     # Current version of glob2 does not let us access has_magic :/
     import glob2 as glob
@@ -29,6 +30,7 @@ def is_url(s):
 
 def has_placeholder(s):
     return '%(version)s' in s
+
 
 class Bundle(object):
     """A bundle is the unit webassets uses to organize groups of
@@ -196,59 +198,40 @@ class Bundle(object):
             self._resolved_depends = l
         return self._resolved_depends
 
-    def get_version(self, env):
+    def get_version(self, env=None, refresh=False):
         """Return the current version of the Bundle.
 
-        If this is not yet set via ``Bundle.version``, then the
-        versioner will be used to determine it.
+        If the version is not cached in memory, it will first look in the
+        manifest, then ask the versioner.
 
-        If the output filename contains a %(version)s placeholder,
-        when we're facing a hard problem to solve: The problem, in
-        general terms, removed from this particular function, is: the
-        asset may already have been created out-of-process, but how do
-        we know what filename/url we have to render? There are only a
-        limited number of answers:
-
-        1. Make the version discernible from the source files. In the
-           case of a TimestampVersion, the built output file needs to be
-           explicitly set to the maximum timestamp of the sources. Or, in
-           the case of HashVersion, the hash needs to be built over the
-           source files + asset definitions rather than the output file.
-           This is rife with trouble though: Imagine for example a filter
-           has a bug, creates erroneous output. Fixing the filter would
-           change the output, but not the version hash. Plus Bundle.depends
-           would need to be included, and I'm not comfortable making it
-           this important.
-
-        2. The version is persisted in the cache. Would only work for an
-           out-of-process cache though.
-
-        3. We always create two output files, one with the actual version,
-           and one with a fixed version string. The latter will be used to
-           restore the current version in a new process.
-
-        4. A variation to using the environment cache would be to have a
-           separate ".webassets-version" file just for this stuff.
-
-        Currently, a combination of (2) and (3) is used. If a persistent
-        cache is available, it will be used; otherwise, a build will
-        create an output file with a static version string.
+        ``refresh`` causes a value in memory to be ignored, and the version
+        to be looked up anew.
         """
         env = self._get_env(env)
-        if not self.version:
-            if has_variable(self.output):
-                if env.cache:
-                    # only do this if the cache is persistent
-                    # should be create a .webassets-versions directory instead?
-                    self.version = env.cache.get(('version', self.get_output()))
+        if not self.version or refresh:
+            version = None
+            # First, try a manifest. This should be the fastest way.
+            if env.manifest:
+                version = env.manifest.query(self, env)
+            # Often the versioner is able to help.
+            if not version:
+                from version import VersionIndeterminableError
+                if env.versioner:
+                    try:
+                        version = env.versioner.get_version_for(self)
+                    except VersionIndeterminableError, e:
+                        reason = e
                 else:
-                    # try get_version_for() with fixed %(version)s string
-                    pass
-            else:
-                self.version = env.versioner.get_version_for(self)
+                    reason = 'no versioner configured'
+            if not version:
+                raise BundleError((
+                    'Cannot find version of %s. You have configured'
+                    'no manifest, and the version cannot be '
+                    'determined dynamically, because: %s') % (self, reason))
+            self.version = version
         return self.version
 
-    def get_output(self, env, version=None):
+    def resolve_output(self, env, version=None):
         """Return the full, absolute output path.
 
         If a %(version)s placeholder is used, it is replaced.
@@ -256,9 +239,8 @@ class Bundle(object):
         env = self._get_env(env)
         output = self.output
         if has_placeholder(output):
-            output = output % {'version': version or self.get_version()}
+            output = output % {'version': version or self.get_version(env)}
         return env.abspath(output)
-
 
     def get_files(self, env=None):
         warnings.warn('Bundle.get_files() has been replaced '+
@@ -485,7 +467,8 @@ class Bundle(object):
             # deployment scenarios where the media files are on a different
             # server, and we can't even access the output file.
             return False
-        elif not path.exists(env.abspath(self.output)):
+        elif not has_placeholder(self.output) and \
+                not path.exists(env.abspath(self.output)):
             update_needed = True
         else:
             if env.auto_build:
@@ -508,6 +491,7 @@ class Bundle(object):
             extra_filters=extra_filters)
 
         if output:
+            # If we are given a stream, just write to it.
             output.write(hunk.data())
         else:
             # If it doesn't exist yet, create the target directory.
@@ -516,20 +500,28 @@ class Bundle(object):
             if not path.exists(output_dir):
                 os.makedirs(output_dir)
 
+            version = None
+            if has_placeholder(self.output) or env.manifest:
+                version = env.versioner.get_version_for(self, hunk)
+
             if not has_placeholder(self.output):
-                hunk.save(self.get_output(env))
+                hunk.save(self.resolve_output(env))
             else:
-                temp = make_temp_output(self)
-                hunk.save(temp)
-                # refresh the version
-                self.version = env.versioner.get_version_for(temp)
-                os.rename(temp, self.get_output())
-                if not (env.cache and env.cache.is_persistent):
-                    static = self.get_output(version='static')
-                    hunk.save(static)
-                    # Give timestamp versioner a change to set the timestamp
-                    # to the same value as the actual versioned file.
-                    env.versioner.set_version(static, self.version)
+                if not env.versioner:
+                    raise BuildError((
+                        'You have no versioner defined, but %s uses '
+                        'a version placeholder in the output target' %
+                            self))
+                output = self.resolve_output(env, version=version)
+                hunk.save(output)
+                self.version = version
+
+            if env.manifest:
+                env.manifest.remember(self, env, version)
+            if env.versioner and version:
+                # Hook for the versioner (for example set the timestamp of
+                # the file) to the actual version.
+                env.versioner.set_version(self, env, output, version)
 
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
@@ -596,7 +588,10 @@ class Bundle(object):
         """Return a output url, modified for expire header handling.
         """
         if env.url_expire:
-            result = "%s?%d" % (self.get_output(env), self.get_version(env))
+            # If auto-build is enabled, we must not use a cached version
+            # value, or we might serve old versions.
+            version = self.get_version(env, refresh=env.auto_build)
+            result = "%s?%d" % (self.resolve_output(env, version))
         else:
             result = self.output
         return env.absurl(result)
@@ -632,7 +627,7 @@ class Bundle(object):
                 elif is_url(c):
                     urls.append(c)
                 else:
-                    urls.append(self._make_url(env, c, expire=False))
+                    urls.append(env.absurl(c))
             return urls
 
     def urls(self, env=None, *args, **kwargs):

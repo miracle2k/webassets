@@ -3,7 +3,7 @@ import urlparse
 from itertools import chain
 from bundle import Bundle
 from cache import get_cache
-from version import get_versioner
+from version import get_versioner, get_manifest
 
 
 __all__ = ('Environment', 'RegisterError')
@@ -136,6 +136,7 @@ class BaseEnvironment(object):
         self.config.setdefault('cache', True)
         self.config.setdefault('url_expire', False)
         self.config.setdefault('auto_build', True)
+        self.config.setdefault('manifest', None)
         self.config.setdefault('versioner', 'timestamp')
 
         self.config.update(config)
@@ -274,6 +275,56 @@ class BaseEnvironment(object):
     process takes very long, then you may want to disable this.
 
     By default automatic building is enabled.
+    """)
+
+    def _set_manifest(self, manifest):
+        self.config['manifest'] = manifest
+    def _get_manifest(self):
+        manifest = get_manifest(self.config['manifest'])
+        if manifest != self.config['manifest']:
+            self.config['manifest'] = manifest
+        return manifest
+    manifest = property(_get_manifest, _set_manifest, doc=
+    """A manifest persists information about the versions bundles
+    are at.
+
+    The Manifest plays a role only if you insert the bundle version
+    in your output filenames, or append the version as a querystring
+    to the url (via the ``url_expire`` option). It serves two
+    purposes:
+
+        - Without a manifest, it may be impossible to determine the
+          version at runtime. In a deployed app, the media files may
+          be stored on a different server entirely, and be
+          inaccessible from the application code. The manifest,
+          if shipped with your application, is what still allows to
+          construct the proper URLs.
+
+        - Even if it were possible to determine the version at
+          runtime without a manifest, it may be a costly process,
+          and using a manifest may give you better performance. If
+          you use a hash-based version for example, this hash would
+          need to be recalculated every time a new process is
+          started.
+
+    Valid values are:
+
+      ``True`` (default)
+          Cache using default location, a ``.webassets-manifest``
+          file inside :attr:`directory`.
+
+      *custom path*
+          Use the given file to store the manifest.
+
+      ``"cache"``
+          Use the cache to store manifest information.
+
+      ``False``, ``None``
+          No manifest is used.
+
+      Any custom manifest implementation.
+
+    The default value is ``None``.
     """)
 
     def _set_versioner(self, versioner):

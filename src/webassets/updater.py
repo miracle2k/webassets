@@ -1,29 +1,30 @@
-"""The auto-rebuild system is an optional part of webassets that can
-be used during development, and can also be quite convenient on small
-sites that don't have the performance requirements where a rebuild-check
-on every request is fatal.
+"""The auto-rebuild system is an optional part of webassets that can be used
+during development, and can also be quite convenient on small sites that don't
+have the performance requirements where a rebuild-check on every request is
+fatal.
 
-This module contains classes that help determine whether a rebuild is
-required for a bundle. This is more complicated than simply comparing
-the timestamps of the source and output files.
+This module contains classes that help determine whether a rebuild is required
+for a bundle. This is more complicated than simply comparing the timestamps of
+the source and output files.
 
-First, certain filters, in particular CSS compilers like SASS,
-allow bundle source files to reference additional files which the user
-may not have listed in the bundle definition. The bundles support an
-additional ``depends`` argument that can list files that should be
-watched for modification.
+First, certain filters, in particular CSS compilers like SASS, allow bundle
+source files to reference additional files which the user may not have listed
+in the bundle definition. The bundles support an additional ``depends``
+argument that can list files that should be watched for modification.
 
-Second, if the bundle definition itself changes, i.e., source files
-being added or removed, or the list of applied filters modified, the
-bundle needs to be rebuilt also. Since there is no single fixed place
-where bundles are defined, simply watching the timestamp of that
-bundle definition file is not good enough.
+Second, if the bundle definition itself changes, i.e., source files being added
+or removed, or the list of applied filters modified, the bundle needs to be
+rebuilt also. Since there is no single fixed place where bundles are defined,
+simply watching the timestamp of that bundle definition file is not good enough.
 
-To solve the latter problem, we employ an environment-specific
-in-memory cache of bundle definition.
+To solve the latter problem, we employ an environment-specific cache of bundle
+definitions.
+
+Note that there is no ``HashUpdater``. This doesn't make sense for two reasons.
+First, for a live system, it isn't fast enough. Second, for prebuilding assets,
+the cache is a superior solution for getting essentially the same speed
+increase as using the hash to reliably determine which bundles to skip.
 """
-
-import os
 
 
 __all__ = ('SKIP_CACHE', 'TimestampUpdater', 'AlwaysUpdater',)
@@ -36,6 +37,7 @@ would currently not cause a different cache key to be used.
 This is marked a hint, because in the future, the bundle may be smart
 enough to make this decision by itself.
 """
+
 
 class BaseUpdater(object):
     """Base updater class.
@@ -98,11 +100,17 @@ class TimestampUpdater(BundleDefUpdater):
 
     def check_timestamps(self, bundle, env, o_modified=None):
         from bundle import Bundle, is_url
+        from webassets.version import TimestampVersion
 
         if not o_modified:
-            o_modified = os.stat(env.abspath(bundle.output)).st_mtime
+            resolved_output = bundle.resolve_output(env)
+            try:
+                o_modified = TimestampVersion.get_timestamp(resolved_output)
+            except OSError:
+                # If the output file does not exist, we'll have to rebuild
+                return True
 
-        # Recurse through the bundle hierarchy. Check the timestamp of all
+       # Recurse through the bundle hierarchy. Check the timestamp of all
         # the bundle source files, as well as any additional
         # dependencies that we are supposed to watch.
         for iterator, result in (
@@ -116,7 +124,7 @@ class TimestampUpdater(BundleDefUpdater):
                         return nested_result
                 elif not is_url(item):
                     try:
-                        s_modified = os.stat(item).st_mtime
+                        s_modified = TimestampVersion.get_timestamp(item)
                     except OSError:
                         # If a file goes missing, always require
                         # a rebuild.

@@ -1,9 +1,18 @@
 import contextlib
 import os
+import sys
 from itertools import takewhile
 
 
-__all__ = ('common_path_prefix', 'working_directory')
+__all__ = ('md5_constructor', 'common_path_prefix', 'working_directory')
+
+
+if sys.version_info >= (2, 5):
+    import hashlib
+    md5_constructor = hashlib.md5
+else:
+    import md5
+    md5_constructor = md5.new
 
 
 def common_path_prefix(paths, sep=os.path.sep):

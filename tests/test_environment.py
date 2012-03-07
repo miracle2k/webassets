@@ -115,12 +115,12 @@ class TestSpecialProperties:
         self.m = Environment('.', None)  # we won't create any files
 
     def test_versioner(self):
-        from webassets.version import BaseVersion
+        from webassets.version import Version
 
         # Standard string values
         self.m.versioner = 'timestamp'
         assert isinstance(self.m.config['versioner'], basestring)
-        assert isinstance(self.m.versioner, BaseVersion)
+        assert isinstance(self.m.versioner, Version)
         assert self.m.versioner == 'timestamp'   # __eq__
         assert self.m.versioner != 'hash'
 
@@ -129,12 +129,12 @@ class TestSpecialProperties:
         assert self.m.versioner is None
 
         # Instance assign
-        self.m.versioner = instance = BaseVersion()
+        self.m.versioner = instance = Version()
         assert self.m.versioner == instance
 
         # Class assign
-        self.m.versioner = BaseVersion
-        assert isinstance(self.m.versioner, BaseVersion)
+        self.m.versioner = Version
+        assert isinstance(self.m.versioner, Version)
 
         # Invalid value
         self.m.versioner = 'invalid-value'

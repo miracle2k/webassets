@@ -17,14 +17,7 @@ import os
 from os import path
 from webassets.merge import BaseHunk
 from webassets.filter import Filter, freezedicts
-
-import sys
-if sys.version_info >= (2, 5):
-    import hashlib
-    md5_constructor = hashlib.md5
-else:
-    import md5
-    md5_constructor = md5.new
+from webassets.utils import md5_constructor
 
 
 __all__ = ('FilesystemCache', 'MemoryCache', 'get_cache',)
