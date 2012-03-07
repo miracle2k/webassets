@@ -18,6 +18,10 @@ There are some significant backwards incompatible changes in this release.
   now needs to be done using ``Environment.auto_build``, or the corresponding
   ``ASSETS_AUTO_BUILD`` setting.
 
+- The ``Environment.expire`` (``ASSETS_EXPIRE``) option as been renamed to
+  ``Environment.url_expire`` (``ASSETS_URL_EXPIRE``), and the default value
+  is now ``True``.
+
 Other changes:
 
 - If ``Environment.auto_build`` is disabled, the API of Bundle.build()

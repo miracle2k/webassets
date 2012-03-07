@@ -120,11 +120,16 @@ class BaseEnvironment(object):
         self._config = self.config_storage_class(self)
 
         # directory, url currently do not have default values
+        #
+        # some thought went into these defaults:
+        #   - enable url_expire, because we want to encourage the right thing
+        #   - default to hash versions, for the same reason: they're better
+        #   - manifest=cache because hash versions are slow
         self.config.setdefault('debug', False)
         self.config.setdefault('cache', True)
-        self.config.setdefault('url_expire', False)
+        self.config.setdefault('url_expire', True)
         self.config.setdefault('auto_build', True)
-        self.config.setdefault('manifest', None)
+        self.config.setdefault('manifest', 'cache')
         self.config.setdefault('versions', 'hash')
         self.config.setdefault('updater', 'timestamp')
 
@@ -291,7 +296,7 @@ class BaseEnvironment(object):
 
     Valid values are:
 
-      ``"cache"``
+      ``"cache"`` (default)
           The cache is used to remember version information. This
           is useful to avoid recalculating the version hash.
 
@@ -300,7 +305,7 @@ class BaseEnvironment(object):
           path is given, the manifest will be stored as
           ``.webassets-manifest`` in ``Environment.directory``.
 
-      ``False``, ``None`` (default)
+      ``False``, ``None``
           No manifest is used.
 
       Any custom manifest implementation.
@@ -328,7 +333,7 @@ class BaseEnvironment(object):
           The version is determined by looking at the mtime of a
           bundle's output file.
 
-      ``hash``
+      ``hash`` (default)
           The version is a hash over the output file's content.
 
       ``False``, ``None``
@@ -382,7 +387,7 @@ class BaseEnvironment(object):
     An alternative approach would be to use the %(version)s
     placeholder in the bundle output file.
 
-    By default, this option is disabled.
+    By default, this option is enabled.
     """)
 
     def _set_directory(self, directory):
