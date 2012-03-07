@@ -291,17 +291,16 @@ class BaseEnvironment(object):
 
     Valid values are:
 
-      ``True`` (default)
-          Cache using default location, a ``.webassets-manifest``
-          file inside :attr:`directory`.
-
-      *custom path*
-          Use the given file to store the manifest.
-
       ``"cache"``
-          Use the cache to store manifest information.
+          The cache is used to remember version information. This
+          is useful to avoid recalculating the version hash.
 
-      ``False``, ``None``
+      ``"file:{path}"``
+          Stores version information in a file at {path}. If not
+          path is given, the manifest will be stored as
+          ``.webassets-manifest`` in ``Environment.directory``.
+
+      ``False``, ``None`` (default)
           No manifest is used.
 
       Any custom manifest implementation.
