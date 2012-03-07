@@ -6,7 +6,6 @@ import os
 import pickle
 
 from webassets.bundle import has_placeholder, is_url, get_all_bundle_files
-from webassets.updater import TimestampUpdater
 from webassets.merge import FileHunk
 from webassets.utils import md5_constructor
 
@@ -64,8 +63,6 @@ class Version(object):
     
     __metaclass__ = VersionRegistry
 
-    default_updater = TimestampUpdater
-
     def __eq__(self, other):
         """Return equality with the config values that instantiate this
         instance.
@@ -103,20 +100,6 @@ class Version(object):
         """Hook called after a bundle has been built. Some version classes
         may need this.
         """
-
-    def _get_updater(self):
-        if not hasattr(self, '_updater'):
-            self._updater = self.default_updater()
-        return self._updater
-    def _set_updater(self, value):
-        self._updater = value
-    updater = property(_get_updater, _set_updater, doc="""
-    Updater to use to determine whether a rebuild is required.
-
-    This is an attribute of the Version class, because whether or
-    not a rebuild is required is essentially a function of the
-    "version" concept.
-    """)
 
 
 class TimestampVersion(Version):

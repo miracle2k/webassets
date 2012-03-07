@@ -1,9 +1,11 @@
 from os import path
 import urlparse
 from itertools import chain
+import warnings
 from bundle import Bundle
 from cache import get_cache
 from version import get_versioner, get_manifest
+from updater import get_updater
 
 
 __all__ = ('Environment', 'RegisterError')
@@ -70,11 +72,6 @@ class ConfigStorage(object):
         self._warn_key_deprecation(key)
         if key == 'expire':
             return 'querystring' if self['url_expire'] else False
-        if key == 'updater':
-            if self['auto_build']:
-                return 'timestamp'
-            else:
-                return False
 
     def _set_deprecated(self, key, value):
         self._warn_key_deprecation(key)
@@ -89,15 +86,11 @@ class ConfigStorage(object):
         if key == 'updater':
             if not value or value == 'never':
                 self['auto_build'] = False
-            elif value == 'always':
-                raise DeprecationWarning(
-                    ('The "updater" option has been deprecated. To keep '
-                     'the old "always" behaviour you need to assign '
-                     '"AlwaysUpdater" to "Environment.versioner.updater" '
-                     'in code.'))
-            else:
-                self['auto_build'] = True
-            return True
+                warnings.warn((
+                    'The "updater" option no longer can be set to False '
+                    'or "never" to disable automatic building. Instead, '
+                    'use the new "auto_build" boolean option.'), DeprecationWarning)
+                return True
 
     def _warn_key_deprecation(self, key):
         """Subclasses should override this to provide custom
@@ -110,13 +103,6 @@ class ConfigStorage(object):
                 'want to append something other than a timestamp to '
                 'your URLs, check out the "versioner" option.'),
                           DeprecationWarning)
-        if key == 'updater':
-            warnings.warn((
-                'The "updater" option has been deprecated in 0.7, and '
-                'replaced with a boolean option "auto_build". If you '
-                'want to use something other than a timestamp check '
-                'for this, see the "versioner" option, and the "updater" '
-                'attribute of the versioner.'), DeprecationWarning)
 
 
 class BaseEnvironment(object):
@@ -138,6 +124,7 @@ class BaseEnvironment(object):
         self.config.setdefault('auto_build', True)
         self.config.setdefault('manifest', None)
         self.config.setdefault('versioner', 'timestamp')
+        self.config.setdefault('updater', 'timestamp')
 
         self.config.update(config)
 
@@ -254,14 +241,7 @@ class BaseEnvironment(object):
     def _set_auto_build(self, value):
         self.config['auto_build'] = value
     def _get_auto_build(self):
-        value = self.config['auto_build']
-        if value and not self.versioner:
-            raise ValueError('you have enabled the "auto_build" option, '+
-                             'but "versioner" is not set')
-        if value and not self.versioner.updater:
-            raise ValueError('you have enabled the "auto_build" option, '+
-                             'but your "versioner" does not support it')
-        return value
+        return self.config['auto_build']
     auto_build = property(_get_auto_build, _set_auto_build, doc=
     """Controls whether bundles should be automatically built, and
     rebuilt, when required (if set to ``True``), or whether they
@@ -362,6 +342,28 @@ class BaseEnvironment(object):
     for.
     """)
 
+    def set_updater(self, updater):
+        self.config['updater'] = updater
+    def get_updater(self):
+        value = self.config['updater']
+        updater = get_updater(self.config['updater'])
+        if updater != self.config['updater']:
+            self.config['updater'] = updater
+        return updater
+    updater = property(get_updater, set_updater, doc=
+    """Controls how the ``auto_build`` option should determine
+    whether a bundle needs to be rebuilt.
+
+      ``"timestamp"`` (default)
+          Rebuild bundles if the source file timestamp exceeds the existing
+          output file's timestamp.
+
+      ``"always"``
+          Always rebuild bundles (avoid in production environments).
+
+      Any custom version implementation.
+    """)
+
     def _set_url_expire(self, url_expire):
         self.config['url_expire'] = url_expire
     def _get_url_expire(self):
@@ -399,18 +401,13 @@ class BaseEnvironment(object):
     should be exposed.
     """)
 
-    # Deprecated attributes, remove in 0.7; warnings are raised by
+    # Deprecated attributes, remove in 0.8?; warnings are raised by
     # the config backend.
     def _set_expire(self, expire):
         self.config['expire'] = expire
     def _get_expire(self):
         return self.config['expire']
     expire = property(_get_expire, _set_expire)
-    def _set_updater(self, expire):
-        self.config['updater'] = expire
-    def _get_updater(self):
-        return self.config['updater']
-    updater = property(_get_updater, _set_updater)
 
     def absurl(self, fragment):
         """Create an absolute url based on the root url.

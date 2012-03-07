@@ -126,18 +126,6 @@ class TestVersionSystemDeprecations(TempEnvironmentHelper):
             x = self.m.expire
         with check_warnings(("", DeprecationWarning)):
             x = self.m.config['expire']
-        
-    def test_updater_option(self):
-        # Assigning to the updater option raises a deprecation warning
-        with check_warnings(("", DeprecationWarning)):
-            self.m.updater = True
-        with check_warnings(("", DeprecationWarning)):
-            self.m.config['updater'] = True
-        # Reading the updater option raises a warning also.
-        with check_warnings(("", DeprecationWarning)):
-            x = self.m.updater
-        with check_warnings(("", DeprecationWarning)):
-            x = self.m.config['updater']
 
     def test_expire_option_passthrough(self):
         """While "expire" no longer exists, we attempt to provide an
@@ -157,21 +145,12 @@ class TestVersionSystemDeprecations(TempEnvironmentHelper):
             assert_raises(DeprecationWarning, setattr, self.m, 'expire', 'filename')
 
     def test_updater_option_passthrough(self):
-        """While "updater" no longer exists, we attempt to provide an
-        emulation."""
+        """Certain values of the "updater" option have been replaced with
+        auto_build."""
         with check_warnings(("", DeprecationWarning)):
-            # Read
-            self.m.auto_build = False
-            assert self.m.updater == False
             self.m.auto_build = True
-            assert self.m.updater == 'timestamp'
-            # Write
             self.m.updater = False
             assert self.m.auto_build == False
-            self.m.updater = 'timestamp'
-            assert self.m.auto_build == True
-            # "always" needs to be migrated manually
-            assert_raises(DeprecationWarning, setattr, self.m, 'updater', 'always')
 
 
 class TestBuild(TempEnvironmentHelper):
@@ -530,7 +509,7 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
             allow = True
             def needs_rebuild(self, *a, **kw):
                 return self.allow
-        self.m.versioner.updater = self.updater = CustomUpdater()
+        self.m.updater = self.updater = CustomUpdater()
 
     def test_autocreate(self):
         """If an output file doesn't yet exist, it'll be created (as long
@@ -642,7 +621,7 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         file to be included, one of the existing files first needs
         to be modified to actually add the include command.
         """
-        updater = self.m.versioner.updater = TimestampUpdater()
+        updater = self.m.updater = TimestampUpdater()
         self.m.cache = False
         self.create_files({'first.sass': 'one'})
         b = self.mkbundle('in1', output='out', depends='*.sass')
@@ -693,7 +672,7 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         DEPENDENCY_SUB = 'dependency_sub.sass'
 
         # Init a environment with a cache
-        self.m.versioner.updater = TimestampUpdater()
+        self.m.updater = TimestampUpdater()
         self.m.cache = MemoryCache(100)
         self.create_files({
             DEPENDENCY: '-main',

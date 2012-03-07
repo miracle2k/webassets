@@ -27,7 +27,10 @@ increase as using the hash to reliably determine which bundles to skip.
 """
 
 
-__all__ = ('SKIP_CACHE', 'TimestampUpdater', 'AlwaysUpdater',)
+__all__ = ('get_updater', 'SKIP_CACHE',
+           'TimestampUpdater', 'AlwaysUpdater',)
+
+
 SKIP_CACHE = object()
 """An updater can return this value as hint that a cache, if enabled,
 should probably not be used for the rebuild; This is currently used
@@ -46,6 +49,27 @@ class BaseUpdater(object):
     string id in the configuration.
     """
 
+    class __metaclass__(type):
+        UPDATERS = {}
+
+        def __new__(cls, name, bases, attrs):
+            new_klass = type.__new__(cls, name, bases, attrs)
+            if hasattr(new_klass, 'id'):
+                cls.UPDATERS[new_klass.id] = new_klass
+            return new_klass
+
+        def get_updater(cls, thing):
+            if hasattr(thing, 'needs_rebuild'):
+                if isinstance(thing, type):
+                    return thing()
+                return thing
+            if not thing:
+                return None
+            try:
+                return cls.UPDATERS[thing]()
+            except KeyError:
+                raise ValueError('Updater "%s" is not valid.' % thing)
+
     def needs_rebuild(self, bundle, env):
         """Returns ``True`` if the given bundle needs to be rebuilt,
         ``False`` otherwise.
@@ -55,6 +79,9 @@ class BaseUpdater(object):
     def build_done(self, bundle, env):
         """This will be called once a bundle has been successfully built.
         """
+
+
+get_updater = BaseUpdater.get_updater
 
 
 class BundleDefUpdater(BaseUpdater):
@@ -155,3 +182,4 @@ class AlwaysUpdater(BaseUpdater):
 
     def needs_rebuild(self, bundle, env):
         return True
+

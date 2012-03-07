@@ -472,7 +472,7 @@ class Bundle(object):
             update_needed = True
         else:
             if env.auto_build:
-                update_needed = env.versioner.updater.needs_rebuild(self, env)
+                update_needed = env.updater.needs_rebuild(self, env)
                 # _merge_and_apply() is now smart enough to do without
                 # this disable_cache hint, but for now, keep passing it
                 # along if we get the info from the updater.
@@ -526,8 +526,7 @@ class Bundle(object):
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
         # bundle definition, like new source files.
-        if env.versioner and env.versioner.updater:
-            env.versioner.updater.build_done(self, env)
+        env.updater.build_done(self, env)
 
         return hunk
 

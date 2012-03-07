@@ -68,7 +68,7 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         # Test the timestamp updater with cache disabled, so that the
         # BundleDefUpdater() base class won't interfere.
         self.m.cache = False
-        self.m.versioner.updater = self.updater = TimestampUpdater()
+        self.m.updater = self.updater = TimestampUpdater()
 
     def test_timestamp_behavior(self):
         bundle = self.mkbundle('in', output='out')

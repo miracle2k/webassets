@@ -101,7 +101,7 @@ class TestCacheIsUsed(TempEnvironmentHelper):
 
         self.m.cache = self.cache = MyCache()
         # Note that updater will use the cache also
-        self.m.versioner.updater = TimestampUpdater()
+        self.m.updater = TimestampUpdater()
 
     def test_cache_disabled(self):
         bundle = self.mkbundle('in1', 'in2', output='out', filters=self.filter)
@@ -127,6 +127,6 @@ class TestCacheIsUsed(TempEnvironmentHelper):
         """
         bundle = self.mkbundle('in1', 'in2', output='out', filters="jsmin")
         self.m.cache = True   # use the filesystem cache
-        self.m.versioner.updater = TimestampUpdater()
+        self.m.updater = TimestampUpdater()
         bundle.build(force=True)
 

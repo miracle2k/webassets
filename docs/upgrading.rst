@@ -13,11 +13,9 @@ In Development version
 There are some significant backwards incompatible changes in this release.
 
 - The ``Environment.updater`` property (corresponds to the 
-  ``ASSETS_UPDATER`` setting) has been removed. In the unlikely case that
-  you really need to customize how changed files are identified, go the
-  detour route via ``versioner.updater``. Mostly the ``updater`` setting
-  was used to disable the automatic rebuilding during production. This can
-  now be done using ``Environment.auto_build``, or the corresponding
+  ``ASSETS_UPDATER`` setting) can no longer be set to ``False`` or
+  ``"never"`` in order to disable the automatic rebuilding. Instead, this
+  now needs to be done using ``Environment.auto_build``, or the corresponding
   ``ASSETS_AUTO_BUILD`` setting.
 
 Other changes:
