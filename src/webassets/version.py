@@ -20,7 +20,7 @@ class VersionIndeterminableError(Exception):
 
 
 class VersionRegistry(type):
-    """Metaclass that registeres all subclasses."""
+    """Metaclass that registers all subclasses."""
 
     VERSIONERS = {}
 
