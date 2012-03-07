@@ -5,10 +5,24 @@ import hashlib
 import os
 from nose.tools import assert_raises
 
+from webassets.env import Environment
 from webassets.merge import MemoryHunk
 from webassets.test import TempEnvironmentHelper
 from webassets.version import (
-    FileManifest, CacheManifest, TimestampVersion, VersionIndeterminableError, HashVersion)
+    FileManifest, CacheManifest, TimestampVersion, VersionIndeterminableError,
+    HashVersion, get_versioner, get_manifest)
+
+
+def test_builtin_version_accessors():
+    assert get_versioner('hash').__class__ == HashVersion
+    assert get_versioner('timestamp').__class__ == TimestampVersion
+
+
+def test_builtin_manifest_accessors():
+    env = Environment('', '')
+    assert get_manifest('cache', env).__class__ == CacheManifest
+    assert get_manifest('file', env).__class__ == FileManifest
+    assert get_manifest('file:/tmp/foo', env).filename == '/tmp/foo'
 
 
 class TestTimestampVersion(TempEnvironmentHelper):

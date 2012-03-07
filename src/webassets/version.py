@@ -212,7 +212,7 @@ class Manifest(object):
 get_manifest = Manifest.resolve
 
 
-class FileManifest(object):
+class FileManifest(Manifest):
     """Stores version data in a single file.
 
     Uses Python's pickle module to stores a dict data structure. You should
@@ -257,7 +257,7 @@ class FileManifest(object):
             pickle.dump(self.manifest, f, protocol=2)
 
 
-class CacheManifest(object):
+class CacheManifest(Manifest):
     """Stores version data in the webassets cache.
 
     Since this has bad portability (you hardly want to copy your cache between
@@ -268,6 +268,8 @@ class CacheManifest(object):
     want to use, since it is multi-process safe.
     """
 
+    id = 'cache'
+
     def remember(self, bundle, env, version):
         if env.cache:
             env.cache.set(('manifest', bundle.output), version)
@@ -277,7 +279,7 @@ class CacheManifest(object):
             return env.cache.get(('manifest', bundle.output))
 
 
-class SymlinkManifest(object):
+class SymlinkManifest(Manifest):
     """Creates a symlink to the actual file.
 
     E.g. compressed-current.js -> compressed-1ebcdc5.js

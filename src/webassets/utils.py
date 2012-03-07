@@ -67,13 +67,14 @@ def make_option_resolver(clazz=None, attribute=None, classes=None,
         # Create an instance of clazz, via the Factory if one is defined,
         # passing along the Environment, or creating the class directly.
         if hasattr(clazz, 'make'):
-            args = {'env': env}
-            args.update(kw)
-            return clazz.make(*a, **kw)
+            # make() protocol is that if e.g. the get_manifest() resolver takes
+            # an env, then the first argument of the factory is the env.
+            args = (env,) + a if env is not None else a
+            return clazz.make(*args, **kw)
         return clazz(*a, **kw)
 
     def resolve_option(option, env=None):
-        the_clazz = clazz() if callable(clazz) else clazz
+        the_clazz = clazz() if callable(clazz) and not isinstance(option, type) else clazz
 
         if not option and allow_none:
             return None
