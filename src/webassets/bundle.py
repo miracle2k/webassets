@@ -218,7 +218,8 @@ class Bundle(object):
                 from version import VersionIndeterminableError
                 if env.versions:
                     try:
-                        version = env.versions.get_version_for(self)
+                        version = env.versions.determine_version(self, env)
+                        assert version
                     except VersionIndeterminableError, e:
                         reason = e
                 else:
@@ -231,7 +232,7 @@ class Bundle(object):
             self.version = version
         return self.version
 
-    def resolve_output(self, env, version=None):
+    def resolve_output(self, env=None, version=None):
         """Return the full, absolute output path.
 
         If a %(version)s placeholder is used, it is replaced.
@@ -501,8 +502,8 @@ class Bundle(object):
                 os.makedirs(output_dir)
 
             version = None
-            if has_placeholder(self.output) or env.manifest:
-                version = env.versions.get_version_for(self, hunk)
+            if env.versions:
+                version = env.versions.determine_version(self, env, hunk)
 
             if not has_placeholder(self.output):
                 hunk.save(self.resolve_output(env))
@@ -590,7 +591,7 @@ class Bundle(object):
             # If auto-build is enabled, we must not use a cached version
             # value, or we might serve old versions.
             version = self.get_version(env, refresh=env.auto_build)
-            result = "%s?%d" % (self.resolve_output(env, version))
+            result = "%s?%s" % (self.resolve_output(env, version), version)
         else:
             result = self.output
         return env.absurl(result)

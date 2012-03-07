@@ -82,6 +82,9 @@ class TempDirHelper(object):
         """
         return open(self.path(name)).read()
 
+    def unlink(self, name):
+        os.unlink(self.path(name))
+
     def path(self, name):
         """Return the given file's full path."""
         return path.join(self._tempdir_created, name)
@@ -92,8 +95,12 @@ class TempDirHelper(object):
 
         Specify ``mtime`` as a keyword argument, or time.time()
         will automatically be used. Returns the mtime used.
+
+        Specify ``mod`` as a keyword argument, and the modifier
+        will be added to the ``mtime`` used.
         """
         mtime = kwargs.pop('mtime', time.time())
+        mtime += kwargs.pop('mod', 0)
         assert not kwargs, "Unsupported kwargs: %s" %  ', '.join(kwargs.keys())
         for f in files:
             os.utime(self.path(f), (mtime, mtime))

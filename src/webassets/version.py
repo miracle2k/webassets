@@ -36,10 +36,10 @@ class Version(object):
     """
 
     __metaclass__ = RegistryMetaclass(
-        clazz=lambda: Version, attribute='get_version_for',
+        clazz=lambda: Version, attribute='determine_version',
         desc='a version implementation')
 
-    def get_version_for(self, bundle, hunk=None, env=None):
+    def determine_version(self, bundle, hunk=None, env=None):
         """Return a string that represents the current version of the given
         bundle.
 
@@ -83,39 +83,38 @@ class TimestampVersion(Version):
 
     id = 'timestamp'
 
-    def determine_version(self, bundle, hunk, env=None):
+    def determine_version(self, bundle, env, hunk=None):
         # Only look at an existing output file if we are not about to
         # overwrite it with a new version. But if we can, simply using the
         # timestamp of the final file is the fastest way to do this.
         # Note that this works because of our ``save_done`` hook.
         if not hunk:
             if not has_placeholder(bundle.output):
-                return self.get_timestamp(bundle.resolve_output())
+                return self.get_timestamp(bundle.resolve_output(env))
 
         # If we need the timestamp for the file we just built (hunk!=None),
         # or if we need the timestamp for a bundle with a placeholder,
         # the way to get it is by looking at the source files.
         try:
-            self.find_recent_most_timestamp(bundle)
+            return self.find_recent_most_timestamp(bundle, env)
         except OSError:
             # Source files are missing. Under these circumstances, we cannot
             # return a proper version.
-            assert hunk is not None
+            assert hunk is None
             raise VersionIndeterminableError(
                 'source files are missing and output target has a '
                 'placeholder')
 
     def set_version(self, bundle, env, filename, version):
         # Update the mtime of the newly created file with the version
-        print version
         os.utime(filename, (-1, version))
 
     @classmethod
     def get_timestamp(cls, filename):
-        return os.stat(filename).st_mtime    # Let OSError pass
+        return int(os.stat(filename).st_mtime)    # Let OSError pass
 
     @classmethod
-    def find_recent_most_timestamp(cls, bundle, env=None):
+    def find_recent_most_timestamp(cls, bundle, env):
         # Recurse through the bundle hierarchy. Check the timestamp of all
         # the bundle source files, as well as any additional
         # dependencies that we are supposed to watch.
@@ -146,10 +145,10 @@ class HashVersion(Version):
         self.length = length
         self.hasher = hash
 
-    def get_version_for(self, bundle, hunk=None, env=None):
+    def determine_version(self, bundle, env, hunk=None):
         if not hunk:
             if not has_placeholder(bundle.output):
-                hunk = FileHunk(bundle.resolve_output())
+                hunk = FileHunk(bundle.resolve_output(env))
             else:
                 # Can cannot determine the version of placeholder files.
                 raise VersionIndeterminableError(

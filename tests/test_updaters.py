@@ -219,3 +219,28 @@ class TestTimestampUpdater(TempEnvironmentHelper):
 
         # At this point, a rebuild is required.
         assert self.m.updater.needs_rebuild(b, self.m) == True
+
+    def test_placeholder_output(self):
+        """Test behaviour if the output contains a placeholder."""
+        from test_bundle import DummyVersion
+        self.env.versions = DummyVersion('init')
+        self.env.manifest = None
+        b = self.mkbundle('in', output='out-%(version)s')
+
+        # True, because the output file does not yet exist
+        assert self.m.updater.needs_rebuild(b, self.m) == True
+
+        # After a build, no update required anymore
+        b.build(force=True)
+        assert self.m.updater.needs_rebuild(b, self.m) == False
+
+        # If we change the date, update is required again
+        now = self.setmtime('out-init')
+        self.setmtime('in', mtime=now+100)
+        assert self.m.updater.needs_rebuild(b, self.m) == True
+
+        # If we change the version, a rebuild will be required
+        # because the output file once again no longer exists
+        b.build(force=True)
+        self.env.versions.version = 'something-else'
+        assert self.m.updater.needs_rebuild(b, self.m) == True

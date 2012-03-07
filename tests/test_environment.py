@@ -1,8 +1,11 @@
 from nose.tools import assert_raises, with_setup
+from test.test_support import check_warnings
 
 from webassets import Environment
 from webassets.env import RegisterError
 from webassets import Bundle
+from webassets.test import TempEnvironmentHelper
+from webassets.exceptions import ImminentDeprecationWarning
 
 
 class TestEnvApi:
@@ -168,3 +171,46 @@ class TestSpecialProperties:
         # Class assign
         self.m.cache = instance = BaseCache
         assert isinstance(self.m.cache, BaseCache)
+
+
+class TestVersionSystemDeprecations(TempEnvironmentHelper):
+    """With the introduction of the ``Environment.version`` system,
+    some functionality has been deprecated.
+    """
+
+    def test_expire_option(self):
+        # Assigning to the expire option raises a deprecation warning
+        with check_warnings(("", ImminentDeprecationWarning)) as w:
+            self.m.expire = True
+        with check_warnings(("", ImminentDeprecationWarning)):
+            self.m.config['expire'] = True
+            # Reading the expire option raises a warning also.
+        with check_warnings(("", ImminentDeprecationWarning)):
+            x = self.m.expire
+        with check_warnings(("", ImminentDeprecationWarning)):
+            x = self.m.config['expire']
+
+    def test_expire_option_passthrough(self):
+        """While "expire" no longer exists, we attempt to provide an
+        emulation."""
+        with check_warnings(("", ImminentDeprecationWarning)):
+            # Read
+            self.m.url_expire = False
+            assert self.m.expire == False
+            self.m.url_expire = True
+            assert self.m.expire == 'querystring'
+            # Write
+            self.m.expire = False
+            assert self.m.url_expire == False
+            self.m.expire = 'querystring'
+            assert self.m.url_expire == True
+            # "filename" needs to be migrated manually
+            assert_raises(DeprecationWarning, setattr, self.m, 'expire', 'filename')
+
+    def test_updater_option_passthrough(self):
+        """Certain values of the "updater" option have been replaced with
+        auto_build."""
+        with check_warnings(("", ImminentDeprecationWarning)):
+            self.m.auto_build = True
+            self.m.updater = False
+            assert self.m.auto_build == False

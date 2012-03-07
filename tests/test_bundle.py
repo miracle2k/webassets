@@ -1,20 +1,21 @@
 import os
+from os import path
 import urllib2
 from StringIO import StringIO
 
 from nose.tools import assert_raises, assert_equals
 from nose import SkipTest
-from test.test_support import check_warnings
+
 
 from webassets import Bundle
 from webassets.bundle import get_all_bundle_files
 from webassets.exceptions import BundleError, BuildError
 from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
-from webassets.cache import MemoryCache, FilesystemCache
-from webassets.exceptions import ImminentDeprecationWarning
+from webassets.cache import MemoryCache
+from webassets.version import Manifest, Version, VersionIndeterminableError
 
-from helpers import TempEnvironmentHelper, noop
+from helpers import TempEnvironmentHelper, noop, assert_raises_regexp
 
 
 class TestBundleConfig(TempEnvironmentHelper):
@@ -109,49 +110,6 @@ class TestBundleConfig(TempEnvironmentHelper):
         assert len(b.resolve_depends(self.m)) == 1
         self.create_files({'file2.sass': ''})
         assert len(b.resolve_depends(self.m)) == 1
-
-
-class TestVersionSystemDeprecations(TempEnvironmentHelper):
-    """With the introduction of the ``Environment.version`` system,
-    some functionality has been deprecated.
-    """
-
-    def test_expire_option(self):
-        # Assigning to the expire option raises a deprecation warning
-        with check_warnings(("", ImminentDeprecationWarning)) as w:
-            self.m.expire = True
-        with check_warnings(("", ImminentDeprecationWarning)):
-            self.m.config['expire'] = True
-        # Reading the expire option raises a warning also.
-        with check_warnings(("", ImminentDeprecationWarning)):
-            x = self.m.expire
-        with check_warnings(("", ImminentDeprecationWarning)):
-            x = self.m.config['expire']
-
-    def test_expire_option_passthrough(self):
-        """While "expire" no longer exists, we attempt to provide an
-        emulation."""
-        with check_warnings(("", ImminentDeprecationWarning)):
-            # Read
-            self.m.url_expire = False
-            assert self.m.expire == False
-            self.m.url_expire = True
-            assert self.m.expire == 'querystring'
-            # Write
-            self.m.expire = False
-            assert self.m.url_expire == False
-            self.m.expire = 'querystring'
-            assert self.m.url_expire == True
-            # "filename" needs to be migrated manually
-            assert_raises(DeprecationWarning, setattr, self.m, 'expire', 'filename')
-
-    def test_updater_option_passthrough(self):
-        """Certain values of the "updater" option have been replaced with
-        auto_build."""
-        with check_warnings(("", ImminentDeprecationWarning)):
-            self.m.auto_build = True
-            self.m.updater = False
-            assert self.m.auto_build == False
 
 
 class TestBuild(TempEnvironmentHelper):
@@ -475,7 +433,7 @@ class TestFilters(TempEnvironmentHelper):
     def test_duplicate_open_filters(self):
         """Test that only one open() filter can be used.
         """
-        # TOOD: For performance reasons, this check could possibly be
+        # TODO: For performance reasons, this check could possibly be
         # done earlier, when assigning to the filter property. It wouldn't
         # catch all cases involving bundle nesting though.
         class OpenFilter(Filter):
@@ -498,7 +456,7 @@ class TestFilters(TempEnvironmentHelper):
         assert self.get('out') == '1%%%2'
 
 
-class TestUpdateAndCreate(TempEnvironmentHelper):
+class TestAutoUpdate(TempEnvironmentHelper):
     """Test bundle auto rebuild, and generally everything involving
     the updater from the bundle's perspective.
     """
@@ -810,6 +768,16 @@ class TestUrlsCommon(BaseUrlsTester):
         bundle = self.mkbundle('non-existant-file', output="out")
         assert_raises(BundleError, bundle.urls)
 
+    def test_url_expire(self):
+        """Test the url_expire option.
+        """
+        self.env.debug = False
+        self.env.url_expire = True
+        self.env.versions = DummyVersion('foo')
+        root = self.mkbundle('1', '2', output='out')
+        assert len(root.urls()) == 1
+        assert root.urls()[0].endswith('/out?foo')
+
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):
     """Test url generation in production mode - everything is always
@@ -975,6 +943,104 @@ class TestUrlsWithDebugMerge(BaseUrlsTester):
             'c', output='out')
         assert_equals(bundle.urls(), ['/out'])
         assert len(self.build_called) == 1
+
+
+class DummyVersion(Version):
+    def __init__(self, version=None):
+        self.version = version
+    def determine_version(self, bundle, env, hunk=None):
+        if not self.version:
+            raise VersionIndeterminableError('dummy has no version')
+        return self.version
+
+class TestPlaceholderOutput(TempEnvironmentHelper):
+    """Test the feature of putting the %(version)s placeholder in a bundle
+    output filename.
+
+    Apart from testing the actual build process, a big part of this is that
+    the resolve_output()/get_version() methods can return the full filename
+    (for example via the manifest). We test this here once, and know that
+    it will work with features like "url_expire" and "autorebuild with
+    placeholders" as well.
+    """
+
+    default_files = {'in': 'foo'}
+
+    class DummyManifest(Manifest):
+        def __init__(self, version=None):
+            self.log = []
+            self.version = version
+        def query(self, bundle, env):
+            return self.version
+        def remember(self, *a, **kw):
+            self.log.append((a, kw))
+
+    def setup(self):
+        super(TestPlaceholderOutput, self).setup()
+        self.env.manifest = self.DummyManifest()
+        self.env.versions = DummyVersion()
+
+    def test_build(self):
+        """Test the build process creates files with placeholders,
+        and stores the version in the manifest.
+        """
+        self.env.manifest = self.DummyManifest('manifest')
+        self.env.versions = DummyVersion('v1')
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        bundle.build()
+
+        # The correct output filename has been used
+        assert path.basename(bundle.resolve_output()) == 'out-v1'
+        assert self.get('out-v1')
+        # The version has been logged in the manifest
+        assert self.env.manifest.log
+        # The version has been cached in an attribute
+        assert bundle.version == 'v1'
+
+        self.env.versions.version = 'v999'
+        bundle.build(force=True)
+        assert path.basename(bundle.resolve_output()) == 'out-v999'
+        assert self.get('out-v999')
+
+        # Old file still exists as well.
+        assert self.get('out-v1')
+        # DummyManifest has two log entries now
+        assert len(self.env.manifest.log) == 2
+
+    def test_version_from_attr(self):
+        """If version attr is set, it will be used before anything else."""
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        self.env.manifest.version = 'manifest'
+        self.env.versions.version = 'versions'
+        bundle.version = 'attr'
+        assert bundle.get_version() == 'attr'
+        assert bundle.resolve_output() == self.path('out-attr')
+
+    def test_version_from_manifest(self):
+        """The manifest is checked  first for the version."""
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        self.env.manifest.version = 'manifest'
+        self.env.versions.version = 'versions'
+        assert bundle.get_version() == 'manifest'
+        assert bundle.resolve_output() == self.path('out-manifest')
+
+    def test_version_from_versioner(self):
+        """If version is not in manifest, check versioner"""
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        self.env.manifest.version = None
+        self.env.versions.version = 'versions'
+        assert bundle.get_version() == 'versions'
+        assert bundle.resolve_output() == self.path('out-versions')
+
+    def test_version_not_available(self):
+        """If no version in manifest or versioner, error ir raised."""
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        self.env.manifest.version = None
+        self.env.versions.version = None
+        assert_raises_regexp(
+            BundleError, 'dummy has no version', bundle.get_version)
+        assert_raises_regexp(
+            BundleError, 'dummy has no version', bundle.resolve_output)
 
 
 class TestGlobbing(TempEnvironmentHelper):
