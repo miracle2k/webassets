@@ -249,10 +249,6 @@ class FileManifest(object):
         self._load_manifest()
 
     def remember(self, bundle, env, version):
-        # TODO: Since it is possible to use the same bundle with multiple
-        # environments, some kind of env id should be included here. However,
-        # since this is mostly a theoretical possibility, we sort of don't
-        # want to bother the user with this.
         self.manifest[bundle.output] = version
         self._save_manifest()
 
