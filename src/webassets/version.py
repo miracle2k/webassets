@@ -7,7 +7,7 @@ import pickle
 
 from webassets.bundle import has_placeholder, is_url, get_all_bundle_files
 from webassets.merge import FileHunk
-from webassets.utils import md5_constructor
+from webassets.utils import md5_constructor, RegistryMetaclass
 
 
 __all__ = ('get_versioner', 'VersionIndeterminableError',
@@ -17,34 +17,6 @@ __all__ = ('get_versioner', 'VersionIndeterminableError',
 
 class VersionIndeterminableError(Exception):
     pass
-
-
-class VersionRegistry(type):
-    """Metaclass that registers all subclasses."""
-
-    VERSIONERS = {}
-
-    def __new__(mcs, name, bases, attrs):
-        new_klass = type.__new__(mcs, name, bases, attrs)
-        if hasattr(new_klass, 'id'):
-            mcs.VERSIONERS[new_klass.id] = new_klass
-        return new_klass
-
-    @classmethod
-    def get_versioner(mcs, thing):
-        if hasattr(thing, 'get_version_for'):
-            if isinstance(thing, type):
-                return thing()
-            return thing
-        if not thing:
-            return None
-        try:
-            return mcs.VERSIONERS[thing]()
-        except KeyError:
-            raise ValueError('Versioner "%s" is not valid.' % thing)
-
-
-get_versioner = VersionRegistry.get_versioner
 
 
 class Version(object):
@@ -59,16 +31,13 @@ class Version(object):
 
     As a user, all you need to care about, in most cases, is whether you want
     to set the ``Environment.versioner`` attribute to ``hash`` or ``timestamp``.
-    """
-    
-    __metaclass__ = VersionRegistry
 
-    def __eq__(self, other):
-        """Return equality with the config values that instantiate this
-        instance.
-        """
-        return (hasattr(self, 'id') and self.id == other) or \
-               id(self) == id(other)
+    A single instance can be used with different environments.
+    """
+
+    __metaclass__ = RegistryMetaclass(
+        clazz=lambda: Version, attribute='get_version_for',
+        desc='a version implementation')
 
     def get_version_for(self, bundle, hunk=None, env=None):
         """Return a string that represents the current version of the given
@@ -100,6 +69,9 @@ class Version(object):
         """Hook called after a bundle has been built. Some version classes
         may need this.
         """
+
+
+get_versioner = Version.resolve
 
 
 class TimestampVersion(Version):
@@ -223,13 +195,22 @@ class Manifest(object):
     cached in the process space, and your app is served by multiple
     processes, then you might yield old version information, and you might
     continue to serve the old file, or attach the wrong url expire string.
+
+    A manifest instance is currently only not guaranteed to function correctly
+    with multiple Environment instances.
     """
+
+    __metaclass__ = RegistryMetaclass(
+        clazz=lambda: Manifest, desc='a manifest implementation')
 
     def remember(self, bundle, env, version):
         raise NotImplementedError()
 
     def query(self, bundle, env):
         raise NotImplementedError()
+
+
+get_manifest = Manifest.resolve
 
 
 class FileManifest(object):
@@ -243,6 +224,14 @@ class FileManifest(object):
     By default, the file is named ".webassets-manifest" and stored in
     ``Environment.directory``.
     """
+
+    id = 'file'
+
+    @classmethod
+    def make(cls, env, filename=None):
+        if not filename:
+            filename = '.webassets-manifest'
+        return cls(os.path.join(env.directory, filename))
 
     def __init__(self, filename):
         self.filename = filename
@@ -272,7 +261,7 @@ class FileManifest(object):
 class CacheManifest(object):
     """Stores version data in the webassets cache.
 
-    Since this has bad portability (you hardly want to copy your cache  between
+    Since this has bad portability (you hardly want to copy your cache between
     machines), this only makes sense when you are building on the same machine
     where you're application code runs.
 
@@ -280,10 +269,13 @@ class CacheManifest(object):
     want to use, since it is multi-process safe.
     """
 
-    # Implementation notes: Do not support MemoryCache.
+    def remember(self, bundle, env, version):
+        if env.cache:
+            env.cache.set(('manifest', bundle.output), version)
 
-    def __init__(self):
-        raise NotImplementedError()   # TODO
+    def query(self, bundle, env):
+        if env.cache:
+            return env.cache.get(('manifest', bundle.output))
 
 
 class SymlinkManifest(object):
@@ -298,7 +290,3 @@ class SymlinkManifest(object):
 
     def __init__(self):
         raise NotImplementedError()   # TODO
-
-
-def get_manifest(val):
-    return val

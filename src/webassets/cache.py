@@ -75,14 +75,15 @@ def make_md5(data):
 class BaseCache(object):
     """Abstract base class.
 
-    The cache key must be something that is supported by the
-    Python hash() function.
+    The cache key must be something that is supported by the Python hash()
+    function.
 
-    Since the cache is used for multiple purposes, all
-    webassets-internal code should always tag it's keys with
-    an id, like so:
+    Since the cache is used for multiple purposes, all webassets-internal code
+    should always tag it's keys with an id, like so:
 
         key = ("tag", actual_key)
+
+    One cache instance can only be used safely with a single Environment.
     """
 
     def get(self, key):

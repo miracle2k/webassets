@@ -26,6 +26,8 @@ the cache is a superior solution for getting essentially the same speed
 increase as using the hash to reliably determine which bundles to skip.
 """
 
+from webassets.utils import RegistryMetaclass
+
 
 __all__ = ('get_updater', 'SKIP_CACHE',
            'TimestampUpdater', 'AlwaysUpdater',)
@@ -47,28 +49,13 @@ class BaseUpdater(object):
 
     Child classes that define an ``id`` attribute are accessible via their
     string id in the configuration.
+
+    A single instance can be used with different environments.
     """
 
-    class __metaclass__(type):
-        UPDATERS = {}
-
-        def __new__(cls, name, bases, attrs):
-            new_klass = type.__new__(cls, name, bases, attrs)
-            if hasattr(new_klass, 'id'):
-                cls.UPDATERS[new_klass.id] = new_klass
-            return new_klass
-
-        def get_updater(cls, thing):
-            if hasattr(thing, 'needs_rebuild'):
-                if isinstance(thing, type):
-                    return thing()
-                return thing
-            if not thing:
-                return None
-            try:
-                return cls.UPDATERS[thing]()
-            except KeyError:
-                raise ValueError('Updater "%s" is not valid.' % thing)
+    __metaclass__ = RegistryMetaclass(
+        clazz=lambda: BaseUpdater, attribute='needs_rebuild',
+        desc='an updater implementation')
 
     def needs_rebuild(self, bundle, env):
         """Returns ``True`` if the given bundle needs to be rebuilt,
@@ -81,7 +68,7 @@ class BaseUpdater(object):
         """
 
 
-get_updater = BaseUpdater.get_updater
+get_updater = BaseUpdater.resolve
 
 
 class BundleDefUpdater(BaseUpdater):
