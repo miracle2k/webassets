@@ -449,12 +449,12 @@ class Bundle(object):
         if not self.output:
             raise BuildError('No output target found for %s' % self)
 
-        # Default force to True if no updater is given, as otherwise
+        # Default force to True if auto_build is disabled, as otherwise
         # no build would happen. This is only a question of API design.
-        # We want updater=False users to be able to call bundle.build()
+        # We want auto_build=False users to be able to call bundle.build()
         # and have it have an effect.
         if force is None:
-            force = not bool(env.updater)
+            force = not env.auto_build
 
         # Determine if we really need to build, or if the output file
         # already exists and nothing has changed.
