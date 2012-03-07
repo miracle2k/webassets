@@ -223,7 +223,7 @@ class TestStaticFiles(TempEnvironmentHelper):
         # Configure a staticfiles-using project.
         settings.STATIC_ROOT = settings.MEDIA_ROOT
         settings.MEDIA_ROOT = self.path('needs_to_differ_from_static_root')
-        settings.STATIC_URL = '/media'
+        settings.STATIC_URL = '/media/'
         settings.INSTALLED_APPS += ('django.contrib.staticfiles',)
         settings.STATICFILES_DIRS = tuple(self.create_directories('foo', 'bar'))
         settings.STATICFILES_FINDERS += ('django_assets.finders.AssetsFinder',)
