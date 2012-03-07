@@ -139,7 +139,7 @@ class YAMLLoader(object):
             env = Environment(directory, obj['url'])
 
             # load environment settings
-            for setting in ('debug', 'cache', 'versioner', 'url_expire',
+            for setting in ('debug', 'cache', 'versions', 'url_expire',
                             'auto_build',
                             # TODO: The deprecated values; remove at some point
                             'expire', 'updater'):

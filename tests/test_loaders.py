@@ -84,7 +84,7 @@ class TestYAML(object):
         environment = self.loader("""
         url: /foo
         directory: something
-        versioner: 'timestamp'
+        versions: 'timestamp'
         auto_build: true
         url_expire: true
         config:
@@ -97,7 +97,7 @@ class TestYAML(object):
         assert environment.url == '/foo'
         assert environment.url_expire == True
         assert environment.auto_build == True
-        assert environment.config['versioner'] == 'timestamp'
+        assert environment.config['versions'] == 'timestamp'
         assert environment.config['COMPASS_BIN'] == '/opt/compass'
 
         # Because the loader isn't aware of the file location, the

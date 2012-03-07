@@ -118,27 +118,27 @@ class TestSpecialProperties:
         from webassets.version import Version
 
         # Standard string values
-        self.m.versioner = 'timestamp'
-        assert isinstance(self.m.config['versioner'], basestring)
-        assert isinstance(self.m.versioner, Version)
-        assert self.m.versioner == 'timestamp'   # __eq__
-        assert self.m.versioner != 'hash'
+        self.m.versions = 'timestamp'
+        assert isinstance(self.m.config['versions'], basestring)
+        assert isinstance(self.m.versions, Version)
+        assert self.m.versions == 'timestamp'   # __eq__
+        assert self.m.versions != 'hash'
 
         # False
-        self.m.config['versioner'] = False
-        assert self.m.versioner is None
+        self.m.config['versions'] = False
+        assert self.m.versions is None
 
         # Instance assign
-        self.m.versioner = instance = Version()
-        assert self.m.versioner == instance
+        self.m.versions = instance = Version()
+        assert self.m.versions == instance
 
         # Class assign
-        self.m.versioner = Version
-        assert isinstance(self.m.versioner, Version)
+        self.m.versions = Version
+        assert isinstance(self.m.versions, Version)
 
         # Invalid value
-        self.m.versioner = 'invalid-value'
-        assert_raises(ValueError, getattr, self.m, 'versioner')
+        self.m.versions = 'invalid-value'
+        assert_raises(ValueError, getattr, self.m, 'versions')
 
     def test_cache(self):
         from webassets.cache import BaseCache, FilesystemCache

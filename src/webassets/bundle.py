@@ -216,13 +216,13 @@ class Bundle(object):
             # Often the versioner is able to help.
             if not version:
                 from version import VersionIndeterminableError
-                if env.versioner:
+                if env.versions:
                     try:
-                        version = env.versioner.get_version_for(self)
+                        version = env.versions.get_version_for(self)
                     except VersionIndeterminableError, e:
                         reason = e
                 else:
-                    reason = 'no versioner configured'
+                    reason = '"versions" option not set'
             if not version:
                 raise BundleError((
                     'Cannot find version of %s. You have configured'
@@ -502,26 +502,26 @@ class Bundle(object):
 
             version = None
             if has_placeholder(self.output) or env.manifest:
-                version = env.versioner.get_version_for(self, hunk)
+                version = env.versions.get_version_for(self, hunk)
 
             if not has_placeholder(self.output):
                 hunk.save(self.resolve_output(env))
             else:
-                if not env.versioner:
+                if not env.versions:
                     raise BuildError((
-                        'You have no versioner defined, but %s uses '
-                        'a version placeholder in the output target' %
-                            self))
+                        'You have not set the "versions" option, but %s '
+                        'uses a version placeholder in the output target'
+                            % self))
                 output = self.resolve_output(env, version=version)
                 hunk.save(output)
                 self.version = version
 
             if env.manifest:
                 env.manifest.remember(self, env, version)
-            if env.versioner and version:
+            if env.versions and version:
                 # Hook for the versioner (for example set the timestamp of
                 # the file) to the actual version.
-                env.versioner.set_version(self, env, output, version)
+                env.versions.set_version(self, env, output, version)
 
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
