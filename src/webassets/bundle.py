@@ -226,8 +226,8 @@ class Bundle(object):
                     reason = '"versions" option not set'
             if not version:
                 raise BundleError((
-                    'Cannot find version of %s. You have configured'
-                    'no manifest, and the version cannot be '
+                    'Cannot find version of %s. There is no manifest '
+                    'which knows the version, and it cannot be '
                     'determined dynamically, because: %s') % (self, reason))
             self.version = version
         return self.version
