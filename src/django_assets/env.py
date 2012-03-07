@@ -19,7 +19,11 @@ class DjangoConfigStorage(ConfigStorage):
         'debug': 'ASSETS_DEBUG',
         'cache': 'ASSETS_CACHE',
         'updater': 'ASSETS_UPDATER',
-        'auto_create': 'ASSETS_AUTO_CREATE',
+        'auto_build': 'ASSETS_AUTO_BUILD',
+        'url_expire': 'ASSETS_URL_EXPIRE',
+        'versions': 'ASSETS_VERSIONS',
+        'manifest': 'ASSETS_MANIFEST',
+        # Deprecated
         'expire': 'ASSETS_EXPIRE',
     }
 
@@ -50,12 +54,16 @@ class DjangoConfigStorage(ConfigStorage):
 
     def __getitem__(self, key):
         if self.__contains__(key):
+            value = self._get_deprecated(key)
+            if value is not None:
+                return value
             return getattr(settings, self._transform_key(key))
         else:
             raise KeyError("Django settings doesn't define %s" % key)
 
     def __setitem__(self, key, value):
-        setattr(settings, self._transform_key(key), value)
+        if not self._set_deprecated(key, value):
+            setattr(settings, self._transform_key(key), value)
 
     def __delitem__(self, key):
         # This isn't possible to implement in Django without relying
@@ -69,6 +77,16 @@ class DjangoEnvironment(BaseEnvironment):
     """
 
     config_storage_class = DjangoConfigStorage
+
+    def __init__(self, **config):
+        super(DjangoEnvironment, self).__init__(**config)
+
+        # This is pretty stupid, but fortunately will be removed with
+        # the deprecated option. This triggers the deprecation warnings.
+        if 'expire' in self.config:
+            self.config['expire'] = getattr(settings, 'ASSETS_EXPIRE')
+        if 'updater' in self.config:
+            self.config['updater'] = getattr(settings, 'ASSETS_UPDATER')
 
     def _normalize_source_path(self, spath):
         """In DEBUG mode, if the staticfiles app is enabled,
