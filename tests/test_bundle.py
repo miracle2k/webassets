@@ -776,7 +776,7 @@ class TestUrlsCommon(BaseUrlsTester):
         self.env.versions = DummyVersion('foo')
         root = self.mkbundle('1', '2', output='out')
         assert len(root.urls()) == 1
-        assert root.urls()[0].endswith('/out?foo')
+        assert root.urls()[0] == '/out?foo'
 
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):

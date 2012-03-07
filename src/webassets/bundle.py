@@ -232,7 +232,7 @@ class Bundle(object):
             self.version = version
         return self.version
 
-    def resolve_output(self, env=None, version=None):
+    def resolve_output(self, env=None, version=None, rel=False):
         """Return the full, absolute output path.
 
         If a %(version)s placeholder is used, it is replaced.
@@ -241,6 +241,8 @@ class Bundle(object):
         output = self.output
         if has_placeholder(output):
             output = output % {'version': version or self.get_version(env)}
+        if rel:
+            return output
         return env.abspath(output)
 
     def get_files(self, env=None):
@@ -591,7 +593,8 @@ class Bundle(object):
             # If auto-build is enabled, we must not use a cached version
             # value, or we might serve old versions.
             version = self.get_version(env, refresh=env.auto_build)
-            result = "%s?%s" % (self.resolve_output(env, version), version)
+            result = "%s?%s" % (
+                self.resolve_output(env, version, rel=True), version)
         else:
             result = self.output
         return env.absurl(result)
