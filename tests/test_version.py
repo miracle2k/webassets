@@ -15,6 +15,7 @@ from webassets.version import (
 
 def test_builtin_version_accessors():
     assert get_versioner('hash').__class__ == HashVersion
+    assert get_versioner('hash:15').length == 15
     assert get_versioner('timestamp').__class__ == TimestampVersion
 
 

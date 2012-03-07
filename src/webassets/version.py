@@ -141,6 +141,10 @@ class HashVersion(Version):
 
     id = 'hash'
 
+    @classmethod
+    def make(cls, length=None):
+        return cls(int(length) if length else None)
+
     def __init__(self, length=8, hash=md5_constructor):
         self.length = length
         self.hasher = hash
