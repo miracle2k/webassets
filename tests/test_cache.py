@@ -100,6 +100,7 @@ class TestCacheIsUsed(TempEnvironmentHelper):
         self.filter = CompleteFilter
 
         self.m.cache = self.cache = MyCache()
+        self.m.manifest = None
         # Note that updater will use the cache also
         self.m.updater = TimestampUpdater()
 
