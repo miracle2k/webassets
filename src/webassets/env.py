@@ -6,6 +6,7 @@ from bundle import Bundle
 from cache import get_cache
 from version import get_versioner, get_manifest
 from updater import get_updater
+from exceptions import ImminentDeprecationWarning
 
 
 __all__ = ('Environment', 'RegisterError')
@@ -89,7 +90,8 @@ class ConfigStorage(object):
                 warnings.warn((
                     'The "updater" option no longer can be set to False '
                     'or "never" to disable automatic building. Instead, '
-                    'use the new "auto_build" boolean option.'), DeprecationWarning)
+                    'use the new "auto_build" boolean option.'),
+                        ImminentDeprecationWarning)
                 return True
 
     def _warn_key_deprecation(self, key):
@@ -102,7 +104,7 @@ class ConfigStorage(object):
                 'replaced with a boolean option "url_expire". If you '
                 'want to append something other than a timestamp to '
                 'your URLs, check out the "versioner" option.'),
-                          DeprecationWarning)
+                    ImminentDeprecationWarning)
 
 
 class BaseEnvironment(object):

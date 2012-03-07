@@ -12,6 +12,7 @@ from webassets.exceptions import BundleError, BuildError
 from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache, FilesystemCache
+from webassets.exceptions import ImminentDeprecationWarning
 
 from helpers import TempEnvironmentHelper, noop
 
@@ -117,20 +118,20 @@ class TestVersionSystemDeprecations(TempEnvironmentHelper):
 
     def test_expire_option(self):
         # Assigning to the expire option raises a deprecation warning
-        with check_warnings(("", DeprecationWarning)) as w:
+        with check_warnings(("", ImminentDeprecationWarning)) as w:
             self.m.expire = True
-        with check_warnings(("", DeprecationWarning)):
+        with check_warnings(("", ImminentDeprecationWarning)):
             self.m.config['expire'] = True
         # Reading the expire option raises a warning also.
-        with check_warnings(("", DeprecationWarning)):
+        with check_warnings(("", ImminentDeprecationWarning)):
             x = self.m.expire
-        with check_warnings(("", DeprecationWarning)):
+        with check_warnings(("", ImminentDeprecationWarning)):
             x = self.m.config['expire']
 
     def test_expire_option_passthrough(self):
         """While "expire" no longer exists, we attempt to provide an
         emulation."""
-        with check_warnings(("", DeprecationWarning)):
+        with check_warnings(("", ImminentDeprecationWarning)):
             # Read
             self.m.url_expire = False
             assert self.m.expire == False
@@ -147,7 +148,7 @@ class TestVersionSystemDeprecations(TempEnvironmentHelper):
     def test_updater_option_passthrough(self):
         """Certain values of the "updater" option have been replaced with
         auto_build."""
-        with check_warnings(("", DeprecationWarning)):
+        with check_warnings(("", ImminentDeprecationWarning)):
             self.m.auto_build = True
             self.m.updater = False
             assert self.m.auto_build == False

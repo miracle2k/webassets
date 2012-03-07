@@ -4,6 +4,7 @@ import textwrap
 from StringIO import StringIO
 from webassets.bundle import Bundle
 from webassets.loaders import PythonLoader, YAMLLoader, LoaderError
+from webassets.exceptions import ImminentDeprecationWarning
 from test.test_support import check_warnings
 from nose import SkipTest
 
@@ -108,7 +109,7 @@ class TestYAML(object):
         assert len(environment) == 1
 
     def test_load_deprecated_attrs(self):
-        with check_warnings(("", DeprecationWarning)) as w:
+        with check_warnings(("", ImminentDeprecationWarning)) as w:
             environment = self.loader("""
             url: /foo
             directory: something

@@ -1,6 +1,7 @@
 import imp
 from django.conf import settings
 from webassets.env import BaseEnvironment, ConfigStorage
+from webassets.exceptions import ImminentDeprecationWarning
 try:
     from django.contrib.staticfiles import finders
 except ImportError:
@@ -120,7 +121,7 @@ except ImportError:
     # django-1.0 compatibility
     import warnings
     warnings.warn('django-assets may not be compatible with Django versions '
-                  'earlier than 1.1', DeprecationWarning)
+                  'earlier than 1.1', ImminentDeprecationWarning)
     def import_module(app):
         return __import__(app, {}, {}, [app.split('.')[-1]]).__path__
 
