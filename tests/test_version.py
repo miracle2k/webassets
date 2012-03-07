@@ -18,6 +18,9 @@ def test_builtin_version_accessors():
     assert get_versioner('hash:15').length == 15
     assert get_versioner('timestamp').__class__ == TimestampVersion
 
+    # [Regression]
+    assert get_versioner('hash').length != None
+
 
 def test_builtin_manifest_accessors():
     env = Environment('', '')
