@@ -267,7 +267,7 @@ class BaseEnvironment(object):
     def _set_manifest(self, manifest):
         self.config['manifest'] = manifest
     def _get_manifest(self):
-        manifest = get_manifest(self.config['manifest'])
+        manifest = get_manifest(self.config['manifest'], env=self)
         if manifest != self.config['manifest']:
             self.config['manifest'] = manifest
         return manifest
