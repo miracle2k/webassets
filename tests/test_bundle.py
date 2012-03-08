@@ -437,7 +437,7 @@ class TestFilters(TempEnvironmentHelper):
             def open(self, *a, **kw): pass
             def __init__(self, id): Filter.__init__(self); self.id = id
             def id(self): return self.id
-        self.create_files({'xyz'})
+        self.create_files(set('xyz'))
         bundle = self.mkbundle(
             'xyz', filters=(OpenFilter('a'), OpenFilter('b')))
         assert_raises(BuildError, bundle.build)
