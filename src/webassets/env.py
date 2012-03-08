@@ -186,7 +186,7 @@ class BaseEnvironment(object):
           Do not use the cache.
 
       ``True`` (default)
-          Cache using default location, a ``.cache`` folder inside
+          Cache using default location, a ``.webassets-cache`` folder inside
           :attr:`directory`.
 
       *custom path*
