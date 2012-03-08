@@ -96,10 +96,11 @@ built while in development mode, you will need to add
 setting to have Django serve them.
 
 In production mode, ``django-assets`` will expect all source files
-to be located within ``STATIC_ROOT``. You are expected to call the
+to be located within ``STATIC_ROOT``. It will not use the ``staticfiles``
+finder system to locate source files. You are expected to call the
 ``./manage.py collectstatic`` command before running
 ``./manage.py assets rebuild``. If you are using automatic rebuilding,
-changes will not be picked up in production until you have run
+changes will currently not be picked up in production until you have run
 ``collectstatic``.
 
 
