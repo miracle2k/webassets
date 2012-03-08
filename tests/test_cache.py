@@ -6,7 +6,7 @@ from webassets.merge import MemoryHunk
 from helpers import TempEnvironmentHelper, TempDirHelper
 
 
-class TestCaches:
+class TestCaches(object):
     """Test the individual cache classes directly.
     """
 
