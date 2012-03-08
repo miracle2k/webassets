@@ -1,3 +1,4 @@
+import copy
 import os
 from os import path
 import urllib2
@@ -6,9 +7,9 @@ from StringIO import StringIO
 from nose.tools import assert_raises, assert_equals
 from nose import SkipTest
 
-
 from webassets import Bundle
 from webassets.bundle import get_all_bundle_files
+from webassets.env import Environment
 from webassets.exceptions import BundleError, BuildError
 from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
@@ -726,6 +727,9 @@ class BaseUrlsTester(TempEnvironmentHelper):
 
 class TestUrlsCommon(BaseUrlsTester):
     """Other, general tests for the urls() method.
+
+    The TestUrls()* classes test the logic behind urls(). The ``url_expire``
+    option is part of ``TestVersionFeatures``.
     """
     
     def test_erroneous_debug_value(self):
@@ -767,16 +771,6 @@ class TestUrlsCommon(BaseUrlsTester):
         self.env.debug = True
         bundle = self.mkbundle('non-existant-file', output="out")
         assert_raises(BundleError, bundle.urls)
-
-    def test_url_expire(self):
-        """Test the url_expire option.
-        """
-        self.env.debug = False
-        self.env.url_expire = True
-        self.env.versions = DummyVersion('foo')
-        root = self.mkbundle('1', '2', output='out')
-        assert len(root.urls()) == 1
-        assert root.urls()[0] == '/out?foo'
 
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):
@@ -962,21 +956,17 @@ class DummyManifest(Manifest):
     def remember(self, *a, **kw):
         self.log.append((a, kw))
 
-class TestPlaceholderOutput(TempEnvironmentHelper):
-    """Test the feature of putting the %(version)s placeholder in a bundle
-    output filename.
 
-    Apart from testing the actual build process, a big part of this is that
-    the resolve_output()/get_version() methods can return the full filename
-    (for example via the manifest). We test this here once, and know that
-    it will work with features like "url_expire" and "autorebuild with
-    placeholders" as well.
+class TestVersionFeatures(TempEnvironmentHelper):
+    """Test version-specific features: putting the %(version)s placeholder
+    in a bundle output filename and the url_expire option, and explicitly
+    the resolve_output()/get_version() methods that do the groundwork.
     """
 
     default_files = {'in': 'foo'}
 
     def setup(self):
-        super(TestPlaceholderOutput, self).setup()
+        super(TestVersionFeatures, self).setup()
         self.env.manifest = DummyManifest()
         self.env.versions = DummyVersion()
 
@@ -1002,7 +992,10 @@ class TestPlaceholderOutput(TempEnvironmentHelper):
         assert path.basename(bundle.resolve_output()) == 'out-v999'
         assert self.get('out-v999')
 
-        # Old file still exists as well.
+        # Old file still exists as well. Note that making build() clean
+        # up after itself, while certainly possible, is dangerous. In a
+        # multi-process, auto_build enabled setup, if no manifest is used,
+        # each process would do it's own full build.
         assert self.get('out-v1')
         # DummyManifest has two log entries now
         assert len(self.env.manifest.log) == 2
@@ -1041,6 +1034,103 @@ class TestPlaceholderOutput(TempEnvironmentHelper):
             BundleError, 'dummy has no version', bundle.get_version)
         assert_raises_regexp(
             BundleError, 'dummy has no version', bundle.resolve_output)
+
+    def test_get_version_refresh(self):
+        """Behaviour of the refresh=True option of get_version().
+
+        This is a specific one, but we want to make sure that it  works, and
+        it will not fall back on a bundle.version  attribute that might already
+        be set."""
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        self.env.manifest.version = 'foo'
+        bundle.version = 'bar'
+        assert bundle.get_version() == 'bar'
+        assert bundle.get_version(refresh=True) == 'foo'
+        assert bundle.get_version() == 'foo'
+
+        # With no access to a version, refresh=True will raise an error
+        # even if a version attribute is already set.
+        assert bundle.version == 'foo'
+        self.env.manifest.version = None
+        self.env.versions.version = None
+        assert_raises(BundleError, bundle.get_version, refresh=True)
+
+    def test_url_expire(self):
+        """Test the url_expire option.
+        """
+        self.env.debug = False
+        self.env.url_expire = True
+        self.env.versions = DummyVersion('foo')
+        root = self.mkbundle('in', output='out')
+        assert len(root.urls()) == 1
+        assert root.urls()[0] == '/out?foo'
+
+    def test_no_url_expire_with_placeholders(self):
+        """[Regression] If the url had placeholders, then url_expire was
+        disabled, the placeholder was not resolved in the urls we generated.
+        """
+        self.env.debug = False
+        self.env.url_expire = False
+        self.auto_build = False
+        self.env.versions = DummyVersion('foo')
+        root = self.mkbundle('in', output='out-%(version)s')
+        assert root.urls()[0] == '/out-foo'
+
+    def test_story_of_two_envs(self):
+        """If an app is served by multiple processes, and auto_build is used,
+        if one process rebuilds a bundle, the other one must know (instead of
+        continuing to serve the old version.
+
+        For this reason, if auto_build is enabled, the version will always be
+        determined anew in every request, rather than using a cached version.
+        (This is the reason why get_version() has the refresh=True option).
+        """
+        # Prepare a manifest and bundle in env1. Use a file manifest
+        env1 = self.env
+        env1.url_expire = True
+        bundle1 = self.mkbundle('in', output='out-%(version)s')
+
+        # Prepare an identical setup, simulating the second process
+        env2 = Environment(env1.directory, env1.url)
+        env2.config.update(copy.deepcopy(env1.config._dict))
+        bundle2  = self.mkbundle('in', output='out-%(version)s')
+        bundle2.env = env2
+
+        # Both have auto build enabled, both are using the same manifest
+        env1.auto_build = env2.auto_build = True
+        env1.manifest = 'file'; env2.manifest = 'file'
+        env1.updater = 'timestamp'; env2.updater = 'timestamp'
+
+        # Do the initial build, both envs think they are running the
+        # latest version.
+        env1.versions.version = bundle1.version = 'old'
+        env2.versions.version = bundle2.version = 'old'
+        bundle1.build()
+        assert env2.updater.needs_rebuild(bundle2, env2) == False
+
+        # At this point, both return the old version in urls
+        assert bundle1.urls() ==['/out-old?old']
+        assert bundle2.urls() ==['/out-old?old']
+
+        # Now let env1 do an update.
+        env1.versions.version = 'new'
+        bundle1.build(force=True)
+        assert bundle1.urls() == ['/out-new?new']
+
+        # If auto_build is False, env2 will continue to use the old version.
+        env2.auto_build = False
+        assert bundle2.urls() == ['/out-old?old']
+        # However, if auto_build is True, env2 will know the new version.
+        # This is because env1 wrote it to the manifest during build.
+        env2.auto_build = True
+        assert bundle2.get_version() == 'old'    # urls() causes the refresh
+        assert bundle2.urls() == ['/out-new?new']
+        assert bundle2.get_version() == 'new'
+
+        # The reverse works as well.
+        env2.versions.version = 'latest'
+        bundle2.build(force=True)
+        assert bundle1.urls() == bundle2.urls() == ['/out-latest?latest']
 
 
 class TestGlobbing(TempEnvironmentHelper):

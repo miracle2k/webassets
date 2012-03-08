@@ -589,14 +589,17 @@ class Bundle(object):
     def _make_url(self, env):
         """Return a output url, modified for expire header handling.
         """
-        if env.url_expire:
+
+        # Only query the version if we need to for performance
+        version = None
+        if has_placeholder(self.output) or env.url_expire:
             # If auto-build is enabled, we must not use a cached version
             # value, or we might serve old versions.
             version = self.get_version(env, refresh=env.auto_build)
-            result = "%s?%s" % (
-                self.resolve_output(env, version, rel=True), version)
-        else:
-            result = self.output
+
+        result = self.resolve_output(env, version, rel=True)
+        if env.url_expire:
+            result = "%s?%s" % (result, version)
         return env.absurl(result)
 
     def _urls(self, env, extra_filters, *args, **kwargs):
