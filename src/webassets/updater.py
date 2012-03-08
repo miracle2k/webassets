@@ -25,6 +25,7 @@ First, for a live system, it isn't fast enough. Second, for prebuilding assets,
 the cache is a superior solution for getting essentially the same speed
 increase as using the hash to reliably determine which bundles to skip.
 """
+from webassets.exceptions import BundleError, BuildError
 
 from webassets.utils import RegistryMetaclass
 
@@ -117,7 +118,24 @@ class TimestampUpdater(BundleDefUpdater):
         from webassets.version import TimestampVersion
 
         if not o_modified:
-            resolved_output = bundle.resolve_output(env)
+            try:
+                resolved_output = bundle.resolve_output(env)
+            except BundleError:
+                # This exception will occur when the bundle output has
+                # placeholder, but a version cannot be found. If the
+                # user has defined a manifest, this will just be the first
+                # build. Return True to let it happen.
+                # However, if no manifest is defined, raise an error,
+                # because otherwise, this updater would always return True,
+                # and thus not do it's job at all.
+                if env.manifest is None:
+                    raise BuildError((
+                        '%s uses a version placeholder, and you are '
+                        'using "%s" versions. To use automatic '
+                        'building in this configuration, you need to '
+                        'define a manifest.' % (bundle, env.versions)))
+                return True
+
             try:
                 o_modified = TimestampVersion.get_timestamp(resolved_output)
             except OSError:

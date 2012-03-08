@@ -1,9 +1,10 @@
 import os
 from nose.tools import assert_raises
 from webassets import Environment, Bundle
-from webassets.exceptions import BundleError
+from webassets.exceptions import BundleError, BuildError
 from webassets.updater import TimestampUpdater, BundleDefUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache
+from webassets.version import VersionIndeterminableError
 from helpers import TempEnvironmentHelper
 
 
@@ -244,3 +245,49 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         b.build(force=True)
         self.env.versions.version = 'something-else'
         assert self.m.updater.needs_rebuild(b, self.m) == True
+
+    def test_placeholder_with_limited_versioner(self):
+        """If output has a placeholder, and the versioner is unable to
+        return a version in such a case, then the timestamp updater will
+        explicitly check if a manifest is enabled.
+
+        If is is, the version from there is enough to reasonable work
+        an update check.
+
+        If it isn't, then the updater refuses to work, not being able to
+        do it's job.
+        """
+        from test_bundle import DummyVersion, DummyManifest
+
+        # Placeholder output, and versioner will not help
+        self.env.versions = DummyVersion(None)
+        b = self.mkbundle('in', output='out-%(version)s')
+
+        # Confirm DummyVersion works as we expect it to.
+        assert_raises(VersionIndeterminableError,
+            self.env.versions.determine_version, b, self.env)
+
+        # Without a manifest, an error is raised. With no version being
+        # available, we cannot check at all whether an update is required.
+        # We would have to blindly return YES, PROCEED WITH BUILD every
+        # time, thus not doing our job.
+        self.env.manifest = None
+        assert_raises(BuildError, self.m.updater.needs_rebuild, b, self.env)
+
+        # As soon as a manifest is set, the updater will start to work,
+        # even if the manifest does not actually have a version. This is
+        # of course because this will be the case for the first build.
+        # After the next build, the updater can assume (if the manifest
+        # works correctly), that a version will be available.
+        self.env.manifest = DummyManifest(None)
+        assert self.m.updater.needs_rebuild(b, self.m) == True
+
+        # The same is true if the manifest returns an actual version
+        self.env.manifest.version = 'v1'
+        assert self.m.updater.needs_rebuild(b, self.m) == True
+
+        # If the file behind that version actually exists, it will be used.
+        self.create_files(['out-v1'])
+        now = self.setmtime('out-v1')
+        self.setmtime('in', mtime=now-100)
+        assert self.m.updater.needs_rebuild(b, self.m) == False

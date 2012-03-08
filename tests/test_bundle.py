@@ -953,6 +953,15 @@ class DummyVersion(Version):
             raise VersionIndeterminableError('dummy has no version')
         return self.version
 
+class DummyManifest(Manifest):
+    def __init__(self, version=None):
+        self.log = []
+        self.version = version
+    def query(self, bundle, env):
+        return self.version
+    def remember(self, *a, **kw):
+        self.log.append((a, kw))
+
 class TestPlaceholderOutput(TempEnvironmentHelper):
     """Test the feature of putting the %(version)s placeholder in a bundle
     output filename.
@@ -966,25 +975,16 @@ class TestPlaceholderOutput(TempEnvironmentHelper):
 
     default_files = {'in': 'foo'}
 
-    class DummyManifest(Manifest):
-        def __init__(self, version=None):
-            self.log = []
-            self.version = version
-        def query(self, bundle, env):
-            return self.version
-        def remember(self, *a, **kw):
-            self.log.append((a, kw))
-
     def setup(self):
         super(TestPlaceholderOutput, self).setup()
-        self.env.manifest = self.DummyManifest()
+        self.env.manifest = DummyManifest()
         self.env.versions = DummyVersion()
 
     def test_build(self):
         """Test the build process creates files with placeholders,
         and stores the version in the manifest.
         """
-        self.env.manifest = self.DummyManifest('manifest')
+        self.env.manifest = DummyManifest('manifest')
         self.env.versions = DummyVersion('v1')
         bundle = self.mkbundle('in', output='out-%(version)s')
         bundle.build()
