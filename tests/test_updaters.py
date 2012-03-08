@@ -7,7 +7,7 @@ from webassets.cache import MemoryCache
 from helpers import TempEnvironmentHelper
 
 
-class TestBundleDefBaseUpdater:
+class TestBundleDefBaseUpdater(object):
     """Test the updater which caches bundle definitions to determine
     changes.
     """
