@@ -196,8 +196,9 @@ class TestCacheManifest(TempEnvironmentHelper):
         """Test behavior or CacheManifest if no cache is available."""
         manifest = CacheManifest()
 
-        # If no cache is enabled, no error is raised, but the manifest
-        # will never return any values.
+        # If no cache is enabled, an error is raised
         self.env.cache = False
-        manifest.remember(self.bundle, self.env, 'the-version')
-        assert manifest.query(self.bundle, self.env) is None
+        assert_raises(EnvironmentError,
+            manifest.remember, self.bundle, self.env, 'the-version')
+        assert_raises(EnvironmentError,
+            manifest.query, self.bundle, self.env)

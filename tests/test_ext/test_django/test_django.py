@@ -43,9 +43,10 @@ class TempEnvironmentHelper(BaseTempEnvironmentHelper):
         setattr(settings, 'DATABASES', {})
         settings.DATABASES['default'] = {'ENGINE': ''}
 
-        # Unless we explicitly test it, we don't want to use
-        # the cache during testing.
+        # Unless we explicitly test it, we don't want to use the cache during
+        # testing.
         self.env.cache = False
+        self.env.manifest = False
 
         # Setup a temporary settings object
         # TODO: This should be used (from 1.4), but the tests need

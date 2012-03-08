@@ -275,13 +275,19 @@ class CacheManifest(Manifest):
 
     id = 'cache'
 
+    def _check(self, env):
+        if not env.cache:
+            raise EnvironmentError(
+                'You are using the cache manifest, but have not '
+                'enabled the cache.')
+
     def remember(self, bundle, env, version):
-        if env.cache:
-            env.cache.set(('manifest', bundle.output), version)
+        self._check(env)
+        env.cache.set(('manifest', bundle.output), version)
 
     def query(self, bundle, env):
-        if env.cache:
-            return env.cache.get(('manifest', bundle.output))
+        self._check(env)
+        return env.cache.get(('manifest', bundle.output))
 
 
 class SymlinkManifest(Manifest):
