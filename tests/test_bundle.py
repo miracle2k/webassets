@@ -79,7 +79,7 @@ class TestBundleConfig(TempEnvironmentHelper):
 
         # Changing filters after bundle creation is no problem, either.
         b = self.mkbundle()
-        assert b.filters is ()
+        assert b.filters == ()
         b.filters = TestFilter
         _assert(b.filters, 1)
 
@@ -723,7 +723,7 @@ class BaseUrlsTester(TempEnvironmentHelper):
 class TestUrlsCommon(BaseUrlsTester):
     """Other, general tests for the urls() method.
     """
-    
+
     def test_erroneous_debug_value(self):
         """Test the exception Bundle.urls() throws if debug is an invalid
         value."""
