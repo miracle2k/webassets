@@ -128,17 +128,15 @@ class TempEnvironmentHelper(TempDirHelper):
     def setup(self):
         TempDirHelper.setup(self)
 
-        # Not sure why this was called "m", but let's migrate
-        # to self.env.
-        self.m = self.env = self._create_environment()
+        self.env = self._create_environment()
         # Unless we explicitly test it, we don't want to use the cache
         # during testing.
-        self.m.cache = False
+        self.env.cache = False
 
     def _create_environment(self):
         return Environment(self._tempdir_created, '')
 
     def mkbundle(self, *a, **kw):
         b = Bundle(*a, **kw)
-        b.env = self.m
+        b.env = self.env
         return b

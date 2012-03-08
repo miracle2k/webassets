@@ -181,36 +181,36 @@ class TestVersionSystemDeprecations(TempEnvironmentHelper):
     def test_expire_option(self):
         # Assigning to the expire option raises a deprecation warning
         with check_warnings(("", ImminentDeprecationWarning)) as w:
-            self.m.expire = True
+            self.env.expire = True
         with check_warnings(("", ImminentDeprecationWarning)):
-            self.m.config['expire'] = True
+            self.env.config['expire'] = True
             # Reading the expire option raises a warning also.
         with check_warnings(("", ImminentDeprecationWarning)):
-            x = self.m.expire
+            x = self.env.expire
         with check_warnings(("", ImminentDeprecationWarning)):
-            x = self.m.config['expire']
+            x = self.env.config['expire']
 
     def test_expire_option_passthrough(self):
         """While "expire" no longer exists, we attempt to provide an
         emulation."""
         with check_warnings(("", ImminentDeprecationWarning)):
             # Read
-            self.m.url_expire = False
-            assert self.m.expire == False
-            self.m.url_expire = True
-            assert self.m.expire == 'querystring'
+            self.env.url_expire = False
+            assert self.env.expire == False
+            self.env.url_expire = True
+            assert self.env.expire == 'querystring'
             # Write
-            self.m.expire = False
-            assert self.m.url_expire == False
-            self.m.expire = 'querystring'
-            assert self.m.url_expire == True
+            self.env.expire = False
+            assert self.env.url_expire == False
+            self.env.expire = 'querystring'
+            assert self.env.url_expire == True
             # "filename" needs to be migrated manually
-            assert_raises(DeprecationWarning, setattr, self.m, 'expire', 'filename')
+            assert_raises(DeprecationWarning, setattr, self.env, 'expire', 'filename')
 
     def test_updater_option_passthrough(self):
         """Certain values of the "updater" option have been replaced with
         auto_build."""
         with check_warnings(("", ImminentDeprecationWarning)):
-            self.m.auto_build = True
-            self.m.updater = False
-            assert self.m.auto_build == False
+            self.env.auto_build = True
+            self.env.updater = False
+            assert self.env.auto_build == False

@@ -68,25 +68,25 @@ class TestTimestampUpdater(TempEnvironmentHelper):
 
         # Test the timestamp updater with cache disabled, so that the
         # BundleDefUpdater() base class won't interfere.
-        self.m.cache = False
-        self.m.updater = self.updater = TimestampUpdater()
+        self.env.cache = False
+        self.env.updater = self.updater = TimestampUpdater()
 
     def test_timestamp_behavior(self):
         bundle = self.mkbundle('in', output='out')
 
         # Set both times to the same timestamp
         now = self.setmtime('in', 'out')
-        assert self.updater.needs_rebuild(bundle, self.m) == False
+        assert self.updater.needs_rebuild(bundle, self.env) == False
 
         # Make in file older than out file
         os.utime(self.path('in'), (now, now-100))
         os.utime(self.path('out'), (now, now))
-        assert self.updater.needs_rebuild(bundle, self.m) == False
+        assert self.updater.needs_rebuild(bundle, self.env) == False
 
         # Make in file newer than out file
         os.utime(self.path('in'), (now, now))
         os.utime(self.path('out'), (now, now-100))
-        assert self.updater.needs_rebuild(bundle, self.m) == True
+        assert self.updater.needs_rebuild(bundle, self.env) == True
 
     def test_source_file_deleted(self):
         """If a source file is deleted, rather than raising an error
@@ -108,34 +108,34 @@ class TestTimestampUpdater(TempEnvironmentHelper):
 
         # Set all mtimes to the same timestamp
         self.setmtime('in', 'out', '1.css', '2.css')
-        assert self.updater.needs_rebuild(bundle, self.m) == False
+        assert self.updater.needs_rebuild(bundle, self.env) == False
 
         # Delete a wildcarded file
         os.unlink(self.path('1.css'))
-        assert self.updater.needs_rebuild(bundle, self.m) == True
+        assert self.updater.needs_rebuild(bundle, self.env) == True
 
     def test_bundle_definition_change(self):
         """Test that the timestamp updater uses the base class
         functionality of determining a bundle definition change as
         well.
         """
-        self.m.cache = MemoryCache(capacity=100)
+        self.env.cache = MemoryCache(capacity=100)
         bundle = self.mkbundle('in', output='out')
 
         # Fake an initial build
-        self.updater.build_done(bundle, self.m)
+        self.updater.build_done(bundle, self.env)
 
         # Make in file older than out file
         now = self.setmtime('out')
         self.setmtime('in', mtime=now-100)
-        assert self.updater.needs_rebuild(bundle, self.m) == False
+        assert self.updater.needs_rebuild(bundle, self.env) == False
 
         # Change the bundle definition
         bundle.filters = 'jsmin'
 
         # Timestamp updater will says we need to rebuild.
-        assert self.updater.needs_rebuild(bundle, self.m) == True
-        self.updater.build_done(bundle, self.m)
+        assert self.updater.needs_rebuild(bundle, self.env) == True
+        self.updater.build_done(bundle, self.env)
 
     def test_depends(self):
         """Test the timestamp updater properly considers additional
@@ -152,15 +152,15 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         # Make all files older than the output
         now = self.setmtime('out')
         self.setmtime('in', 'd.sass', 'd.other', mtime=now-100)
-        assert self.updater.needs_rebuild(bundle, self.m) == False
+        assert self.updater.needs_rebuild(bundle, self.env) == False
 
         # Touch the file that is supposed to be unrelated
         now = self.setmtime('d.other', mtime=now+100)
-        assert self.updater.needs_rebuild(bundle, self.m) == False
+        assert self.updater.needs_rebuild(bundle, self.env) == False
 
         # Touch the dependency file - now a rebuild is required
         now = self.setmtime('d.sass', mtime=now+100)
-        assert self.updater.needs_rebuild(bundle, self.m) == SKIP_CACHE
+        assert self.updater.needs_rebuild(bundle, self.env) == SKIP_CACHE
 
         # Finally, counter-check that our previous check for the
         # internal attribute was valid.
@@ -176,7 +176,7 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         self.setmtime('in', mtime=now-100)
         self.setmtime('dependency', mtime=now+100)
 
-        assert self.updater.needs_rebuild(bundle, self.m) == SKIP_CACHE
+        assert self.updater.needs_rebuild(bundle, self.env) == SKIP_CACHE
 
     def test_wildcard_dependency_deleted(self):
         """If a dependency is deleted, a rebuild is always
@@ -189,27 +189,27 @@ class TestTimestampUpdater(TempEnvironmentHelper):
 
         # Set mtimes so that no update is required
         self.setmtime('1.sass', '2.sass', 'in', 'out')
-        assert self.updater.needs_rebuild(bundle, self.m) == False
+        assert self.updater.needs_rebuild(bundle, self.env) == False
 
         # Delete a dependency
         os.unlink(self.path('1.sass'))
         # Now we need to update
-        assert self.updater.needs_rebuild(bundle, self.m) == SKIP_CACHE
+        assert self.updater.needs_rebuild(bundle, self.env) == SKIP_CACHE
 
     def test_static_dependency_missing(self):
         """If a statically referenced dependency does not exist,
         an error is raised.
         """
         bundle = self.mkbundle('in', output='out', depends=('file',))
-        assert_raises(BundleError, self.updater.needs_rebuild, bundle, self.m)
+        assert_raises(BundleError, self.updater.needs_rebuild, bundle, self.env)
 
     def test_changed_file_after_nested_bundle(self):
         """[Regression] Regression-test for a particular bug where the
         changed file was listed after a nested bundle and the change
         was not picked up.
         """
-        self.m.updater = 'timestamp'
-        self.m.cache = False
+        self.env.updater = 'timestamp'
+        self.env.cache = False
         self.create_files(['nested', 'main', 'out'])
         b = self.mkbundle(Bundle('nested'), 'main', output='out')
 
@@ -219,7 +219,7 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         self.setmtime('main', mtime=now+100)  # changed
 
         # At this point, a rebuild is required.
-        assert self.m.updater.needs_rebuild(b, self.m) == True
+        assert self.env.updater.needs_rebuild(b, self.env) == True
 
     def test_placeholder_output(self):
         """Test behaviour if the output contains a placeholder."""
@@ -229,22 +229,22 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         b = self.mkbundle('in', output='out-%(version)s')
 
         # True, because the output file does not yet exist
-        assert self.m.updater.needs_rebuild(b, self.m) == True
+        assert self.env.updater.needs_rebuild(b, self.env) == True
 
         # After a build, no update required anymore
         b.build(force=True)
-        assert self.m.updater.needs_rebuild(b, self.m) == False
+        assert self.env.updater.needs_rebuild(b, self.env) == False
 
         # If we change the date, update is required again
         now = self.setmtime('out-init')
         self.setmtime('in', mtime=now+100)
-        assert self.m.updater.needs_rebuild(b, self.m) == True
+        assert self.env.updater.needs_rebuild(b, self.env) == True
 
         # If we change the version, a rebuild will be required
         # because the output file once again no longer exists
         b.build(force=True)
         self.env.versions.version = 'something-else'
-        assert self.m.updater.needs_rebuild(b, self.m) == True
+        assert self.env.updater.needs_rebuild(b, self.env) == True
 
     def test_placeholder_with_limited_versioner(self):
         """If output has a placeholder, and the versioner is unable to
@@ -272,7 +272,7 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         # We would have to blindly return YES, PROCEED WITH BUILD every
         # time, thus not doing our job.
         self.env.manifest = None
-        assert_raises(BuildError, self.m.updater.needs_rebuild, b, self.env)
+        assert_raises(BuildError, self.env.updater.needs_rebuild, b, self.env)
 
         # As soon as a manifest is set, the updater will start to work,
         # even if the manifest does not actually have a version. This is
@@ -280,14 +280,14 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         # After the next build, the updater can assume (if the manifest
         # works correctly), that a version will be available.
         self.env.manifest = DummyManifest(None)
-        assert self.m.updater.needs_rebuild(b, self.m) == True
+        assert self.env.updater.needs_rebuild(b, self.env) == True
 
         # The same is true if the manifest returns an actual version
         self.env.manifest.version = 'v1'
-        assert self.m.updater.needs_rebuild(b, self.m) == True
+        assert self.env.updater.needs_rebuild(b, self.env) == True
 
         # If the file behind that version actually exists, it will be used.
         self.create_files(['out-v1'])
         now = self.setmtime('out-v1')
         self.setmtime('in', mtime=now-100)
-        assert self.m.updater.needs_rebuild(b, self.m) == False
+        assert self.env.updater.needs_rebuild(b, self.env) == False

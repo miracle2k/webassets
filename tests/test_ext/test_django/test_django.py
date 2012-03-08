@@ -33,7 +33,7 @@ class TempEnvironmentHelper(BaseTempEnvironmentHelper):
 
         # Reset the webassets environment.
         django_env_reset()
-        self.m = get_env()
+        self.env = get_env()
 
         # Use a temporary directory as MEDIA_ROOT
         settings.MEDIA_ROOT = self.create_directories('media')[0]
@@ -45,7 +45,7 @@ class TempEnvironmentHelper(BaseTempEnvironmentHelper):
 
         # Unless we explicitly test it, we don't want to use
         # the cache during testing.
-        self.m.cache = False
+        self.env.cache = False
 
         # Setup a temporary settings object
         # TODO: This should be used (from 1.4), but the tests need

@@ -28,7 +28,7 @@ class TestCLI(TempEnvironmentHelper):
 
     def setup(self):
         super(TestCLI, self).setup()
-        self.assets_env = self.m
+        self.assets_env = self.env
         self.cmd_env = CommandLineEnvironment(self.assets_env, logging)
 
 
