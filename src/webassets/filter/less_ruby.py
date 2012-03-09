@@ -9,7 +9,7 @@ from webassets.exceptions import FilterError
 __all__ = ('LessFilter',)
 
 
-class LessRubyFilter(Filter):
+class LessFilter(Filter):
     """Converts `Less <http://lesscss.org/>`_ markup to real CSS.
 
     This uses the old Ruby implementation available in the 1.x versions
