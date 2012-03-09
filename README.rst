@@ -8,3 +8,4 @@ Documentation of development version: |travis|
         http://webassets.readthedocs.org/
 
 .. |travis| image:: https://secure.travis-ci.org/miracle2k/webassets.png?branch=master
+        :target: http://travis-ci.org/miracle2k/webassets
