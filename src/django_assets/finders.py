@@ -52,9 +52,9 @@ class AssetsFinder(staticfiles.finders.BaseStorageFinder):
                     # We don't have a version for this bundle
                     continue
 
-                if not matches_patterns(bundle.output, ignore_patterns) and \
+                if not matches_patterns(output, ignore_patterns) and \
                  self.storage.exists(output):
-                    yield bundle.output, self.storage
+                    yield output, self.storage
         else:
             # When ASSETS_ROOT is a separate directory independent of
             # STATIC_ROOT, we're good just letting all files be collected.
