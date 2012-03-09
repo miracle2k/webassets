@@ -2,6 +2,7 @@ import random
 from nose.tools import assert_equals
 from webassets.filter import Filter
 from webassets.cache import BaseCache, FilesystemCache, MemoryCache
+from webassets.updater import TimestampUpdater
 from webassets.merge import MemoryHunk
 from helpers import TempEnvironmentHelper, TempDirHelper
 
@@ -98,9 +99,10 @@ class TestCacheIsUsed(TempEnvironmentHelper):
             output = open = concat = input
         self.filter = CompleteFilter
 
-        self.m.cache = self.cache = MyCache()
+        self.env.cache = self.cache = MyCache()
+        self.env.manifest = None
         # Note that updater will use the cache also
-        self.m.updater = 'timestamp'
+        self.env.updater = TimestampUpdater()
 
     def test_cache_disabled(self):
         bundle = self.mkbundle('in1', 'in2', output='out', filters=self.filter)
@@ -125,7 +127,7 @@ class TestCacheIsUsed(TempEnvironmentHelper):
         Both in the process of a standard build.
         """
         bundle = self.mkbundle('in1', 'in2', output='out', filters="jsmin")
-        self.m.cache = True   # use the filesystem cache
-        self.m.updater = 'timestamp'
+        self.env.cache = True   # use the filesystem cache
+        self.env.updater = TimestampUpdater()
         bundle.build(force=True)
 

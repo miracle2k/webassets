@@ -1,9 +1,9 @@
 from nose import SkipTest
 from nose.tools import assert_raises
+from test.test_support import check_warnings
 
 from django.conf import settings
 from django.template import Template, Context
-from webassets.exceptions import BundleError
 from django_assets.loaders import DjangoLoader
 from django_assets import Bundle, register as django_env_register
 from django_assets.env import get_env, reset as django_env_reset
@@ -11,6 +11,7 @@ from tests.helpers import (
     TempDirHelper,
     TempEnvironmentHelper as BaseTempEnvironmentHelper, assert_raises_regexp)
 from webassets.filter import get_filter
+from webassets.exceptions import BundleError, ImminentDeprecationWarning
 
 try:
     from django.templatetags.assets import AssetsNode
@@ -32,7 +33,7 @@ class TempEnvironmentHelper(BaseTempEnvironmentHelper):
 
         # Reset the webassets environment.
         django_env_reset()
-        self.m = get_env()
+        self.env = get_env()
 
         # Use a temporary directory as MEDIA_ROOT
         settings.MEDIA_ROOT = self.create_directories('media')[0]
@@ -42,9 +43,10 @@ class TempEnvironmentHelper(BaseTempEnvironmentHelper):
         setattr(settings, 'DATABASES', {})
         settings.DATABASES['default'] = {'ENGINE': ''}
 
-        # Unless we explicitly test it, we don't want to use
-        # the cache during testing.
-        self.m.cache = False
+        # Unless we explicitly test it, we don't want to use the cache during
+        # testing.
+        self.env.cache = False
+        self.env.manifest = False
 
         # Setup a temporary settings object
         # TODO: This should be used (from 1.4), but the tests need
@@ -81,8 +83,8 @@ class TestConfig(object):
         settings, to make it obvious they belong to django-assets.
         """
 
-        settings.ASSETS_EXPIRE = 'timestamp'
-        assert get_env().config['expire'] == settings.ASSETS_EXPIRE
+        settings.ASSETS_URL_EXPIRE = True
+        assert get_env().config['url_expire'] == settings.ASSETS_URL_EXPIRE
 
         settings.ASSETS_ROOT = 'FOO_ASSETS'
         settings.STATIC_ROOT = 'FOO_STATIC'
@@ -110,6 +112,25 @@ class TestConfig(object):
         # Also, we are caseless.
         assert get_env().config['foO'] == 42
 
+    def test_deprecated_options(self):
+        try:
+            django_env_reset()
+            with check_warnings(("", ImminentDeprecationWarning)) as w:
+                settings.ASSETS_EXPIRE = 'filename'
+                assert_raises(DeprecationWarning, get_env)
+
+            django_env_reset()
+            with check_warnings(("", ImminentDeprecationWarning)) as w:
+                settings.ASSETS_EXPIRE = 'querystring'
+                assert get_env().url_expire == True
+
+            with check_warnings(("", ImminentDeprecationWarning)) as w:
+                django_env_reset()
+                settings.ASSETS_UPDATER = 'never'
+                assert get_env().auto_build == False
+        finally:
+            delsetting('ASSETS_EXPIRE')
+            delsetting('ASSETS_UPDATER')
 
 class TestTemplateTag():
 
@@ -223,7 +244,7 @@ class TestStaticFiles(TempEnvironmentHelper):
         # Configure a staticfiles-using project.
         settings.STATIC_ROOT = settings.MEDIA_ROOT
         settings.MEDIA_ROOT = self.path('needs_to_differ_from_static_root')
-        settings.STATIC_URL = '/media'
+        settings.STATIC_URL = '/media/'
         settings.INSTALLED_APPS += ('django.contrib.staticfiles',)
         settings.STATICFILES_DIRS = tuple(self.create_directories('foo', 'bar'))
         settings.STATICFILES_FINDERS += ('django_assets.finders.AssetsFinder',)

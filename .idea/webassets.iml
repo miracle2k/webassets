@@ -10,6 +10,7 @@
       <excludeFolder url="file://$MODULE_DIR$/dist" />
       <excludeFolder url="file://$MODULE_DIR$/docs/_build" />
       <excludeFolder url="file://$MODULE_DIR$/examples/appengine-sdk" />
+      <excludeFolder url="file://$MODULE_DIR$/examples/appengine/static/.webassets-cache" />
       <excludeFolder url="file://$MODULE_DIR$/examples/appengine/webassets" />
       <excludeFolder url="file://$MODULE_DIR$/src/.webassets-cache" />
       <excludeFolder url="file://$MODULE_DIR$/src/webassets.egg-info" />

@@ -4,6 +4,8 @@ import textwrap
 from StringIO import StringIO
 from webassets.bundle import Bundle
 from webassets.loaders import PythonLoader, YAMLLoader, LoaderError
+from webassets.exceptions import ImminentDeprecationWarning
+from test.test_support import check_warnings
 from nose import SkipTest
 
 
@@ -82,7 +84,9 @@ class TestYAML(object):
         environment = self.loader("""
         url: /foo
         directory: something
-        updater: 'always'
+        versions: 'timestamp'
+        auto_build: true
+        url_expire: true
         config:
             compass_bin: /opt/compass
 
@@ -91,8 +95,9 @@ class TestYAML(object):
                 output: foo
         """).load_environment()
         assert environment.url == '/foo'
-        assert environment.updater == 'always'
-
+        assert environment.url_expire == True
+        assert environment.auto_build == True
+        assert environment.config['versions'] == 'timestamp'
         assert environment.config['COMPASS_BIN'] == '/opt/compass'
 
         # Because the loader isn't aware of the file location, the
@@ -102,6 +107,15 @@ class TestYAML(object):
 
         # [bug] Make sure the bundles are loaded as well.
         assert len(environment) == 1
+
+    def test_load_deprecated_attrs(self):
+        with check_warnings(("", ImminentDeprecationWarning)) as w:
+            environment = self.loader("""
+            url: /foo
+            directory: something
+            updater: false
+            """).load_environment()
+            assert environment.auto_build == False
 
     def test_load_environment_directory_base(self):
         environment = self.loader("""

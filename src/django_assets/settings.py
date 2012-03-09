@@ -23,8 +23,10 @@ class docwrap(object):
 
 ASSETS_DEBUG = Environment.debug
 ASSETS_CACHE = Environment.cache
-ASSETS_UPDATER = Environment.updater
-ASSETS_EXPIRE = Environment.expire
+ASSETS_AUTO_BUILD = Environment.auto_build
+ASSETS_URL_EXPIRE = Environment.url_expire
+ASSETS_MANIFEST = Environment.manifest
+ASSETS_VERSIONS = Environment.versions
 ASSETS_URL = docwrap(Environment.url, """\n\nBy default, ``STATIC_URL``
 will be used for this, or the older ``MEDIA_URL`` setting.""")
 ASSETS_ROOT = docwrap(Environment.directory, """\n\nBy default,

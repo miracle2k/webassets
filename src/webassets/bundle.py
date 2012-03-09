@@ -1,6 +1,8 @@
 import os
 from os import path
 import urlparse
+import os
+
 try:
     # Current version of glob2 does not let us access has_magic :/
     import glob2 as glob
@@ -24,6 +26,10 @@ def is_url(s):
         return False
     scheme = urlparse.urlsplit(s).scheme
     return bool(scheme) and len(scheme) > 1
+
+
+def has_placeholder(s):
+    return '%(version)s' in s
 
 
 class Bundle(object):
@@ -55,6 +61,7 @@ class Bundle(object):
         self.filters = options.pop('filters', None)
         self.debug = options.pop('debug', None)
         self.depends = options.pop('depends', [])
+        self.version = options.pop('version', [])
         if options:
             raise TypeError("got unexpected keyword argument '%s'" %
                             options.keys()[0])
@@ -191,10 +198,57 @@ class Bundle(object):
             self._resolved_depends = l
         return self._resolved_depends
 
+    def get_version(self, env=None, refresh=False):
+        """Return the current version of the Bundle.
+
+        If the version is not cached in memory, it will first look in the
+        manifest, then ask the versioner.
+
+        ``refresh`` causes a value in memory to be ignored, and the version
+        to be looked up anew.
+        """
+        env = self._get_env(env)
+        if not self.version or refresh:
+            version = None
+            # First, try a manifest. This should be the fastest way.
+            if env.manifest:
+                version = env.manifest.query(self, env)
+            # Often the versioner is able to help.
+            if not version:
+                from version import VersionIndeterminableError
+                if env.versions:
+                    try:
+                        version = env.versions.determine_version(self, env)
+                        assert version
+                    except VersionIndeterminableError, e:
+                        reason = e
+                else:
+                    reason = '"versions" option not set'
+            if not version:
+                raise BundleError((
+                    'Cannot find version of %s. There is no manifest '
+                    'which knows the version, and it cannot be '
+                    'determined dynamically, because: %s') % (self, reason))
+            self.version = version
+        return self.version
+
+    def resolve_output(self, env=None, version=None, rel=False):
+        """Return the full, absolute output path.
+
+        If a %(version)s placeholder is used, it is replaced.
+        """
+        env = self._get_env(env)
+        output = self.output
+        if has_placeholder(output):
+            output = output % {'version': version or self.get_version(env)}
+        if rel:
+            return output
+        return env.abspath(output)
+
     def get_files(self, env=None):
         warnings.warn('Bundle.get_files() has been replaced '+
                       'by get_all_bundle_files() utility. '+
-                      'This API be removed in 0.7.')
+                      'This API is to be removed in 0.7.')
         return get_all_bundle_files(self, env)
 
     def __hash__(self):
@@ -382,7 +436,7 @@ class Bundle(object):
         timestamps.
 
         Note: The default value of ``force`` is normally ``False``,
-        unless no ``updater`` is configured, in which case ``True``
+        unless ``auto_build`` is disabled, in which case ``True``
         is assumed.
 
         A ``FileHunk`` will be returned, or in a certain case, with
@@ -398,28 +452,29 @@ class Bundle(object):
         if not self.output:
             raise BuildError('No output target found for %s' % self)
 
-        # Default force to True if no updater is given, as otherwise
+        # Default force to True if auto_build is disabled, as otherwise
         # no build would happen. This is only a question of API design.
-        # We want updater=False users to be able to call bundle.build()
+        # We want auto_build=False users to be able to call bundle.build()
         # and have it have an effect.
         if force is None:
-            force = not bool(env.updater)
+            force = not env.auto_build
 
         # Determine if we really need to build, or if the output file
         # already exists and nothing has changed.
         if force:
             update_needed = True
-        elif not env.updater:
+        elif not env.auto_build:
             # If the user disables the updater, he expects to be able
             # to manage builds all on his one. Don't even bother wasting
             # IO ops on an update check. It's also convenient for
             # deployment scenarios where the media files are on a different
             # server, and we can't even access the output file.
             return False
-        elif not path.exists(env.abspath(self.output)):
+        elif not has_placeholder(self.output) and \
+                not path.exists(env.abspath(self.output)):
             update_needed = True
         else:
-            if env.updater:
+            if env.auto_build:
                 update_needed = env.updater.needs_rebuild(self, env)
                 # _merge_and_apply() is now smart enough to do without
                 # this disable_cache hint, but for now, keep passing it
@@ -437,21 +492,44 @@ class Bundle(object):
             env, self.output, force,
             disable_cache=disable_cache,
             extra_filters=extra_filters)
-        if not output:
+
+        if output:
+            # If we are given a stream, just write to it.
+            output.write(hunk.data())
+        else:
             # If it doesn't exist yet, create the target directory.
-            filename = env.abspath(self.output)
-            output_dir = path.dirname(filename)
+            output = env.abspath(self.output)
+            output_dir = path.dirname(output)
             if not path.exists(output_dir):
                 os.makedirs(output_dir)
-            hunk.save(filename)
-        else:
-            output.write(hunk.data())
+
+            version = None
+            if env.versions:
+                version = env.versions.determine_version(self, env, hunk)
+
+            if not has_placeholder(self.output):
+                hunk.save(self.resolve_output(env))
+            else:
+                if not env.versions:
+                    raise BuildError((
+                        'You have not set the "versions" option, but %s '
+                        'uses a version placeholder in the output target'
+                            % self))
+                output = self.resolve_output(env, version=version)
+                hunk.save(output)
+                self.version = version
+
+            if env.manifest:
+                env.manifest.remember(self, env, version)
+            if env.versions and version:
+                # Hook for the versioner (for example set the timestamp of
+                # the file) to the actual version.
+                env.versions.set_version(self, env, output, version)
 
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
         # bundle definition, like new source files.
-        if env.updater:
-            env.updater.build_done(self, env)
+        env.updater.build_done(self, env)
 
         return hunk
 
@@ -464,8 +542,8 @@ class Bundle(object):
 
         Unless ``force`` is given, the configured ``updater`` will be
         used to check whether a build is even necessary. However,
-        if the updater has been explicitly disabled, then ``True``
-        is assumed for ``force``.
+        if ``auto_build`` has been disabled, then ``True`` is assumed
+        for ``force``.
 
         If ``output`` is a file object, the result will be written to it
         rather than to the filesystem.
@@ -508,31 +586,20 @@ class Bundle(object):
         else:
             yield self, []
 
-    def _make_url(self, env, filename, expire=True):
+    def _make_url(self, env):
         """Return a output url, modified for expire header handling.
-
-        Set ``expire`` to ``False`` if you do not want the URL to
-        be modified for cache busting.
         """
-        if expire:
-            path = env.abspath(filename)
-            if env.expire == 'querystring':
-                last_modified = os.stat(path).st_mtime
-                result = "%s?%d" % (filename, last_modified)
-            elif env.expire == 'filename':
-                last_modified = os.stat(path).st_mtime
-                name = filename.rsplit('.', 1)
-                if len(name) > 1:
-                    result = "%s.%d.%s" % (name[0], last_modified, name[1])
-                else:
-                    result = "%s.%d" % (name, last_modified)
-            elif not env.expire:
-                result = filename
-            else:
-                raise ValueError('Unknown value for ASSETS_EXPIRE option: %s' %
-                                     env.expire)
-        else:
-            result = filename
+
+        # Only query the version if we need to for performance
+        version = None
+        if has_placeholder(self.output) or env.url_expire:
+            # If auto-build is enabled, we must not use a cached version
+            # value, or we might serve old versions.
+            version = self.get_version(env, refresh=env.auto_build)
+
+        result = self.resolve_output(env, version, rel=True)
+        if env.url_expire:
+            result = "%s?%s" % (result, version)
         return env.absurl(result)
 
     def _urls(self, env, extra_filters, *args, **kwargs):
@@ -554,7 +621,7 @@ class Bundle(object):
             # filters and no output target.
             hunk = self._build(env, extra_filters=extra_filters,
                                force=False, *args, **kwargs)
-            return [self._make_url(env, self.output)]
+            return [self._make_url(env)]
         else:
             # We either have no files (nothing to build), or we are
             # in debug mode: Instead of building the bundle, we
@@ -566,7 +633,7 @@ class Bundle(object):
                 elif is_url(c):
                     urls.append(c)
                 else:
-                    urls.append(self._make_url(env, c, expire=False))
+                    urls.append(env.absurl(c))
             return urls
 
     def urls(self, env=None, *args, **kwargs):

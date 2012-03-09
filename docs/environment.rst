@@ -61,11 +61,13 @@ The environment supports the following configuration options:
 
 .. autoattribute:: webassets.env.Environment.debug
 
-.. autoattribute:: webassets.env.Environment.updater
+.. autoattribute:: webassets.env.Environment.auto_build
 
-.. _environment-setting-expire:
+.. autoattribute:: webassets.env.Environment.url_expire
 
-.. autoattribute:: webassets.env.Environment.expire
+.. autoattribute:: webassets.env.Environment.versions
+
+.. autoattribute:: webassets.env.Environment.manifest
 
 .. autoattribute:: webassets.env.Environment.cache
 

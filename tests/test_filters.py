@@ -400,12 +400,12 @@ class TestClosure(TempEnvironmentHelper):
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)};\n'
 
     def test_optimization(self):
-        self.m.config['CLOSURE_COMPRESSOR_OPTIMIZATION'] = 'SIMPLE_OPTIMIZATIONS'
+        self.env.config['CLOSURE_COMPRESSOR_OPTIMIZATION'] = 'SIMPLE_OPTIMIZATIONS'
         self.mkbundle('foo.js', filters='closure_js', output='out.js').build()
         assert self.get('out.js') == 'function foo(a){document.write(a)};\n'
 
     def test_extra_args(self):
-        self.m.config['CLOSURE_EXTRA_ARGS'] = ['--output_wrapper', 'hello: %output%']
+        self.env.config['CLOSURE_EXTRA_ARGS'] = ['--output_wrapper', 'hello: %output%']
         self.mkbundle('foo.js', filters='closure_js', output='out.js').build()
         assert self.get('out.js') == 'hello: function foo(bar){var dummy;document.write(bar)};\n'
 
@@ -495,7 +495,7 @@ class TestSass(TempEnvironmentHelper):
     def test_debug_info_option(self):
         # The debug_info argument to the sass filter can be configured via
         # a global SASS_DEBUG_INFO option.
-        self.m.config['SASS_DEBUG_INFO'] = False
+        self.env.config['SASS_DEBUG_INFO'] = False
         self.mkbundle('foo.sass', filters=get_filter('sass'), output='out.css').build(force=True)
         assert not '-sass-debug-info' in self.get('out.css')
 
@@ -505,12 +505,12 @@ class TestSass(TempEnvironmentHelper):
 
         # If the value is None (the default), then the filter will look
         # at the debug setting to determine whether to include debug info.
-        self.m.config['SASS_DEBUG_INFO'] = None
-        self.m.debug  = True
+        self.env.config['SASS_DEBUG_INFO'] = None
+        self.env.debug  = True
         self.mkbundle('foo.sass', filters=get_filter('sass'),
                       output='out.css', debug=False).build(force=True)
         assert '-sass-debug-info' in self.get('out.css')
-        self.m.debug  = False
+        self.env.debug  = False
         self.mkbundle('foo.sass', filters=get_filter('sass'),
                       output='out.css').build(force=True)
         assert not '-sass-debug-info' in self.get('out.css')
@@ -617,7 +617,7 @@ class TestCompass(TempEnvironmentHelper):
     def test_images_url(self):
         # [bug] Make sure the compass plugin outputs the correct urls to images
         # when using the image-url helper.
-        self.m.url = 'http://assets.host.com/the-images'
+        self.env.url = 'http://assets.host.com/the-images'
         self.create_files({'imguri.scss': 'h1 { background: image-url("test.png") }'})
         self.mkbundle('imguri.scss', filters='compass', output='out.css').build()
         assert doctest_match("""/* ... */\nh1 {\n  background: url('http://assets.host.com/the-images/test.png');\n}\n""", self.get('out.css'))
@@ -640,12 +640,12 @@ class TestJST(TempEnvironmentHelper):
         assert 'Im an html jst template.  Go syntax highlighting!' in contents
     
     def test_compiler_config(self):
-        self.m.config['JST_COMPILER'] = '_.template'
+        self.env.config['JST_COMPILER'] = '_.template'
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
         assert '_.template' in self.get('out.js')
     
     def test_namespace_config(self):
-        self.m.config['JST_NAMESPACE'] = 'window.Templates'
+        self.env.config['JST_NAMESPACE'] = 'window.Templates'
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
         assert 'window.Templates' in self.get('out.js')
     
@@ -684,7 +684,7 @@ class TestJST(TempEnvironmentHelper):
         assert not self.get('out.js').endswith('})();')
 
         # If set to False, the closure is added.
-        self.m.config['JST_BARE'] = False
+        self.env.config['JST_BARE'] = False
         self.mkbundle('*.jst', filters='jst', output='out.js').build(force=True)
         assert self.get('out.js').startswith('(function()')
         assert self.get('out.js').endswith('})();')

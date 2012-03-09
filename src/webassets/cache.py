@@ -17,14 +17,7 @@ import os
 from os import path
 from webassets.merge import BaseHunk
 from webassets.filter import Filter, freezedicts
-
-import sys
-if sys.version_info >= (2, 5):
-    import hashlib
-    md5_constructor = hashlib.md5
-else:
-    import md5
-    md5_constructor = md5.new
+from webassets.utils import md5_constructor
 
 
 __all__ = ('FilesystemCache', 'MemoryCache', 'get_cache',)
@@ -82,14 +75,15 @@ def make_md5(data):
 class BaseCache(object):
     """Abstract base class.
 
-    The cache key must be something that is supported by the
-    Python hash() function.
+    The cache key must be something that is supported by the Python hash()
+    function.
 
-    Since the cache is used for multiple purposes, all
-    webassets-internal code should always tag it's keys with
-    an id, like so:
+    Since the cache is used for multiple purposes, all webassets-internal code
+    should always tag it's keys with an id, like so:
 
         key = ("tag", actual_key)
+
+    One cache instance can only be used safely with a single Environment.
     """
 
     def get(self, key):

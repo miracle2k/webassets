@@ -10,7 +10,26 @@ incompatibility. The ``webassets`` API is not stable yet.
 In Development version
 ~~~~~~~~~~~~~~~~~~~~~~
 
-- If ``Environment.updater`` is disabled, the API of Bundle.build()
+There are some significant backwards incompatible changes in this release.
+
+- The ``Environment.updater`` property (corresponds to the 
+  ``ASSETS_UPDATER`` setting) can no longer be set to ``False`` or
+  ``"never"`` in order to disable the automatic rebuilding. Instead, this
+  now needs to be done using ``Environment.auto_build``, or the corresponding
+  ``ASSETS_AUTO_BUILD`` setting.
+
+- The ``Environment.expire`` (``ASSETS_EXPIRE``) option as been renamed to
+  ``Environment.url_expire`` (``ASSETS_URL_EXPIRE``), and the default value
+  is now ``True``.
+
+- To disable automatic building, set the new ``Environment.auto_build``
+  (``ASSETS_AUTO_BUILD``) option to ``False``. Before, this was done via
+  the ``Environment.updater``, which is now deprecated.
+
+
+Other changes:
+
+- If ``Environment.auto_build`` is disabled, the API of Bundle.build()
   now assumes a default value of ``True`` for the ``force`` argument.
   This should not cause any problems, since it is the only call signature
   that really makes sense in this case.

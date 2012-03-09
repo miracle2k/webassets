@@ -1,5 +1,9 @@
 __all__ = ('BundleError', 'BuildError', 'FilterError',
-           'ImminentDeprecationWarning')
+           'EnvironmentError', 'ImminentDeprecationWarning')
+
+
+class EnvironmentError(Exception):
+    pass
 
 
 class BundleError(Exception):

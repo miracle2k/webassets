@@ -92,9 +92,9 @@ CSS Compilers
 
 
 ``less_ruby``
-~~~~~~~~
+~~~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.less.LessRubyFilter
+.. autoclass:: webassets.filter.less_ruby.LessFilter
 
 
 .. _filters-sass:
@@ -118,7 +118,7 @@ CSS Compilers
 
 
 ``pyscss``
-~~~~~~~~
+~~~~~~~~~~
 
 .. autoclass:: webassets.filter.pyscss.PyScssFilter
 

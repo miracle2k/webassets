@@ -1,33 +1,37 @@
-"""The auto-rebuild system is an optional part of webassets that can
-be used during development, and can also be quite convenient on small
-sites that don't have the performance requirements where a rebuild-check
-on every request is fatal.
+"""The auto-rebuild system is an optional part of webassets that can be used
+during development, and can also be quite convenient on small sites that don't
+have the performance requirements where a rebuild-check on every request is
+fatal.
 
-This module contains classes that help determine whether a rebuild is
-required for a bundle. This is more complicated than simply comparing
-the timestamps of the source and output files.
+This module contains classes that help determine whether a rebuild is required
+for a bundle. This is more complicated than simply comparing the timestamps of
+the source and output files.
 
-First, certain filters, in particular CSS compilers like SASS,
-allow bundle source files to reference additional files which the user
-may not have listed in the bundle definition. The bundles support an
-additional ``depends`` argument that can list files that should be
-watched for modification.
+First, certain filters, in particular CSS compilers like SASS, allow bundle
+source files to reference additional files which the user may not have listed
+in the bundle definition. The bundles support an additional ``depends``
+argument that can list files that should be watched for modification.
 
-Second, if the bundle definition itself changes, i.e., source files
-being added or removed, or the list of applied filters modified, the
-bundle needs to be rebuilt also. Since there is no single fixed place
-where bundles are defined, simply watching the timestamp of that
-bundle definition file is not good enough.
+Second, if the bundle definition itself changes, i.e., source files being added
+or removed, or the list of applied filters modified, the bundle needs to be
+rebuilt also. Since there is no single fixed place where bundles are defined,
+simply watching the timestamp of that bundle definition file is not good enough.
 
-To solve the latter problem, we employ an environment-specific
-in-memory cache of bundle definition.
+To solve the latter problem, we employ an environment-specific cache of bundle
+definitions.
+
+Note that there is no ``HashUpdater``. This doesn't make sense for two reasons.
+First, for a live system, it isn't fast enough. Second, for prebuilding assets,
+the cache is a superior solution for getting essentially the same speed
+increase as using the hash to reliably determine which bundles to skip.
 """
+from webassets.exceptions import BundleError, BuildError
 
-import os
+from webassets.utils import RegistryMetaclass
 
 
-__all__ = ('get_updater', 'SKIP_CACHE', 'TimestampUpdater',
-           'AlwaysUpdater', 'NeverUpdater',)
+__all__ = ('get_updater', 'SKIP_CACHE',
+           'TimestampUpdater', 'AlwaysUpdater',)
 
 
 SKIP_CACHE = object()
@@ -46,35 +50,13 @@ class BaseUpdater(object):
 
     Child classes that define an ``id`` attribute are accessible via their
     string id in the configuration.
+
+    A single instance can be used with different environments.
     """
 
-    class __metaclass__(type):
-        UPDATERS = {}
-
-        def __new__(cls, name, bases, attrs):
-            new_klass = type.__new__(cls, name, bases, attrs)
-            if hasattr(new_klass, 'id'):
-                cls.UPDATERS[new_klass.id] = new_klass
-            return new_klass
-
-        def get_updater(cls, thing):
-            if hasattr(thing, 'needs_rebuild'):
-                if isinstance(thing, type):
-                    return thing()
-                return thing
-            if not thing:
-                return None
-            try:
-                return cls.UPDATERS[thing]()
-            except KeyError:
-                raise ValueError('Updater "%s" is not valid.' % thing)
-
-    def __eq__(self, other):
-        """Return equality with the config values
-        that instantiate this instance.
-        """
-        return (hasattr(self, 'id') and self.id == other) or \
-               id(self) == id(other)
+    __metaclass__ = RegistryMetaclass(
+        clazz=lambda: BaseUpdater, attribute='needs_rebuild',
+        desc='an updater implementation')
 
     def needs_rebuild(self, bundle, env):
         """Returns ``True`` if the given bundle needs to be rebuilt,
@@ -86,7 +68,8 @@ class BaseUpdater(object):
         """This will be called once a bundle has been successfully built.
         """
 
-get_updater = BaseUpdater.get_updater
+
+get_updater = BaseUpdater.resolve
 
 
 class BundleDefUpdater(BaseUpdater):
@@ -132,11 +115,34 @@ class TimestampUpdater(BundleDefUpdater):
 
     def check_timestamps(self, bundle, env, o_modified=None):
         from bundle import Bundle, is_url
+        from webassets.version import TimestampVersion
 
         if not o_modified:
-            o_modified = os.stat(env.abspath(bundle.output)).st_mtime
+            try:
+                resolved_output = bundle.resolve_output(env)
+            except BundleError:
+                # This exception will occur when the bundle output has
+                # placeholder, but a version cannot be found. If the
+                # user has defined a manifest, this will just be the first
+                # build. Return True to let it happen.
+                # However, if no manifest is defined, raise an error,
+                # because otherwise, this updater would always return True,
+                # and thus not do it's job at all.
+                if env.manifest is None:
+                    raise BuildError((
+                        '%s uses a version placeholder, and you are '
+                        'using "%s" versions. To use automatic '
+                        'building in this configuration, you need to '
+                        'define a manifest.' % (bundle, env.versions)))
+                return True
 
-        # Recurse through the bundle hierarchy. Check the timestamp of all
+            try:
+                o_modified = TimestampVersion.get_timestamp(resolved_output)
+            except OSError:
+                # If the output file does not exist, we'll have to rebuild
+                return True
+
+       # Recurse through the bundle hierarchy. Check the timestamp of all
         # the bundle source files, as well as any additional
         # dependencies that we are supposed to watch.
         for iterator, result in (
@@ -150,7 +156,7 @@ class TimestampUpdater(BundleDefUpdater):
                         return nested_result
                 elif not is_url(item):
                     try:
-                        s_modified = os.stat(item).st_mtime
+                        s_modified = TimestampVersion.get_timestamp(item)
                     except OSError:
                         # If a file goes missing, always require
                         # a rebuild.
@@ -182,12 +188,3 @@ class AlwaysUpdater(BaseUpdater):
     def needs_rebuild(self, bundle, env):
         return True
 
-
-class NeverUpdater(BaseUpdater):
-    """#TODO: Get rid of this once #27 lands and we have an auto_rebuild option.
-    """
-
-    id = 'never'
-
-    def needs_rebuild(self, bundle, env):
-        return False
