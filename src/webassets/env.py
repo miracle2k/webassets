@@ -241,8 +241,6 @@ class BaseEnvironment(object):
 
       *custom path*
          Use the given directory as the cache directory.
-
-    Note: Currently, the cache is never used while in production mode.
     """)
 
     def _set_auto_build(self, value):
@@ -325,7 +323,8 @@ class BaseEnvironment(object):
 
     A bundle's version is what is appended to URLs when the
     ``url_expire`` option is enabled, and the version can be part
-    of a Bundle's output filename by use of the %(version)s placeholder.
+    of a Bundle's output filename by use of the ``%(version)s``
+    placeholder.
 
     Valid values are:
 
@@ -384,7 +383,7 @@ class BaseEnvironment(object):
     webassets will have their version (see ``Environment.versions``)
     appended as a querystring.
 
-    An alternative approach would be to use the %(version)s
+    An alternative approach would be to use the ``%(version)s``
     placeholder in the bundle output file.
 
     By default, this option is enabled.

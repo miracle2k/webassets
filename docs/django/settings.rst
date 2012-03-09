@@ -23,12 +23,16 @@ in your project's global settings.
 .. autodata:: ASSETS_DEBUG
     :noindex:
 
-.. autodata:: ASSETS_UPDATER
+.. autodata:: ASSETS_AUTO_BUILD
     :noindex:
 
-.. _django-setting-expire:
+.. autodata:: ASSETS_URL_EXPIRE
+    :noindex:
 
-.. autodata:: ASSETS_EXPIRE
+.. autodata:: ASSETS_VERSIONS
+    :noindex:
+
+.. autodata:: ASSETS_MANIFEST
     :noindex:
 
 .. autodata:: ASSETS_CACHE

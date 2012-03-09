@@ -29,7 +29,9 @@ arguments:
   applied in the order in which they are given.
 
 * ``output`` - Name/path of the output file. All source files will be merged
-  and the result stored at this location.
+  and the result stored at this location. A ``%(version)s`` placeholder is
+  supported here, which will be replaced with the version of the file. See
+  :doc:`/expiring`.
 
 
 Nested bundles

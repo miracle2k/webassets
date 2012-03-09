@@ -25,6 +25,7 @@ of framework used:
    bundles
    script
    builtin_filters
+   expiring
    custom_filters
    css_compilers
    loaders
