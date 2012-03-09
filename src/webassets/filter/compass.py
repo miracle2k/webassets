@@ -63,9 +63,6 @@ class CompassFilter(Filter):
         object of Ruby libraries to load.
     """
 
-    # XXX: See the less filter as to how we might deal with the "needs
-    # to be first" issue.
-
     name = 'compass'
     options = {
         'compass': ('binary', 'COMPASS_BIN'),
