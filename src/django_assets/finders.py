@@ -3,6 +3,7 @@ from django.contrib import staticfiles
 from django.contrib.staticfiles.utils import matches_patterns
 from django.core.files.storage import FileSystemStorage
 from django_assets.env import get_env
+from webassets.exceptions import BundleError
 
 
 class AssetsFileStorage(FileSystemStorage):
@@ -45,8 +46,14 @@ class AssetsFinder(staticfiles.finders.BaseStorageFinder):
         env = get_env()
         if env.directory == getattr(settings, 'STATIC_ROOT'):
             for bundle in env:
+                try:
+                    output = bundle.resolve_output(env)
+                except BundleError:
+                    # We don't have a version for this bundle
+                    continue
+
                 if not matches_patterns(bundle.output, ignore_patterns) and \
-                 self.storage.exists(bundle.output):
+                 self.storage.exists(output):
                     yield bundle.output, self.storage
         else:
             # When ASSETS_ROOT is a separate directory independent of
