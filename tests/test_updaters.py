@@ -8,7 +8,7 @@ from webassets.version import VersionIndeterminableError
 from helpers import TempEnvironmentHelper
 
 
-class TestBundleDefBaseUpdater:
+class TestBundleDefBaseUpdater(object):
     """Test the updater which caches bundle definitions to determine
     changes.
     """

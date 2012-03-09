@@ -8,7 +8,7 @@ from webassets.test import TempEnvironmentHelper
 from webassets.exceptions import ImminentDeprecationWarning
 
 
-class TestEnvApi:
+class TestEnvApi(object):
     """General Environment functionality."""
 
     def setup(self):
@@ -16,7 +16,7 @@ class TestEnvApi:
 
     def test_single_bundle(self):
         """Test self.m.registering a single ``Bundle`` object.
-        """ 
+        """
         b = Bundle()
         self.m.register('foo', b)
         assert self.m['foo'] == b
@@ -79,7 +79,7 @@ class TestEnvApi:
         assert not 'bar' in self.m
 
 
-class TestEnvConfig:
+class TestEnvConfig(object):
     """Custom config values through get_config/set_config.
     """
 
@@ -95,7 +95,7 @@ class TestEnvConfig:
         assert env.debug == 'foo'
 
     def test_basic(self):
-        assert self.m.config.get('foo') == None
+        assert self.m.config.get('foo') is None
         self.m.config['foo'] = 'bar'
         assert self.m.config.get('foo') == 'bar'
 
@@ -108,7 +108,7 @@ class TestEnvConfig:
         assert self.m.config.get('fOO') == 'bar'
 
 
-class TestSpecialProperties:
+class TestSpecialProperties(object):
     """Certain environment options are special in that one may assign
     values as a string, and would receive object instances when
     accessing the property.

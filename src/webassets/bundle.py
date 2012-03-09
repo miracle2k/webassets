@@ -245,12 +245,6 @@ class Bundle(object):
             return output
         return env.abspath(output)
 
-    def get_files(self, env=None):
-        warnings.warn('Bundle.get_files() has been replaced '+
-                      'by get_all_bundle_files() utility. '+
-                      'This API is to be removed in 0.7.')
-        return get_all_bundle_files(self, env)
-
     def __hash__(self):
         """This is used to determine when a bundle definition has
         changed so that a rebuild is required.

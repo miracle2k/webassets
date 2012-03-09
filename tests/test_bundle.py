@@ -83,7 +83,7 @@ class TestBundleConfig(TempEnvironmentHelper):
 
         # Changing filters after bundle creation is no problem, either.
         b = self.mkbundle()
-        assert b.filters is ()
+        assert b.filters == ()
         b.filters = TestFilter
         _assert(b.filters, 1)
 
@@ -441,7 +441,7 @@ class TestFilters(TempEnvironmentHelper):
             def open(self, *a, **kw): pass
             def __init__(self, id): Filter.__init__(self); self.id = id
             def id(self): return self.id
-        self.create_files({'xyz'})
+        self.create_files(set('xyz'))
         bundle = self.mkbundle(
             'xyz', filters=(OpenFilter('a'), OpenFilter('b')))
         assert_raises(BuildError, bundle.build)
@@ -731,7 +731,7 @@ class TestUrlsCommon(BaseUrlsTester):
     The TestUrls()* classes test the logic behind urls(). The ``url_expire``
     option is part of ``TestVersionFeatures``.
     """
-    
+
     def test_erroneous_debug_value(self):
         """Test the exception Bundle.urls() throws if debug is an invalid
         value."""

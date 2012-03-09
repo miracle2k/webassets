@@ -26,7 +26,7 @@ def os_environ_sandbox():
         os.environ.update(backup)
 
 
-class TestFilter:
+class TestFilter(object):
     """Test the API ``Filter`` provides to descendants.
     """
 
@@ -38,7 +38,7 @@ class TestFilter:
         assert type('FooBarFilter', (Filter,), {}).name == 'foobar'
 
         assert type('Foo', (Filter,), {'name': 'custom'}).name == 'custom'
-        assert type('Foo', (Filter,), {'name': None}).name == None
+        assert type('Foo', (Filter,), {'name': None}).name is None
 
     def test_options(self):
         """Test option declaration.
@@ -63,7 +63,7 @@ class TestFilter:
         env.config['attr4'] = 'bar'
         f = TestFilter(); f.env = env; f.setup()
         assert f.attr1 == 'bar'
-        assert f.attr4 == None    # Was configured to not support env
+        assert f.attr4 is None    # Was configured to not support env
 
     def test_get_config(self):
         """Test the ``get_config`` helper.
@@ -83,7 +83,7 @@ class TestFilter:
         with os_environ_sandbox():
             # Test raising of error, and test not raising it.
             assert_raises(EnvironmentError, get_config, NAME)
-            assert get_config(NAME, require=False) == None
+            assert get_config(NAME, require=False) is None
 
             # Start with only the environment variable set.
             os.environ[NAME] = 'bar'
@@ -126,8 +126,8 @@ class TestFilter:
         class TestFilter(Filter):
             def unique(self):
                 return getattr(self, 'token', 'bar')
-        f1 = TestFilter();
-        f2 = TestFilter();
+        f1 = TestFilter()
+        f2 = TestFilter()
 
         # As long as the two tokens are equal, the filters are
         # considered to be the same.
@@ -632,23 +632,23 @@ class TestJST(TempEnvironmentHelper):
 
     def setup(self):
         TempEnvironmentHelper.setup(self)
-    
+
     def test_jst(self):
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
         contents = self.get('out.js')
         assert 'Im a normal .jst template' in contents
         assert 'Im an html jst template.  Go syntax highlighting!' in contents
-    
+
     def test_compiler_config(self):
         self.env.config['JST_COMPILER'] = '_.template'
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
         assert '_.template' in self.get('out.js')
-    
+
     def test_namespace_config(self):
         self.env.config['JST_NAMESPACE'] = 'window.Templates'
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
         assert 'window.Templates' in self.get('out.js')
-    
+
     def test_nested_naming(self):
         self.create_files({'templates/foo/bar/baz.jst': """<span>In your foo bars.</span>"""})
         self.mkbundle('templates/foo/bar/*', 'templates/bar.html', filters='jst', output='out.js').build()
