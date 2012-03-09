@@ -114,7 +114,7 @@ your code. This is somewhat overlapping with our own
 
 If you prefer to use ``CachedStaticFileStorage``, you shouldn't run into any
 problems. Just make sure you run ``./manage.py assets build`` first, and
-``./manage.py collectstatic`` static.
+``./manage.py collectstatic`` second.
 
 This only doesn't *just work* if you are defining bundles in your templates.
 If that is the case, you currently need to define a ``ASSETS_ROOT`` setting
