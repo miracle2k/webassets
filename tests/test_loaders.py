@@ -63,6 +63,26 @@ class TestYAML(object):
         assert len(nested_bundle.contents) == 4
         assert isinstance(nested_bundle.contents[2], Bundle)
 
+    def test_load_recursive_bundles(self):
+        bundles = self.loader("""
+        standard:
+            filters: cssmin,gzip
+            output: output.css
+            contents:
+                - file1
+                - file2
+        recursive:
+            output: recursive.css
+            filters: cssmin
+            contents:
+                - cssfile1
+                - standard
+                - cssfile2
+        """).load_bundles()
+        assert len(bundles) == 2
+        assert bundles['recursive'].contents[1].contents == bundles['standard'].contents
+        assert isinstance(bundles['recursive'].contents[1], Bundle)
+
     def test_empty_files(self):
         """YAML loader can deal with empty files.
         """
