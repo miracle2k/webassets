@@ -68,6 +68,19 @@ class YAMLLoader(object):
             if data is None:
                 data = {}
             bundles[key] = self._get_bundle(data)
+
+        # now we need to recurse through the bundles and get any that
+        # are included in each other.
+        for bundle_name, bundle in bundles.items():
+            # copy contents
+            contents = list(bundle.contents)
+            for i, item in enumerate(bundle.contents):
+                if item in bundles:
+                    contents[i] = bundles[item]
+            # cast back to a tuple
+            contents = tuple(contents)
+            if contents != bundle.contents:
+                bundle.contents = contents
         return bundles
 
     def _open(self):
