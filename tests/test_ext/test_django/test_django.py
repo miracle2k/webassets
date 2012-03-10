@@ -303,7 +303,6 @@ class TestStaticFiles(TempEnvironmentHelper):
         self.create_files(
                 {'foo/css': 'h1{background: url("file1"), url("file2")}'})
         self.mkbundle('css', filters='cssrewrite', output="out").build()
-        print self.get('media/out')
         # The urls are NOT rewritte to foo/file1, but because all three
         # directories are essentially mapped into the same url space, they
         # remain as is.
