@@ -242,7 +242,7 @@ class TestStaticFiles(TempEnvironmentHelper):
             raise SkipTest()
 
         # Configure a staticfiles-using project.
-        settings.STATIC_ROOT = settings.MEDIA_ROOT
+        settings.STATIC_ROOT = settings.MEDIA_ROOT   # /media via baseclass
         settings.MEDIA_ROOT = self.path('needs_to_differ_from_static_root')
         settings.STATIC_URL = '/media/'
         settings.INSTALLED_APPS += ('django.contrib.staticfiles',)
@@ -294,6 +294,21 @@ class TestStaticFiles(TempEnvironmentHelper):
         # incompatible with the test client.
         from django_assets.finders import AssetsFinder
         assert AssetsFinder().find('out') == self.path("media/out")
+
+    def test_css_rewrite(self):
+        """Test that the cssrewrite filter can deal with staticfiles.
+        """
+        # file1 is in ./foo, file2 is in ./bar, the output will be
+        # STATIC_ROOT = ./media
+        self.create_files(
+                {'foo/css': 'h1{background: url("file1"), url("file2")}'})
+        self.mkbundle('css', filters='cssrewrite', output="out").build()
+        print self.get('media/out')
+        # The urls are NOT rewritte to foo/file1, but because all three
+        # directories are essentially mapped into the same url space, they
+        # remain as is.
+        assert self.get('media/out') == \
+                '''h1{background: url("file1"), url("file2")}'''
 
 
 class TestFilter(TempEnvironmentHelper):

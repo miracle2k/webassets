@@ -47,7 +47,7 @@ class JSTFilter(JSTemplateFilter):
         self.include_jst_script = \
             (self.template_function == 'template') or not self.template_function
 
-    def input(self, _in, out, source_path, output_path):
+    def input(self, _in, out, source_path, output_path, **kw):
         data = _in.read()
         self.templates.append((source_path, data))
 

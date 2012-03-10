@@ -277,7 +277,7 @@ class Bundle(object):
             raise BundleError('Bundle is not connected to an environment')
         return env
 
-    def _merge_and_apply(self, env, output_path, force, parent_debug=None,
+    def _merge_and_apply(self, env, output, force, parent_debug=None,
                          parent_filters=[], extra_filters=[],
                          disable_cache=None):
         """Internal recursive build method.
@@ -301,6 +301,9 @@ class Bundle(object):
         cache, since the cache key is not taking into account changes
         in those dependencies (for now).
         """
+
+        assert not path.isabs(output)
+
         # Determine the debug option to work, which will tell us what
         # building the bundle entails. The reduce chooses the first
         # non-None value.
@@ -357,7 +360,8 @@ class Bundle(object):
 
         filtertool = FilterTool(
             env.cache, no_cache_read=actually_skip_cache_here,
-            kwargs={'output_path': output_path})
+            kwargs={'output': output,
+                    'output_path': env.abspath(output)})
 
         # Apply input filters to all the contents. Note that we use both this
         # bundle's filters as well as those given to us by the parent. We ONLY
@@ -365,30 +369,37 @@ class Bundle(object):
         # applied before the apply our own output filters.
         combined_filters = merge_filters(filters, parent_filters)
         hunks = []
-        for _, c in resolved_contents:
-            if isinstance(c, Bundle):
-                hunk = c._merge_and_apply(
-                    env, output_path, force, debug,
+        for rel_name, item in resolved_contents:
+            if isinstance(item, Bundle):
+                hunk = item._merge_and_apply(
+                    env, output, force, debug,
                     combined_filters, disable_cache=disable_cache)
                 hunks.append(hunk)
             else:
-                # Give a filter the change to open his file.
+                # Pass along the original relative path, as specified by the
+                # user. This may differ from the actual filesystem path, if
+                # extensions provide a virtualized filesystem (e.g. Flask
+                # blueprints, Django staticfiles).
+                kwargs = {'source': rel_name}
+
+                # Give a filter the chance to open his file.
                 try:
-                    hunk = filtertool.apply_func(combined_filters, 'open', [c])
+                    hunk = filtertool.apply_func(
+                        combined_filters, 'open', [item], kwargs=kwargs)
                 except MoreThanOneFilterError, e:
                     raise BuildError(e)
 
                 if not hunk:
-                    if is_url(c):
-                        hunk = UrlHunk(c)
+                    if is_url(item):
+                        hunk = UrlHunk(item)
                     else:
-                        hunk = FileHunk(c)
+                        hunk = FileHunk(item)
 
                 if no_filters:
                     hunks.append(hunk)
                 else:
                     hunks.append(filtertool.apply(
-                        hunk, combined_filters, 'input'))
+                        hunk, combined_filters, 'input', kwargs=kwargs))
 
         # Merge the individual files together.
         try:

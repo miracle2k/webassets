@@ -73,24 +73,13 @@ class CSSUrlRewriter(PatternRewriter):
     }
 
     def input(self, _in, out, **kw):
-        source_path, output_path = kw['source_path'], kw['output_path']
+        source, source_path, output, output_path = \
+            kw['source'], kw['source_path'], kw['output'], kw['output_path']
 
-        # Get source and output path relative to media directory (they are
-        # probably absolute paths, we need to work with them as env.url
-        # based urls (e.g. the following code will consider them absolute
-        # within a filesystem chrooted into env.url).
-        root = addsep(self.env.directory)
-        # To make common_path_prefix() work properly in all cases, make sure
-        # we remove stuff like ../ from all paths.
-        output_path = normpath(join(root, output_path))
-        source_path = normpath(join(root, source_path))
-        root = normpath(root)
-
-        cpp = common_path_prefix
         self.source_path = source_path
         self.output_path = output_path
-        self.output_url = path2url(output_path[len(cpp([root, output_path])):])
-        self.source_url = path2url(source_path[len(cpp([root, source_path])):])
+        self.source_url = self.env.absurl(source)
+        self.output_url = self.env.absurl(output)
 
         return super(CSSUrlRewriter, self).input(_in, out, **kw)
 

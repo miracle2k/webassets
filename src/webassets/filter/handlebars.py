@@ -31,10 +31,10 @@ class HandlebarsFilter(JSTemplateFilter):
     # XXX Due to the way this filter works, any other filters applied
     # WILL BE IGNORED. Maybe this method should be allowed to return True
     # to indicate that the input() processor is not supported.
-    def open(self, out, source, **kw):
-        self.templates.append(source)
+    def open(self, out, source_path, **kw):
+        self.templates.append(source_path)
         # Write back or the cache would not detect changes
-        out.write(FileHunk(source).data())
+        out.write(FileHunk(source_path).data())
 
     def output(self, _in, out, **kw):
         if self.root is True:

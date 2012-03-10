@@ -28,7 +28,7 @@ class CoffeeScriptFilter(Filter):
         'no_bare': 'COFFEE_NO_BARE',
     }
 
-    def input(self, _in, out, source_path, output_path):
+    def input(self, _in, out, source_path, output_path, **kw):
         old_dir = os.getcwd()
         os.chdir(os.path.dirname(source_path))
         try:

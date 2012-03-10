@@ -20,7 +20,7 @@ class TemplateFilter(Filter):
         super(TemplateFilter, self).__init__()
         self.context = context
 
-    def input(self, _in, out, source_path, output_path):
+    def input(self, _in, out, source_path, output_path, **kw):
         t = Template(_in.read(), origin='django-assets', name=source_path)
         out.write(t.render(Context(self.context if self.context else {}) ))
 

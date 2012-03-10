@@ -69,7 +69,7 @@ class CompassFilter(Filter):
         'plugins': option('COMPASS_PLUGINS', type=list)
     }
 
-    def open(self, out, source, **kw):
+    def open(self, out, source_path, **kw):
         """Compass currently doesn't take data from stdin, and doesn't allow
         us accessing the result from stdout either.
 
@@ -108,8 +108,8 @@ class CompassFilter(Filter):
             # compass' simplistic path handling, where it just assumes
             # source_path is within sassdir, and cuts off the length of
             # sassdir from the input file.
-            sassdir = path.normpath(path.dirname(source))
-            source = path.normpath(source)
+            sassdir = path.normpath(path.dirname(source_path))
+            source_path = path.normpath(source_path)
 
             # Compass offers some helpers like image-url(), which need
             # information about the urls under which media files will be
@@ -158,7 +158,7 @@ http_javascripts_dir = ""
                             '--quiet',
                             '--boring',
                             '--output-style', 'expanded',
-                            source])
+                            source_path])
 
             proc = subprocess.Popen(command,
                                     stdout=subprocess.PIPE,
@@ -177,7 +177,7 @@ http_javascripts_dir = ""
 
 
             guessed_outputfile = \
-                path.join(tempout, path.splitext(path.basename(source))[0])
+                path.join(tempout, path.splitext(path.basename(source_path))[0])
             f = open("%s.css" % guessed_outputfile)
             try:
                 out.write(f.read())

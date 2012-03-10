@@ -116,7 +116,7 @@ a potential ``Filter`` suffix is removed.
 The ``input`` method will be called for every source file, the ``output``
 method will be applied once after a bundle's contents have been concated.
 
-The ``kwargs`` you currently receive are:
+Among the ``kwargs`` you currently receive are:
 
 - ``source_path`` (only for ``input()``): The filename behind the ``in``
   stream, though note that other input filters may already have transformed
@@ -124,6 +124,11 @@ The ``kwargs`` you currently receive are:
 
 - ``output_path``: The final output path that your filters work will
   ultimatily end up in.
+
+.. note::
+
+   Always make your filters accept arbitrary ``**kwargs``. The API does allow
+   for additional values to be passed along in the future.
 
 Registering
 ~~~~~~~~~~~

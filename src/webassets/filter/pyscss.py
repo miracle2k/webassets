@@ -53,11 +53,13 @@ class PyScssFilter(Filter):
         scss.ASSETS_ROOT = self.assets_url or self.env.url
         scss.ASSETS_URL = self.assets_root or self.env.directory
 
-    def input(self, _in, out, source_path, output_path):
+    def input(self, _in, out, **kw):
         """Like the original sass filter, this also needs to work as
         an input filter, so that relative @imports can be properly
         resolved.
         """
+
+        source_path = kw['source_path']
 
         # Because PyScss always puts the current working dir at first
         # place of the load path, this is what we need to use to make

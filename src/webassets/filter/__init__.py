@@ -280,7 +280,7 @@ class Filter(object):
         This will be called for every output file.
         """
 
-    def open(self, out, source, **kw):
+    def open(self, out, source_path, **kw):
         """Implement your actual filter here.
 
         This is like input(), but only one filter may provide this.

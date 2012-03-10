@@ -139,7 +139,7 @@ class SassFilter(Filter):
             if cd:
                 os.chdir(old_dir)
 
-    def input(self, _in, out, source_path, output_path):
+    def input(self, _in, out, source_path, output_path, **kw):
         if self.as_output:
             out.write(_in.read())
         else:
