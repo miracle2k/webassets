@@ -107,6 +107,16 @@ class ConfigStorage(object):
                     ImminentDeprecationWarning)
 
 
+# Those are config keys used by the environment. Framework-wrappers may
+# find this list useful if they desire to prefix those settings. For example,
+# in Django, it would be ASSETS_DEBUG. Other config keys are encouraged to use
+# their own namespacing, so they don't need to be prefixed. For example, a
+# filter setting might be CSSMIN_BIN.
+env_options = [
+    'directory', 'url', 'debug', 'cache', 'updater', 'auto_build',
+    'url_expire', 'versions', 'manifest']
+
+
 class BaseEnvironment(object):
     """Abstract base class for :class:`Environment` which makes
     subclassing easier.
