@@ -103,28 +103,25 @@ class Bundle(object):
     contents = property(_get_contents, _set_contents)
 
     def resolve_contents(self, env=None, force=False):
-        """Convert bundle contents into something that can be easily
-        processed.
+        """Convert bundle contents into something that can be easily processed.
 
         - Glob patterns are resolved
-        - Validate all the source paths to complain about
-          missing files early.
-        - Third party extensions get to hook into this to
-          provide a basic virtualized filesystem.
+        - Validate all the source paths to complain about missing files early.
+        - Third party extensions get to hook into this to provide a basic
+          virtualized filesystem.
 
-        The return value is a list of 2-tuples (relpath, abspath).
-        The first element is the path that is assumed to be relative
-        to the ``Environment.directory`` value. We need it to construct
-        urls to the source files.
-        The second element is the absolute path to the actual location
-        of the file. Depending on the magic a third party extension
-        does, this may be somewhere completely different.
+        The return value is a list of 2-tuples (relpath, abspath). The first
+        element is the path that is assumed to be relative to the
+        ``Environment.directory`` value. We need it to construct urls to the
+        source files.
+        The second element is the absolute path to the actual location of the
+        file. Depending on the magic a third party extension does, this may be
+        somewhere completely different.
 
-        URLs and nested Bundles are returned as a 2-tuple where
-        both items are the same.
+        URLs and nested Bundles are returned as a 2-tuple where both items are
+        the same.
 
-        Set ``force`` to ignore any cache, and always re-resolve
-        glob patterns.
+        Set ``force`` to ignore any cache, and always re-resolve glob patterns.
         """
         env = self._get_env(env)
 
@@ -362,11 +359,10 @@ class Bundle(object):
             env.cache, no_cache_read=actually_skip_cache_here,
             kwargs={'output_path': output_path})
 
-        # Apply input filters to all the contents. Note that we use
-        # both this bundle's filters as well as those given to us by
-        # the parent. We ONLY do those this for the input filters,
-        # because we need them to be applied before the apply our own
-        # output filters.
+        # Apply input filters to all the contents. Note that we use both this
+        # bundle's filters as well as those given to us by the parent. We ONLY
+        # do those this for the input filters, because we need them to be
+        # applied before the apply our own output filters.
         combined_filters = merge_filters(filters, parent_filters)
         hunks = []
         for _, c in resolved_contents:
@@ -418,29 +414,24 @@ class Bundle(object):
                disable_cache=None):
         """Internal bundle build function.
 
-        This actually tries to build this very bundle instance, as
-        opposed to the public-facing ``build()``, which first deals
-        with the possibility that we are a container bundle, i.e.
-        having no files of our own.
+        This actually tries to build this very bundle instance, as opposed to
+        the public-facing ``build()``, which first deals with the possibility
+        that we are a container bundle, i.e. having no files of our own.
 
-        First checks whether an update for this bundle is required,
-        via the configured ``updater`` (which is almost always the
-        timestamp-based one). Unless ``force`` is given, in which
-        case the bundle will always be built, without considering
-        timestamps.
+        First checks whether an update for this bundle is required, via the
+        configured ``updater`` (which is almost always the timestamp-based one).
+        Unless ``force`` is given, in which case the bundle will always be
+        built, without considering timestamps.
 
-        Note: The default value of ``force`` is normally ``False``,
-        unless ``auto_build`` is disabled, in which case ``True``
-        is assumed.
+        Note: The default value of ``force`` is normally ``False``, unless
+        ``auto_build`` is disabled, in which case ``True`` is assumed.
 
-        A ``FileHunk`` will be returned, or in a certain case, with
-        no updater defined and force=False, the return value may be
-        ``False``.
+        A ``FileHunk`` will be returned, or in a certain case, with no updater
+        defined and force=False, the return value may be ``False``.
 
-        TODO: Support locking. When called from inside a template tag,
-        this should lock, so that multiple requests don't all start
-        to build. When called from the command line, there is no need
-        to lock.
+        TODO: Support locking. When called from inside a template tag, this
+        should lock, so that multiple requests don't all start to build. When
+        called from the command line, there is no need to lock.
         """
 
         if not self.output:
