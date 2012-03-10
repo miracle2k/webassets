@@ -134,6 +134,12 @@ Other
 .. autoclass:: webassets.filter.cssrewrite.CSSRewriteFilter
 
 
+``datauri``
+~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.datauri.CSSDataUriFilter
+
+
 ``jst``
 ~~~~~~~~~~~~~~
 

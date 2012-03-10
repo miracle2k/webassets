@@ -453,6 +453,29 @@ class TestCssRewrite(TempEnvironmentHelper):
         self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
 
 
+class TestDataUri(TempEnvironmentHelper):
+
+    default_files = {
+        'in.css': '''h1 { background: url(sub/icon.png) }'''
+    }
+
+    def test(self):
+        self.create_files({'sub/icon.png': 'foo'})
+        self.mkbundle('in.css', filters='datauri', output='out.css').build()
+        assert self.get('out.css') == 'h1 { background: url(url("data:image/png;base64,Zm9v")) }'
+
+    def test_missing_file(self):
+        """No error is raised if a file is missing."""
+        self.mkbundle('in.css', filters='datauri', output='out.css').build()
+        assert self.get('out.css') == 'h1 { background: url(sub/icon.png) }'
+
+    def test_max_size(self):
+        self.env.config['datauri_max_size'] = 2
+        self.create_files({'sub/icon.png': 'foo'})
+        self.mkbundle('in.css', filters='datauri', output='out.css').build()
+        assert self.get('out.css') == 'h1 { background: url(sub/icon.png) }'
+
+
 class TestSass(TempEnvironmentHelper):
 
     default_files = {

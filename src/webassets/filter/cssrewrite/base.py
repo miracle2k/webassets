@@ -26,6 +26,8 @@ class PatternRewriter(Filter):
     """Base class for input filters which want to replace certain patterns.
     """
 
+    name = None
+
     # Define the patterns in the form of:
     #   method to call -> pattern to call it for (as a compiled regex)
     patterns = {}
@@ -64,6 +66,8 @@ class CSSUrlRewriter(PatternRewriter):
     in CSS stylesheets.
     """
 
+    name = None
+
     patterns = {
         'rewrite_url': urltag_re
     }
@@ -83,6 +87,8 @@ class CSSUrlRewriter(PatternRewriter):
         root = normpath(root)
 
         cpp = common_path_prefix
+        self.source_path = source_path
+        self.output_path = output_path
         self.output_url = path2url(output_path[len(cpp([root, output_path])):])
         self.source_url = path2url(source_path[len(cpp([root, source_path])):])
 
@@ -104,7 +110,7 @@ class CSSUrlRewriter(PatternRewriter):
         if url[-1:] in '"\'':
             url = url[:-1]
 
-        url = self.replace_url(url)
+        url = self.replace_url(url) or url
 
         result = 'url(%s%s%s%s%s)' % (
             text_before, quotes_used, url, quotes_used, text_after)
