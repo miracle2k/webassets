@@ -38,9 +38,6 @@ server error.
 
 Support asset deployment to services like Amazon S3.
 
-Support more expiration/cache busting options (e.g. append hash, use hash
-instead of filename, ...); Allow custom code as well.
-
 Add support for Bundle subclasses to customize behavior on a
 bundle-by-bundle basis:
 	- The merging of filtersets.
@@ -48,13 +45,6 @@ bundle-by-bundle basis:
     - How to expire assets
 Basically, all the settings should be customizable this way, with the
 settings themselves only serving as a default.
-
-Some filters, like the less filter, cannot work with an input stream,
-but only with the source files directly. To work, they thus need to be
-the first ones to be applied. There should be a way for filters to declare
-that requirement and webassets to automatically validate it.
-One possible option: Adding a new method besides input/output - say, "open()".
-Only one such filter would be allowed to run.
 
 I was never really happy with the debug=False approach to solving
 the CSS compiler in debug mode problem. Maybe it should be up to
