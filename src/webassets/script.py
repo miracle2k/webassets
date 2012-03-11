@@ -1,6 +1,7 @@
 import os, sys
 import time
 import logging
+from webassets.version import get_manifest
 
 try:
     from cStringIO import StringIO
@@ -55,7 +56,8 @@ class CommandLineEnvironment():
             ImminentDeprecationWarning)
         return self.build()
 
-    def build(self, bundles=None, output=None, directory=None, no_cache=None):
+    def build(self, bundles=None, output=None, directory=None, no_cache=None,
+              manifest=None):
         """Build/Rebuild assets.
 
         ``bundles``
@@ -76,6 +78,13 @@ class CommandLineEnvironment():
 
         ``no_cache``
             If set, a cache (if one is configured) will not be used.
+
+        ``manifest``
+            If set, the given manifest instance will be used, instead of
+            any that might have been configured in the Environment. The value
+            passed will be resolved through ``get_manifest()``. If this fails,
+            a file-based manifest will be used using the given value as the
+            filename.
         """
         if self.environment.debug != False:
             self.log.warning(
@@ -92,6 +101,18 @@ class CommandLineEnvironment():
             raise CommandError('A custom output directory cannot be '
                                'combined with explicit output filenames '
                                'for individual bundles.')
+
+        # TODO: Oh how nice it would be to use the future options stack.
+        if manifest is not None:
+            try:
+                manifest = get_manifest(manifest, env=self.environment)
+            except ValueError:
+                manifest = get_manifest(
+                    # abspath() is important, or this will be considered
+                    # relative to Environment.directory.
+                    "file:%s" % os.path.abspath(manifest),
+                    env=self.environment)
+            self.environment.manifest = manifest
 
         # Use output as a dict.
         if output:
@@ -334,6 +355,11 @@ class GenericArgparseImplementation(object):
         parser.add_argument(
             '--no-cache', action='store_true',
             help='Do not use a cache that might be configured.')
+        parser.add_argument(
+            '--manifest',
+            help='Write a manifest to the given file. Also supports '
+                 'the id:arg format, if you want to use a different '
+                 'manifest implementation.')
 
     def run_with_argv(self, argv):
         try:

@@ -9,6 +9,7 @@ from nose.tools import assert_raises
 from webassets import Bundle
 from webassets.script import main, CommandLineEnvironment, CommandError
 from webassets.test import TempEnvironmentHelper
+from webassets.utils import working_directory
 
 
 def test_script():
@@ -117,3 +118,20 @@ class TestBuildCommand(TestCLI):
 
         self.cmd_env.build(no_cache=False)
         assert a.build_called[2].get('disable_cache') == False
+
+    def test_manifest(self):
+        """Test the custom manifest option."""
+        self.create_files(['media/sub/a'])
+        a = Bundle('a', output='out')
+        self.assets_env.register('a', a)
+
+        # Use direct filepath - this will be relative to the cwd,
+        # not the media directory.
+        self.env.directory = self.path('media/sub')
+        with working_directory(self.tempdir):
+            self.cmd_env.build(manifest='bla')
+            assert self.exists('bla')
+
+        # Use prefix syntax
+        self.cmd_env.build(manifest='file:miau')
+        assert self.exists('media/sub/miau')
