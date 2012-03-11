@@ -26,7 +26,7 @@ class BaseHunk(object):
         if isinstance(other, BaseHunk):
             # Allow class to be used as a unique dict key.
             return hash(self) == hash(other)
-        return object.__eq__(other)
+        return False
 
     def data(self):
         raise NotImplementedError()

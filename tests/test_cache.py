@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 import random
 from nose.tools import assert_equals
 from webassets.filter import Filter

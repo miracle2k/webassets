@@ -56,10 +56,11 @@ class YAMLLoader(object):
 
     def _get_bundle(self, data):
         """Return a bundle initialised by the given dict."""
-        return Bundle(*list(self._yield_bundle_contents(data)),
-                      filters=data.get('filters', None),
-                      output=data.get('output', None),
-                      debug=data.get('debug', None))
+        kwargs = dict(
+            filters=data.get('filters', None),
+            output=data.get('output', None),
+            debug=data.get('debug', None))
+        return Bundle(*list(self._yield_bundle_contents(data)), **kwargs)
 
     def _get_bundles(self, obj):
         """Return a dict that keys bundle names to bundles."""

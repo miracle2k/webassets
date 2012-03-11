@@ -1,3 +1,4 @@
+from __future__ import with_statement
 import sys
 from nose.tools import assert_raises
 import textwrap
@@ -5,8 +6,8 @@ from StringIO import StringIO
 from webassets.bundle import Bundle
 from webassets.loaders import PythonLoader, YAMLLoader, LoaderError
 from webassets.exceptions import ImminentDeprecationWarning
-from test.test_support import check_warnings
 from nose import SkipTest
+from helpers import check_warnings
 
 
 class TestYAML(object):

@@ -1,6 +1,7 @@
+from __future__ import with_statement
+
 from nose import SkipTest
 from nose.tools import assert_raises
-from test.test_support import check_warnings
 
 from django.conf import settings
 from django.template import Template, Context
@@ -12,6 +13,8 @@ from tests.helpers import (
     TempEnvironmentHelper as BaseTempEnvironmentHelper, assert_raises_regexp)
 from webassets.filter import get_filter
 from webassets.exceptions import BundleError, ImminentDeprecationWarning
+
+from tests.helpers import check_warnings
 
 try:
     from django.templatetags.assets import AssetsNode

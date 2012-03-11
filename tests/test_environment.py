@@ -1,11 +1,14 @@
+from __future__ import with_statement
+
 from nose.tools import assert_raises, with_setup
-from test.test_support import check_warnings
 
 from webassets import Environment
 from webassets.env import RegisterError
 from webassets import Bundle
 from webassets.test import TempEnvironmentHelper
 from webassets.exceptions import ImminentDeprecationWarning
+
+from helpers import check_warnings
 
 
 class TestEnvApi(object):
