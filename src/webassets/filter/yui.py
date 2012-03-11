@@ -25,9 +25,6 @@ __all__ = ('YUIJSFilter', 'YUICSSFilter',)
 
 class YUIBase(Filter, JavaMixin):
 
-    # Will cause this base class not be loaded.
-    name = None
-
     def setup(self):
         try:
             self.jar = self.get_config('YUI_COMPRESSOR_PATH',

@@ -109,9 +109,8 @@ look something like this:
 The ``output`` and ``input`` methods should look familiar. They're basically
 like the callable you are already familiar with, simply pulled inside a class.
 
-Class-based filters have a ``name``. If you do not set this, it will be
-automatically generated. In doing so, the class name is lowercased, and
-a potential ``Filter`` suffix is removed.
+Class-based filters have a ``name`` attribute, which you need to set if you
+want to register your filter globally.
 
 The ``input`` method will be called for every source file, the ``output``
 method will be applied once after a bundle's contents have been concated.

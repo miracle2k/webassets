@@ -26,8 +26,6 @@ class PatternRewriter(Filter):
     """Base class for input filters which want to replace certain patterns.
     """
 
-    name = None
-
     # Define the patterns in the form of:
     #   method to call -> pattern to call it for (as a compiled regex)
     patterns = {}
@@ -65,8 +63,6 @@ class CSSUrlRewriter(PatternRewriter):
     """Base class for input filters which need to replace url() statements
     in CSS stylesheets.
     """
-
-    name = None
 
     patterns = {
         'rewrite_url': urltag_re

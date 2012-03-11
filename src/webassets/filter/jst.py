@@ -12,8 +12,6 @@ class JSTemplateFilter(Filter):
     possibly other Javascript templating systems in the future.
     """
 
-    name = None  # abstract
-
     def setup(self):
         super(JSTemplateFilter, self).setup()
         # Reset template collection (same instance may run multiple times)

@@ -31,12 +31,10 @@ class TestFilter(object):
     """
 
     def test_auto_name(self):
-        """Test the automatic generation of the filter name.
+        """Filter used to have an auto-generated name assigned, but this
+        is no longer the case.
         """
-        assert type('Foo', (Filter,), {}).name == 'foo'
-        assert type('FooFilter', (Filter,), {}).name == 'foo'
-        assert type('FooBarFilter', (Filter,), {}).name == 'foobar'
-
+        assert type('Foo', (Filter,), {}).name is None
         assert type('Foo', (Filter,), {'name': 'custom'}).name == 'custom'
         assert type('Foo', (Filter,), {'name': None}).name is None
 
@@ -124,6 +122,7 @@ class TestFilter(object):
         """Test the ``unique`` method used to determine equality.
         """
         class TestFilter(Filter):
+            name = 'test'
             def unique(self):
                 return getattr(self, 'token', 'bar')
         f1 = TestFilter()

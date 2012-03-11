@@ -55,6 +55,10 @@ Other changes:
   not all builtin filters followed this rule. Your custom filters may need
   updating as well.
 
+- Filter classes now longer get an auto-generated name. If you have a custom
+  filter and have not explicitly given it a name, you need to do this now if
+  you want to register the filter globally.
+
 
 In 0.6
 ~~~~~~

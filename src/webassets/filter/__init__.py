@@ -16,28 +16,6 @@ from webassets.importlib import import_module
 __all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',)
 
 
-
-class NameGeneratingMeta(type):
-    """Metaclass that will generate a "name" attribute based on the
-    class name if none is given.
-    """
-
-    def __new__(cls, name, bases, attrs):
-        try:
-            Filter
-        except NameError:
-            # Don't generate a name for the baseclass itself.
-            pass
-        else:
-            if not 'name' in attrs:
-                filter_name = name
-                if name.endswith('Filter'):
-                    filter_name = filter_name[:-6]
-                filter_name = filter_name.lower()
-                attrs['name'] = filter_name
-        return type.__new__(cls, name, bases, attrs)
-
-
 def freezedicts(obj):
     """Recursively iterate over ``obj``, supporting dicts, tuples
     and lists, and freeze ``dicts`` such that ``obj`` can be used
@@ -117,10 +95,7 @@ class Filter(object):
     arguments will normally be the exception.
     """
 
-    __metaclass__ = NameGeneratingMeta
-
-    # Name by which this filter can be referred to. Will be generated
-    # automatically for subclasses if not explicitly given.
+    # Name by which this filter can be referred to.
     name = None
 
     # Options the filter supports. The base class will ensure that
