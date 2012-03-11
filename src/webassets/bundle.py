@@ -588,13 +588,14 @@ class Bundle(object):
 
         # Only query the version if we need to for performance
         version = None
-        if has_placeholder(self.output) or env.url_expire:
+        if has_placeholder(self.output) or env.url_expire != False:
             # If auto-build is enabled, we must not use a cached version
             # value, or we might serve old versions.
             version = self.get_version(env, refresh=env.auto_build)
 
         result = self.resolve_output(env, version, rel=True)
-        if env.url_expire:
+        if env.url_expire or (
+                env.url_expire is None and not has_placeholder(self.output)):
             result = "%s?%s" % (result, version)
         return env.absurl(result)
 

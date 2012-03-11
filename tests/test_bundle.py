@@ -1059,11 +1059,25 @@ class TestVersionFeatures(TempEnvironmentHelper):
         """Test the url_expire option.
         """
         self.env.debug = False
-        self.env.url_expire = True
         self.env.versions = DummyVersion('foo')
-        root = self.mkbundle('in', output='out')
-        assert len(root.urls()) == 1
-        assert root.urls()[0] == '/out?foo'
+        with_placeholder = self.mkbundle('in', output='out-%(version)s')
+        without_placeholder = self.mkbundle('in', output='out')
+
+        # Always add querystring if url_expire=True
+        self.env.url_expire = True
+        assert len(with_placeholder.urls()) == 1
+        assert without_placeholder.urls()[0] == '/out?foo'
+        assert with_placeholder.urls()[0] == '/out-foo?foo'
+
+        # Never add querystring if url_expire=False
+        self.env.url_expire = False
+        assert without_placeholder.urls()[0] == '/out'
+        assert with_placeholder.urls()[0] == '/out-foo'
+
+        # Add querystring if no placeholder, if url_expire=None
+        self.env.url_expire = None
+        assert without_placeholder.urls()[0] == '/out?foo'
+        assert with_placeholder.urls()[0] == '/out-foo'
 
     def test_no_url_expire_with_placeholders(self):
         """[Regression] If the url had placeholders, then url_expire was

@@ -137,7 +137,7 @@ class BaseEnvironment(object):
         #   - manifest=cache because hash versions are slow
         self.config.setdefault('debug', False)
         self.config.setdefault('cache', True)
-        self.config.setdefault('url_expire', True)
+        self.config.setdefault('url_expire', None)
         self.config.setdefault('auto_build', True)
         self.config.setdefault('manifest', 'cache')
         self.config.setdefault('versions', 'hash')
@@ -396,7 +396,9 @@ class BaseEnvironment(object):
     An alternative approach would be to use the ``%(version)s``
     placeholder in the bundle output file.
 
-    By default, this option is enabled.
+    The default behavior (indicated by a ``None`` value) is to add
+    an expiry querystring if the bundle does not use a version
+    placeholder.
     """)
 
     def _set_directory(self, directory):
