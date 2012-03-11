@@ -201,11 +201,8 @@ def autoload():
         #if options.get('verbosity') > 1:
         #    print "assets module loaded"
 
-    # Look for an assets.py at the project level
-    try:
-        import_module('assets')
-    except ImportError:
-        # not found, just ignore
-        pass
+    # Load additional modules.
+    for module in getattr(settings, 'ASSETS_MODULES', []):
+        import_module("%s" % module)
 
     _ASSETS_LOADED = True

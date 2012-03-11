@@ -59,6 +59,10 @@ Other changes:
   filter and have not explicitly given it a name, you need to do this now if
   you want to register the filter globally.
 
+- ``django_assets`` no longer tries to load a global ``assets.py`` module (it
+  will still find bundles defined in application-level ``assets.py`` files). If
+  you want to define bundles in other modules, you now need to list those
+  explicitly in the :ref:`ASSETS_MODULES <django-setting-modules>` setting.
 
 In 0.6
 ~~~~~~
