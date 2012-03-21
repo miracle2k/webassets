@@ -4,6 +4,8 @@ TODO: Looking at how we need to make the MockBundle write to``output``,
 I wonder whether I shouldn't just do full-stack tests here instead of mocking.
 """
 
+from __future__ import with_statement
+
 import logging
 from nose.tools import assert_raises
 from webassets import Bundle
