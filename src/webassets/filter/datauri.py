@@ -61,7 +61,7 @@ class CSSDataUriFilter(CSSUrlRewriter):
         try:
             if os.stat(filename).st_size <= (self.max_size or 2048):
                 data = b64encode(open(filename, 'rb').read())
-                return 'url("data:%s;base64,%s")' % (
+                return 'data:%s;base64,%s' % (
                     mimetypes.guess_type(filename)[0], data)
         except (OSError, IOError):
             # Ignore the file not existing.
