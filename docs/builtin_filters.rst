@@ -152,6 +152,12 @@ Other
 .. automodule:: webassets.filter.handlebars
 
 
+``dustjs``
+~~~~~~~~~~
+
+.. autoclass:: webassets.filter.dust.DustJSFilter
+
+
 ``cssprefixer``
 ~~~~~~~~~~~~~~~
 
