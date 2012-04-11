@@ -9,3 +9,4 @@ recursive-exclude tests *.pyc
 
 recursive-include examples *
 recursive-exclude examples *.pyc
+prune examples/appengine-sdk
