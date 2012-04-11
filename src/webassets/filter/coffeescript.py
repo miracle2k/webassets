@@ -1,7 +1,7 @@
 import os, subprocess
 
 from webassets.filter import Filter
-from webassets.exceptions import FilterError
+from webassets.exceptions import FilterError, ImminentDeprecationWarning
 
 
 __all__ = ('CoffeeScriptFilter',)
@@ -13,19 +13,35 @@ class CoffeeScriptFilter(Filter):
 
     If you want to combine it with other JavaScript filters, make sure this
     one runs first.
+
+    Supported configuration options:
+
+    COFFEE_NO_BARE
+        Set to ``True`` to compile without the top-level function
+        wrapper (corresponds to the --bare option to ``coffee``).
     """
 
     name = 'coffeescript'
+    options = {
+        'coffee_deprecated': (False, 'COFFEE_PATH'),
+        'coffee_bin': ('binary', 'COFFEE_BIN'),
+        'no_bare': 'COFFEE_NO_BARE',
+    }
 
-    def setup(self):
-        self.coffee = self.get_config(
-            'COFFEE_PATH', what='coffee binary', require=False) or 'coffee'
-
-    def input(self, _in, out, source_path, output_path):
+    def input(self, _in, out, source_path, output_path, **kw):
         old_dir = os.getcwd()
         os.chdir(os.path.dirname(source_path))
         try:
-            proc = subprocess.Popen([self.coffee, '-bp', source_path],
+            binary = self.coffee_bin or self.coffee_deprecated or 'coffee'
+            if self.coffee_deprecated:
+                import warnings
+                warnings.warn(
+                    'The COFFEE_PATH option of the "coffeescript" '
+                    +'filter has been deprecated and will be removed.'
+                    +'Use COFFEE_BIN instead.', ImminentDeprecationWarning)
+
+            args = "-p" + ("" if self.no_bare else 'b')
+            proc = subprocess.Popen([binary, args, source_path],
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
             stdout, stderr = proc.communicate()

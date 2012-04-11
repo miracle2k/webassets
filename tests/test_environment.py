@@ -1,11 +1,17 @@
+from __future__ import with_statement
+
 from nose.tools import assert_raises, with_setup
 
 from webassets import Environment
 from webassets.env import RegisterError
 from webassets import Bundle
+from webassets.test import TempEnvironmentHelper
+from webassets.exceptions import ImminentDeprecationWarning
+
+from helpers import check_warnings
 
 
-class TestEnvApi:
+class TestEnvApi(object):
     """General Environment functionality."""
 
     def setup(self):
@@ -13,7 +19,7 @@ class TestEnvApi:
 
     def test_single_bundle(self):
         """Test self.m.registering a single ``Bundle`` object.
-        """ 
+        """
         b = Bundle()
         self.m.register('foo', b)
         assert self.m['foo'] == b
@@ -76,7 +82,7 @@ class TestEnvApi:
         assert not 'bar' in self.m
 
 
-class TestEnvConfig:
+class TestEnvConfig(object):
     """Custom config values through get_config/set_config.
     """
 
@@ -92,7 +98,7 @@ class TestEnvConfig:
         assert env.debug == 'foo'
 
     def test_basic(self):
-        assert self.m.config.get('foo') == None
+        assert self.m.config.get('foo') is None
         self.m.config['foo'] = 'bar'
         assert self.m.config.get('foo') == 'bar'
 
@@ -105,7 +111,7 @@ class TestEnvConfig:
         assert self.m.config.get('fOO') == 'bar'
 
 
-class TestSpecialProperties:
+class TestSpecialProperties(object):
     """Certain environment options are special in that one may assign
     values as a string, and would receive object instances when
     accessing the property.
@@ -114,31 +120,31 @@ class TestSpecialProperties:
     def setup(self):
         self.m = Environment('.', None)  # we won't create any files
 
-    def test_updater(self):
-        from webassets.updater import BaseUpdater
+    def test_versioner(self):
+        from webassets.version import Version
 
         # Standard string values
-        self.m.updater = 'always'
-        assert isinstance(self.m.config['updater'], basestring)
-        assert isinstance(self.m.updater, BaseUpdater)
-        assert self.m.updater == 'always'   # __eq__
-        assert self.m.updater != 'timestamp'
+        self.m.versions = 'timestamp'
+        assert isinstance(self.m.config['versions'], basestring)
+        assert isinstance(self.m.versions, Version)
+        assert self.m.versions == 'timestamp'   # __eq__
+        assert self.m.versions != 'hash'
 
         # False
-        self.m.config['updater'] = False
-        assert self.m.updater is None
+        self.m.config['versions'] = False
+        assert self.m.versions is None
 
         # Instance assign
-        self.m.updater = instance = BaseUpdater()
-        assert self.m.updater == instance
+        self.m.versions = instance = Version()
+        assert self.m.versions == instance
 
         # Class assign
-        self.m.updater = BaseUpdater
-        assert isinstance(self.m.updater, BaseUpdater)
+        self.m.versions = Version
+        assert isinstance(self.m.versions, Version)
 
         # Invalid value
-        self.m.updater = 'invalid-value'
-        assert_raises(ValueError, getattr, self.m, 'updater')
+        self.m.versions = 'invalid-value'
+        assert_raises(ValueError, getattr, self.m, 'versions')
 
     def test_cache(self):
         from webassets.cache import BaseCache, FilesystemCache
@@ -168,3 +174,46 @@ class TestSpecialProperties:
         # Class assign
         self.m.cache = instance = BaseCache
         assert isinstance(self.m.cache, BaseCache)
+
+
+class TestVersionSystemDeprecations(TempEnvironmentHelper):
+    """With the introduction of the ``Environment.version`` system,
+    some functionality has been deprecated.
+    """
+
+    def test_expire_option(self):
+        # Assigning to the expire option raises a deprecation warning
+        with check_warnings(("", ImminentDeprecationWarning)) as w:
+            self.env.expire = True
+        with check_warnings(("", ImminentDeprecationWarning)):
+            self.env.config['expire'] = True
+            # Reading the expire option raises a warning also.
+        with check_warnings(("", ImminentDeprecationWarning)):
+            x = self.env.expire
+        with check_warnings(("", ImminentDeprecationWarning)):
+            x = self.env.config['expire']
+
+    def test_expire_option_passthrough(self):
+        """While "expire" no longer exists, we attempt to provide an
+        emulation."""
+        with check_warnings(("", ImminentDeprecationWarning)):
+            # Read
+            self.env.url_expire = False
+            assert self.env.expire == False
+            self.env.url_expire = True
+            assert self.env.expire == 'querystring'
+            # Write
+            self.env.expire = False
+            assert self.env.url_expire == False
+            self.env.expire = 'querystring'
+            assert self.env.url_expire == True
+            # "filename" needs to be migrated manually
+            assert_raises(DeprecationWarning, setattr, self.env, 'expire', 'filename')
+
+    def test_updater_option_passthrough(self):
+        """Certain values of the "updater" option have been replaced with
+        auto_build."""
+        with check_warnings(("", ImminentDeprecationWarning)):
+            self.env.auto_build = True
+            self.env.updater = False
+            assert self.env.auto_build == False

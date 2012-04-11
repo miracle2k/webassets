@@ -16,7 +16,7 @@ from webassets import Environment, Bundle
 __all__ = ('TempDirHelper', 'TempEnvironmentHelper',)
 
 
-class TempDirHelper:
+class TempDirHelper(object):
     """Base-class for tests which provides a temporary directory
     (which is properly deleted after the test is done), and various
     helper methods to do filesystem operations within that directory.
@@ -82,6 +82,9 @@ class TempDirHelper:
         """
         return open(self.path(name)).read()
 
+    def unlink(self, name):
+        os.unlink(self.path(name))
+
     def path(self, name):
         """Return the given file's full path."""
         return path.join(self._tempdir_created, name)
@@ -92,8 +95,12 @@ class TempDirHelper:
 
         Specify ``mtime`` as a keyword argument, or time.time()
         will automatically be used. Returns the mtime used.
+
+        Specify ``mod`` as a keyword argument, and the modifier
+        will be added to the ``mtime`` used.
         """
         mtime = kwargs.pop('mtime', time.time())
+        mtime += kwargs.pop('mod', 0)
         assert not kwargs, "Unsupported kwargs: %s" %  ', '.join(kwargs.keys())
         for f in files:
             os.utime(self.path(f), (mtime, mtime))
@@ -121,17 +128,16 @@ class TempEnvironmentHelper(TempDirHelper):
     def setup(self):
         TempDirHelper.setup(self)
 
-        # Not sure why this was called "m", but let's migrate
-        # to self.env.
-        self.m = self.env = self._create_environment()
+        self.env = self._create_environment()
         # Unless we explicitly test it, we don't want to use the cache
         # during testing.
-        self.m.cache = False
+        self.env.cache = False
+        self.env.manifest = False
 
     def _create_environment(self):
         return Environment(self._tempdir_created, '')
 
     def mkbundle(self, *a, **kw):
         b = Bundle(*a, **kw)
-        b.env = self.m
+        b.env = self.env
         return b

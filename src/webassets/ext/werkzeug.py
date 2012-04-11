@@ -1,4 +1,6 @@
 import logging
+import warnings
+from webassets.exceptions import ImminentDeprecationWarning
 from webassets.script import CommandLineEnvironment
 
 
@@ -17,6 +19,10 @@ def make_assets_action(environment, loaders=[]):
     you are defining your bundles inside templates only, and
     need to find them first using something like the Jinja2Loader.
     """
+
+    warnings.warn('The werkzeug script integration is deprecated, '
+                  'because the werkzeug.script module itself is.',
+                        ImminentDeprecationWarning)
 
     log = logging.getLogger('webassets')
     log.addHandler(logging.StreamHandler())

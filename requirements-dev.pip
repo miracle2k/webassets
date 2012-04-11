@@ -1,5 +1,4 @@
-# Libs useful when developing webassets. Many required to run all 
-# the tests.
+# Libs useful when developing webassets. Many required to run all the tests.
 Jinja2>=2.5
 Sphinx
 nose
@@ -8,19 +7,29 @@ PyYaml
 glob2
 
 # Filters
+PIL
 clevercss
 cssutils
 cssmin
 yuicompressor
 closure
+pyScss
+
+# Default rsmin package is not installable via pip
+http://michael.elsdoerfer.name/rjsmin/rjsmin-1.0.1-webassets.tar.gz
 # Requiring manual installation:
+# cssprefixer
 #cssprefixer
-#rjsmin
 
 # Necessary for autodoc to build documentation regarding django-assets.
 Django
 
 # The following Ruby gems are required for some filter tests to run:
-# sudo gem install haml
+# sudo gem install sass
 # sudo gem install compass
 # sudo gem install less --version 1.2.21
+
+# The following node libraries are required for some filter tests to run:
+# sudo npm install -g less
+# sudo npm install -g uglify-js
+# sudo npm install -g coffeescript

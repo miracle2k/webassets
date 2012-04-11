@@ -36,7 +36,7 @@ Javascript compressors
 ``uglifyjs``
 ~~~~~~~~~~~~
 
-.. automodule:: webassets.filter.uglifyjs
+.. autoclass:: webassets.filter.uglifyjs.UglifyJSFilter
 
 
 ``jsmin``
@@ -91,6 +91,12 @@ CSS Compilers
 .. autoclass:: webassets.filter.less.LessFilter
 
 
+``less_ruby``
+~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.less_ruby.LessFilter
+
+
 .. _filters-sass:
 
 ``sass``
@@ -111,6 +117,12 @@ CSS Compilers
 .. autoclass:: webassets.filter.compass.CompassFilter
 
 
+``pyscss``
+~~~~~~~~~~
+
+.. autoclass:: webassets.filter.pyscss.PyScssFilter
+
+
 Other
 -----
 
@@ -122,10 +134,28 @@ Other
 .. autoclass:: webassets.filter.cssrewrite.CSSRewriteFilter
 
 
+``datauri``
+~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.datauri.CSSDataUriFilter
+
+
 ``jst``
 ~~~~~~~~~~~~~~
 
 .. autoclass:: webassets.filter.jst.JSTFilter
+
+
+``handlebars``
+~~~~~~~~~~~~~~
+
+.. automodule:: webassets.filter.handlebars
+
+
+``dustjs``
+~~~~~~~~~~
+
+.. autoclass:: webassets.filter.dust.DustJSFilter
 
 
 ``cssprefixer``

@@ -52,7 +52,7 @@ you do this depends a bit on how your site is rendered.
 .. code-block:: python
 
     >>> my_env['js_all'].urls()
-    ('../static/media/gen/packed.js',)
+    ('../static/media/gen/packed.js?9ae572c',)
 
 This will always work. You can call your bundle's ``urls()`` method, which
 will  automatically merge and compress the source files, and return the

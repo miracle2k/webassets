@@ -4,6 +4,11 @@ contents (think minification, compression).
 
 import os, subprocess
 import inspect
+import shlex
+try:
+    frozenset
+except NameError:
+    from sets import ImmutableSet as frozenset
 from webassets.exceptions import FilterError
 from webassets.importlib import import_module
 
@@ -11,26 +16,74 @@ from webassets.importlib import import_module
 __all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',)
 
 
-
-class NameGeneratingMeta(type):
-    """Metaclass that will generate a "name" attribute based on the
-    class name if none is given.
+def freezedicts(obj):
+    """Recursively iterate over ``obj``, supporting dicts, tuples
+    and lists, and freeze ``dicts`` such that ``obj`` can be used
+    with hash().
     """
+    if isinstance(obj, (list, tuple)):
+        return type(obj)([freezedicts(sub) for sub in obj])
+    if isinstance(obj, dict):
+        return frozenset(obj.iteritems())
+    return obj
 
-    def __new__(cls, name, bases, attrs):
-        try:
-            Filter
-        except NameError:
-            # Don't generate a name for the baseclass itself.
-            pass
-        else:
-            if not 'name' in attrs:
-                filter_name = name
-                if name.endswith('Filter'):
-                    filter_name = filter_name[:-6]
-                filter_name = filter_name.lower()
-                attrs['name'] = filter_name
-        return type.__new__(cls, name, bases, attrs)
+
+def smartsplit(string, sep):
+    """Split while allowing escaping.
+
+    So far, this seems to do what I expect - split at the separator,
+    allow escaping via \, and allow the backslash itself to be escaped.
+
+    One problem is that it can raise a ValueError when given a backslash
+    without a character to escape. I'd really like a smart splitter
+    without manually scan the string. But maybe that is exactly what should
+    be done.
+    """
+    assert string is not None   # or shlex will read from stdin
+    # shlex fails miserably with unicode input
+    is_unicode = isinstance(sep, unicode)
+    if is_unicode:
+        string = string.encode('utf8')
+    l = shlex.shlex(string, posix=True)
+    l.whitespace += ','
+    l.whitespace_split = True
+    l.quotes = ''
+    if is_unicode:
+        return map(lambda s: s.decode('utf8'), list(l))
+    else:
+        return list(l)
+
+
+class option(tuple):
+    """Micro option system. I want this to remain small and simple,
+    which is why this class is lower-case.
+
+    See ``parse_options()`` and ``Filter.options``.
+    """
+    def __new__(cls, initarg, configvar=None, type=None):
+        if configvar is None:  # If only one argument given, it is the configvar
+            configvar = initarg
+            initarg = None
+        return tuple.__new__(cls, (initarg, configvar, type))
+
+
+def parse_options(options):
+    """Parses the filter ``options`` dict attribute.
+    The result is a dict of ``option`` tuples.
+    """
+    # Normalize different ways to specify the dict items:
+    #    attribute: option()
+    #    attribute: ('__init__ arg', 'config variable')
+    #    attribute: ('config variable,')
+    #    attribute: 'config variable'
+    result = {}
+    for internal, external in options.items():
+        if not isinstance(external, option):
+            if not isinstance(external, (list, tuple)):
+                external = (external,)
+            external = option(*external)
+        result[internal] = external
+    return result
 
 
 class Filter(object):
@@ -42,14 +95,39 @@ class Filter(object):
     arguments will normally be the exception.
     """
 
-    __metaclass__ = NameGeneratingMeta
-
-    # Name by which this filter can be referred to. Will be generated
-    # automatically for subclasses if not explicitly given.
+    # Name by which this filter can be referred to.
     name = None
 
-    def __init__(self):
+    # Options the filter supports. The base class will ensure that
+    # these are both accepted by __init__ as kwargs, and may also be
+    # defined in the environment config, or the OS environment (i.e.
+    # a setup() implementation will be generated which uses
+    # get_config() calls).
+    #
+    # Can look like this:
+    #    options = {
+    #        'binary': 'COMPASS_BINARY',
+    #        'plugins': option('COMPASS_PLUGINS', type=list),
+    #    }
+    options = {}
+
+    def __init__(self, **kwargs):
         self.env = None
+        self._options = parse_options(self.__class__.options)
+
+        # Resolve options given directly to the filter. This
+        # allows creating filter instances with options that
+        # deviate from the global default.
+        # TODO: can the metaclass generate a init signature?
+        for attribute, (initarg, _, _) in self._options.items():
+            arg = initarg if initarg is not None else attribute
+            if arg in kwargs:
+                setattr(self, attribute, kwargs.pop(arg))
+            else:
+                setattr(self, attribute, None)
+        if kwargs:
+            raise TypeError('got an unexpected keyword argument: %s' %
+                            kwargs.keys()[0])
 
     def __hash__(self):
         return self.id()
@@ -60,14 +138,11 @@ class Filter(object):
         return NotImplemented
 
     def set_environment(self, env):
-        """This is called just before the filter is used.
-        """
-        if not self.env or self.env != env:
-            self.env = env
-            self.setup()
+        """This is called before the filter is used."""
+        self.env = env
 
     def get_config(self, setting=False, env=None, require=True,
-                   what='dependency'):
+                   what='dependency', type=None):
         """Helper function that subclasses can use if they have
         dependencies which they cannot automatically resolve, like
         an external binary.
@@ -86,8 +161,15 @@ class Filter(object):
 
         ``what`` is a string that is used in the exception message;
         you can use it to give the user an idea what he is lacking,
-        i.e. 'xyz filter binary'
+        i.e. 'xyz filter binary'.
+
+        Specifying values via the OS environment is obviously limited. If
+        you are expecting a special type, you may set the ``type`` argument
+        and a value from the OS environment will be parsed into that type.
+        Currently only ``list`` is supported.
         """
+        assert type in (None, list), "%s not supported for type" % type
+
         if env is None:
             env = setting
 
@@ -99,6 +181,8 @@ class Filter(object):
 
         if value is None and not env is False:
             value = os.environ.get(env)
+            if value and type == list:
+                value = smartsplit(value, ',')
 
         if value is None and require:
             err_msg = '%s was not found. Define a ' % what
@@ -130,35 +214,70 @@ class Filter(object):
         It should therefore not depend on instance data, but yield
         the same result across multiple python invocations.
         """
-        return hash((self.name, self.unique(),))
+        # freezedicts() allows filters to return dict objects as part
+        # of unique(), which are not per-se supported by hash().
+        return hash((self.name, freezedicts(self.unique()),))
 
     def setup(self):
-        """Overwrite this to have the filter to initial setup work,
+        """Overwrite this to have the filter do initial setup work,
         like determining whether required modules are available etc.
 
         Since this will only be called when the user actually
         attempts to use the filter, you can raise an error here if
         dependencies are not matched.
 
+        Note: In most cases, it should be enough to simply define
+        the ``options`` attribute. If you override this method and
+        want to use options as well, don't forget to call super().
+
         Note: This may be called multiple times if one filter instance
         is used with different asset environment instances.
         """
+        for attribute, (_, configvar, type) in self._options.items():
+            if not configvar:
+                continue
+            if getattr(self, attribute) is None:
+                # No value specified for this filter instance ,
+                # specifically attempt to load it from the environment.
+                setattr(self, attribute,
+                    self.get_config(setting=configvar, require=False,
+                                    type=type))
 
-    def input(self, _in, out):
+    def input(self, _in, out, **kw):
         """Implement your actual filter here.
 
         This will be called for every source file.
         """
 
-    def output(self, _in, out):
+    def output(self, _in, out, **kw):
         """Implement your actual filter here.
 
         This will be called for every output file.
         """
 
+    def open(self, out, source_path, **kw):
+        """Implement your actual filter here.
+
+        This is like input(), but only one filter may provide this.
+        Use this if your filter needs to read from the source file
+        directly, and would ignore any processing by earlier filters.
+        """
+
+    def concat(self, out, hunks, **kw):
+        """Implement your actual filter here.
+
+       Will be called once between the input() and output()
+       steps, and should concat all the source files (given as hunks)
+       together, and return a string.
+
+       Only one such filter is allowed.
+       """
+
     # We just declared those for demonstration purposes
     del input
     del output
+    del open
+    del concat
 
 
 class CallableFilter(Filter):
@@ -171,9 +290,18 @@ class CallableFilter(Filter):
         self.callable = callable
 
     def unique(self):
+        # XXX This means the cache will never work for those filters.
+        # This is actually a deeper problem: Originally unique() was
+        # used to remove duplicate filters. Now it is also for the cache
+        # key. The latter would benefit from ALL the filter's options being
+        # included. Possibly this might just be what we should do, at the
+        # expense of the "remove duplicates" functionality (because it
+        # is never really needed anyway). It's also illdefined when a filter
+        # should be a removable duplicate - most options probably SHOULD make
+        # a filter no longer being considered duplicate.
         return self.callable
 
-    def output(self, _in, out):
+    def output(self, _in, out, **kw):
         return self.callable(_in, out)
 
 
@@ -219,8 +347,6 @@ def register_filter(f):
         raise ValueError('Must have a name')
     if f.name in _FILTERS:
         raise KeyError('Filter with name %s already registered' % f.name)
-    if not hasattr(f, 'input') and not hasattr(f, 'output'):
-        raise TypeError('Filter lacks both an input() and output() method: %s' % f)
     _FILTERS[f.name] = f
 
 

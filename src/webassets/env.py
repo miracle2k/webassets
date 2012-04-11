@@ -1,9 +1,12 @@
 from os import path
 import urlparse
 from itertools import chain
+import warnings
 from bundle import Bundle
 from cache import get_cache
+from version import get_versioner, get_manifest
 from updater import get_updater
+from exceptions import ImminentDeprecationWarning
 
 
 __all__ = ('Environment', 'RegisterError')
@@ -64,6 +67,55 @@ class ConfigStorage(object):
     def __delitem__(self, key):
         raise NotImplementedError()
 
+    def _get_deprecated(self, key):
+        """For deprecated keys, fake the values as good as we can.
+        Subclasses need to call this in __getitem__."""
+        self._warn_key_deprecation(key)
+        if key == 'expire':
+            return 'querystring' if self['url_expire'] else False
+
+    def _set_deprecated(self, key, value):
+        self._warn_key_deprecation(key)
+        if key == 'expire':
+            if value == 'filename':
+                raise DeprecationWarning(
+                    ('The "expire" option has been deprecated. Instead '
+                     'of the "filesystem" expiry mode, use the %(version)s '
+                     'placeholder in your bundle\'s output filename.'))
+            self['url_expire'] = bool(value)
+            return True
+        if key == 'updater':
+            if not value or value == 'never':
+                self['auto_build'] = False
+                warnings.warn((
+                    'The "updater" option no longer can be set to False '
+                    'or "never" to disable automatic building. Instead, '
+                    'use the new "auto_build" boolean option.'),
+                        ImminentDeprecationWarning)
+                return True
+
+    def _warn_key_deprecation(self, key):
+        """Subclasses should override this to provide custom
+        warnings with their mapped keys in the error message."""
+        import warnings
+        if  key == 'expire':
+            warnings.warn((
+                'The "expire" option has been deprecated in 0.7, and '
+                'replaced with a boolean option "url_expire". If you '
+                'want to append something other than a timestamp to '
+                'your URLs, check out the "versions" option.'),
+                    ImminentDeprecationWarning)
+
+
+# Those are config keys used by the environment. Framework-wrappers may
+# find this list useful if they desire to prefix those settings. For example,
+# in Django, it would be ASSETS_DEBUG. Other config keys are encouraged to use
+# their own namespacing, so they don't need to be prefixed. For example, a
+# filter setting might be CSSMIN_BIN.
+env_options = [
+    'directory', 'url', 'debug', 'cache', 'updater', 'auto_build',
+    'url_expire', 'versions', 'manifest']
+
 
 class BaseEnvironment(object):
     """Abstract base class for :class:`Environment` which makes
@@ -78,10 +130,18 @@ class BaseEnvironment(object):
         self._config = self.config_storage_class(self)
 
         # directory, url currently do not have default values
+        #
+        # some thought went into these defaults:
+        #   - enable url_expire, because we want to encourage the right thing
+        #   - default to hash versions, for the same reason: they're better
+        #   - manifest=cache because hash versions are slow
         self.config.setdefault('debug', False)
         self.config.setdefault('cache', True)
+        self.config.setdefault('url_expire', None)
+        self.config.setdefault('auto_build', True)
+        self.config.setdefault('manifest', 'cache')
+        self.config.setdefault('versions', 'hash')
         self.config.setdefault('updater', 'timestamp')
-        self.config.setdefault('expire', 'querystring')
 
         self.config.update(config)
 
@@ -151,11 +211,11 @@ class BaseEnvironment(object):
         # a custom dictionary which won't uphold our caseless semantics.
         return self._config
 
-    def set_debug(self, debug):
+    def _set_debug(self, debug):
         self.config['debug'] = debug
-    def get_debug(self):
+    def _get_debug(self):
         return self.config['debug']
-    debug = property(get_debug, set_debug, doc=
+    debug = property(_get_debug, _set_debug, doc=
     """Enable/disable debug mode. Possible values are:
 
         ``False``
@@ -167,14 +227,14 @@ class BaseEnvironment(object):
             Merge the source files, but do not apply filters.
     """)
 
-    def set_cache(self, enable):
+    def _set_cache(self, enable):
         self.config['cache'] = enable
-    def get_cache(self):
+    def _get_cache(self):
         cache = get_cache(self.config['cache'], self)
         if cache != self.config['cache']:
             self.config['cache'] = cache
         return cache
-    cache = property(get_cache, set_cache, doc=
+    cache = property(_get_cache, _set_cache, doc=
     """Controls the behavior of the cache. The cache will speed up rebuilding
     of your bundles, by caching individual filter results. This can be
     particularly useful while developing, if your bundles would otherwise take
@@ -186,32 +246,128 @@ class BaseEnvironment(object):
           Do not use the cache.
 
       ``True`` (default)
-          Cache using default location, a ``.cache`` folder inside
+          Cache using default location, a ``.webassets-cache`` folder inside
           :attr:`directory`.
 
       *custom path*
          Use the given directory as the cache directory.
+    """)
 
-    Note: Currently, the cache is never used while in production mode.
+    def _set_auto_build(self, value):
+        self.config['auto_build'] = value
+    def _get_auto_build(self):
+        return self.config['auto_build']
+    auto_build = property(_get_auto_build, _set_auto_build, doc=
+    """Controls whether bundles should be automatically built, and
+    rebuilt, when required (if set to ``True``), or whether they
+    must be built manually be the user, for example via a management
+    command.
+
+    This is a good setting to have enabled during debugging, and can
+    be very convenient for low-traffic sites in production as well.
+    However, there is a cost in checking whether the source files
+    have changed, so if you care about performance, or if your build
+    process takes very long, then you may want to disable this.
+
+    By default automatic building is enabled.
+    """)
+
+    def _set_manifest(self, manifest):
+        self.config['manifest'] = manifest
+    def _get_manifest(self):
+        manifest = get_manifest(self.config['manifest'], env=self)
+        if manifest != self.config['manifest']:
+            self.config['manifest'] = manifest
+        return manifest
+    manifest = property(_get_manifest, _set_manifest, doc=
+    """A manifest persists information about the versions bundles
+    are at.
+
+    The Manifest plays a role only if you insert the bundle version
+    in your output filenames, or append the version as a querystring
+    to the url (via the ``url_expire`` option). It serves two
+    purposes:
+
+        - Without a manifest, it may be impossible to determine the
+          version at runtime. In a deployed app, the media files may
+          be stored on a different server entirely, and be
+          inaccessible from the application code. The manifest,
+          if shipped with your application, is what still allows to
+          construct the proper URLs.
+
+        - Even if it were possible to determine the version at
+          runtime without a manifest, it may be a costly process,
+          and using a manifest may give you better performance. If
+          you use a hash-based version for example, this hash would
+          need to be recalculated every time a new process is
+          started.
+
+    Valid values are:
+
+      ``"cache"`` (default)
+          The cache is used to remember version information. This
+          is useful to avoid recalculating the version hash.
+
+      ``"file:{path}"``
+          Stores version information in a file at {path}. If not
+          path is given, the manifest will be stored as
+          ``.webassets-manifest`` in ``Environment.directory``.
+
+      ``False``, ``None``
+          No manifest is used.
+
+      Any custom manifest implementation.
+
+    The default value is ``None``.
+    """)
+
+    def _set_versions(self, versions):
+        self.config['versions'] = versions
+    def _get_versions(self):
+        versions = get_versioner(self.config['versions'])
+        if versions != self.config['versions']:
+            self.config['versions'] = versions
+        return versions
+    versions = property(_get_versions, _set_versions, doc=
+    """Defines what should be used as a Bundle ``version``.
+
+    A bundle's version is what is appended to URLs when the
+    ``url_expire`` option is enabled, and the version can be part
+    of a Bundle's output filename by use of the ``%(version)s``
+    placeholder.
+
+    Valid values are:
+
+      ``timestamp``
+          The version is determined by looking at the mtime of a
+          bundle's output file.
+
+      ``hash`` (default)
+          The version is a hash over the output file's content.
+
+      ``False``, ``None``
+          Functionality that requires a version is disabled. This
+          includes the ``url_expire`` option, the ``auto_build``
+          option, and support for the %(version)s placeholder.
+
+      Any custom version implementation.
+
+    The default value is ``timestamp``. Along with ``hash``, one
+    of these two values are going to be what most users are looking
+    for.
     """)
 
     def set_updater(self, updater):
         self.config['updater'] = updater
     def get_updater(self):
+        value = self.config['updater']
         updater = get_updater(self.config['updater'])
         if updater != self.config['updater']:
             self.config['updater'] = updater
         return updater
     updater = property(get_updater, set_updater, doc=
-    """Controls when and if bundles should be automatically rebuilt.
-    Possible values are:
-
-      ``False``
-          Do not auto-rebuilt bundles. You will need to use the command
-          line interface to update bundles yourself. Note that the with
-          this settings, bundles will not only be not rebuilt, but will
-          not be automatically built at all, period (even the initial
-          build needs to be done manually).
+    """Controls how the ``auto_build`` option should determine
+    whether a bundle needs to be rebuilt.
 
       ``"timestamp"`` (default)
           Rebuild bundles if the source file timestamp exceeds the existing
@@ -220,56 +376,55 @@ class BaseEnvironment(object):
       ``"always"``
           Always rebuild bundles (avoid in production environments).
 
-    For most people, the default value will be fine. However, on busy
-    websites you may want to disable automatic rebuilding, since the
-    updater will need to check for changes during every request.
-
-    Your build taking very long is another reason why you may want to
-    do it outside of the request handling process.
+      Any custom version implementation.
     """)
 
-    def set_expire(self, expire):
-        self.config['expire'] = expire
-    def get_expire(self):
-        return self.config['expire']
-    expire = property(get_expire, set_expire, doc=
-    """If you send your assets to the client using a *far future expires*
-    header (to minimize the 304 responses your server has to send), you
-    need to make sure that changed assets will be reloaded when they change.
+    def _set_url_expire(self, url_expire):
+        self.config['url_expire'] = url_expire
+    def _get_url_expire(self):
+        return self.config['url_expire']
+    url_expire = property(_get_url_expire, _set_url_expire, doc=
+    """If you send your assets to the client using a
+    *far future expires* header (to minimize the 304 responses
+    your server has to send), you need to make sure that assets
+    will be reloaded by the browser when they change.
 
-    This feature will help. Possible values are:
+    If this is set to ``True``, then the Bundle URLs generated by
+    webassets will have their version (see ``Environment.versions``)
+    appended as a querystring.
 
-      ``False``
-          Don't do anything.
+    An alternative approach would be to use the ``%(version)s``
+    placeholder in the bundle output file.
 
-      ``"querystring"`` (default)
-          Append a querystring with a timestamp to generated urls, e.g.
-          ``asset.js?1212592199``.
-
-      ``"filename"``
-          Modify the filename to include a timestamp, e.g.
-          ``asset.1212592199.js``. This may work better with certain
-          proxies, but requires you to configure your webserver to
-          rewrite those modified filenames to the originals. See also
-          `High Performance Web Sites blog <http://www.stevesouders.com/blog/2008/08/23/revving-filenames-dont-use-querystring/>`_.
+    The default behavior (indicated by a ``None`` value) is to add
+    an expiry querystring if the bundle does not use a version
+    placeholder.
     """)
 
-    def set_directory(self, directory):
+    def _set_directory(self, directory):
         self.config['directory'] = directory
-    def get_directory(self):
+    def _get_directory(self):
         return self.config['directory']
-    directory = property(get_directory, set_directory, doc=
+    directory = property(_get_directory, _set_directory, doc=
     """The base directory to which all paths will be relative to.
     """)
 
-    def set_url(self, url):
+    def _set_url(self, url):
         self.config['url'] = url
-    def get_url(self):
+    def _get_url(self):
         return self.config['url']
-    url = property(get_url, set_url, doc=
+    url = property(_get_url, _set_url, doc=
     """The base used to construct urls under which :attr:`directory`
     should be exposed.
     """)
+
+    # Deprecated attributes, remove in 0.8?; warnings are raised by
+    # the config backend.
+    def _set_expire(self, expire):
+        self.config['expire'] = expire
+    def _get_expire(self):
+        return self.config['expire']
+    expire = property(_get_expire, _set_expire)
 
     def absurl(self, fragment):
         """Create an absolute url based on the root url.
@@ -316,9 +471,15 @@ class DictConfigStorage(ConfigStorage):
     def __contains__(self, key):
         return self._dict.__contains__(key.lower())
     def __getitem__(self, key):
-        return self._dict.__getitem__(key.lower())
+        key = key.lower()
+        value = self._get_deprecated(key)
+        if not value is None:
+            return value
+        return self._dict.__getitem__(key)
     def __setitem__(self, key, value):
-        self._dict.__setitem__(key.lower(), value)
+        key = key.lower()
+        if not self._set_deprecated(key, value):
+            self._dict.__setitem__(key.lower(), value)
     def __delitem__(self, key):
         self._dict.__delitem__(key.lower())
 

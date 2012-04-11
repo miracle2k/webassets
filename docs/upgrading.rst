@@ -7,6 +7,63 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
+In Development version
+~~~~~~~~~~~~~~~~~~~~~~
+
+There are some significant backwards incompatible changes in this release.
+
+- The ``Environment.updater`` property (corresponds to the 
+  ``ASSETS_UPDATER`` setting) can no longer be set to ``False`` or
+  ``"never"`` in order to disable the automatic rebuilding. Instead, this
+  now needs to be done using ``Environment.auto_build``, or the corresponding
+  ``ASSETS_AUTO_BUILD`` setting.
+
+- The ``Environment.expire`` (``ASSETS_EXPIRE``) option as been renamed to
+  ``Environment.url_expire`` (``ASSETS_URL_EXPIRE``), and the default value
+  is now ``True``.
+
+- To disable automatic building, set the new ``Environment.auto_build``
+  (``ASSETS_AUTO_BUILD``) option to ``False``. Before, this was done via
+  the ``Environment.updater``, which is now deprecated.
+
+
+Other changes:
+
+- If ``Environment.auto_build`` is disabled, the API of Bundle.build()
+  now assumes a default value of ``True`` for the ``force`` argument.
+  This should not cause any problems, since it is the only call signature
+  that really makes sense in this case.
+
+- The former ``less`` filter, based on the old Ruby version of lessCSS
+  (still available as the 1.x Ruby gems, but no longer developed) has been
+  renamed ``less_ruby``, and ``less`` now uses the new NodeJS/Javascript
+  implementation, which a while ago superseded the Ruby one.
+
+- The ``rebuild`` command (of the command line mode) has been renamed to
+  ``build``.
+
+- The command line interface now requires the external dependency
+  ``argparse`` on Python versions 2.6 and before. ``argparse`` is included
+  with Python starting with version 2.7.
+
+- ``PythonLoader.load_bundles()`` now returns a dict with the bundle names
+  as keys, rather than a list.
+
+- Filters now receive new keyword arguments. The API now officially requires
+  filters to accept arbitrary ``**kwargs`` for compatibility with future
+  versions. While the documentation has always suggested ``**kwargs`` be used,
+  not all builtin filters followed this rule. Your custom filters may need
+  updating as well.
+
+- Filter classes now longer get an auto-generated name. If you have a custom
+  filter and have not explicitly given it a name, you need to do this now if
+  you want to register the filter globally.
+
+- ``django_assets`` no longer tries to load a global ``assets.py`` module (it
+  will still find bundles defined in application-level ``assets.py`` files). If
+  you want to define bundles in other modules, you now need to list those
+  explicitly in the :ref:`ASSETS_MODULES <django-setting-modules>` setting.
+
 In 0.6
 ~~~~~~
 

@@ -1,5 +1,8 @@
+from __future__ import with_statement
+
 import os
 import tempfile
+from contextlib import contextmanager
 from StringIO import StringIO
 from nose.tools import assert_raises, with_setup, assert_equals
 from nose import SkipTest
@@ -15,19 +18,52 @@ from helpers import TempEnvironmentHelper
 from doctest import _ellipsis_match as doctest_match
 
 
-class TestFilter:
+@contextmanager
+def os_environ_sandbox():
+    backup = os.environ.copy()
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(backup)
+
+
+class TestFilter(object):
     """Test the API ``Filter`` provides to descendants.
     """
 
     def test_auto_name(self):
-        """Test the automatic generation of the filter name.
+        """Filter used to have an auto-generated name assigned, but this
+        is no longer the case.
         """
-        assert type('Foo', (Filter,), {}).name == 'foo'
-        assert type('FooFilter', (Filter,), {}).name == 'foo'
-        assert type('FooBarFilter', (Filter,), {}).name == 'foobar'
-
+        assert type('Foo', (Filter,), {}).name is None
         assert type('Foo', (Filter,), {'name': 'custom'}).name == 'custom'
-        assert type('Foo', (Filter,), {'name': None}).name == None
+        assert type('Foo', (Filter,), {'name': None}).name is None
+
+    def test_options(self):
+        """Test option declaration.
+        """
+        class TestFilter(Filter):
+            options = {
+                'attr1': 'ATTR1',
+                'attr2': ('secondattr', 'ATTR2'),
+                'attr3': (False, 'ATTR3'),
+                'attr4': ('attr4', False),
+            }
+
+        # Test __init__ arguments
+        assert TestFilter(attr1='foo').attr1 == 'foo'
+        assert TestFilter(secondattr='foo').attr2 == 'foo'
+        assert_raises(TypeError, TestFilter, attr3='foo')
+        assert TestFilter(attr4='foo').attr4 == 'foo'
+
+        # Test config vars
+        env = Environment(None, None)
+        env.config['attr1'] = 'bar'
+        env.config['attr4'] = 'bar'
+        f = TestFilter(); f.env = env; f.setup()
+        assert f.attr1 == 'bar'
+        assert f.attr4 is None    # Was configured to not support env
 
     def test_get_config(self):
         """Test the ``get_config`` helper.
@@ -44,10 +80,10 @@ class TestFilter:
         assert NAME != NAME2
         assert not NAME in os.environ and not NAME2 in os.environ
 
-        try:
+        with os_environ_sandbox():
             # Test raising of error, and test not raising it.
             assert_raises(EnvironmentError, get_config, NAME)
-            assert get_config(NAME, require=False) == None
+            assert get_config(NAME, require=False) is None
 
             # Start with only the environment variable set.
             os.environ[NAME] = 'bar'
@@ -67,18 +103,32 @@ class TestFilter:
             assert get_config(NAME) == 'foo'
             assert get_config(setting=NAME, env=False) == 'foo'
             assert_raises(EnvironmentError, get_config, env=NAME)
-        finally:
-            if NAME in os.environ:
-                del os.environ[NAME]
+
+    def test_getconfig_os_env_types(self):
+        """Test type conversion for values read from the environment.
+        """
+        m = Environment(None, None)
+        f = Filter()
+        f.set_environment(m)
+        get_config = f.get_config
+
+        with os_environ_sandbox():
+            os.environ['foo'] = 'one,two\,three'
+            assert get_config(env='foo', type=list) == ['one', 'two,three']
+
+            # Make sure the split is not applied to env config values
+            m.config['foo'] = 'one,two\,three'
+            assert get_config(setting='foo', type=list) == 'one,two\,three'
 
     def test_equality(self):
         """Test the ``unique`` method used to determine equality.
         """
         class TestFilter(Filter):
+            name = 'test'
             def unique(self):
                 return getattr(self, 'token', 'bar')
-        f1 = TestFilter();
-        f2 = TestFilter();
+        f1 = TestFilter()
+        f2 = TestFilter()
 
         # As long as the two tokens are equal, the filters are
         # considered to be the same.
@@ -141,11 +191,6 @@ def test_register_filter():
     # But the same name cannot be registered multiple times.
     assert_raises(KeyError, register_filter, MyFilter)
 
-    # A filter needs to have at least one of the input or output methods.
-    class BrokenFilter(Filter):
-        name = 'broken'
-    assert_raises(TypeError, register_filter, BrokenFilter)
-
 
 def test_get_filter():
     """Test filter resolving.
@@ -179,6 +224,7 @@ def test_callable_filter():
 
     Regression: Ensure that they actually work.
     """
+    # Note how this filter specifically does not receive any **kwargs.
     def my_filter(_in, out):
         assert _in.read() == 'initial value'
         out.write('filter was here')
@@ -203,7 +249,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             var dummy;
             document.write ( bar ); /* Write */
         }
-        """
+        """,
     }
 
     def test_gzip(self):
@@ -249,26 +295,24 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('in', filters='clevercss', output='out.css').build()
         assert self.get('out.css') == """a {\n  color: #7f7f7f;\n}"""
 
-    def test_coffeescript(self):
-        if not find_executable('coffee'):
-            raise SkipTest()
-        self.create_files({'in': "alert \"I knew it!\" if elvis?"})
-        self.mkbundle('in', filters='coffeescript', output='out.js').build()
-        assert self.get('out.js') == """if (typeof elvis !== "undefined" && elvis !== null) {
-  alert("I knew it!");
-}
-"""
     def test_uglifyjs(self):
         if not find_executable('uglifyjs'):
             raise SkipTest()
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
-        print self.get('out.js')
-        assert self.get('out.js') == "function foo(a){var b;document.write(a)}"
+        assert self.get('out.js') == 'function foo(a){var b;document.write(a)};'
 
     def test_less(self):
         if not find_executable('lessc'):
             raise SkipTest()
         self.mkbundle('foo.css', filters='less', output='out.css').build()
+        print repr(self.get('out.css'))
+        assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n'
+
+    def test_less_ruby(self):
+        # TODO: Currently no way to differentiate the ruby lessc from the
+        # JS one. Maybe the solution is just to remove the old ruby filter.
+        raise SkipTest()
+        self.mkbundle('foo.css', filters='less_ruby', output='out.css').build()
         assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #ffffff;\n}\n'
 
     def test_jsmin(self):
@@ -309,6 +353,30 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
 
 
+class TestCoffeeScript(TempEnvironmentHelper):
+
+    def setup(self):
+        if not find_executable('coffee'):
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test_default_options(self):
+        self.create_files({'in': "alert \"I knew it!\" if elvis?"})
+        self.mkbundle('in', filters='coffeescript', output='out.js').build()
+        assert self.get('out.js') == """if (typeof elvis !== "undefined" && elvis !== null) alert("I knew it!");\n"""
+
+    def test_bare_option(self):
+        self.env.config['COFFEE_NO_BARE'] = True
+        self.create_files({'in': "@a = 1"})
+        self.mkbundle('in', filters='coffeescript', output='out.js').build()
+        assert self.get('out.js') == '(function() {\n\n  this.a = 1;\n\n}).call(this);\n'
+
+        self.env.config['COFFEE_NO_BARE'] = False
+        self.create_files({'in': "@a = 1"})
+        self.mkbundle('in', filters='coffeescript', output='out.js').build(force=True)
+        assert self.get('out.js') == 'this.a = 1;\n'
+
+
 class TestClosure(TempEnvironmentHelper):
 
     default_files = {
@@ -333,12 +401,12 @@ class TestClosure(TempEnvironmentHelper):
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)};\n'
 
     def test_optimization(self):
-        self.m.config['CLOSURE_COMPRESSOR_OPTIMIZATION'] = 'SIMPLE_OPTIMIZATIONS'
+        self.env.config['CLOSURE_COMPRESSOR_OPTIMIZATION'] = 'SIMPLE_OPTIMIZATIONS'
         self.mkbundle('foo.js', filters='closure_js', output='out.js').build()
         assert self.get('out.js') == 'function foo(a){document.write(a)};\n'
 
     def test_extra_args(self):
-        self.m.config['CLOSURE_EXTRA_ARGS'] = ['--output_wrapper', 'hello: %output%']
+        self.env.config['CLOSURE_EXTRA_ARGS'] = ['--output_wrapper', 'hello: %output%']
         self.mkbundle('foo.js', filters='closure_js', output='out.js').build()
         assert self.get('out.js') == 'hello: function foo(bar){var dummy;document.write(bar)};\n'
 
@@ -374,6 +442,40 @@ class TestCssRewrite(TempEnvironmentHelper):
         self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
         assert self.get('out.css') == '''h1 { background: url(/new/sub/icon.png) }'''
 
+    def test_replace_with_cache(self):
+        """[Regression] Test replace mode while cache is active.
+
+        This used to fail due to an unhashable key being returned by
+        the filter."""
+        cssrewrite = get_filter('cssrewrite', replace={'old': 'new'})
+        self.env.cache = True
+        self.create_files({'in.css': '''h1 { background: url(old/sub/icon.png) }'''})
+        # Does not raise an exception.
+        self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
+
+
+class TestDataUri(TempEnvironmentHelper):
+
+    default_files = {
+        'in.css': '''h1 { background: url(sub/icon.png) }'''
+    }
+
+    def test(self):
+        self.create_files({'sub/icon.png': 'foo'})
+        self.mkbundle('in.css', filters='datauri', output='out.css').build()
+        assert self.get('out.css') == 'h1 { background: url(data:image/png;base64,Zm9v) }'
+
+    def test_missing_file(self):
+        """No error is raised if a file is missing."""
+        self.mkbundle('in.css', filters='datauri', output='out.css').build()
+        assert self.get('out.css') == 'h1 { background: url(sub/icon.png) }'
+
+    def test_max_size(self):
+        self.env.config['datauri_max_size'] = 2
+        self.create_files({'sub/icon.png': 'foo'})
+        self.mkbundle('in.css', filters='datauri', output='out.css').build()
+        assert self.get('out.css') == 'h1 { background: url(sub/icon.png) }'
+
 
 class TestSass(TempEnvironmentHelper):
 
@@ -406,7 +508,6 @@ class TestSass(TempEnvironmentHelper):
         sass = get_filter('sass', debug_info=False)
         self.create_files({'import-test.sass': '''@import foo.sass'''})
         self.mkbundle('import-test.sass', filters=sass, output='out.css').build()
-        print repr(self.get('out.css'))
         assert doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""", self.get('out.css'))
 
     def test_scss(self):
@@ -418,7 +519,7 @@ class TestSass(TempEnvironmentHelper):
     def test_debug_info_option(self):
         # The debug_info argument to the sass filter can be configured via
         # a global SASS_DEBUG_INFO option.
-        self.m.config['SASS_DEBUG_INFO'] = False
+        self.env.config['SASS_DEBUG_INFO'] = False
         self.mkbundle('foo.sass', filters=get_filter('sass'), output='out.css').build(force=True)
         assert not '-sass-debug-info' in self.get('out.css')
 
@@ -428,12 +529,12 @@ class TestSass(TempEnvironmentHelper):
 
         # If the value is None (the default), then the filter will look
         # at the debug setting to determine whether to include debug info.
-        self.m.config['SASS_DEBUG_INFO'] = None
-        self.m.debug  = True
+        self.env.config['SASS_DEBUG_INFO'] = None
+        self.env.debug  = True
         self.mkbundle('foo.sass', filters=get_filter('sass'),
                       output='out.css', debug=False).build(force=True)
         assert '-sass-debug-info' in self.get('out.css')
-        self.m.debug  = False
+        self.env.debug  = False
         self.mkbundle('foo.sass', filters=get_filter('sass'),
                       output='out.css').build(force=True)
         assert not '-sass-debug-info' in self.get('out.css')
@@ -458,6 +559,40 @@ class TestSass(TempEnvironmentHelper):
             'base.sass': '@import vars.sass\nh1\n  color: $a_color'})
         self.mkbundle('base.sass', filters=sass_output, output='out.css').build()
         assert self.get('out.css') == """/* line 2 */\nh1 {\n  color: white;\n}\n"""
+
+
+class TestPyScss(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.scss': """@import "bar"; a {color: red + green; }""",
+        'bar.scss': 'h1{color:red}'
+    }
+
+    def setup(self):
+        try:
+            import scss
+            self.scss = scss
+        except ImportError:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.mkbundle('foo.scss', filters='pyscss', output='out.css').build()
+        assert doctest_match(
+            '/* ... */\nh1 {\n  color: #ff0000;\n}\na {\n  color: #ff8000;\n}\n\n',
+            self.get('out.css'),)
+
+    def test_assets(self):
+        try:
+            import PIL
+        except ImportError:
+            pass
+        self.create_files({'noise.scss': 'h1 {background: background-noise()}'})
+        self.mkbundle('noise.scss', filters='pyscss', output='out.css').build()
+
+        assert doctest_match(
+            '/* ... */\nh1 {\n  background: url("...png");\n}\n\n',
+            self.get('out.css'),)
 
 
 class TestCompass(TempEnvironmentHelper):
@@ -506,7 +641,7 @@ class TestCompass(TempEnvironmentHelper):
     def test_images_url(self):
         # [bug] Make sure the compass plugin outputs the correct urls to images
         # when using the image-url helper.
-        self.m.url = 'http://assets.host.com/the-images'
+        self.env.url = 'http://assets.host.com/the-images'
         self.create_files({'imguri.scss': 'h1 { background: image-url("test.png") }'})
         self.mkbundle('imguri.scss', filters='compass', output='out.css').build()
         assert doctest_match("""/* ... */\nh1 {\n  background: url('http://assets.host.com/the-images/test.png');\n}\n""", self.get('out.css'))
@@ -521,37 +656,112 @@ class TestJST(TempEnvironmentHelper):
 
     def setup(self):
         TempEnvironmentHelper.setup(self)
-    
+
     def test_jst(self):
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
         contents = self.get('out.js')
         assert 'Im a normal .jst template' in contents
         assert 'Im an html jst template.  Go syntax highlighting!' in contents
-    
+
     def test_compiler_config(self):
-        self.m.config['JST_COMPILER'] = '_.template'
+        self.env.config['JST_COMPILER'] = '_.template'
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
         assert '_.template' in self.get('out.js')
-    
+
     def test_namespace_config(self):
-        self.m.config['JST_NAMESPACE'] = 'window.Templates'
+        self.env.config['JST_NAMESPACE'] = 'window.Templates'
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
         assert 'window.Templates' in self.get('out.js')
-    
+
     def test_nested_naming(self):
         self.create_files({'templates/foo/bar/baz.jst': """<span>In your foo bars.</span>"""})
         self.mkbundle('templates/foo/bar/*', 'templates/bar.html', filters='jst', output='out.js').build()
         assert '\'foo/bar/baz\'' in self.get('out.js')
 
     def test_single_template(self):
+        """Template name is properly determined if there is only a single file."""
         self.create_files({'baz.jst': """<span>Baz?</span>"""})
         self.mkbundle('*.jst', filters='jst', output='out.js').build()
         assert '\'baz\'' in self.get('out.js')
+
+    def test_repeated_calls(self):
+        """[Regression] Does not break if used multiple times."""
+        self.create_files({'baz.jst': """<span>Baz?</span>"""})
+        bundle = self.mkbundle('*.jst', filters='jst', output='out.js')\
+
+        bundle.build(force=True)
+        first_output = self.get('out.js')
+        assert '\'baz\'' in first_output
+
+        bundle.build(force=True)
+        assert self.get('out.js') == first_output
 
     def test_option_bare(self):
         """[Regression] Test the JST_BARE option can be set to False.
         """
         self.create_files({'baz.jst': """<span>Baz?</span>"""})
-        self.m.config['JST_BARE'] = False
-        self.mkbundle('*.jst', filters='jst', output='out.js').build()
+        b = self.mkbundle('*.jst', filters='jst', output='out.js')
+
+        # The default is bare==True (i.e. no closure)
+        b.build(force=True)
+        assert not self.get('out.js').startswith('(function()')
+        assert not self.get('out.js').endswith('})();')
+
+        # If set to False, the closure is added.
+        self.env.config['JST_BARE'] = False
+        self.mkbundle('*.jst', filters='jst', output='out.js').build(force=True)
         assert self.get('out.js').startswith('(function()')
+        assert self.get('out.js').endswith('})();')
+
+    def test_cache(self):
+        """[Regression] Test that jst filter does not break the caching.
+        """
+        # Enable use of cache
+        self.env.cache = True
+
+        self.create_files({'baz.jst': """old value"""})
+        bundle = self.mkbundle('*.jst', filters='jst', output='out.js')
+        bundle.build()
+
+        # Change the file
+        self.create_files({'baz.jst': """new value"""})
+
+        # Rebuild with force=True, so it's not a question of the updater
+        # not doing it's job.
+        bundle.build(force=True)
+
+        assert 'new value' in self.get('out.js')
+
+
+class TestHandlebars(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.html': """
+            <div class="foo">foo</div>
+            """,
+        'dir/bar.html': """
+            <div class="bar">bar</div>
+            """
+    }
+
+    def setup(self):
+        if not find_executable('handlebars'):
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test_basic(self):
+        self.mkbundle('foo.html', 'dir/bar.html',
+                      filters='handlebars', output='out.js').build()
+        assert 'Handlebars' in self.get('out.js')
+        assert "'foo.html'" in self.get('out.js')
+        assert "'dir/bar.html'" in self.get('out.js')
+
+    def test_custom_root(self):
+        self.env.config['handlebars_root'] = 'dir'
+        self.mkbundle('dir/bar.html', filters='handlebars', output='out.js').build()
+        assert "'bar.html'" in self.get('out.js')
+
+    def test_auto_root(self):
+        self.mkbundle('dir/bar.html', filters='handlebars', output='out.js').build()
+        assert "'bar.html'" in self.get('out.js')
+

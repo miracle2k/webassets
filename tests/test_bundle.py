@@ -1,4 +1,6 @@
+import copy
 import os
+from os import path
 import urllib2
 from StringIO import StringIO
 
@@ -6,12 +8,15 @@ from nose.tools import assert_raises, assert_equals
 from nose import SkipTest
 
 from webassets import Bundle
+from webassets.bundle import get_all_bundle_files
+from webassets.env import Environment
 from webassets.exceptions import BundleError, BuildError
 from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache
+from webassets.version import Manifest, Version, VersionIndeterminableError
 
-from helpers import TempEnvironmentHelper, noop
+from helpers import TempEnvironmentHelper, noop, assert_raises_regexp
 
 
 class TestBundleConfig(TempEnvironmentHelper):
@@ -78,7 +83,7 @@ class TestBundleConfig(TempEnvironmentHelper):
 
         # Changing filters after bundle creation is no problem, either.
         b = self.mkbundle()
-        assert b.filters is ()
+        assert b.filters == ()
         b.filters = TestFilter
         _assert(b.filters, 1)
 
@@ -103,13 +108,15 @@ class TestBundleConfig(TempEnvironmentHelper):
         """Test that the depends property is cached."""
         self.create_files({'file1.sass': ''})
         b = self.mkbundle(depends=['*.sass'])
-        assert len(b.resolve_depends(self.m)) == 1
+        assert len(b.resolve_depends(self.env)) == 1
         self.create_files({'file2.sass': ''})
-        assert len(b.resolve_depends(self.m)) == 1
+        assert len(b.resolve_depends(self.env)) == 1
 
 
 class TestBuild(TempEnvironmentHelper):
-    """Test building various bundle structures, in various debug modes.
+    """Test building various bundle structures, in various debug modes,
+    in various different circumstances. Generally all things "building"
+    which don't have a better place.
     """
 
     def test_simple_bundle(self):
@@ -155,7 +162,7 @@ class TestBuild(TempEnvironmentHelper):
         class SkipCacheUpdater(BaseUpdater):
             def needs_rebuild(self, *a, **kw):
                 return SKIP_CACHE
-        self.m.updater = SkipCacheUpdater()
+        self.env.updater = SkipCacheUpdater()
         self.create_files({'out': ''})  # or updater won't come into play
         self.mkbundle('in1', self.mkbundle('in3', 'in4'), 'in2',
                       output='out').build()
@@ -228,18 +235,18 @@ class TestBuild(TempEnvironmentHelper):
         case, so maybe the current behavior is the most consistent.
         """
         # Global debug mode
-        self.m.debug = True
+        self.env.debug = True
         b = self.mkbundle('in1', 'in2', output='out')
         assert_raises(BuildError, b.build)
 
         # Debug mode on bundle itself
-        self.m.debug = False
+        self.env.debug = False
         b = self.mkbundle('in1', 'in2', output='out', debug=True)
         assert_raises(BuildError, b.build)
 
         # However, if a bundle disables debug directly, it can in fact
         # be built, even if we are globally in debug mode.
-        self.m.debug = True
+        self.env.debug = True
         b = self.mkbundle('in1', 'in2', output='out', debug=False)
         b.build()
         assert self.get('out') == 'A\nB'
@@ -257,7 +264,7 @@ class TestBuild(TempEnvironmentHelper):
         """Test that while we are in merge mode, the filters are not
         applied.
         """
-        self.m.debug = 'merge'
+        self.env.debug = 'merge'
         b = self.mkbundle('in1', 'in2', output='out',
                           filters=AppendFilter(':in', ':out'))
         b.build()
@@ -291,9 +298,24 @@ class TestBuild(TempEnvironmentHelper):
         assert_raises(BundleError, b.build)
 
         # On the environment level
-        self.m.debug = "invalid"
+        self.env.debug = "invalid"
         b = self.mkbundle('a', 'b')
         assert_raises(BundleError, b.build)
+
+    def test_auto_create_target_directory(self):
+        """A bundle output's target directory is automatically
+        created, if it doesn't exist yet.
+        """
+        self.mkbundle('in1', 'in2', output='out/nested/x/foo').build()
+        assert self.get('out/nested/x/foo') == 'A\nB'
+
+    def test_with_custom_output(self):
+        """build() method can write to a custom file object."""
+        from StringIO import StringIO
+        buffer = StringIO()
+        self.mkbundle('in1', 'in2', output='out').build(output=buffer)
+        assert buffer.getvalue() == 'A\nB'
+        assert not self.exists('out')    # file was not written.
 
 
 class ReplaceFilter(Filter):
@@ -409,9 +431,35 @@ class TestFilters(TempEnvironmentHelper):
         assert self.get('out2') == 'foo:childin:rootin:childout:rootout'
         assert self.get('out3') == 'foo:childin:childout'
 
+    def test_duplicate_open_filters(self):
+        """Test that only one open() filter can be used.
+        """
+        # TODO: For performance reasons, this check could possibly be
+        # done earlier, when assigning to the filter property. It wouldn't
+        # catch all cases involving bundle nesting though.
+        class OpenFilter(Filter):
+            def open(self, *a, **kw): pass
+            def __init__(self, id): Filter.__init__(self); self.id = id
+            def id(self): return self.id
+        self.create_files(set('xyz'))
+        bundle = self.mkbundle(
+            'xyz', filters=(OpenFilter('a'), OpenFilter('b')))
+        assert_raises(BuildError, bundle.build)
 
-class TestUpdateAndCreate(TempEnvironmentHelper):
-    """Test bundle auto rebuild.
+    def test_concat(self):
+        """Test the concat() filter type.
+        """
+        class ConcatFilter(Filter):
+            def concat(self, out, hunks, **kw):
+                out.write('%%%'.join([h.data() for h in hunks]))
+        self.create_files({'a': '1', 'b': '2'})
+        self.mkbundle('a', 'b', filters=ConcatFilter, output='out').build()
+        assert self.get('out') == '1%%%2'
+
+
+class TestAutoUpdate(TempEnvironmentHelper):
+    """Test bundle auto rebuild, and generally everything involving
+    the updater from the bundle's perspective.
     """
 
     def setup(self):
@@ -421,47 +469,71 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
             allow = True
             def needs_rebuild(self, *a, **kw):
                 return self.allow
-        self.m.updater = CustomUpdater()
+        self.env.updater = self.updater = CustomUpdater()
 
     def test_autocreate(self):
         """If an output file doesn't yet exist, it'll be created (as long
         as automatic building is enabled, anyway).
         """
+        self.env.auto_build = True
         self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'A'
 
     def test_no_autocreate(self):
-        """If no updater is given, then the initial build if a previously
-        non-existent output file will not happen either.
+        """If auto_build is disabled, and a build is not forced, then the
+        initial build of a previously non-existent output file will not
+        happen either.
+
+        Note: This used to raise an exception, no it is simply a noop.
         """
-        self.m.updater = False
-        assert_raises(BuildError, self.mkbundle('in1', output='out').build)
+        self.env.auto_build = False
+        assert self.mkbundle('in1', output='out').build(force=False) == [False]
         # However, it works fine if force is used
         self.mkbundle('in1', output='out').build(force=True)
+        assert self.get('out') == 'A'
+
+    def test_no_auto_create_env_via_argument(self):
+        """Regression test for a bug that occurred when the environment
+        was only given via an argument to build(), rather than at Bundle
+        __init__ time.
+        """
+        self.env.auto_build = False
+        assert Bundle('in1', output='out').build(force=False, env=self.env) == [False]
 
     def test_no_updater(self):
         """[Regression] If Environment.updater is set to False/None,
         this won't cause problems during the build.
         """
-        self.m.updater = False
+        self.env.updater = False
         self.create_files({'out': 'old_value'})
-        self.mkbundle('in1', output='out').build()
+        self.mkbundle('in1', output='out').build(force=False)
         # And it also means that we don't to auto-rebuilding
         assert self.get('out') == 'old_value'
 
-    def test_no_auto_create_env_via_argument(self):
-        """Regression test for a bug that occured when the environment
-        was only given via an argument to build(), rather than at Bundle
-        __init__ time.
+    def test_no_updater_force_defaults_true(self):
+        """If no updater is configured, then bundle.build() will
+        assume force=False by default.
         """
-        self.m.updater = False
-        assert_raises(BuildError, Bundle('in1', output='out').build, env=self.m)
+        self.env.auto_build = False
+        self.env.debug = False
+        self.env.expire = False # can't use this if there is no output file
+
+        # With explicit False, file is not built
+        self.mkbundle('in1', output='out').build(force=False)
+        assert not self.exists('out')
+        # When calling urls(), file is not built either
+        assert len(self.mkbundle('in1', output='out').urls()) == 1
+        assert not self.exists('out')
+        # But when specifically calling the build() API, even
+        # without asking for "force", then a build does happen.
+        self.mkbundle('in1', output='out').build()
+        assert self.get('out') == 'A'
 
     def test_updater_says_no(self):
         """If the updater says 'no change', then we never do a build.
         """
         self.create_files({'out': 'old_value'})
-        self.m.updater.allow = False
+        self.updater.allow = False
         self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'old_value'
 
@@ -473,7 +545,7 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         """Test the updater saying we need to update.
         """
         self.create_files({'out': 'old_value'})
-        self.m.updater.allow = True
+        self.updater.allow = True
         self.mkbundle('in1', output='out').build()
         assert self.get('out') == 'A'
 
@@ -487,18 +559,18 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
                 self.getc += 1
                 return MemoryCache.get(self, key)
 
-        self.m.cache = TestMemoryCache(100)
+        self.env.cache = TestMemoryCache(100)
         self.create_files({'out': 'old_value'})
-        self.m.updater.allow = SKIP_CACHE
+        self.updater.allow = SKIP_CACHE
         b = self.mkbundle('in1', output='out', filters=noop)
         b.build()
         assert self.get('out') == 'A'
-        assert self.m.cache.getc == 0   # cache was not read
+        assert self.env.cache.getc == 0   # cache was not read
 
         # Test the test: the cache is used with True
-        self.m.updater.allow = True
+        self.updater.allow = True
         b.build()
-        assert self.m.cache.getc > 0    # cache was touched
+        assert self.env.cache.getc > 0    # cache was touched
 
     def test_dependency_refresh(self):
         """This tests a specific behavior of bundle dependencies.
@@ -509,22 +581,22 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         file to be included, one of the existing files first needs
         to be modified to actually add the include command.
         """
-        self.m.updater = 'timestamp'
-        self.m.cache = False
+        updater = self.env.updater = TimestampUpdater()
+        self.env.cache = False
         self.create_files({'first.sass': 'one'})
         b = self.mkbundle('in1', output='out', depends='*.sass')
         b.build()
 
         now = self.setmtime('in1', 'first.sass', 'out')
         # At this point, no rebuild is required
-        assert self.m.updater.needs_rebuild(b, self.m) == False
+        assert updater.needs_rebuild(b, self.env) == False
 
         # Create a new file that matches the dependency;
         # make sure it is newer.
         self.create_files({'second.sass': 'two'})
         self.setmtime('second.sass', mtime=now+100)
         # Still no rebuild required though
-        assert self.m.updater.needs_rebuild(b, self.m) == False
+        assert updater.needs_rebuild(b, self.env) == False
 
         # Touch one of the existing files
         self.setmtime('first.sass', mtime=now+200)
@@ -532,14 +604,14 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         # TODO: first.sass is a dependency, because the glob matches
         # the bundle contents as well; As a result, we might check
         # it's timestamp twice. Should something be done about it?
-        assert self.m.updater.needs_rebuild(b, self.m) == SKIP_CACHE
+        assert updater.needs_rebuild(b, self.env) == SKIP_CACHE
         b.build()
         self.setmtime('out', mtime=now+200)
 
         # Now, touch the new dependency we created - a
         # rebuild is now required.
         self.setmtime('second.sass', mtime=now+300)
-        assert self.m.updater.needs_rebuild(b, self.m) == SKIP_CACHE
+        assert updater.needs_rebuild(b, self.env) == SKIP_CACHE
 
     def test_dependency_refresh_with_cache(self):
         """If a bundle dependency is changed, the cache may not be
@@ -547,36 +619,84 @@ class TestUpdateAndCreate(TempEnvironmentHelper):
         the cache, where we really need to do a refresh, because,
         for example, an included file has changed.
         """
-        def depends_fake(in_, out):
-            out.write(self.get('d.sass'))
+        # Run once with the rebuild using force=False
+        yield self._dependency_refresh_with_cache, False
+        # [Regression] And once using force=True (used to be a bug
+        # which caused the change in the dependency to not cause a
+        # cache invalidation).
+        yield self._dependency_refresh_with_cache, True
 
-        self.m.updater = 'timestamp'
-        self.m.cache = MemoryCache(100)
-        self.create_files({'d.sass': 'initial', 'in': ''})
-        bundle = self.mkbundle('in', output='out', depends=('*.sass',),
-                               filters=depends_fake)
+    def _dependency_refresh_with_cache(self, rebuild_with_force):
+        # We have to repeat these a lot
+        DEPENDENCY = 'dependency.sass'
+        DEPENDENCY_SUB = 'dependency_sub.sass'
+
+        # Init a environment with a cache
+        self.env.updater = TimestampUpdater()
+        self.env.cache = MemoryCache(100)
+        self.create_files({
+            DEPENDENCY: '-main',
+            DEPENDENCY_SUB: '-sub',
+            'in': '',
+            'in_sub': ''})
+
+        # Create a bundle with a dependency, and a filter which
+        # will cause the dependency content to be written. If
+        # everything works as it should, a change in the
+        # dependency should thus cause the output to change.
+        bundle = self.mkbundle(
+            'in',
+            output='out',
+            depends=(DEPENDENCY,),
+            filters=lambda in_, out: out.write(in_.read()+self.get(DEPENDENCY)))
+
+        # Additionally, to test how the cache usage of the parent
+        # bundle affects child bundles, create a child bundle.
+        # This one also writes the final content based on a dependency,
+        # but one that is undeclared, so to not override the parent
+        # cache behavior, the passing down of which we intend to test.
+        #
+        # This is a constructed setup so we can test whether the child
+        # bundle was using the cache by looking at the output, not
+        # something that makes sense in real usage.
+        bundle.contents += (self.mkbundle(
+            'in_sub',
+            filters=lambda in_, out: out.write(self.get(DEPENDENCY_SUB))),)
 
         # Do an initial build to ensure we have the build steps in
         # the cache.
         bundle.build()
-        assert self.get('out') == 'initial'
-        assert self.m.cache.keys
+        assert self.get('out') == '\n-sub-main'
+        assert self.env.cache.keys
 
-        # Change the dependency
-        self.create_files({'d.sass': 'new-value-12345'})
+        # Change the dependencies
+        self.create_files({DEPENDENCY: '-main12345'})
+        self.create_files({DEPENDENCY_SUB: '-subABCDE'})
+
         # Ensure the timestamps are such that dependency will
         # cause the rebuild.
         now = self.setmtime('out')
-        self.setmtime('in', mtime=now-100)
-        self.setmtime('d.sass', mtime=now+100)
+        self.setmtime('in', 'in_sub', mtime=now-100)
+        self.setmtime(DEPENDENCY, DEPENDENCY_SUB, mtime=now+100)
 
         # Build again, verify result
-        bundle.build()
-        assert self.get('out') == 'new-value-12345'
+        bundle.build(force=rebuild_with_force)
+        # The main bundle has always updated (i.e. the cache
+        # was invalidated/not used).
+        #
+        # The child bundle is still using the cache if force=True is
+        # used, but will inherit the 'skip the cache' flag from the
+        # parent when force=False.
+        # There is no reason for this, it's just the way the code
+        # currently works, and liable to change in the future.
+        if rebuild_with_force:
+            assert self.get('out') == '\n-sub-main12345'
+        else:
+            assert self.get('out') == '\n-subABCDE-main12345'
 
 
 class BaseUrlsTester(TempEnvironmentHelper):
-    """Baseclass to tes the url generation
+    """Baseclass to test the url generation
 
     It defines a mock bundle class that intercepts calls to build().
     This allows us to test the Bundle.url() method up to it calling
@@ -588,34 +708,41 @@ class BaseUrlsTester(TempEnvironmentHelper):
     def setup(self):
         TempEnvironmentHelper.setup(self)
 
-        self.m.expire = False
+        self.env.url_expire = False
 
         self.build_called = build_called = []
-        env = self.m
+        self.makeurl_called = makeurl_called = []
+        env = self.env
         class MockBundle(Bundle):
             def __init__(self, *a, **kw):
                 Bundle.__init__(self, *a, **kw)
                 self.env = env
             def _build(self, *a, **kw):
                 build_called.append(self.output)
+            def _make_url(self, *a, **kw):
+                makeurl_called.append(self.output)
+                return Bundle._make_url(self, *a, **kw)
         self.MockBundle = MockBundle
 
 
 class TestUrlsCommon(BaseUrlsTester):
     """Other, general tests for the urls() method.
+
+    The TestUrls()* classes test the logic behind urls(). The ``url_expire``
+    option is part of ``TestVersionFeatures``.
     """
-    
+
     def test_erroneous_debug_value(self):
         """Test the exception Bundle.urls() throws if debug is an invalid
         value."""
         # On the bundle level
         b = self.MockBundle('a', 'b', debug="invalid")
-        assert_raises(BundleError, b.urls, env=self.m)
+        assert_raises(BundleError, b.urls, env=self.env)
 
         # On the environment level
-        self.m.debug = "invalid"
+        self.env.debug = "invalid"
         b = self.MockBundle('a', 'b')
-        assert_raises(BundleError, b.urls, env=self.m)
+        assert_raises(BundleError, b.urls, env=self.env)
 
         # Self-check - this should work if this test works.
         self.MockBundle('a', 'b', debug="merge").urls()
@@ -627,9 +754,23 @@ class TestUrlsCommon(BaseUrlsTester):
         child = Bundle('1', '2')
         child.env = None
         root = self.MockBundle(child)
-        root.env = self.m
+        root.env = self.env
         # Does no longer raise an "unconnected env" exception
         assert root.urls() == ['/1', '/2']
+
+    def test_invalid_source_file(self):
+        """If a source file is missing, an error is raised even
+        when rendering the urls (as opposed to just outputting
+        the url to the missing file (this is cached and only
+        done once).
+
+        It's helpful for debugging (in particular when rewriting
+        takes place by things like the django-staticfiles
+        extension, or Flask's blueprints).
+        """
+        self.env.debug = True
+        bundle = self.mkbundle('non-existant-file', output="out")
+        assert_raises(BundleError, bundle.urls)
 
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):
@@ -703,7 +844,7 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
 
     def setup(self):
         BaseUrlsTester.setup(self)
-        self.m.debug = True
+        self.env.debug = True
 
     def test_simple_bundle(self):
         bundle = self.MockBundle('a', 'b', 'c', output='out')
@@ -725,6 +866,22 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
             self.MockBundle('a', output='child2'))
         assert bundle.urls() == ['/a', '/a']
         assert len(self.build_called) == 0
+
+    def test_url_source(self):
+        """[Regression] Test a Bundle that contains a source URL.
+        """
+        bundle = self.MockBundle('http://test.de', output='out')
+        assert_equals(bundle.urls(), ['http://test.de'])
+        assert_equals(len(self.build_called), 0)
+
+        # This is the important test. It proves that the url source
+        # was handled separately, and not processed like any other
+        # source file, which would be passed through makeurl().
+        # This is a bit convoluted to test because the code that
+        # converts a bundle content into an url operates just fine
+        # on a url source, so there is no easy other way to determine
+        # whether the url source was treated special.
+        assert_equals(len(self.makeurl_called), 0)
 
     def test_root_bundle_asks_for_debug_false(self):
         """A bundle explicitly says it wants to be processed with
@@ -757,7 +914,7 @@ class TestUrlsWithDebugMerge(BaseUrlsTester):
 
     def setup(self):
         BaseUrlsTester.setup(self)
-        self.m.debug = 'merge'
+        self.env.debug = 'merge'
 
     def test_simple_bundle(self):
         bundle = self.MockBundle('a', 'b', 'c', output='out')
@@ -782,6 +939,214 @@ class TestUrlsWithDebugMerge(BaseUrlsTester):
         assert len(self.build_called) == 1
 
 
+class DummyVersion(Version):
+    def __init__(self, version=None):
+        self.version = version
+    def determine_version(self, bundle, env, hunk=None):
+        if not self.version:
+            raise VersionIndeterminableError('dummy has no version')
+        return self.version
+
+class DummyManifest(Manifest):
+    def __init__(self, version=None):
+        self.log = []
+        self.version = version
+    def query(self, bundle, env):
+        return self.version
+    def remember(self, *a, **kw):
+        self.log.append((a, kw))
+
+
+class TestVersionFeatures(TempEnvironmentHelper):
+    """Test version-specific features: putting the %(version)s placeholder
+    in a bundle output filename and the url_expire option, and explicitly
+    the resolve_output()/get_version() methods that do the groundwork.
+    """
+
+    default_files = {'in': 'foo'}
+
+    def setup(self):
+        super(TestVersionFeatures, self).setup()
+        self.env.manifest = DummyManifest()
+        self.env.versions = DummyVersion()
+
+    def test_build(self):
+        """Test the build process creates files with placeholders,
+        and stores the version in the manifest.
+        """
+        self.env.manifest = DummyManifest('manifest')
+        self.env.versions = DummyVersion('v1')
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        bundle.build()
+
+        # The correct output filename has been used
+        assert path.basename(bundle.resolve_output()) == 'out-v1'
+        assert self.get('out-v1')
+        # The version has been logged in the manifest
+        assert self.env.manifest.log
+        # The version has been cached in an attribute
+        assert bundle.version == 'v1'
+
+        self.env.versions.version = 'v999'
+        bundle.build(force=True)
+        assert path.basename(bundle.resolve_output()) == 'out-v999'
+        assert self.get('out-v999')
+
+        # Old file still exists as well. Note that making build() clean
+        # up after itself, while certainly possible, is dangerous. In a
+        # multi-process, auto_build enabled setup, if no manifest is used,
+        # each process would do it's own full build.
+        assert self.get('out-v1')
+        # DummyManifest has two log entries now
+        assert len(self.env.manifest.log) == 2
+
+    def test_version_from_attr(self):
+        """If version attr is set, it will be used before anything else."""
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        self.env.manifest.version = 'manifest'
+        self.env.versions.version = 'versions'
+        bundle.version = 'attr'
+        assert bundle.get_version() == 'attr'
+        assert bundle.resolve_output() == self.path('out-attr')
+
+    def test_version_from_manifest(self):
+        """The manifest is checked  first for the version."""
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        self.env.manifest.version = 'manifest'
+        self.env.versions.version = 'versions'
+        assert bundle.get_version() == 'manifest'
+        assert bundle.resolve_output() == self.path('out-manifest')
+
+    def test_version_from_versioner(self):
+        """If version is not in manifest, check versioner"""
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        self.env.manifest.version = None
+        self.env.versions.version = 'versions'
+        assert bundle.get_version() == 'versions'
+        assert bundle.resolve_output() == self.path('out-versions')
+
+    def test_version_not_available(self):
+        """If no version in manifest or versioner, error ir raised."""
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        self.env.manifest.version = None
+        self.env.versions.version = None
+        assert_raises_regexp(
+            BundleError, 'dummy has no version', bundle.get_version)
+        assert_raises_regexp(
+            BundleError, 'dummy has no version', bundle.resolve_output)
+
+    def test_get_version_refresh(self):
+        """Behaviour of the refresh=True option of get_version().
+
+        This is a specific one, but we want to make sure that it  works, and
+        it will not fall back on a bundle.version  attribute that might already
+        be set."""
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        self.env.manifest.version = 'foo'
+        bundle.version = 'bar'
+        assert bundle.get_version() == 'bar'
+        assert bundle.get_version(refresh=True) == 'foo'
+        assert bundle.get_version() == 'foo'
+
+        # With no access to a version, refresh=True will raise an error
+        # even if a version attribute is already set.
+        assert bundle.version == 'foo'
+        self.env.manifest.version = None
+        self.env.versions.version = None
+        assert_raises(BundleError, bundle.get_version, refresh=True)
+
+    def test_url_expire(self):
+        """Test the url_expire option.
+        """
+        self.env.debug = False
+        self.env.versions = DummyVersion('foo')
+        with_placeholder = self.mkbundle('in', output='out-%(version)s')
+        without_placeholder = self.mkbundle('in', output='out')
+
+        # Always add querystring if url_expire=True
+        self.env.url_expire = True
+        assert len(with_placeholder.urls()) == 1
+        assert without_placeholder.urls()[0] == '/out?foo'
+        assert with_placeholder.urls()[0] == '/out-foo?foo'
+
+        # Never add querystring if url_expire=False
+        self.env.url_expire = False
+        assert without_placeholder.urls()[0] == '/out'
+        assert with_placeholder.urls()[0] == '/out-foo'
+
+        # Add querystring if no placeholder, if url_expire=None
+        self.env.url_expire = None
+        assert without_placeholder.urls()[0] == '/out?foo'
+        assert with_placeholder.urls()[0] == '/out-foo'
+
+    def test_no_url_expire_with_placeholders(self):
+        """[Regression] If the url had placeholders, then url_expire was
+        disabled, the placeholder was not resolved in the urls we generated.
+        """
+        self.env.debug = False
+        self.env.url_expire = False
+        self.auto_build = False
+        self.env.versions = DummyVersion('foo')
+        root = self.mkbundle('in', output='out-%(version)s')
+        assert root.urls()[0] == '/out-foo'
+
+    def test_story_of_two_envs(self):
+        """If an app is served by multiple processes, and auto_build is used,
+        if one process rebuilds a bundle, the other one must know (instead of
+        continuing to serve the old version.
+
+        For this reason, if auto_build is enabled, the version will always be
+        determined anew in every request, rather than using a cached version.
+        (This is the reason why get_version() has the refresh=True option).
+        """
+        # Prepare a manifest and bundle in env1. Use a file manifest
+        env1 = self.env
+        env1.url_expire = True
+        bundle1 = self.mkbundle('in', output='out-%(version)s')
+
+        # Prepare an identical setup, simulating the second process
+        env2 = Environment(env1.directory, env1.url)
+        env2.config.update(copy.deepcopy(env1.config._dict))
+        bundle2  = self.mkbundle('in', output='out-%(version)s')
+        bundle2.env = env2
+
+        # Both have auto build enabled, both are using the same manifest
+        env1.auto_build = env2.auto_build = True
+        env1.manifest = 'file'; env2.manifest = 'file'
+        env1.updater = 'timestamp'; env2.updater = 'timestamp'
+
+        # Do the initial build, both envs think they are running the
+        # latest version.
+        env1.versions.version = bundle1.version = 'old'
+        env2.versions.version = bundle2.version = 'old'
+        bundle1.build()
+        assert env2.updater.needs_rebuild(bundle2, env2) == False
+
+        # At this point, both return the old version in urls
+        assert bundle1.urls() ==['/out-old?old']
+        assert bundle2.urls() ==['/out-old?old']
+
+        # Now let env1 do an update.
+        env1.versions.version = 'new'
+        bundle1.build(force=True)
+        assert bundle1.urls() == ['/out-new?new']
+
+        # If auto_build is False, env2 will continue to use the old version.
+        env2.auto_build = False
+        assert bundle2.urls() == ['/out-old?old']
+        # However, if auto_build is True, env2 will know the new version.
+        # This is because env1 wrote it to the manifest during build.
+        env2.auto_build = True
+        assert bundle2.get_version() == 'old'    # urls() causes the refresh
+        assert bundle2.urls() == ['/out-new?new']
+        assert bundle2.get_version() == 'new'
+
+        # The reverse works as well.
+        env2.versions.version = 'latest'
+        bundle2.build(force=True)
+        assert bundle1.urls() == bundle2.urls() == ['/out-latest?latest']
+
+
 class TestGlobbing(TempEnvironmentHelper):
     """Test the bundle contents support for patterns.
     """
@@ -799,7 +1164,7 @@ class TestGlobbing(TempEnvironmentHelper):
         """In debug mode, the source files matching the pattern are
         returned.
         """
-        self.m.debug = True
+        self.env.debug = True
         urls = self.mkbundle('*.js', output='out').urls()
         urls.sort()
         assert_equals(urls, ['/file1.js', '/file2.js'])
@@ -832,7 +1197,19 @@ class TestGlobbing(TempEnvironmentHelper):
         content.sort()
         assert content == ['bar', 'foo', 'sub']
 
-        #https://github.com/miracle2k/python-glob2
+    def test_do_not_glob_directories(self):
+        """[Regression] Glob should be smart enough not to pick
+        up directories."""
+        self.create_directories('subdir')
+        assert not filter(lambda s: 'subdir' in s,
+                           get_all_bundle_files(self.mkbundle('*')))
+
+    def test_glob_exclude_output(self):
+        """Never include the output file in the globbinb result.
+        """
+        self.create_files(['out.js'])
+        assert not filter(lambda s: 'out.js' in s,
+            get_all_bundle_files(self.mkbundle('*', output='out.js')))
 
 
 class MockHTTPHandler(urllib2.HTTPHandler):
@@ -883,3 +1260,70 @@ class TestUrlContents(TempEnvironmentHelper):
         self.create_files({'out': 'foo'})
         bundle = self.mkbundle('http://foo', output='out')
         TimestampUpdater().needs_rebuild(bundle, bundle.env)
+
+
+class TestNormalizeSourcePath(TempEnvironmentHelper):
+    """The Environment class allows overriding a
+    _normalize_source_path() method, which can be used to
+    support some simple filesystem virtualization, and other
+    hackaries.
+    """
+
+    def test(self):
+        """Test the method is properly used in the build process.
+        """
+        class MyEnv(self.env.__class__):
+            def _normalize_source_path(self, path):
+                return self.abspath("foo")
+        self.env.__class__ = MyEnv
+        self.create_files({'foo': 'foo'})
+        self.mkbundle('bar', output='out').build()
+        assert self.get('out') == 'foo'
+
+    def test_non_string(self):
+        """Non-String values can be passed to the bundle, without
+        breaking anything (as long as they are resolved to strings
+        by _normalize_source_path).
+
+        See https://github.com/miracle2k/webassets/issues/71
+        """
+        class MyEnv(self.env.__class__):
+            def _normalize_source_path(self, path):
+                return self.abspath(".".join(path))
+            def absurl(self, url):
+                return url[0]
+        self.env.__class__ = MyEnv
+        self.create_files({'foo.css': 'foo'})
+        bundle = self.mkbundle(('foo', 'css'), output='out')
+
+        # Urls
+        bundle.urls()
+        assert self.get('out') == 'foo'
+
+        # Building
+        bundle.build(force=True)
+        assert self.get('out') == 'foo'
+
+        # Urls in debug mode
+        self.env.debug = True
+        urls = bundle.urls()
+        assert len(urls) == 1
+        assert 'foo' in urls[0]
+
+    def test_depends(self):
+        """The bundle dependencies also go through
+        normalization.
+        """
+        class MyEnv(self.env.__class__):
+            def _normalize_source_path(self, path):
+                return self.abspath(path[::-1])
+        self.env.__class__ = MyEnv
+        self.create_files(['foo', 'dep', 'out'])
+        b = self.mkbundle('oof', depends=('ped',), output='out')
+
+        now = self.setmtime('foo', 'dep', 'out')
+        # At this point, no rebuild is required
+        assert self.env.updater.needs_rebuild(b, self.env) == False
+        # But it is if we update the dependency
+        now = self.setmtime('dep', mtime=now+10)
+        assert self.env.updater.needs_rebuild(b, self.env) == SKIP_CACHE

@@ -109,14 +109,13 @@ look something like this:
 The ``output`` and ``input`` methods should look familiar. They're basically
 like the callable you are already familiar with, simply pulled inside a class.
 
-Class-based filters have a ``name``. If you do not set this, it will be
-automatically generated. In doing so, the class name is lowercased, and
-a potential ``Filter`` suffix is removed.
+Class-based filters have a ``name`` attribute, which you need to set if you
+want to register your filter globally.
 
 The ``input`` method will be called for every source file, the ``output``
 method will be applied once after a bundle's contents have been concated.
 
-The ``kwargs`` you currently receive are:
+Among the ``kwargs`` you currently receive are:
 
 - ``source_path`` (only for ``input()``): The filename behind the ``in``
   stream, though note that other input filters may already have transformed
@@ -124,6 +123,11 @@ The ``kwargs`` you currently receive are:
 
 - ``output_path``: The final output path that your filters work will
   ultimatily end up in.
+
+.. note::
+
+   Always make your filters accept arbitrary ``**kwargs``. The API does allow
+   for additional values to be passed along in the future.
 
 Registering
 ~~~~~~~~~~~
@@ -204,8 +208,8 @@ your filter class:
         def apply(self, _in, out):
             self.foolib.convert(...)
 
-get_config()
-^^^^^^^^^^^^
+options
+^^^^^^^
 
 Some filters will need to be configured. This can of course be done by
 passing arguments into ``__init__`` as explained above, but it restricts
@@ -214,10 +218,30 @@ every single time the filter is used.
 
 In some cases, it makes more sense to have an option configured globally,
 like the path to an external binary. A number of the built-in filters do
-this, allowing you to both specify a Django setting, or an environment
+this, allowing you to both specify a config variable in the webassets
+``Environment`` instance, or as an OS environment variable.
+
+.. code-block:: python
+
+    class FooFilter(Filter):
+        options = {
+            'binary': 'FOO_BIN'
+        }
+
+If you define a an ``options`` attribute on your filter class, these
+options will automatically be supported both by your filter's __init__,
+as well as via a configuration or environment variable. In the example
+above, you may pass ``binary`` when creating a filter instance manually,
+or define ``FOO_BIN`` in ``Environment.config``, or as an OS environment
 variable.
 
-The ``Filter.get_config()`` helper provides this functionality:
+
+get_config()
+^^^^^^^^^^^^
+
+In cases where the declarative approach of the ``options`` attribute is
+not enough, you can implement custom options yourself using the
+``Filter.get_config()`` helper:
 
 .. code-block:: python
 

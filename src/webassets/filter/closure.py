@@ -40,9 +40,14 @@ __all__ = ('ClosureJSFilter',)
 class ClosureJSFilter(Filter, JavaMixin):
 
     name = 'closure_js'
-    mode = 'js'
+    options = {
+        'opt': 'CLOSURE_COMPRESSOR_OPTIMIZATION',
+        'extra_args': 'CLOSURE_EXTRA_ARGS',
+    }
 
     def setup(self):
+        super(ClosureJSFilter, self).setup()
+
         try:
             self.jar = self.get_config('CLOSURE_COMPRESSOR_PATH',
                                        what='Google Closure Compiler')
@@ -59,18 +64,11 @@ class ClosureJSFilter(Filter, JavaMixin):
                     "or an environment variable with the full path to "
                     "the Closure compiler jar."
                 )
-
-        self.opt = self.get_config('CLOSURE_COMPRESSOR_OPTIMIZATION',
-                                   require=False,
-                                   what='Google Closure optimization level')
-        if not self.opt:
-            self.opt = 'WHITESPACE_ONLY'
-        self.extra_args = self.get_config('CLOSURE_EXTRA_ARGS',
-                                          require=False)
         self.java_setup()
 
     def output(self, _in, out, **kw):
-        args = ['--charset', 'UTF-8', '--compilation_level', self.opt]
+        args = ['--charset', 'UTF-8',
+                '--compilation_level', self.opt or 'WHITESPACE_ONLY']
         if self.extra_args:
             args.extend(self.extra_args)
         self.java_run(_in, out, args)

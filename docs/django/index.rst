@@ -96,11 +96,32 @@ built while in development mode, you will need to add
 setting to have Django serve them.
 
 In production mode, ``django-assets`` will expect all source files
-to be located within ``STATIC_ROOT``. You are expected to call the
+to be located within ``STATIC_ROOT``. It will not use the ``staticfiles``
+finder system to locate source files. You are expected to call the
 ``./manage.py collectstatic`` command before running
 ``./manage.py assets rebuild``. If you are using automatic rebuilding,
-changes will not be picked up in production until you have run
+changes will currently not be picked up in production until you have run
 ``collectstatic``.
+
+
+``CachedStaticFileStorage``
++++++++++++++++++++++++++++
+
+The new ``CachedStaticFileStorage`` in Django 1.4 is able to rename all files
+to include their content hash in the filename, and rewrite references within
+your code. This is somewhat overlapping with our own
+:doc:`versioning system </expiry>`.
+
+If you prefer to use ``CachedStaticFileStorage``, you shouldn't run into any
+problems. Just make sure you run ``./manage.py assets build`` first, and
+``./manage.py collectstatic`` second.
+
+This only doesn't *just work* if you are defining bundles in your templates.
+If that is the case, you currently need to define a ``ASSETS_ROOT`` setting
+that points to a different directory then ``STATIC_ROOT``. Only then will
+``collectstatic`` be able to find the output files created with
+``./manage.py build --parse-templates``, and process them into
+``STATIC_ROOT``, like any other static file.
 
 
 Jinja2 support
