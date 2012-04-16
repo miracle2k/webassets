@@ -8,7 +8,7 @@ __all__ = ('CleanCSSFilter',)
 
 class CleanCSSFilter(Filter):
     """
-    Minify Javascript using `Clean-css <https://github.com/GoalSmashers/clean-css/>`_.
+    Minify css using `Clean-css <https://github.com/GoalSmashers/clean-css/>`_.
 
     Clean-css is an external tool written for NodeJS; this filter assumes that
     the ``cleancss`` executable is in the path. Otherwise, you may define
