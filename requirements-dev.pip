@@ -33,3 +33,4 @@ Django
 # sudo npm install -g less
 # sudo npm install -g uglify-js
 # sudo npm install -g coffeescript
+# sudo npm install -g clean-css

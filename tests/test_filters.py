@@ -352,6 +352,10 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('foo.css', filters='yui_css', output='out.css').build()
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
 
+    def test_cleancss(self):
+        self.mkbundle('foo.css', filters='cleancss', output='out.css').build()
+        assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
+
 
 class TestCoffeeScript(TempEnvironmentHelper):
 

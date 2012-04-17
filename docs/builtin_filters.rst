@@ -72,6 +72,12 @@ CSS compressors
 .. autoclass:: webassets.filter.yui.YUICSSFilter
 
 
+``cleancss``
+~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.cleancss.CleanCSSFilter
+
+
 .. _filters-css-compilers:
 
 CSS Compilers
