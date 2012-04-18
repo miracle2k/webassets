@@ -353,6 +353,8 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
 
     def test_cleancss(self):
+        if not find_executable('cleancss'):
+            raise SkipTest()
         self.mkbundle('foo.css', filters='cleancss', output='out.css').build()
         assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
 
