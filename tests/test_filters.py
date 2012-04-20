@@ -358,6 +358,14 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('foo.css', filters='cleancss', output='out.css').build()
         assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
 
+    def test_cssslimmer(self):
+        try:
+            import slimmer
+        except ImportError:
+            raise SkipTest()
+        self.mkbundle('foo.css', filters='css_slimmer', output='out.css').build()
+        assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
+
 
 class TestCoffeeScript(TempEnvironmentHelper):
 

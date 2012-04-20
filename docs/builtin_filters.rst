@@ -78,6 +78,12 @@ CSS compressors
 .. autoclass:: webassets.filter.cleancss.CleanCSSFilter
 
 
+``slimmer_css``
+~~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.slimmer.CSSSlimmer
+
+
 .. _filters-css-compilers:
 
 CSS Compilers
