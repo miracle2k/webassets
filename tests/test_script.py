@@ -6,8 +6,11 @@ I wonder whether I shouldn't just do full-stack tests here instead of mocking.
 
 from __future__ import with_statement
 
+from os import path
 import logging
+from threading import Thread, Event
 from nose.tools import assert_raises
+import time
 from webassets import Bundle
 from webassets.script import main, CommandLineEnvironment, CommandError
 from webassets.test import TempEnvironmentHelper
@@ -137,3 +140,88 @@ class TestBuildCommand(TestCLI):
         # Use prefix syntax
         self.cmd_env.build(manifest='file:miau')
         assert self.exists('media/sub/miau')
+
+
+class TestWatchCommand(TestCLI):
+    """This is a hard one to test.
+
+    We run the watch command in a thread, and rely on it's ``loop`` argument
+    to stop the thread again.
+    """
+
+    default_files = {'in': 'foo', 'out': 'bar'}
+
+    def watch_loop(self):
+        # Hooked into the loop of the ``watch`` command.
+        # Allows stopping the thread.
+        self.has_looped.set()
+        time.sleep(0.01)
+        if getattr(self, 'stopped', False):
+            return True
+
+    def start_watching(self):
+        """Run the watch command in a thread."""
+        self.has_looped = Event()
+        t = Thread(target=self.cmd_env.watch, kwargs={'loop': self.watch_loop})
+        t.daemon = True   # In case something goes wrong with stopping, this
+                          # will allow the test process to be end nonetheless.
+        t.start()
+        self.t = t
+        # Wait for first iteration, which will initialize the mtimes. Only
+        # after this will ``watch`` be able to detect changes.
+        self.has_looped.wait(1)
+
+    def stop_watching(self):
+        """Stop the watch command thread."""
+        self.stopped = True
+        self.t.join(1)
+
+    def __enter__(self):
+        self.start_watching()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop_watching()
+
+    def test(self):
+        # Register a bundle to watch
+        bundle = self.mkbundle('in', output='out')
+        self.env.register('test', bundle)
+        now = self.setmtime('in', 'out')
+
+        # Assert initial state
+        assert self.get('out') == 'bar'
+
+        # While watch is running, change input mtime
+        with self:
+            self.setmtime('in', mtime=now+10)
+            # Allow watch to pick up the change
+            time.sleep(0.2)
+
+        # output file has been updated.
+        assert self.get('out') == 'foo'
+
+
+    def test_same_file_multiple_bundles(self):
+        """[Bug] Test watch command can deal with the same file being part
+        of multiple bundles. This was not always the case (github-127).
+        """
+        self.create_files({'out2': 'bar'})
+        bundle1 = self.mkbundle('in', output='out')
+        bundle2 = self.mkbundle('in', output='out2')
+        self.env.register('test1', bundle1)
+        self.env.register('test2', bundle2)
+        now = self.setmtime('in', 'out', 'out2')
+
+        # Assert initial state
+        assert self.get('out') == 'bar'
+        assert self.get('out2') == 'bar'
+
+        # While watch is running, change input mtime
+        with self:
+            self.setmtime('in', mtime=now+10)
+            # Allow watch to pick up the change
+            time.sleep(0.2)
+
+        # Both output files have been updated.
+        assert self.get('out') == 'foo'
+        assert self.get('out2') == 'foo'
