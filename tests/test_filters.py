@@ -377,7 +377,7 @@ class TestCoffeeScript(TempEnvironmentHelper):
     def test_default_options(self):
         self.create_files({'in': "alert \"I knew it!\" if elvis?"})
         self.mkbundle('in', filters='coffeescript', output='out.js').build()
-        assert self.get('out.js') == """if (typeof elvis !== "undefined" && elvis !== null) alert("I knew it!");\n"""
+        assert self.get('out.js') == """if (typeof elvis !== "undefined" && elvis !== null) {\n  alert("I knew it!");\n}\n"""
 
     def test_bare_option(self):
         self.env.config['COFFEE_NO_BARE'] = True
