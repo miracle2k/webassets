@@ -8,12 +8,11 @@ Creating custom filters can be easy, or very easy.
 
 Before we get to that though, it is first necessary to understand that
 there are two types of filters: *input filters* and *output filters*.
-Output filters applied after the complete content after all a bundle's
-contents have been merged together. Input filters, on the other, are
+Output filters are applied after the complete content after all a bundle's
+contents have been merged together. Input filters, on the other hand, are
 applied to each source file after it is read from the disk. In the case
-of nested bundles, input filters will even be passed down so that the
-input filters of a parent bundle are applied before the output filter
-of a child bundle:
+of nested bundles, input filters will be passed down, with the input filters 
+of a parent bundle are applied before the output filter of a child bundle:
 
 .. code-block:: python
 
