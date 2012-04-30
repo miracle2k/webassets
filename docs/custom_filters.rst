@@ -17,7 +17,7 @@ of a parent bundle are applied before the output filter of a child bundle:
 .. code-block:: python
 
     child_bundle = Bundle('file.css', filters='yui_css')
-    Bundle('child_bundle', filters='cssrewrite')
+    Bundle(child_bundle, filters='cssrewrite')
 
 In this example, because cssrewrite acts as an input filter, what will
 essentially happen is:
@@ -94,7 +94,7 @@ look something like this:
 
 .. code-block:: python
 
-    from django_assets.filter import Filter
+    from webassets.filter import Filter
 
     class NoopFilter(Filter):
         name = 'noop'
