@@ -33,5 +33,5 @@ Django
 # The following node libraries are required for some filter tests to run:
 # sudo npm install -g less
 # sudo npm install -g uglify-js
-# sudo npm install -g coffeescript
+# sudo npm install -g coffee-script
 # sudo npm install -g clean-css

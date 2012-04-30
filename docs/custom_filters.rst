@@ -20,7 +20,7 @@ of a child bundle:
     child_bundle = Bundle('file.css', filters='yui_css')
     Bundle('child_bundle', filters='cssrewrite')
 
-In this example, because cssrewrite acts as an in put filter, what will
+In this example, because cssrewrite acts as an input filter, what will
 essentially happen is:
 
 .. code-block:: python
@@ -35,7 +35,7 @@ this:
 
     cssrewrite.output(yui_css.output((cssrewrite.input((yui_css.input(file.css)))))
 
-The usual reason to use an in put filter is that the filter's
+The usual reason to use an input filter is that the filter's
 transformation depends on the source file's filename. For example,
 the :ref:`cssrewrite <filters-cssrewrite>` filter needs to know the
 location of the source file relative to the final output file, so it
