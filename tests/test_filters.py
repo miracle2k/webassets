@@ -14,7 +14,7 @@ from helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
 # unpredictable text like temp paths or timestamps. doctest has
-# the same problem, so we just steal it's solution.
+# the same problem, so we just steal its solution.
 from doctest import _ellipsis_match as doctest_match
 
 
@@ -741,7 +741,7 @@ class TestJST(TempEnvironmentHelper):
         self.create_files({'baz.jst': """new value"""})
 
         # Rebuild with force=True, so it's not a question of the updater
-        # not doing it's job.
+        # not doing its job.
         bundle.build(force=True)
 
         assert 'new value' in self.get('out.js')

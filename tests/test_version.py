@@ -69,7 +69,7 @@ class TestTimestampVersion(TempEnvironmentHelper):
         assert self.v.determine_version(
             self.bundle, self.env, None) == int(self.source_max)
 
-        # If any source file is missing, the updater cannot do it's job.
+        # If any source file is missing, the updater cannot do its job.
         self.unlink('dep')
         assert_raises(VersionIndeterminableError, self.v.determine_version,
             self.bundle, self.env, None)

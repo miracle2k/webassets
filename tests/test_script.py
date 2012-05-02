@@ -145,7 +145,7 @@ class TestBuildCommand(TestCLI):
 class TestWatchCommand(TestCLI):
     """This is a hard one to test.
 
-    We run the watch command in a thread, and rely on it's ``loop`` argument
+    We run the watch command in a thread, and rely on its ``loop`` argument
     to stop the thread again.
     """
 

@@ -79,7 +79,7 @@ class BaseCache(object):
     function.
 
     Since the cache is used for multiple purposes, all webassets-internal code
-    should always tag it's keys with an id, like so:
+    should always tag its keys with an id, like so:
 
         key = ("tag", actual_key)
 

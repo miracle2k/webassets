@@ -4,7 +4,7 @@ Jinja2
 
 A Jinja2 extension is available as ``webassets.ext.jinja2.AssetsExtension``.
 It will provide a ``{% assets %}`` tag which allows you to reference your
-bundles from within a template to render it's urls.
+bundles from within a template to render its urls.
 
 It also allows you to create bundles on-the-fly, thus making it possible
 to define your assets entirly within your templates.
@@ -35,7 +35,7 @@ Using the tag
 -------------
 
 To output a bundle that has been registered with the environment, simply
-pass it's name to the tag:
+pass its name to the tag:
 
 .. code-block:: jinja
 
@@ -44,7 +44,7 @@ pass it's name to the tag:
     {% endassets %}
 
 
-The tag will repeatedly output it's content for each ``ASSET_URL`` of each
+The tag will repeatedly output its content for each ``ASSET_URL`` of each
 bundle. In the above case, that might be the output urls of the *all_js*
 and *ie_js* bundles, or, in debug mode, urls referencing the source files
 of both bundles.

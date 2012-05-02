@@ -29,7 +29,7 @@ Jinja with Django. For example:
   ``django-assets`` is added to ``INSTALLED_APPS``.
 
 * If you are creating your Jinja2 environment manually, you can
-  simply use it's ``extensions`` parameter and specify
+  simply use its ``extensions`` parameter and specify
   ``webassets.ext.jinja2.AssetsExtension``.
 
 However, there is a minor difficulty if you intend to use the management
