@@ -127,7 +127,7 @@ class TimestampUpdater(BundleDefUpdater):
                 # build. Return True to let it happen.
                 # However, if no manifest is defined, raise an error,
                 # because otherwise, this updater would always return True,
-                # and thus not do it's job at all.
+                # and thus not do its job at all.
                 if env.manifest is None:
                     raise BuildError((
                         '%s uses a version placeholder, and you are '

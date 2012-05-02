@@ -18,7 +18,7 @@ class RegisterError(Exception):
 
 class ConfigStorage(object):
     """This is the backend which :class:`Environment` uses to store
-    it's configuration values.
+    its configuration values.
 
     Environment-subclasses like the one used by ``django-assets`` will
     often want to use a custom ``ConfigStorage`` as well, building upon

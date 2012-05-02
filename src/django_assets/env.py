@@ -90,7 +90,7 @@ class DjangoEnvironment(BaseEnvironment):
 
     def _normalize_source_path(self, spath):
         """In DEBUG mode, if the staticfiles app is enabled,
-        use it's finders to access bundle source files.
+        use its finders to access bundle source files.
         """
         if not settings.DEBUG or \
            not 'django.contrib.staticfiles' in settings.INSTALLED_APPS:

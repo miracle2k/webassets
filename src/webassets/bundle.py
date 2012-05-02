@@ -264,7 +264,7 @@ class Bundle(object):
         """Return true if this is a container bundle, that is, a bundle
         that acts only as a container for a number of sub-bundles.
 
-        It must not contain any files of it's own, and must have an
+        It must not contain any files of its own, and must have an
         empty ``output`` attribute.
         """
         has_files = any([c for c in self.contents if not isinstance(c, Bundle)])
@@ -291,7 +291,7 @@ class Bundle(object):
         a collection of the filters of all parents in the hierarchy.
 
         ``extra_filters`` may exist if the parent is a container bundle
-        passing filters along to it's children; these are applied as input
+        passing filters along to its children; these are applied as input
         and output filters (since there is no parent who could do the
         latter), and they are not passed further down the hierarchy
         (but instead they become part of ``parent_filters``.
@@ -652,7 +652,7 @@ class Bundle(object):
 
 def get_all_bundle_files(bundle, env=None):
     """Return a flattened list of all source files of the given
-    bundle, all it's dependencies, recursively for all nested
+    bundle, all its dependencies, recursively for all nested
     bundles.
 
     Making this a helper function rather than a part of the official
