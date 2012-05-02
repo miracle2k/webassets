@@ -286,7 +286,7 @@ class TestBuild(TempEnvironmentHelper):
             output='out', debug='merge',
             filters=AppendFilter(':rootin', ':rootout'))
         b.build()
-        # Note how the content of "in1" (A) does not have it's filters
+        # Note how the content of "in1" (A) does not have its filters
         # applied.
         assert self.get('out') == 'A\nB:childin:rootin:childout'
 
@@ -603,7 +603,7 @@ class TestAutoUpdate(TempEnvironmentHelper):
         # Do the rebuild that is now required
         # TODO: first.sass is a dependency, because the glob matches
         # the bundle contents as well; As a result, we might check
-        # it's timestamp twice. Should something be done about it?
+        # its timestamp twice. Should something be done about it?
         assert updater.needs_rebuild(b, self.env) == SKIP_CACHE
         b.build()
         self.setmtime('out', mtime=now+200)
@@ -790,7 +790,7 @@ class TestUrlsWithDebugFalse(BaseUrlsTester):
 
     def test_container_bundle(self):
         """A bundle that has only child bundles and does not specify
-        an output target of it's own will simply build it's child
+        an output target of its own will simply build its child
         bundles separately.
         """
         bundle = self.MockBundle(
@@ -801,7 +801,7 @@ class TestUrlsWithDebugFalse(BaseUrlsTester):
 
     def test_source_bundle(self):
         """If a bundle does neither specify an output target nor any
-        filters, it's file are always sourced directly.
+        filters, its file are always sourced directly.
         """
         bundle = self.MockBundle('a', self.MockBundle('d', output='childout'))
         assert bundle.urls() == ['/a', '/childout']
@@ -859,7 +859,7 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
 
     def test_container_bundle(self):
         """A bundle that has only sub bundles and does not specify
-        an output target of it's own.
+        an output target of its own.
         """
         bundle = self.MockBundle(
             self.MockBundle('a', output='child1'),
@@ -995,7 +995,7 @@ class TestVersionFeatures(TempEnvironmentHelper):
         # Old file still exists as well. Note that making build() clean
         # up after itself, while certainly possible, is dangerous. In a
         # multi-process, auto_build enabled setup, if no manifest is used,
-        # each process would do it's own full build.
+        # each process would do its own full build.
         assert self.get('out-v1')
         # DummyManifest has two log entries now
         assert len(self.env.manifest.log) == 2
