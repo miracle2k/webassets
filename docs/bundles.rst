@@ -6,7 +6,7 @@ Bundles
 
 A bundle is simply a collection of files that you would like to group
 together, with some properties attached to tell ``webassets``
-how to do it's job. Such properties include the filters which should
+how to do its job. Such properties include the filters which should
 be applied, or the location where the output file should be stored.
 
 Note that all filenames and paths considered to be relative to the
@@ -88,9 +88,9 @@ Some things to consider when nesting bundles:
 
 * Duplicate filters are only applied once (the leaf filter is applied).
 * If a bundle that is supposed to be processed to a file does not define
-  an output target, it simply serves as a container of it's sub-bundles,
+  an output target, it simply serves as a container of its sub-bundles,
   which in turn will be processed into their respective output files.
-  In this case it must not have any files of it's own.
+  In this case it must not have any files of its own.
 
 
 Building bundles

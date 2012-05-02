@@ -78,8 +78,8 @@ In 0.6
   behavior, you can easily configure it manually.
 
 - The ``Bundle.build`` method no longer takes the ``no_filters``
-  argument. This was always intended for internal use and it's existence
-  not advertised, so it's removal shouldn't cause too many problems.
+  argument. This was always intended for internal use and its existence
+  not advertised, so its removal shouldn't cause too many problems.
 
 - The ``Bundle.build`` method now returns a list of ``FileHunk`` objects,
   rather than a single one. It now works for container bundles (bundles
