@@ -2,6 +2,7 @@
 """
 
 import urllib2
+import logging
 try:
     import cStringIO as StringIO
 except:
@@ -10,6 +11,21 @@ except:
 
 __all__ = ('FileHunk', 'MemoryHunk', 'merge', 'FilterTool',
            'MoreThanOneFilterError')
+
+
+# Log which is used to output low-level information about what the build does.
+# This is setup such that it does not output just because the root level
+# "webassets" logger is set to level DEBUG (for example via the commandline
+# --verbose option). Instead, the messages are only shown when an environment
+# variable is set.
+# However, we might want to change this in the future. The CLI --verbose option
+# could instead just set the level to NOTICE, for example.
+log = logging.getLogger('webassets.debug')
+import os
+if os.environ.get('WEBASSETS_DEBUG'):
+    log.setLevel(logging.DEBUG)
+else:
+    log.setLevel(logging.ERROR)
 
 
 class BaseHunk(object):
@@ -135,12 +151,15 @@ class FilterTool(object):
         """
         if self.cache:
             if not self.no_cache_read:
+                log.debug('Checking cache for key %s' % (key,))
                 content = self.cache.get(key)
                 if not content in (False, None):
+                    log.debug('Using cached result for %s' % (key,))
                     return MemoryHunk(content)
 
         content = func().getvalue()
         if self.cache:
+            log.debug('Storing result in cache with key %s' % (key,))
             self.cache.set(key, content)
         return MemoryHunk(content)
 
@@ -153,9 +172,13 @@ class FilterTool(object):
         be added to ``kwargs``.
         """
         assert type in self.VALID_TRANSFORMS
+        log.debug('Need to run method "%s" of filters (%s) on hunk %s' %
+                 (type, filters, hunk))
 
         filters = [f for f in filters if hasattr(f, type)]
         if not filters:  # Short-circuit
+            log.debug('No filters have "%s" methods, returning hunk '
+                      'unchanged' % (type,))
             return hunk
 
         def func():
@@ -166,6 +189,7 @@ class FilterTool(object):
 
             data = StringIO.StringIO(hunk.data())
             for filter in filters:
+                log.debug('Running method "%s" of  %s' % (type, filter))
                 out = StringIO.StringIO()
                 getattr(filter, type)(data, out, **kwargs_final)
                 data = out
@@ -199,9 +223,12 @@ class FilterTool(object):
         Only one such filter can run per operation.
         """
         assert type in self.VALID_FUNCS
+        log.debug('Need to run method "%s" of one of the filters (%s)' %
+                  (type, filters))
 
         filters = [f for f in filters if hasattr(f, type)]
         if not filters:  # Short-circuit
+            log.debug('No filters have a "%s" method' % type)
             return None
 
         if len(filters) > 1:
@@ -211,6 +238,7 @@ class FilterTool(object):
 
         def func():
             filter = filters[0]
+            log.debug('Running method "%s" of  %s' % (type, filter))
             out = StringIO.StringIO()
             kwargs_final = self.kwargs.copy()
             kwargs_final.update(kwargs or {})
