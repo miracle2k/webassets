@@ -12,7 +12,8 @@ from threading import Thread, Event
 from nose.tools import assert_raises
 import time
 from webassets import Bundle
-from webassets.script import main, CommandLineEnvironment, CommandError
+from webassets.script import (
+    main, CommandLineEnvironment, CommandError, GenericArgparseImplementation)
 from webassets.test import TempEnvironmentHelper
 from webassets.utils import working_directory
 
@@ -20,6 +21,17 @@ from webassets.utils import working_directory
 def test_script():
     """Test simply that the main script can be invoked."""
     main([])
+
+
+class TestArgParse(TempEnvironmentHelper):
+    """Test the argparse-based implementation of the CLI interface."""
+
+    def test_no_env(self):
+        """[Regression] If no env is hardcoded, nor one given via
+        the commandline, we fail with a clean error.
+        """
+        impl = GenericArgparseImplementation(env=None)
+        assert_raises(CommandError, impl.run_with_argv, ['rebuild'])
 
 
 class MockBundle(Bundle):

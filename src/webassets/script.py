@@ -8,7 +8,7 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-from webassets.loaders import PythonLoader
+from webassets.loaders import PythonLoader, YAMLLoader
 from webassets.bundle import get_all_bundle_files
 from webassets.exceptions import BuildError, ImminentDeprecationWarning
 from webassets.updater import TimestampUpdater
@@ -335,8 +335,10 @@ class GenericArgparseImplementation(object):
             parser.add_argument("-q", action="store_true", dest="quiet",
                 help="be quiet")
             if self.env is None:
-                # TODO: Support -c option to load from YAML config file
-                parser.add_argument("-m", "--module", dest="module",
+                loadenv = parser.add_mutually_exclusive_group()
+                loadenv.add_argument("-c", "--config", dest="config",
+                    help="read environment from a YAML file")
+                loadenv.add_argument("-m", "--module", dest="module",
                     help="read environment from a Python module")
 
         # Add subparsers.
@@ -391,19 +393,22 @@ class GenericArgparseImplementation(object):
             log.addHandler(logging.StreamHandler())
 
         # Load the bundles we shall work with
-        if self.env is None and getattr(ns, 'module', None):
-            env = PythonLoader(ns.module).load_environment()
-        else:
-            env = self.env
+        env = self.env
+        if env is None:
+            assert not (ns.module  and ns.config)
+            if ns.module:
+                env = PythonLoader(ns.module).load_environment()
+            if ns.config:
+                env = YAMLLoader(ns.config).load_environment()
 
         if env is None:
-            print "Error: No environment given or found. Maybe use -m?"
-            return 1
+            raise CommandError(
+                "Error: No environment given or found. Maybe use -m?")
 
         # Prepare a dict of arguments cleaned of values that are not
         # command-specific, and which the command method would not accept.
         args = vars(ns).copy()
-        for name in ('verbose', 'quiet', 'module', 'command'):
+        for name in ('verbose', 'quiet', 'module', 'config', 'command'):
             if name in args:
                 del args[name]
 
@@ -422,7 +427,6 @@ class GenericArgparseImplementation(object):
         except CommandError, e:
             print e
             return 1
-
 
 
 def main(argv, env=None):
