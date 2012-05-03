@@ -190,9 +190,11 @@ class FilterTool(object):
         return self._wrap_cache(key, func)
 
     def apply_func(self, filters, type, args, kwargs=None):
-        """Apply a filter that is not a transform (stream in,
-        stream out). Instead, is supposed to operate on argument
-        ``args`` and should then produce an output stream.
+        """Apply a filter that is not a "stream in, stream out" transform (i.e.
+        like the input() and output() filter methods).  Instead, the filter
+        method is given the arguments in ``args`` and should then produce an
+        output stream. This is used, e.g., for the concat() and open() filter
+        methods.
 
         Only one such filter can run per operation.
         """
