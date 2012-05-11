@@ -111,9 +111,11 @@ class TempDirHelper(object):
         for some quick debugging.
         """
         for f in files:
+            content = self.get(f)
             print f
             print "-" * len(f)
-            print self.get(f)
+            print repr(content)
+            print content
             print
 
 
