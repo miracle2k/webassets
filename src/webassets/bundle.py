@@ -376,11 +376,10 @@ class Bundle(object):
                     combined_filters, disable_cache=disable_cache)
                 hunks.append(hunk)
             else:
-                # Pass along the original relative path, as specified by the
-                # user. This may differ from the actual filesystem path, if
-                # extensions provide a virtualized filesystem (e.g. Flask
-                # blueprints, Django staticfiles).
-                kwargs = {'source': rel_name}
+                # To the input() and output() methods, pass along both the
+                # original relative path, as specified by the user, and the
+                # one that has been resolved to a filesystem location.
+                kwargs = {'source': rel_name, 'source_path': item}
 
                 # Give a filter the chance to open his file.
                 try:
