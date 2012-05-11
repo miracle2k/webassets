@@ -268,7 +268,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             raise SkipTest()
         self.create_files({'in': """a { border-radius: 1em; }"""})
         self.mkbundle('in', filters='cssprefixer', output='out.css').build()
-        assert self.get('out.css') == 'a {\n    -webkit-border-radius: 1em;\n    -moz-border-radius: 1em;\n    border-radius: 1em\n    }'
+        assert self.get('out.css') == 'a {\n    -moz-border-radius: 1em;\n    -webkit-border-radius: 1em;\n    border-radius: 1em\n    }'
 
     def test_cssmin(self):
         try:
