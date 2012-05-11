@@ -16,4 +16,8 @@ class CSSPrefixerFilter(Filter):
         self.cssprefixer = cssprefixer
 
     def output(self, _in, out, **kw):
-        out.write(self.cssprefixer.process(_in.read(), False, False))
+        output = self.cssprefixer.process(_in.read(), False, False)
+        if isinstance(output, unicode):
+            # cssprefixer likes to return unicode strings
+            output = output.encode('utf8')
+        out.write(output)

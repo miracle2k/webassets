@@ -261,15 +261,6 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         assert self.get('out.css')[:3] == '\x1f\x8b\x08'
         assert len(self.get('out.css')) == 24
 
-    def test_cssprefixer(self):
-        try:
-            import cssprefixer
-        except ImportError:
-            raise SkipTest()
-        self.create_files({'in': """a { border-radius: 1em; }"""})
-        self.mkbundle('in', filters='cssprefixer', output='out.css').build()
-        assert self.get('out.css') == 'a {\n    -moz-border-radius: 1em;\n    -webkit-border-radius: 1em;\n    border-radius: 1em\n    }'
-
     def test_cssmin(self):
         try:
             self.mkbundle('foo.css', filters='cssmin', output='out.css').build()
@@ -365,6 +356,28 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             raise SkipTest()
         self.mkbundle('foo.css', filters='css_slimmer', output='out.css').build()
         assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
+
+
+
+class TestCSSPrefixer(TempEnvironmentHelper):
+
+    def setup(self):
+        try:
+            import cssprefixer
+        except ImportError:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.create_files({'in': """a { border-radius: 1em; }"""})
+        self.mkbundle('in', filters='cssprefixer', output='out.css').build()
+        assert self.get('out.css') == 'a {\n    -moz-border-radius: 1em;\n    -webkit-border-radius: 1em;\n    border-radius: 1em\n    }'
+
+    def test_encoding(self):
+        self.create_files({'in': u"""a { content: '\xe4'; }""".encode('utf8')})
+        self.mkbundle('in', filters='cssprefixer', output='out.css').build()
+        self.p('out.css')
+        assert self.get('out.css') == 'a {\n    content: "\xc3\xa4"\n    }'
 
 
 class TestCoffeeScript(TempEnvironmentHelper):
