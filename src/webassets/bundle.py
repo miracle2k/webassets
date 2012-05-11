@@ -382,7 +382,17 @@ class Bundle(object):
                         combined_filters, 'open', [item],
                         # Also pass along the original relative path, as
                         # specified by the user, before resolving.
-                        kwargs={'source': rel_name})
+                        kwargs={'source': rel_name},
+                        # We still need to open the file ourselves too and use
+                        # it's content as part of the cache key, otherwise this
+                        # filter application would only be cached by filename,
+                        # and changes in the source not detected. The other
+                        # option is to not use the cache at all here. Both
+                        # have different performance implications, but I'm
+                        # guessing that reading and hashing some files
+                        # unnecessarily very often is better than running
+                        # filters unnecessarily occasionally.
+                        cache_key=[FileHunk(item)] if not is_url(item) else [])
                 except MoreThanOneFilterError, e:
                     raise BuildError(e)
 

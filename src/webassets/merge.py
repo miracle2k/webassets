@@ -227,7 +227,7 @@ class FilterTool(object):
         key = ("hunk", hunk, tuple(filters), type)
         return self._wrap_cache(key, func)
 
-    def apply_func(self, filters, type, args, kwargs=None):
+    def apply_func(self, filters, type, args, kwargs=None, cache_key=None):
         """Apply a filter that is not a "stream in, stream out" transform (i.e.
         like the input() and output() filter methods).  Instead, the filter
         method is given the arguments in ``args`` and should then produce an
@@ -235,6 +235,9 @@ class FilterTool(object):
         methods.
 
         Only one such filter can run per operation.
+
+        ``cache_key`` may be a list of additional values to use as the cache
+        key, in addition to the default key (the filter and arguments).
         """
         assert type in self.VALID_FUNCS
         log.debug('Need to run method "%s" of one of the filters (%s) '
@@ -260,7 +263,7 @@ class FilterTool(object):
             getattr(filter, type)(out, *args, **kwargs_final)
             return out
 
-        key = ("hunk", args, tuple(filters), type)
+        key = ("hunk", args, tuple(filters), type, cache_key or [])
         return self._wrap_cache(key, func)
 
 
