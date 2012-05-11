@@ -55,6 +55,9 @@ class FileHunk(BaseHunk):
     def __init__(self, filename):
         self.filename = filename
 
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, self.filename)
+
     def mtime(self):
         pass
 
@@ -72,6 +75,9 @@ class UrlHunk(BaseHunk):
 
     def __init__(self, url):
         self.url = url
+
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, self.url)
 
     def data(self):
         if not hasattr(self, '_data'):
@@ -172,8 +178,8 @@ class FilterTool(object):
         be added to ``kwargs``.
         """
         assert type in self.VALID_TRANSFORMS
-        log.debug('Need to run method "%s" of filters (%s) on hunk %s' %
-                 (type, filters, hunk))
+        log.debug('Need to run method "%s" of filters (%s) on hunk %s with '
+                  'kwargs=%s'  % (type, filters, hunk, kwargs))
 
         filters = [f for f in filters if hasattr(f, type)]
         if not filters:  # Short-circuit
@@ -189,7 +195,8 @@ class FilterTool(object):
 
             data = StringIO.StringIO(hunk.data())
             for filter in filters:
-                log.debug('Running method "%s" of  %s' % (type, filter))
+                log.debug('Running method "%s" of  %s with kwargs=%s' % (
+                    type, filter, kwargs_final))
                 out = StringIO.StringIO()
                 getattr(filter, type)(data, out, **kwargs_final)
                 data = out
@@ -223,8 +230,8 @@ class FilterTool(object):
         Only one such filter can run per operation.
         """
         assert type in self.VALID_FUNCS
-        log.debug('Need to run method "%s" of one of the filters (%s)' %
-                  (type, filters))
+        log.debug('Need to run method "%s" of one of the filters (%s) '
+                  'with args=%s, kwargs=%s'  % (type, filters, args, kwargs))
 
         filters = [f for f in filters if hasattr(f, type)]
         if not filters:  # Short-circuit
@@ -238,10 +245,11 @@ class FilterTool(object):
 
         def func():
             filter = filters[0]
-            log.debug('Running method "%s" of  %s' % (type, filter))
             out = StringIO.StringIO()
             kwargs_final = self.kwargs.copy()
             kwargs_final.update(kwargs or {})
+            log.debug('Running method "%s" of %s with args=%s, kwargs=%s' % (
+                type, filter, args, kwargs))
             getattr(filter, type)(out, *args, **kwargs_final)
             return out
 
