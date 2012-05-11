@@ -9,7 +9,7 @@ from webassets.merge import MemoryHunk
 from helpers import TempEnvironmentHelper, TempDirHelper
 
 
-class TestCaches(object):
+class TestCacheClasses(object):
     """Test the individual cache classes directly.
     """
 

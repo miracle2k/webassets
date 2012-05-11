@@ -358,7 +358,6 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
 
 
-
 class TestCSSPrefixer(TempEnvironmentHelper):
 
     def setup(self):
