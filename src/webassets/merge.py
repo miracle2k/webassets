@@ -99,6 +99,15 @@ class MemoryHunk(BaseHunk):
         self._data = data
         self.files = files or []
 
+    def __repr__(self):
+        # Include  a has of the data. We want this during logging, so we
+        # can see which hunks contain identical content. Because this is
+        # a question of performance, make sure to log in such a way that
+        # when logging is disabled, this won't be called, i.e.: don't
+        # %s-format yourself, let logging do it as needed.
+        # TODO: Add a test to ensure this isn't called.
+        return '<%s %s>' % (self.__class__.__name__, hash(self.data))
+
     def mtime(self):
         pass
 
@@ -157,15 +166,15 @@ class FilterTool(object):
         """
         if self.cache:
             if not self.no_cache_read:
-                log.debug('Checking cache for key %s' % (key,))
+                log.debug('Checking cache for key %s', key)
                 content = self.cache.get(key)
                 if not content in (False, None):
-                    log.debug('Using cached result for %s' % (key,))
+                    log.debug('Using cached result for %s', key)
                     return MemoryHunk(content)
 
         content = func().getvalue()
         if self.cache:
-            log.debug('Storing result in cache with key %s' % (key,))
+            log.debug('Storing result in cache with key %s', key,)
             self.cache.set(key, content)
         return MemoryHunk(content)
 
@@ -179,7 +188,7 @@ class FilterTool(object):
         """
         assert type in self.VALID_TRANSFORMS
         log.debug('Need to run method "%s" of filters (%s) on hunk %s with '
-                  'kwargs=%s'  % (type, filters, hunk, kwargs))
+                  'kwargs=%s', type, filters, hunk, kwargs)
 
         filters = [f for f in filters if hasattr(f, type)]
         if not filters:  # Short-circuit
@@ -193,8 +202,8 @@ class FilterTool(object):
 
             data = StringIO.StringIO(hunk.data())
             for filter in filters:
-                log.debug('Running method "%s" of  %s with kwargs=%s' % (
-                    type, filter, kwargs_final))
+                log.debug('Running method "%s" of  %s with kwargs=%s',
+                    type, filter, kwargs_final)
                 out = StringIO.StringIO()
                 getattr(filter, type)(data, out, **kwargs_final)
                 data = out
@@ -229,7 +238,7 @@ class FilterTool(object):
         """
         assert type in self.VALID_FUNCS
         log.debug('Need to run method "%s" of one of the filters (%s) '
-                  'with args=%s, kwargs=%s'  % (type, filters, args, kwargs))
+                  'with args=%s, kwargs=%s', type, filters, args, kwargs)
 
         filters = [f for f in filters if hasattr(f, type)]
         if not filters:  # Short-circuit
@@ -246,8 +255,8 @@ class FilterTool(object):
             out = StringIO.StringIO()
             kwargs_final = self.kwargs.copy()
             kwargs_final.update(kwargs or {})
-            log.debug('Running method "%s" of %s with args=%s, kwargs=%s' % (
-                type, filter, args, kwargs))
+            log.debug('Running method "%s" of %s with args=%s, kwargs=%s',
+                type, filter, args, kwargs)
             getattr(filter, type)(out, *args, **kwargs_final)
             return out
 
