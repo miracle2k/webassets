@@ -23,18 +23,19 @@ class CSSUtilsFilter(Filter):
         self.cssutils = cssutils
 
         try:
-            # cssutils logs to stdout by default, hide that in production
-            if not self.env.debug:
-                log = logging.getLogger('assets.cssutils')
-                log.addHandler(logging.handlers.MemoryHandler(10))
+            # cssutils is unaware of so many new CSS3 properties,
+            # vendor-prefixes etc., that it's diagnostic messages are rather
+            # useless. Disable them.
+            log = logging.getLogger('assets.cssutils')
+            log.addHandler(logging.handlers.MemoryHandler(10))
 
-                # Newer versions of cssutils print a deprecation warning
-                # for 'setlog'.
-                if hasattr(cssutils.log, 'setLog'):
-                    func = cssutils.log.setLog
-                else:
-                    func = cssutils.log.setlog
-                func(log)
+            # Newer versions of cssutils print a deprecation warning
+            # for 'setlog'.
+            if hasattr(cssutils.log, 'setLog'):
+                func = cssutils.log.setLog
+            else:
+                func = cssutils.log.setlog
+            func(log)
         except ImportError:
             # During doc generation, Django is not going to be setup and will
             # fail when the settings object is accessed. That's ok though.
