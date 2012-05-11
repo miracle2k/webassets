@@ -376,15 +376,13 @@ class Bundle(object):
                     combined_filters, disable_cache=disable_cache)
                 hunks.append(hunk)
             else:
-                # To the input() and output() methods, pass along both the
-                # original relative path, as specified by the user, and the
-                # one that has been resolved to a filesystem location.
-                kwargs = {'source': rel_name, 'source_path': item}
-
                 # Give a filter the chance to open his file.
                 try:
                     hunk = filtertool.apply_func(
-                        combined_filters, 'open', [item], kwargs=kwargs)
+                        combined_filters, 'open', [item],
+                        # Also pass along the original relative path, as
+                        # specified by the user, before resolving.
+                        kwargs={'source': rel_name})
                 except MoreThanOneFilterError, e:
                     raise BuildError(e)
 
@@ -398,7 +396,11 @@ class Bundle(object):
                     hunks.append(hunk)
                 else:
                     hunks.append(filtertool.apply(
-                        hunk, combined_filters, 'input', kwargs=kwargs))
+                        hunk, combined_filters, 'input',
+                        # Pass along both the original relative path, as
+                        # specified by the user, and the one that has been
+                        # resolved to a filesystem location.
+                        kwargs={'source': rel_name, 'source_path': item}))
 
         # Merge the individual files together.
         try:
