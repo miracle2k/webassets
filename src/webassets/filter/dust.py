@@ -46,6 +46,7 @@ class DustJSFilter(Filter):
     name = 'dustjs'
     options = {'dusty_path': 'DUSTY_PATH',
                'node_path': 'NODE_PATH'}
+    max_debug_level = None
 
     def open(self, out, source_path, **kw):
         args = []

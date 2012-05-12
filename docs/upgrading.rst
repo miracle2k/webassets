@@ -7,6 +7,60 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
+In Development version
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Some filters now run in debug mode. Specifically, there are two things that
+  deserve mention:
+
+  - ``cssrewrite`` now runs when ``debug="merge"``. This is always what is
+    wanted; it was essentially a bug that this didn't happen before.
+
+  - All kinds of compiler-style filters (Sass, less, Coffeescript, JST
+    templates etc). all now run in debug mode. The presence of such a filter
+    causes bundles to be merged even while ``debug=True``.
+
+    In practice, if you've been using custom custom bundle ``debug`` values
+    to get such compilers to run, this will continue to work. Though it can
+    now be simplified. Code like this::
+
+        Bundle(
+            Bundle('*.coffee', filters='coffeescript', debug=False)
+            filters='jsmin')
+
+    can be replaced with::
+
+        Bundle('*.coffee', filters='coffeescript,jsmin')
+
+    which has the same effect, which is that during debugging, Coffeescript
+    will be compiled, but not minimized. This also allows you to define bundles
+    that use compilers from within the templates tags, because nesting is no
+    longer necessary.
+
+    However, if you need to combine Coffeescript files (or other files needing
+    compiling) with regular CSS or JS files, nesting is still required::
+
+        Bundle('*.js'
+               Bundle('*.coffee', filters='coffeescript'),
+               filters='jsmin')
+
+    If for some reason you do not want these compilers to run, you may still
+    use a manual ``debug`` value to override the behavior. A case where this
+    is useful is the ``less`` filter, which can be compiled in the browser::
+
+        Bundle('*.less', filters='less', debug=True)
+
+    Here, as long as the environment is in debug mode, the bundle will output
+    the source urls, despite the ``less`` filter normally forcing a merge.
+
+  As part of this new feature, the handling of nested bundle debug values
+  has changed such that in rare cases you may see a different outcome. In
+  the unlikely case that you are using these a lot, the rule is simple: The
+  debug level can only ever be decreased. Child bundles cannot cannot do
+  "more debugging" than their parent, and if  ``Environment.debug=False``,
+  all bundle debug values are effectively ignored.
+
+
 In 0.7
 ~~~~~~
 

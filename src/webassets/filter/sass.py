@@ -80,6 +80,7 @@ class SassFilter(Filter):
         'load_paths': 'SASS_LOAD_PATHS',
         'libs': 'SASS_LIBS',
     }
+    max_debug_level = None
 
     def _apply_sass(self, _in, out, cd=None):
         # Switch to source file directory if asked, so that  this directory

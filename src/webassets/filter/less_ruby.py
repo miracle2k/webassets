@@ -38,6 +38,7 @@ class LessFilter(Filter):
     options = {
         'less': ('binary', 'LESS_RUBY_PATH')
     }
+    max_debug_level = None
 
     def open(self, out, sourcePath, **kw):
         """Less currently doesn't take data from stdin, and doesn't allow

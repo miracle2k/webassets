@@ -39,6 +39,7 @@ class JSTFilter(JSTemplateFilter):
         # Wrap everything in a closure
         'bare': 'JST_BARE',
     }
+    max_debug_level = None
 
     def setup(self):
         super(JSTFilter, self).setup()

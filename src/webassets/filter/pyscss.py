@@ -28,6 +28,7 @@ class PyScssFilter(Filter):
         'assets_url': 'PYSCSS_ASSETS_URL',
         'assets_root': 'PYSCSS_ASSETS_ROOT',
     }
+    max_debug_level = None
 
     def setup(self):
         super(PyScssFilter, self).setup()

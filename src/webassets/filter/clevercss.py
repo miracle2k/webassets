@@ -1,6 +1,7 @@
 ﻿from __future__ import absolute_import
 from webassets.filter import Filter
 
+
 __all__ = ('CleverCSSFilter',)
 
 
@@ -13,6 +14,7 @@ class CleverCSSFilter(Filter):
     """
 
     name = 'clevercss'
+    max_debug_level = None
 
     def setup(self):
         import clevercss

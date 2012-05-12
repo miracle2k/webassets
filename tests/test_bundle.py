@@ -211,55 +211,6 @@ class TestBuildVarious(TempEnvironmentHelper):
         os.unlink(self.path('in'))
         assert_raises(BundleError, bundle.build)
 
-    def test_debug_mode_inherited(self):
-        """Make sure that if a bundle sets debug=FOO, that value is also used
-        for child bundles.
-        """
-        b = self.mkbundle(
-            'in1',
-            self.mkbundle(
-                'in2', filters=AppendFilter(':childin', ':childout')),
-            output='out', debug='merge',
-            filters=AppendFilter(':rootin', ':rootout'))
-        b.build()
-        # Neither the content of in1 or of in2 have filters applied.
-        assert self.get('out') == 'A\nB'
-
-    def test_cannot_build_in_debug_mode(self):
-        """While we are in debug mode, bundles refuse to build.
-
-        This is currently a side effect of the implementation, and could
-        be designed otherwise: A manual call to build() not caring about
-        ``debug=False``.
-        However, note that it HAS to care about debug="merge" in any
-        case, so maybe the current behavior is the most consistent.
-        """
-        # Global debug mode
-        self.env.debug = True
-        b = self.mkbundle('in1', 'in2', output='out')
-        assert_raises(BuildError, b.build)
-
-        # Debug mode on bundle itself
-        self.env.debug = False
-        b = self.mkbundle('in1', 'in2', output='out', debug=True)
-        assert_raises(BuildError, b.build)
-
-        # However, if a bundle disables debug directly, it can in fact
-        # be built, even if we are globally in debug mode.
-        self.env.debug = True
-        b = self.mkbundle('in1', 'in2', output='out', debug=False)
-        b.build()
-        assert self.get('out') == 'A\nB'
-
-    def test_cannot_switch_from_production_to_debug(self):
-        """Once we are building a bundle, a child bundle cannot switch
-        on debug mode.
-        """
-        b = self.mkbundle(
-            'in1', self.mkbundle('in2', debug=True),
-            output='out', debug=False)
-        assert_raises(BuildError, b.build)
-
     def test_merge_does_not_apply_filters(self):
         """Test that while we are in merge mode, the filters are not
         applied.
@@ -271,36 +222,9 @@ class TestBuildVarious(TempEnvironmentHelper):
         assert self.get('out') == 'A\nB'
 
         # Check the reverse - filters are applied when not in merge mode
-        b.debug = False
+        self.env.debug = False
         b.build(force=True)
         assert self.get('out') == 'A:in\nB:in:out'
-
-    def test_switch_from_merge_to_full_debug_false(self):
-        """A child bundle may switch on filters while the parent is only
-        in merge mode.
-        """
-        b = self.mkbundle(
-            'in1',
-            self.mkbundle('in2', debug=False,
-                          filters=AppendFilter(':childin', ':childout')),
-            output='out', debug='merge',
-            filters=AppendFilter(':rootin', ':rootout'))
-        b.build()
-        # Note how the content of "in1" (A) does not have its filters
-        # applied.
-        assert self.get('out') == 'A\nB:childin:rootin:childout'
-
-    def test_invalid_debug_value(self):
-        """Test the exception Bundle.build() throws if debug is an
-        invalid value."""
-        # On the bundle level
-        b = self.mkbundle('a', 'b', debug="invalid")
-        assert_raises(BundleError, b.build)
-
-        # On the environment level
-        self.env.debug = "invalid"
-        b = self.mkbundle('a', 'b')
-        assert_raises(BundleError, b.build)
 
     def test_auto_create_target_directory(self):
         """A bundle output's target directory is automatically
@@ -316,6 +240,93 @@ class TestBuildVarious(TempEnvironmentHelper):
         self.mkbundle('in1', 'in2', output='out').build(output=buffer)
         assert buffer.getvalue() == 'A\nB'
         assert not self.exists('out')    # file was not written.
+
+
+class TestBuildWithVariousDebugOptions(TempEnvironmentHelper):
+    """Test build behavior with respect to the "debug level", and the various
+    ways to set and change the debug level within the bundle hierarchy.
+    """
+
+    def test_debug_mode_inherited(self):
+        """Make sure that if a bundle sets debug=FOO, that value is also used
+        for child bundles.
+        """
+        self.env.debug = True  # To allow "merge" at all
+        b = self.mkbundle(
+            'in1',
+            self.mkbundle(
+                'in2', filters=AppendFilter(':childin', ':childout')),
+            output='out', debug='merge',
+            filters=AppendFilter(':rootin', ':rootout'))
+        b.build()
+        # Neither the content of in1 or of in2 have filters applied.
+        assert self.get('out') == 'A\nB'
+
+    def test_cannot_increase_debug_level(self):
+        """Child bundles cannot increase the debug level.
+
+        If they attempt to, these attempts are silently ignored.
+        """
+        # False to True has no effect
+        self.mkbundle('in1', self.mkbundle('in2', debug=True),
+                      output='out', debug=False).build()
+        assert self.get('out') == 'A\nB'
+
+        # "merge" to True has no effect
+        self.mkbundle(
+            'in1', self.mkbundle('in2', debug=True),
+            output='out', debug='merge', filters=AppendFilter('_')).build()
+        assert self.get('out') == 'A\nB'
+
+        # False to "merge" has no effect
+        self.mkbundle(
+            'in1', self.mkbundle('in2', debug='merge',
+                                 filters=AppendFilter('_')),
+            output='out', debug=False).build()
+        assert self.get('out') == 'A\nB'
+
+    def test_decreasing_debug_level(self):
+        """A child bundle may switch to full production mode (turning on the
+        filters), while the parent is only in merge mode.
+
+        The other debug level change (from True to "merge" or from True to
+        "False" do not concern us here, and are tested in ``TestUrls*``).
+        """
+        self.env.debug = 'merge'
+        b = self.mkbundle(
+            'in1',
+            self.mkbundle('in2', debug=False,
+                          filters=AppendFilter(':childin', ':childout')),
+            output='out', debug='merge',
+            filters=AppendFilter(':rootin', ':rootout'))
+        b.build()
+        # Note how the content of "in1" (A) does not have its filters applied.
+        assert self.get('out') == 'A\nB:childin:rootin:childout'
+
+    def test_invalid_debug_value(self):
+        """Test exception Bundle.build() throws if debug is an invalid value.
+        """
+        # On the bundle level
+        b = self.mkbundle('a', 'b', output='out', debug="invalid")
+        assert_raises(BundleError, b.build)
+
+        # On the environment level
+        self.env.debug = "invalid"
+        b = self.mkbundle('a', 'b', output='out')
+        assert_raises(BundleError, b.build)
+
+    def test_building_in_debug_mode(self):
+        """When calling build() while we are in debug mode (debug=False),
+        the method builds as if in production mode (debug=False).
+
+        This is a question of API design: If the user calls the method, the
+        expectation is clearly for something useful to happen.
+        """
+        self.env.debug = True
+        b = self.mkbundle(
+            'in1', 'in2', output='out', filters=AppendFilter('foo'))
+        b.build()
+        assert self.get('out') == 'Afoo\nBfoo'
 
 
 class ReplaceFilter(Filter):
@@ -762,6 +773,7 @@ class TestUrlsVarious(BaseUrlsTester):
         assert_raises(BundleError, b.urls, env=self.env)
 
         # Self-check - this should work if this test works.
+        self.env.debug = True  # valid again
         self.MockBundle('a', 'b', debug="merge").urls()
 
     def test_pass_down_env(self):
@@ -776,23 +788,42 @@ class TestUrlsVarious(BaseUrlsTester):
         assert root.urls() == ['/1', '/2']
 
     def test_invalid_source_file(self):
-        """If a source file is missing, an error is raised even
-        when rendering the urls (as opposed to just outputting
-        the url to the missing file (this is cached and only
-        done once).
+        """If a source file is missing, an error is raised even when rendering
+        the urls (as opposed to just outputting the url to the missing file
+        (this is cached and only done once).
 
-        It's helpful for debugging (in particular when rewriting
-        takes place by things like the django-staticfiles
-        extension, or Flask's blueprints).
+        It's helpful for debugging (in particular when rewriting takes place by
+        things like the django-staticfiles extension, or Flask's blueprints).
         """
         self.env.debug = True
-        bundle = self.mkbundle('non-existant-file', output="out")
+        bundle = self.mkbundle('non-existent-file', output="out")
         assert_raises(BundleError, bundle.urls)
+
+    def test_filters_in_debug_mode(self):
+        """Test that if a filter is used which runs in debug mode, the bundle
+        is forcibly merged (unless overridden)
+        """
+        self.env.debug = True
+        test_filter = AppendFilter()
+        bundle = self.MockBundle('a', filters=test_filter, output='out')
+
+        # We get the source files...
+        assert bundle.urls() == ['/a']
+        assert len(self.build_called) == 0
+
+        # ...until the filter is switched to 'always run'
+        test_filter.max_debug_level = None
+        assert bundle.urls() == ['/out']
+        assert len(self.build_called) == 1
+
+        # An explicit bundle debug=True overrides the behavior.
+        bundle.debug = True
+        assert bundle.urls() == ['/a']
+        assert len(self.build_called) == 1  # no change
 
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):
-    """Test url generation in production mode - everything is always
-    built.
+    """Test url generation in production mode - everything is always built.
     """
 
     def test_simple_bundle(self):
@@ -801,7 +832,8 @@ class TestUrlsWithDebugFalse(BaseUrlsTester):
         assert len(self.build_called) == 1
 
     def test_nested_bundle(self):
-        bundle = self.MockBundle('a', self.MockBundle('d', 'childout'), 'c', output='out')
+        bundle = self.MockBundle(
+            'a', self.MockBundle('d', 'childout'), 'c', output='out')
         assert bundle.urls() == ['/out']
         assert len(self.build_called) == 1
 
@@ -824,35 +856,36 @@ class TestUrlsWithDebugFalse(BaseUrlsTester):
         assert bundle.urls() == ['/a', '/childout']
         assert len(self.build_called) == 1
 
-    def test_root_bundle_asks_for_merge(self):
-        """A bundle explicitly says it wants to be merged, overriding
-        the global "debug" setting.
-
-        This makes no difference to the urls that are generated.
+    def test_root_bundle_switching_to_merge(self):
+        """A bundle explicitly says it wants to be merged, wanting to override
+        the  global "debug=False" setting. This is ineffectual (and anyway
+        does not affect url generation).
         """
         bundle = self.MockBundle('1', '2', output='childout', debug='merge')
         assert_equals(bundle.urls(), ['/childout'])
         assert len(self.build_called) == 1
 
-    def test_root_bundle_asks_for_debug_true(self):
+    def test_root_bundle_switching_to_debug_true(self):
         """A bundle explicitly says it wants to be processed in debug
-        mode, overriding the global "debug" setting.
+        mode, wanting overriding the global "debug=False" setting. This is
+        ineffectual.
         """
         bundle = self.MockBundle('1', '2', output='childout', debug=True)
-        assert_equals(bundle.urls(), ['/1', '/2'])
-        assert len(self.build_called) == 0
+        assert_equals(bundle.urls(), ['/childout'])
+        assert len(self.build_called) == 1
 
     def test_root_debug_true_and_child_debug_false(self):
         """The root bundle explicitly says it wants to be processed in
         debug mode, overriding the global "debug" setting, and a child
         bundle asks for debugging to be disabled again.
+
+        None of this has any effect, since Environment.debug=False.
         """
         bundle = self.MockBundle(
-            '1', '2',
-            self.MockBundle('a', output='child1', debug=False),
-            output='childout', debug=True)
-        assert_equals(bundle.urls(), ['/1', '/2', '/child1'])
-        assert len(self.build_called) == 1
+                '1', '2',
+                self.MockBundle('a', output='child1', debug=False),
+                output='rootout', debug=True)
+        assert_equals(bundle.urls(), ['/rootout'])
 
 
 class TestUrlsWithDebugTrue(BaseUrlsTester):
@@ -900,25 +933,26 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
         # whether the url source was treated special.
         assert_equals(len(self.makeurl_called), 0)
 
-    def test_root_bundle_asks_for_debug_false(self):
+    def test_root_bundle_switching_to_debug_false(self):
         """A bundle explicitly says it wants to be processed with
-        debug=False, overriding the global "debug" setting.
+        debug=False, overriding the global "debug=True" setting.
         """
         bundle = self.MockBundle('1', '2', output='childout', debug=False)
         assert_equals(bundle.urls(), ['/childout'])
         assert len(self.build_called) == 1
 
-    def test_root_bundle_asks_for_merge(self):
+    def test_root_bundle_switching_to_merge(self):
         """A bundle explicitly says it wants to be merged, overriding
-        the global "debug" setting.
+        the global "debug=True" setting.
         """
         bundle = self.MockBundle('1', '2', output='childout', debug='merge')
         assert_equals(bundle.urls(), ['/childout'])
         assert len(self.build_called) == 1
 
-    def test_child_bundle_asks_for_merge(self):
+    def test_child_bundle_switching(self):
         """A child bundle explicitly says it wants to be processed in
-        "merge" mode, overriding the global "debug" setting.
+        "merge" mode, overriding the global "debug=True" setting, with the
+        root bundle not having an opinion.
         """
         bundle = self.MockBundle(
             'a', self.MockBundle('1', '2', output='childout', debug='merge'),
@@ -943,7 +977,7 @@ class TestUrlsWithDebugMerge(BaseUrlsTester):
         assert bundle.urls() == ['/out']
         assert len(self.build_called) == 1
 
-    def test_child_asks_for_debug_false(self):
+    def test_child_bundle_switching_to_debug_false(self):
         """A child bundle explicitly says it wants to be processed in
         full production mode, with overriding the global "debug" setting.
 
@@ -951,6 +985,16 @@ class TestUrlsWithDebugMerge(BaseUrlsTester):
         """
         bundle = self.MockBundle(
             'a', self.MockBundle('1', '2', output='childout', debug=False),
+            'c', output='out')
+        assert_equals(bundle.urls(), ['/out'])
+        assert len(self.build_called) == 1
+
+    def test_root_bundle_switching_to_debug_true(self):
+        """A bundle explicitly says it wants to be processed in debug mode,
+        overriding the global ``debug=merge"`` setting. This is ineffectual.
+        """
+        bundle = self.MockBundle(
+            'a', self.MockBundle('1', '2', output='childout', debug=True),
             'c', output='out')
         assert_equals(bundle.urls(), ['/out'])
         assert len(self.build_called) == 1

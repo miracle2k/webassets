@@ -17,22 +17,27 @@ assets (i.e., you would disable the
 you still need to apply the filter for your CSS compiler, since otherwise,
 the Browser wouldn't understand your stylesheets.
 
-Enabling debugging mode would disable the CSS compilation; Disabling
-debugging would apply the compression. Using a simple ``if-else`` when
-defining your bundles will not suffice for all cases. Once you need to
-merge raw CSS files and compiled CSS files together, you need to start
-using nested bundles:
+For this reason, such compiler filters run even when in debug mode:
 
 .. code-block:: python
 
     less = Bundle('css/base.less', 'css/forms.less',
-                  filters='less', output='gen/less.css',
-                  debug=False)
-    env.register('all-css',
-                 less, 'css/jquery.calendar.css',
-                 filters='yui_css', output="gen/all.css")
+                  filters='less,cssmin', output='screen.css')
 
-The magic here is in the ``debug`` argument passed the the ``less``
-bundle. Setting it to ``False`` means that even when the rest of the system
-is in debug mode, and no filters will be applied, this bundle is not:
-the less files will still be compiled.
+The above code block behaves exactly like you would want it to: When
+debugging, the less files are compiled to CSS, but the code is not minified.
+In production, both filters are applied.
+
+Sometimes, you need to merge together good old CSS code, and you have a
+compiler that, unlike ``less``, cannot process those. Then you can use a
+child bundle:
+
+.. code-block:: python
+
+    sass = Bundle('*.sass' filters='sass', output='gen/sass.css')
+    all_css = Bundle('css/jquery.calendar.css', sass,
+                     filters='cssmin', output="gen/all.css")
+
+In the above case, the ``sass`` filter is only applied to the Sass source
+files, within a nested bundle (which needs it's own output target!). The
+minification is applied to all CSS content in the outer bundle.

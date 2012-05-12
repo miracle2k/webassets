@@ -11,9 +11,10 @@ except ImportError:
     from glob import has_magic
 from filter import get_filter
 from merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
-                  MoreThanOneFilterError)
+                   select_filters, MoreThanOneFilterError)
 from updater import SKIP_CACHE
 from exceptions import BundleError, BuildError
+from utils import cmp_debug_levels
 
 
 __all__ = ('Bundle', 'get_all_bundle_files',)
@@ -301,31 +302,48 @@ class Bundle(object):
 
         assert not path.isabs(output)
 
-        # Determine the debug option to work, which will tell us what
-        # building the bundle entails. The reduce chooses the first
-        # non-None value.
-        debug = reduce(lambda x, y: x if not x is None else y,
-            [self.debug, parent_debug, env.debug])
-        if debug == 'merge':
-            no_filters = True
-        elif debug is True:
-            # This should be caught by urls().
-            if any([self.debug, parent_debug]):
-                raise BuildError("a bundle with debug=True cannot be built")
-            else:
-                raise BuildError("cannot build while in debug mode")
-        elif debug is False:
-            no_filters = False
-        else:
-            raise BundleError('Invalid debug value: %s' % debug)
+        # Determine the debug level to use. It determines if and which filters
+        # should be applied.
+        #
+        # The debug level is inherited (if the parent bundle is merging, a
+        # child bundle clearly cannot act in full debug=True mode). Bundles
+        # may define a custom ``debug`` attributes, but child bundles may only
+        # ever lower it, not increase it.
+        #
+        # If not parent_debug is given (top level), use the Environment value.
+        parent_debug = parent_debug if parent_debug is not None else env.debug
+        # Consider bundle's debug attribute and other things
+        current_debug_level = _effective_debug_level(
+            env, self, extra_filters, default=parent_debug)
+        # Special case: If we end up with ``True``, assume ``False`` instead.
+        # The alternative would be for the build() method to refuse to work at
+        # this point, which seems unnecessarily inconvenient (Instead how it
+        # works is that urls() simply doesn't call build() when debugging).
+        # Note: This can only happen if the Environment sets debug=True and
+        # nothing else overrides it.
+        if current_debug_level is True:
+            current_debug_level = False
 
-        # Prepare contents
-        resolved_contents = self.resolve_contents(env, force=True)
-        if not resolved_contents:
-            raise BuildError('empty bundle cannot be built')
-
-        # Prepare filters
+        # Put together a list of filters that we would want to run here.
+        # These will be the bundle's filters, and any extra filters given
+        # to use if the parent is a container bundle. Note we do not yet
+        # include input/open filters pushed down by a parent build iteration.
         filters = merge_filters(self.filters, extra_filters)
+
+        # Given the debug level, determine which of the filters want to run
+        selected_filters = select_filters(filters, current_debug_level)
+
+        # We construct two lists of filters. The ones we want to use in this
+        # iteration, and the ones we want to pass down to child bundles.
+        # Why? Say we are in merge mode. Assume an "input()" filter  which does
+        # not run in merge mode, and a child bundle that switches to
+        # debug=False. The child bundle then DOES want to run those input
+        # filters, so we do need to pass them.
+        filters_to_run = merge_filters(
+            selected_filters, select_filters(parent_filters, current_debug_level))
+        filters_to_pass_down = merge_filters(filters, parent_filters)
+
+        # Initialize al the filters (those we use now, those we pass down).
         for filter in filters:
             filter.set_environment(env)
             # Since we call this now every single time before the filter
@@ -335,6 +353,11 @@ class Bundle(object):
             # we can deal with it. We probably then want to deprecate
             # the old syntax before 1.0 (TODO).
             filter.setup()
+
+        # Prepare contents
+        resolved_contents = self.resolve_contents(env, force=True)
+        if not resolved_contents:
+            raise BuildError('empty bundle cannot be built')
 
         # Unless we have been told by our caller to use or not use the
         # cache for this, try to decide for ourselves. The issue here
@@ -360,23 +383,19 @@ class Bundle(object):
             kwargs={'output': output,
                     'output_path': env.abspath(output)})
 
-        # Apply input filters to all the contents. Note that we use both this
-        # bundle's filters as well as those given to us by the parent. We ONLY
-        # do those this for the input filters, because we need them to be
-        # applied before the apply our own output filters.
-        combined_filters = merge_filters(filters, parent_filters)
+        # Apply input()/open() filters to all the contents.
         hunks = []
         for rel_name, item in resolved_contents:
             if isinstance(item, Bundle):
                 hunk = item._merge_and_apply(
-                    env, output, force, debug,
-                    combined_filters, disable_cache=disable_cache)
+                    env, output, force, current_debug_level,
+                    filters_to_pass_down, disable_cache=disable_cache)
                 hunks.append(hunk)
             else:
                 # Give a filter the chance to open his file.
                 try:
                     hunk = filtertool.apply_func(
-                        combined_filters, 'open', [item],
+                        filters_to_run, 'open', [item],
                         # Also pass along the original relative path, as
                         # specified by the user, before resolving.
                         kwargs={'source': rel_name},
@@ -384,11 +403,11 @@ class Bundle(object):
                         # it's content as part of the cache key, otherwise this
                         # filter application would only be cached by filename,
                         # and changes in the source not detected. The other
-                        # option is to not use the cache at all here. Both
-                        # have different performance implications, but I'm
-                        # guessing that reading and hashing some files
-                        # unnecessarily very often is better than running
-                        # filters unnecessarily occasionally.
+                        # option is to not use the cache at all here. Both have
+                        # different performance implications, but I'm guessing
+                        # that reading and hashing some files unnecessarily
+                        # very often is better than running filters
+                        # unnecessarily occasionally.
                         cache_key=[FileHunk(item)] if not is_url(item) else [])
                 except MoreThanOneFilterError, e:
                     raise BuildError(e)
@@ -399,35 +418,29 @@ class Bundle(object):
                     else:
                         hunk = FileHunk(item)
 
-                if no_filters:
-                    hunks.append(hunk)
-                else:
-                    hunks.append(filtertool.apply(
-                        hunk, combined_filters, 'input',
-                        # Pass along both the original relative path, as
-                        # specified by the user, and the one that has been
-                        # resolved to a filesystem location.
-                        kwargs={'source': rel_name, 'source_path': item}))
+                hunks.append(filtertool.apply(
+                    hunk, filters_to_run, 'input',
+                    # Pass along both the original relative path, as
+                    # specified by the user, and the one that has been
+                    # resolved to a filesystem location.
+                    kwargs={'source': rel_name, 'source_path': item}))
 
-        # Merge the individual files together.
+        # Merge the individual files together. There is an optional hook for
+        # a filter here, by implementing a concat() method.
         try:
-            final = filtertool.apply_func(combined_filters, 'concat', [hunks])
+            final = filtertool.apply_func(filters_to_run, 'concat', [hunks])
             if final is None:
                 final = merge(hunks)
         except (IOError, MoreThanOneFilterError), e:
             raise BuildError(e)
 
-        # Apply output filters, if there are any.
-        if no_filters:
-            return final
-        else:
-            # TODO: So far, all the situations where bundle dependencies
-            # are used/useful, are based on input filters having those
-            # dependencies. Is it even required to consider them here
-            # with respect to the cache? We might be able to run this
-            # operation with the cache on (the FilterTool being possibly
-            # configured with cache reads off).
-            return filtertool.apply(final, filters, 'output')
+        # Apply output filters.
+        # TODO: So far, all the situations where bundle dependencies are
+        # used/useful, are based on input filters having those dependencies. Is
+        # it even required to consider them here with respect to the cache? We
+        # might be able to run this operation with the cache on (the FilterTool
+        # being possibly configured with cache reads off).
+        return filtertool.apply(final, selected_filters, 'output')
 
     def _build(self, env, extra_filters=[], force=None, output=None,
                disable_cache=None):
@@ -608,8 +621,16 @@ class Bundle(object):
         return env.absurl(result)
 
     def _urls(self, env, extra_filters, *args, **kwargs):
-        # Resolve debug: see whether we have to merge the contents
-        debug = self.debug if self.debug is not None else env.debug
+        """Return a list of urls for this bundle, and all subbundles,
+        and, when it becomes necessary, start a build process.
+        """
+
+        # Look at the debug value to see of this bundle we should return the
+        # source urls (in debug mode), or a single url of the bundle in built
+        # form. Once a bundle needs to be built, all of it's child bundles
+        # are built as well of course, so at this point we leave the urls()
+        # recursion and start a build() recursion.
+        debug = _effective_debug_level(env, self, extra_filters)
         if debug == 'merge':
             supposed_to_merge = True
         elif debug is True:
@@ -675,3 +696,47 @@ def get_all_bundle_files(bundle, env=None):
             files.append(c)
         files.extend(bundle.resolve_depends(env))
     return files
+
+
+def _effective_debug_level(env, bundle, extra_filters=None, default=None):
+    """This is a helper used both in the urls() and the build() recursions.
+
+    It returns the debug level that this bundle, in a tree structure
+    of bundles, should use. It looks at any bundle-specific ``debug``
+    attribute, considers an automatic upgrade to "merge" due to filters that
+    are present, and will finally use the value in the ``default`` argument,
+    which in turn defaults to ``env.debug``.
+
+    It also ensures our rule that in a bundle hierarchy, the debug level may
+    only ever be lowered. Nested bundle may lower the level from ``True`` to
+    ``"merge"`` to ``False``, but never in the other direction. Which makes
+    sense: If a bundle is already being merged, we cannot start exposing the
+    source urls a child bundle, not if the correct order should be maintained.
+
+    And while in theory it would seem possible to switch between full-out
+    production (debug=False) and ``"merge"``, the complexity there, in
+    particular with view as to how certain filter types like input() and
+    open() need to be applied to child bundles, is just not worth it.
+    """
+    if default is None:
+        default = env.debug
+
+    if bundle.debug is not None:
+        level = bundle.debug
+    else:
+        # If bundle doesn't force a level, then the presence of filters which
+        # declare they should always run puts the bundle automatically in
+        # merge mode.
+        filters = merge_filters(bundle.filters, extra_filters)
+        level = 'merge' if select_filters(filters, True) else None
+
+    if level is not None:
+        # The new level must be lower than the older one. We do not thrown an
+        # error if this is NOT the case, but silently ignore it. This is so
+        # that a debug=True can be used to overwrite auto_debug_upgrade.
+        # Otherwise debug=True would always fail.
+        if cmp_debug_levels(default, level) > 0:
+            return level
+    return default
+
+

@@ -8,6 +8,8 @@ try:
 except:
     import StringIO
 
+from utils import cmp_debug_levels
+
 
 __all__ = ('FileHunk', 'MemoryHunk', 'merge', 'FilterTool',
            'MoreThanOneFilterError')
@@ -289,3 +291,12 @@ def merge_filters(filters1, filters2):
             if not f in result:
                 result.append(f)
     return result
+
+
+def select_filters(filters, level):
+    """Return from the list in ``filters`` those filters which indicate that
+    they should run for the given debug level.
+    """
+    return filter(
+        lambda f: f.max_debug_level is None or
+                  cmp_debug_levels(level, f.max_debug_level) <= 0, filters)

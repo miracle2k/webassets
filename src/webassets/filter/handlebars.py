@@ -27,6 +27,7 @@ class HandlebarsFilter(JSTemplateFilter):
         'extra_args': 'HANDLEBARS_EXTRA_ARGS',
         'root': 'HANDLEBARS_ROOT',
     }
+    max_debug_level = None
 
     # XXX Due to the way this filter works, any other filters applied
     # WILL BE IGNORED. Maybe this method should be allowed to return True

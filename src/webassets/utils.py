@@ -3,6 +3,8 @@ import os
 import sys
 from itertools import takewhile
 
+from exceptions import BundleError
+
 
 __all__ = ('md5_constructor', 'common_path_prefix', 'working_directory')
 
@@ -144,3 +146,14 @@ def RegistryMetaclass(clazz=None, attribute=None, allow_none=True, desc=None):
     return Metaclass
 
 
+def cmp_debug_levels(level1, level2):
+    """cmp() for debug levels, returns -1, 0 or +1 indicating which debug
+    level is higher than the other one."""
+    level_ints = { False: 0, 'merge': 1, True: 2 }
+    try:
+        return cmp(level_ints[level1], level_ints[level2])
+    except KeyError, e:
+        # Not sure if a dependency on BundleError is proper here. Validating
+        # debug values should probably be done on assign. But because this
+        # needs to happen in two places (Environment and Bundle) we do it here.
+        raise BundleError('Invalid debug value: %s' % e)

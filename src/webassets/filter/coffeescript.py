@@ -22,6 +22,7 @@ class CoffeeScriptFilter(Filter):
     """
 
     name = 'coffeescript'
+    max_debug_level = None
     options = {
         'coffee_deprecated': (False, 'COFFEE_PATH'),
         'coffee_bin': ('binary', 'COFFEE_BIN'),

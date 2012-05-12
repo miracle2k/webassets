@@ -43,6 +43,7 @@ class CSSRewriteFilter(CSSUrlRewriter):
     # MEDIA_URL.
 
     name = 'cssrewrite'
+    max_debug_level = 'merge'
 
     def __init__(self, replace=False):
         super(CSSRewriteFilter, self).__init__()

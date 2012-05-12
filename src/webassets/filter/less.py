@@ -15,6 +15,7 @@ class LessFilter(Filter):
     options = {
         'less': ('binary', 'LESS_BIN')
     }
+    max_debug_level = None
 
     def open(self, out, source_path, **kw):
         proc = subprocess.Popen(

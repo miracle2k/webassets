@@ -64,6 +64,7 @@ class CompassFilter(Filter):
     """
 
     name = 'compass'
+    max_debug_level = None
     options = {
         'compass': ('binary', 'COMPASS_BIN'),
         'plugins': option('COMPASS_PLUGINS', type=list)
