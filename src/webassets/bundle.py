@@ -1,7 +1,6 @@
 import os
 from os import path
 import urlparse
-import os
 
 try:
     # Current version of glob2 does not let us access has_magic :/
@@ -10,7 +9,6 @@ try:
 except ImportError:
     import glob
     from glob import has_magic
-import warnings
 from filter import get_filter
 from merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
                   MoreThanOneFilterError)
@@ -243,29 +241,28 @@ class Bundle(object):
         return env.abspath(output)
 
     def __hash__(self):
-        """This is used to determine when a bundle definition has
-        changed so that a rebuild is required.
+        """This is used to determine when a bundle definition has changed so
+        that a rebuild is required.
 
-        The hash therefore should be built upon data that actually
-        affect the final build result.
+        The hash therefore should be built upon data that actually affect the
+        final build result.
         """
         return hash((tuple(self.contents),
                      self.output,
                      tuple(self.filters),
                      self.debug))
-        # Note how self.depends is not included here. It could be,
-        # but we really want this hash to only change for stuff
-        # that affects the actual output bytes. Note that modifying
-        # depends will be effective after the first rebuild in any
-        # case.
+        # Note how self.depends is not included here. It could be, but we
+        # really want this hash to only change for stuff that affects the
+        # actual output bytes. Note that modifying depends will be effective
+        # after the first rebuild in any case.
 
     @property
     def is_container(self):
-        """Return true if this is a container bundle, that is, a bundle
-        that acts only as a container for a number of sub-bundles.
+        """Return true if this is a container bundle, that is, a bundle that
+        acts only as a container for a number of sub-bundles.
 
-        It must not contain any files of its own, and must have an
-        empty ``output`` attribute.
+        It must not contain any files of its own, and must have an empty
+        ``output`` attribute.
         """
         has_files = any([c for c in self.contents if not isinstance(c, Bundle)])
         return not has_files and not self.output

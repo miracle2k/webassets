@@ -113,10 +113,10 @@ class TestBundleConfig(TempEnvironmentHelper):
         assert len(b.resolve_depends(self.env)) == 1
 
 
-class TestBuild(TempEnvironmentHelper):
-    """Test building various bundle structures, in various debug modes,
-    in various different circumstances. Generally all things "building"
-    which don't have a better place.
+class TestBuildVarious(TempEnvironmentHelper):
+    """Test building various bundle structures, in various different
+    circumstances. Generally all things "building" which don't have a
+    better place.
     """
 
     def test_simple_bundle(self):
@@ -212,8 +212,8 @@ class TestBuild(TempEnvironmentHelper):
         assert_raises(BundleError, bundle.build)
 
     def test_debug_mode_inherited(self):
-        """Make sure that if a bundle sets debug=FOO, that values
-        is also used for child bundles.
+        """Make sure that if a bundle sets debug=FOO, that value is also used
+        for child bundles.
         """
         b = self.mkbundle(
             'in1',
@@ -371,7 +371,7 @@ class AppendFilter(Filter):
         return self._input, self._output
 
 
-class TestFilters(TempEnvironmentHelper):
+class TestFilterApplication(TempEnvironmentHelper):
     """Test filter application during building.
     """
 
@@ -474,7 +474,7 @@ class TestFilters(TempEnvironmentHelper):
         assert 'source_path' in captured_kw
 
 
-class TestAutoUpdate(TempEnvironmentHelper):
+class TestAutoBuild(TempEnvironmentHelper):
     """Test bundle auto rebuild, and generally everything involving
     the updater from the bundle's perspective.
     """
@@ -742,7 +742,7 @@ class BaseUrlsTester(TempEnvironmentHelper):
         self.MockBundle = MockBundle
 
 
-class TestUrlsCommon(BaseUrlsTester):
+class TestUrlsVarious(BaseUrlsTester):
     """Other, general tests for the urls() method.
 
     The TestUrls()* classes test the logic behind urls(). The ``url_expire``
