@@ -7,8 +7,8 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
-In Development version
-~~~~~~~~~~~~~~~~~~~~~~
+In 0.7
+~~~~~~
 
 There are some significant backwards incompatible changes in this release.
 
