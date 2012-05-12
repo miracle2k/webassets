@@ -20,8 +20,12 @@ directly into the template. The latter is probably best using
 a MemoryBundle() class that requires an id to be set to replace the
 output filename as a cache key.
 
-Should be provide features for normalizing encodings? This could be
-added as properties to the bundles.
+We should provide functionality to deal with encodings? This seems rarely
+needed, since we did fine so far, but still: An encoding property on each
+bundle that will be used when opening files (via a respective encoding
+property on FileHunk) is simple enough. Then, if you need to deal with a
+set of files with a different encoding, you can put them in a bundle of their
+own, or define them as a FileHunk() object
 
 Handle far future expires for images: add a new templatetag that can output
 image urls with timestamps; the cssrewrite filter could modify urls within
