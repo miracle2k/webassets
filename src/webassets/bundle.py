@@ -60,10 +60,10 @@ class Bundle(object):
         self.debug = options.pop('debug', None)
         self.depends = options.pop('depends', [])
         self.version = options.pop('version', [])
+        self.extra = options.pop('extra', {})
         if options:
             raise TypeError("got unexpected keyword argument '%s'" %
                             options.keys()[0])
-        self.extra_data = {}
 
     def __repr__(self):
         return "<%s output=%s, filters=%s, contents=%s>" % (
@@ -99,6 +99,23 @@ class Bundle(object):
         self._contents = value
         self._resolved_contents = None
     contents = property(_get_contents, _set_contents)
+
+    def _get_extra(self):
+        if not self._extra and not has_files(self):
+            # If this bundle has no extra values of it's own, and only
+            # wraps child bundles, use the extra values of those.
+            result = {}
+            for bundle in self.contents:
+                result.update(bundle.extra)
+            return result
+        else:
+            return self._extra
+    def _set_extra(self, value):
+        self._extra = value
+    extra = property(_get_extra, _set_extra, doc="""A custom user dict of
+    extra values attached to this bundle. Those will be available in
+    template tags, and can be used to attach things like a CSS
+    'media' value.""")
 
     def resolve_contents(self, env=None, force=False):
         """Convert bundle contents into something that can be easily processed.
@@ -264,8 +281,7 @@ class Bundle(object):
         It must not contain any files of its own, and must have an empty
         ``output`` attribute.
         """
-        has_files = any([c for c in self.contents if not isinstance(c, Bundle)])
-        return not has_files and not self.output
+        return not has_files(self) and not self.output
 
     def _get_env(self, env):
         # Note how bool(env) can be False, due to __len__.
@@ -734,3 +750,5 @@ def _effective_debug_level(env, bundle, extra_filters=None, default=None):
     return default
 
 
+has_files = lambda bundle: \
+                any([c for c in bundle.contents if not isinstance(c, Bundle)])

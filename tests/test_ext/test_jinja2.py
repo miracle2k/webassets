@@ -49,9 +49,10 @@ class TestTemplateTag(object):
         AssetsExtension.BundleClass = self._old_bundle_class
         del self._old_bundle_class
 
-    def render_template(self, args, ctx={}):
+    def render_template(self, args, ctx=None):
         return self.jinja_env.from_string(
-            '{% assets '+args+' %}{{ ASSET_URL }};{% endassets %}').render(ctx)
+            '{% assets '+args+' %}{{ ASSET_URL }};{% endassets %}')\
+                .render(ctx or {})
 
     def test_reference_bundles(self):
         self.render_template('"foo_bundle", "bar_bundle"')
@@ -70,7 +71,7 @@ class TestTemplateTag(object):
         assert self.the_bundle.contents == (self.foo_bundle, 'a_file',)
 
     def test_output_urls(self):
-        """Ensure the tag correcly spits out the urls the bundle returns.
+        """Ensure the tag correctly spits out the urls the bundle returns.
         """
         self.BundleClass.urls_to_fake = ['foo', 'bar']
         assert self.render_template('"file1" "file2" "file3"') == 'foo;bar;'
@@ -80,3 +81,8 @@ class TestTemplateTag(object):
             '{% assets debug="True", "debug1.txt" %}{{ ASSET_URL }};{% endassets %}').render({})
         assert self.the_bundle.dbg == 'True'
 
+    def test_extra_values(self):
+        self.foo_bundle.extra = {'moo': 42}
+        output = self.jinja_env.from_string(
+            '{% assets "foo_bundle" %}{{ EXTRA.moo }}{% endassets %}').render()
+        assert output == '42'

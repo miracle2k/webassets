@@ -21,7 +21,7 @@ from helpers import TempEnvironmentHelper, noop, assert_raises_regexp
 
 class TestBundleConfig(TempEnvironmentHelper):
 
-    def test_init_kwargs(self):
+    def test_unknown_init_kwargs(self):
         """We used to silently ignore unsupported kwargs, which can make
         mistakes harder to track down; in particular "filters" vs "filter"
         is confusing. Now we raise an error.
@@ -32,6 +32,16 @@ class TestBundleConfig(TempEnvironmentHelper):
             assert "unexpected keyword argument" in ("%s" % e)
         else:
             raise Exception('Expected TypeError not raised')
+
+    def test_init_extra_kwarg(self):
+        """Bundles may be given an ``extra`` dictionary."""
+        assert Bundle().extra == {}
+        assert Bundle(extra={'foo': 'bar'}).extra == {'foo': 'bar'}
+
+        # Nested extra values
+        assert Bundle(Bundle(extra={'foo': 'bar'}),
+                      Bundle(extra={'baz': 'qux'})).extra == {
+            'foo': 'bar', 'baz': 'qux'}
 
     def test_filter_assign(self):
         """Test the different ways we can assign filters to the bundle.

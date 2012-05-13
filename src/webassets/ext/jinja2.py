@@ -29,7 +29,7 @@ class AssetsExtension(Extension):
     def __init__(self, environment):
         super(AssetsExtension, self).__init__(environment)
 
-        # add the defaults to the environment
+        # Add the defaults to the environment
         environment.extend(
             assets_environment=None,
         )
@@ -42,14 +42,14 @@ class AssetsExtension(Extension):
         filters = nodes.Const(None)
         dbg = nodes.Const(None)
 
-        # parse the arguments
+        # Parse the arguments
         first = True
         while parser.stream.current.type != 'block_end':
             if not first:
                 parser.stream.expect('comma')
             first = False
 
-            # lookahead to see if this is an assignment (an option)
+            # Lookahead to see if this is an assignment (an option)
             if parser.stream.current.test('name') and parser.stream.look().test('assign'):
                 name = parser.stream.next().value
                 parser.stream.skip()
@@ -69,23 +69,85 @@ class AssetsExtension(Extension):
                     dbg = value
                 else:
                     parser.fail('Invalid keyword argument: %s' % name)
-            # otherwise assume a source file is given, which may
-            # be any expression, except note that strings are handled
-            # separately above
+            # Otherwise assume a source file is given, which may be any
+            # expression, except note that strings are handled separately above.
             else:
                 files.append(parser.parse_expression())
 
-        # parse the contents of this tag, and return a block
+        # Parse the contents of this tag
         body = parser.parse_statements(['name:endassets'], drop_needle=True)
 
-        return nodes.CallBlock(
-                self.call_method('_render_assets',
-                                 args=[filters, output, dbg, nodes.List(files)]),
-                [nodes.Name('ASSET_URL', 'store')], [], body).\
-                    set_lineno(lineno)
+        # We want to make some values available to the body of our tag.
+        # Specifically, the file url(s) (ASSET_URL), and any extra dict set in
+        # the bundle (EXTRA).
+        #
+        # A short interlope: I would have preferred to make the values of the
+        # extra dict available directly. Unfortunately, the way Jinja2 does
+        # things makes this problematic. I'll explain.
+        #
+        # Jinja2 generates Python code from it's AST which it then executes.
+        # So the way extensions implement making custom variables available to
+        # a block of code is by generating a ``CallBlock``, which essentially
+        # wraps our child nodes in a Python function. The arguments of this
+        # function are the values that are available to our tag contents.
+        #
+        # But we need to generate this ``CallBlock`` now, during parsing, and
+        # right now we don't know the actual ``Bundle.extra`` values yet. We
+        # only resolve the bundle during rendering!
+        #
+        # This would easily be solved if Jinja2 where to allow extensions to
+        # scope it's context, which is a dict of values that templates can
+        # access, just like in Django (you might see on occasion
+        # ``context.resolve('foo')`` calls in Jinja2's generated code).
+        # However, it seems the context is essentially only for the initial
+        # set of data passed to render(). There are some statements by Armin
+        # that this might change at some point, but I've run into this problem
+        # before, and I'm not holding my breath.
+        #
+        # I **really** did try to get around this, including crazy things like
+        # inserting custom Python code by patching the tag child nodes::
+        #
+        #        rv = object.__new__(nodes.InternalName)
+        #        # l_EXTRA is the argument we defined for the CallBlock/Macro
+        #        # Letting Jinja define l_kwargs is also possible
+        #        nodes.Node.__init__(rv, '; context.vars.update(l_EXTRA)',
+        #                            lineno=lineno)
+        #        # Scope required to ensure our code on top
+        #        body = [rv, nodes.Scope(body)]
+        #
+        # This custom code would run at the top of the function in which the
+        # CallBlock node would wrap the code generated from our tag's child
+        # nodes. Note that it actually does works, but doesn't clear the values
+        # at the end of the scope).
+        #
+        # If it is possible to do this, it certainly isn't reasonable/
+        #
+        # There is of course another option altogether: Simple resolve the tag
+        # definition to a bundle right here and now, thus get access to the
+        # extra dict, make all values arguments to the CallBlock (Limited to
+        # 255 arguments to a Python function!). And while that would work fine
+        # in 99% of cases, it wouldn't be correct. The compiled template could
+        # be cached and used with different bundles/environments, and this
+        # would require the bundle to resolve at parse time, and hardcode it's
+        # extra values.
+        #
+        # Interlope end.
+        #
+        # Summary: We have to be satisfied with a single EXTRA variable.
+        args = [nodes.Name('ASSET_URL', 'store'),
+                nodes.Name('EXTRA', 'store')]
+
+        # Return a ``CallBlock``, which means Jinja2 will call a Python method
+        # of ours when the tag needs to be rendered. That method can then
+        # render the template body.
+        call = self.call_method(
+            '_render_assets', args=[filters, output, dbg, nodes.List(files)])
+        call_block = nodes.CallBlock(call, args, [], body)
+        call_block.set_lineno(lineno)
+        return call_block
 
     @classmethod
-    def resolve_contents(self, contents, env):
+    def resolve_contents(cls, contents, env):
         """Resolve bundle names."""
         result = []
         for f in contents:
@@ -101,18 +163,23 @@ class AssetsExtension(Extension):
             raise RuntimeError('No assets environment configured in '+
                                'Jinja2 environment')
 
+        # Construct a bundle with the given options
+        bundle_kwargs = {
+            'output': output,
+            'filters': filter,
+            'debug': dbg
+        }
+        bundle = self.BundleClass(
+            *self.resolve_contents(files, env), **bundle_kwargs)
+
+        # Retrieve urls (this may or may not cause a build)
+        urls = bundle.urls(env=env)
+
+        # For each url, execute the content of this template tag (represented
+        # by the macro ```caller`` given to use by Jinja2).
         result = u""
-        kwargs = {'output': output,
-                  'filters': filter,
-                }
-
-        if dbg != None:
-            kwargs['debug'] = dbg
-
-        urls = self.BundleClass(*self.resolve_contents(files, env),
-                                **kwargs).urls(env=env)
-        for f in urls:
-            result += caller(f)
+        for url in urls:
+            result += caller(url, bundle.extra)
         return result
 
 
