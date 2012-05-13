@@ -50,12 +50,6 @@ bundle-by-bundle basis:
 Basically, all the settings should be customizable this way, with the
 settings themselves only serving as a default.
 
-I was never really happy with the debug=False approach to solving
-the CSS compiler in debug mode problem. Maybe it should be up to
-filters to decide if they need to run. There shouldn't really be
-a case in which, say, "less" should NOT compile. The output wouldn't
-be usable in the browser otherwise.
-
 It might be possible to get rid of the ASSETS_JINJA2_EXTENSIONS setting,
 or the requirement that the Jinja2Loader need to know about the extensions
 used, if we can somehow hack Jinja2 to ignore unknown tags.
