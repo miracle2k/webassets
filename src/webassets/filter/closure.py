@@ -34,10 +34,10 @@ from __future__ import absolute_import
 from webassets.filter import Filter, JavaMixin
 
 
-__all__ = ('ClosureJSFilter',)
+__all__ = ('ClosureJS',)
 
 
-class ClosureJSFilter(Filter, JavaMixin):
+class ClosureJS(Filter, JavaMixin):
 
     name = 'closure_js'
     options = {
@@ -46,7 +46,7 @@ class ClosureJSFilter(Filter, JavaMixin):
     }
 
     def setup(self):
-        super(ClosureJSFilter, self).setup()
+        super(ClosureJS, self).setup()
 
         try:
             self.jar = self.get_config('CLOSURE_COMPRESSOR_PATH',

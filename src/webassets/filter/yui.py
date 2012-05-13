@@ -20,7 +20,7 @@ on the system path.
 from webassets.filter import Filter, JavaMixin
 
 
-__all__ = ('YUIJSFilter', 'YUICSSFilter',)
+__all__ = ('YUIJS', 'YUICSS',)
 
 
 class YUIBase(Filter, JavaMixin):
@@ -49,11 +49,11 @@ class YUIBase(Filter, JavaMixin):
         self.java_run(_in, out, ['--charset=utf-8', '--type=%s' % self.mode])
 
 
-class YUIJSFilter(YUIBase):
+class YUIJS(YUIBase):
     name = 'yui_js'
     mode = 'js'
 
 
-class YUICSSFilter(YUIBase):
+class YUICSS(YUIBase):
     name = 'yui_css'
     mode = 'css'

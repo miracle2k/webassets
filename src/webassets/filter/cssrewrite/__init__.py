@@ -12,10 +12,10 @@ except ImportError:
 from base import CSSUrlRewriter, addsep, path2url
 
 
-__all__ = ('CSSRewriteFilter',)
+__all__ = ('CSSRewrite',)
 
 
-class CSSRewriteFilter(CSSUrlRewriter):
+class CSSRewrite(CSSUrlRewriter):
     """Source filter that rewrites relative urls in CSS files.
 
     CSS allows you to specify urls relative to the location of the CSS file.
@@ -46,7 +46,7 @@ class CSSRewriteFilter(CSSUrlRewriter):
     max_debug_level = 'merge'
 
     def __init__(self, replace=False):
-        super(CSSRewriteFilter, self).__init__()
+        super(CSSRewrite, self).__init__()
         self.replace = replace
 
     def unique(self):
@@ -67,7 +67,7 @@ class CSSRewriteFilter(CSSUrlRewriter):
                 replace_dict[replurl] = sub
             self.replace_dict = replace_dict
 
-        return super(CSSRewriteFilter, self).input(_in, out, **kw)
+        return super(CSSRewrite, self).input(_in, out, **kw)
 
     def replace_url(self, url):
         # Replace mode: manually adjust the location of files

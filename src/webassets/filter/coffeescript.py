@@ -4,10 +4,10 @@ from webassets.filter import Filter
 from webassets.exceptions import FilterError, ImminentDeprecationWarning
 
 
-__all__ = ('CoffeeScriptFilter',)
+__all__ = ('CoffeeScript',)
 
 
-class CoffeeScriptFilter(Filter):
+class CoffeeScript(Filter):
     """Converts `CoffeeScript <http://jashkenas.github.com/coffee-script/>`_
     to real JavaScript.
 

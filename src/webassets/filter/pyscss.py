@@ -7,7 +7,7 @@ from webassets.utils import working_directory
 __all__ = ('SassFilter', 'SCSSFilter')
 
 
-class PyScssFilter(Filter):
+class PyScss(Filter):
     """Converts `Scss <http://sass-lang.com/>`_ markup to real CSS.
 
     This uses `PyScss <https://github.com/Kronuz/pyScss>`_, a native
@@ -31,7 +31,7 @@ class PyScssFilter(Filter):
     max_debug_level = None
 
     def setup(self):
-        super(PyScssFilter, self).setup()
+        super(PyScss, self).setup()
 
         import scss
         self.scss = scss

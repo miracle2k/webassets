@@ -8,10 +8,10 @@ import subprocess
 from webassets.exceptions import FilterError
 
 
-__all__ = ('DustJSFilter',)
+__all__ = ('DustJS',)
 
 
-class DustJSFilter(Filter):
+class DustJS(Filter):
     """`DustJS <http://akdubya.github.com/dustjs/>`_ templates compilation
     filter.
 

@@ -16,10 +16,10 @@ from webassets.filter.jst import JSTemplateFilter
 from webassets.merge import FileHunk
 
 
-__all__ = ('HandlebarsFilter',)
+__all__ = ('Handlebars',)
 
 
-class HandlebarsFilter(JSTemplateFilter):
+class Handlebars(JSTemplateFilter):
 
     name = 'handlebars'
     options = {

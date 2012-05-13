@@ -3,10 +3,10 @@ from webassets.exceptions import FilterError
 from webassets.filter import Filter
 
 
-__all__ = ('UglifyJSFilter',)
+__all__ = ('UglifyJS',)
 
 
-class UglifyJSFilter(Filter):
+class UglifyJS(Filter):
     """
     Minify Javascript using `UglifyJS <https://github.com/mishoo/UglifyJS/>`_.
 

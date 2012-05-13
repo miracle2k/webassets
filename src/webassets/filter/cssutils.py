@@ -5,10 +5,10 @@ import logging.handlers
 from webassets.filter import Filter
 
 
-__all__ = ('CSSUtilsFilter',)
+__all__ = ('CSSUtils',)
 
 
-class CSSUtilsFilter(Filter):
+class CSSUtils(Filter):
     """Minifies CSS by removing whitespace, comments etc., using the Python
     `cssutils <http://cthedot.de/cssutils/>`_ library.
 

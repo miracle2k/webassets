@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 from webassets.filter import Filter
 
-__all__ = ('CSSPrefixerFilter',)
+
+__all__ = ('CSSPrefixer',)
 
 
-class CSSPrefixerFilter(Filter):
+class CSSPrefixer(Filter):
     """Uses `CSSPrefixer <http://github.com/myfreeweb/cssprefixer/>`_
     to add vendor prefixes to CSS files.
     """

@@ -60,6 +60,11 @@ In Development version
   "more debugging" than their parent, and if  ``Environment.debug=False``,
   all bundle debug values are effectively ignored.
 
+- The internal class names of filters have been renamed. For example,
+  ``JSMinFilter`` is now simply ``JSMin``. This only affects you if you
+  reference these classes directly, rather than using their id (such as
+  ``jsmin``), which should be rare.
+
 
 In 0.7
 ~~~~~~

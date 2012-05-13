@@ -35,10 +35,10 @@ from webassets.exceptions import FilterError
 from webassets.filter import Filter, option
 
 
-__all__ = ('CompassFilter',)
+__all__ = ('Compass',)
 
 
-class CompassFilter(Filter):
+class Compass(Filter):
     """Converts `Compass <http://compass-style.org/>`_ .sass files to
     CSS.
 

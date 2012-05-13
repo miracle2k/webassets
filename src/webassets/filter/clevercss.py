@@ -2,10 +2,10 @@
 from webassets.filter import Filter
 
 
-__all__ = ('CleverCSSFilter',)
+__all__ = ('CleverCSS',)
 
 
-class CleverCSSFilter(Filter):
+class CleverCSS(Filter):
     """Converts `CleverCSS <http://sandbox.pocoo.org/clevercss/>`_ markup
     to real CSS.
 

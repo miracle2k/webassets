@@ -3,7 +3,7 @@ from webassets.filter import Filter
 from webassets.exceptions import FilterError
 
 
-class LessFilter(Filter):
+class Less(Filter):
     """Converts `Less <http://lesscss.org/>`_ markup to real CSS.
 
     This depends on the NodeJS implementation of less, installable

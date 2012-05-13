@@ -4,7 +4,7 @@ from webassets.filter import Filter
 from webassets.utils import common_path_prefix
 
 
-__all__ = ('JSTFilter',)
+__all__ = ('JST',)
 
 
 class JSTemplateFilter(Filter):
@@ -24,7 +24,7 @@ class JSTemplateFilter(Filter):
         return common_path_prefix(paths)
 
 
-class JSTFilter(JSTemplateFilter):
+class JST(JSTemplateFilter):
     """`Jammit Style <http://documentcloud.github.com/jammit/#jst>`_ JavaScript 
     templates. For a list of files, pulls out their contents and creates a 
     JavaScript object where the key is the name of the file.
@@ -42,7 +42,7 @@ class JSTFilter(JSTemplateFilter):
     max_debug_level = None
 
     def setup(self):
-        super(JSTFilter, self).setup()
+        super(JST, self).setup()
         self.include_jst_script = \
             (self.template_function == 'template') or not self.template_function
 

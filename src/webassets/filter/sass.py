@@ -5,10 +5,10 @@ from webassets.exceptions import FilterError, ImminentDeprecationWarning
 from webassets.cache import FilesystemCache
 
 
-__all__ = ('SassFilter', 'SCSSFilter')
+__all__ = ('Sass', 'SCSS')
 
 
-class SassFilter(Filter):
+class Sass(Filter):
     """Converts `Sass <http://sass-lang.com/>`_ markup to real CSS.
 
     Requires the Sass executable to be available externally. To install
@@ -153,7 +153,7 @@ class SassFilter(Filter):
             self._apply_sass(_in, out)
 
 
-class SCSSFilter(SassFilter):
+class SCSS(Sass):
     """Version of the ``sass`` filter that uses the SCSS syntax.
     """
 
@@ -162,4 +162,4 @@ class SCSSFilter(SassFilter):
     def __init__(self, *a, **kw):
         assert not 'scss' in kw
         kw['scss'] = True
-        super(SCSSFilter, self).__init__(*a, **kw)
+        super(SCSS, self).__init__(*a, **kw)

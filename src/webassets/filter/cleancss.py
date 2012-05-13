@@ -3,10 +3,10 @@ from webassets.exceptions import FilterError
 from webassets.filter import Filter
 
 
-__all__ = ('CleanCSSFilter',)
+__all__ = ('CleanCSS',)
 
 
-class CleanCSSFilter(Filter):
+class CleanCSS(Filter):
     """
     Minify css using `Clean-css <https://github.com/GoalSmashers/clean-css/>`_.
 
