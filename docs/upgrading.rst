@@ -20,9 +20,9 @@ In Development version
     templates etc). all now run in debug mode. The presence of such a filter
     causes bundles to be merged even while ``debug=True``.
 
-    In practice, if you've been using custom custom bundle ``debug`` values
-    to get such compilers to run, this will continue to work. Though it can
-    now be simplified. Code like this::
+    In practice, if you've been using custom bundle ``debug`` values to get
+    such compilers to run, this will continue to work. Though it can now be
+    simplified. Code like this::
 
         Bundle(
             Bundle('*.coffee', filters='coffeescript', debug=False)
