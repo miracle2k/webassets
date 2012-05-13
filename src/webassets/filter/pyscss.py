@@ -4,7 +4,7 @@ from webassets.filter import Filter
 from webassets.utils import working_directory
 
 
-__all__ = ('SassFilter', 'SCSSFilter')
+__all__ = ('PyScss',)
 
 
 class PyScss(Filter):
