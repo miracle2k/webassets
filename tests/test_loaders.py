@@ -88,18 +88,7 @@ class TestYAML(object):
         """YAML loader can deal with empty files.
         """
         self.loader("""""").load_bundles()
-        # A LoaderError is what we expect here, rather than, say, a TypeError.
-        assert_raises(LoaderError, self.loader("""""").load_environment)
-
-    def test_load_environment_error(self):
-        """Check that "url" and "directory" are required.
-        """
-        assert_raises(LoaderError, self.loader("""
-        url: /foo
-        """).load_environment)
-        assert_raises(LoaderError, self.loader("""
-        directory: bar
-        """).load_environment)
+        self.loader("""""").load_environment()
 
     def test_load_environment(self):
         environment = self.loader("""
@@ -128,6 +117,11 @@ class TestYAML(object):
 
         # [bug] Make sure the bundles are loaded as well.
         assert len(environment) == 1
+
+    def test_load_environment_no_url_or_directory(self):
+        """Check that "url" and "directory" are not required.
+        """
+        self.loader("""foo: bar""").load_environment()
 
     def test_load_deprecated_attrs(self):
         with check_warnings(("", ImminentDeprecationWarning)) as w:

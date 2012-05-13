@@ -18,7 +18,7 @@ class TestEnvApi(object):
         self.m = Environment(None, None)
 
     def test_single_bundle(self):
-        """Test self.m.registering a single ``Bundle`` object.
+        """Test registering a single ``Bundle`` object.
         """
         b = Bundle()
         self.m.register('foo', b)
@@ -81,6 +81,22 @@ class TestEnvApi(object):
         assert 'foo' in self.m
         assert not 'bar' in self.m
 
+    def test_url_and_directory(self):
+        """The url and directory options are a bit special, because they
+        are so essential.
+        """
+
+        # An environment can be constructed without given url or directory.
+        env = Environment()
+        # But then accessing them will fail, and with it most operations.
+        assert_raises(EnvironmentError, getattr, env, 'url')
+        assert_raises(EnvironmentError, getattr, env, 'directory')
+
+        # Test constructing the environment with values for url and directory
+        env = Environment('foo', 'bar')
+        assert env.directory == 'foo'
+        assert env.url == 'bar'
+
 
 class TestEnvConfig(object):
     """Custom config values through get_config/set_config.
@@ -112,9 +128,8 @@ class TestEnvConfig(object):
 
 
 class TestSpecialProperties(object):
-    """Certain environment options are special in that one may assign
-    values as a string, and would receive object instances when
-    accessing the property.
+    """Certain environment options are special in that one may assign values
+    as a string, and would receive object instances when accessing the property.
     """
 
     def setup(self):

@@ -118,8 +118,8 @@ env_options = [
 
 
 class BaseEnvironment(object):
-    """Abstract base class for :class:`Environment` which makes
-    subclassing easier.
+    """Abstract base class for :class:`Environment` with slightly more generic
+    assumptions, to ease subclassing.
     """
 
     config_storage_class = None
@@ -404,7 +404,11 @@ class BaseEnvironment(object):
     def _set_directory(self, directory):
         self.config['directory'] = directory
     def _get_directory(self):
-        return self.config['directory']
+        try:
+            return self.config['directory']
+        except KeyError:
+            raise EnvironmentError(
+                'The environment has no "directory" configured')
     directory = property(_get_directory, _set_directory, doc=
     """The base directory to which all paths will be relative to.
     """)
@@ -412,7 +416,11 @@ class BaseEnvironment(object):
     def _set_url(self, url):
         self.config['url'] = url
     def _get_url(self):
-        return self.config['url']
+        try:
+            return self.config['url']
+        except KeyError:
+            raise EnvironmentError(
+                'The environment has no "url" configured')
     url = property(_get_url, _set_url, doc=
     """The base used to construct urls under which :attr:`directory`
     should be exposed.
@@ -485,13 +493,15 @@ class DictConfigStorage(ConfigStorage):
 
 
 class Environment(BaseEnvironment):
-    """Owns a collection of bundles, and a set of configuration values
-    which will be used when processing these bundles.
+    """Owns a collection of bundles, and a set of configuration values which
+    will be used when processing these bundles.
     """
 
     config_storage_class = DictConfigStorage
 
-    def __init__(self, directory, url, **more_config):
+    def __init__(self, directory=None, url=None, **more_config):
         super(Environment, self).__init__(**more_config)
-        self.directory = directory
-        self.url = url
+        if directory is not None:
+            self.directory = directory
+        if url is not None:
+            self.url = url

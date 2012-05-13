@@ -142,29 +142,27 @@ class YAMLLoader(object):
         try:
             obj = self.yaml.load(f) or {}
 
-            # construct the environment
-            if not 'url' in obj or not 'directory' in obj:
-                raise LoaderError('"url" and "directory" must be defined')
-            directory = obj['directory']
-            if filename:
-                # If we know the location of the file, make sure that the
-                # paths included are considered relative to the file location.
-                directory = path.normpath(path.join(path.dirname(filename), directory))
-            env = Environment(directory, obj['url'])
+            env = Environment()
 
-            # load environment settings
+            # Load environment settings
             for setting in ('debug', 'cache', 'versions', 'url_expire',
-                            'auto_build',
+                            'auto_build', 'url', 'directory',
                             # TODO: The deprecated values; remove at some point
                             'expire', 'updater'):
                 if setting in obj:
                     setattr(env, setting, obj[setting])
 
-            # load custom config options
+            # Treat the 'directory' option special, make it relative to the
+            # path of the YAML file, if we know it.
+            if filename and 'directory' in env.config:
+                env.directory = path.normpath(
+                    path.join(path.dirname(filename), env.directory))
+
+            # Load custom config options
             if 'config' in obj:
                 env.config.update(obj['config'])
 
-            # load bundles
+            # Load bundles
             bundles = self._get_bundles(obj.get('bundles', {}))
             for name, bundle in bundles.iteritems():
                 env.register(name, bundle)
