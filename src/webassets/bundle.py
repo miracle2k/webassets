@@ -32,25 +32,24 @@ def has_placeholder(s):
 
 
 class Bundle(object):
-    """A bundle is the unit webassets uses to organize groups of
-    media files, which filters to apply and where to store them.
+    """A bundle is the unit webassets uses to organize groups of media files,
+    which filters to apply and where to store them.
 
     Bundles can be nested arbitrarily.
 
-    A note on the connection between a bundle and an "environment"
-    instance: The bundle requires a environment that it belongs to.
-    Without an environment, it lacks information about how to behave,
-    and cannot know where relative paths are actually based.
-    However, I don't want to make the Bundle.__init__ syntax more
-    complicated than it already is by requiring an Environment object
-    to be passed. This would be a particular nuisance when nested
-    bundles are used. Further, nested bundles are never explicitly
-    connected to an Environment, and what's more, the same child
-    bundle can be used in multiple parent bundles.
+    A note on the connection between a bundle and an "environment" instance:
+    The bundle requires a environment that it belongs to. Without an
+    environment, it lacks information about how to behave, and cannot know
+    where relative paths are actually based. However, I don't want to make the
+    ``Bundle.__init__`` syntax more complicated than it already is by requiring
+    an Environment object to be passed. This would be a particular nuisance
+    when nested bundles are used. Further, nested bundles are never explicitly
+    connected to an Environment, and what's more, the same child bundle can be
+    used in multiple parent bundles.
 
-    This is the reason why basically every method of the Bundle
-    class takes an ``env`` parameter - so a parent bundle can provide
-    the environment for child bundles that do not know it.
+    This is the reason why basically every method of the Bundle class takes an
+    ``env`` parameter - so a parent bundle can provide the environment for
+    child bundles that do not know it.
     """
 
     def __init__(self, *contents, **options):
@@ -77,9 +76,9 @@ class Bundle(object):
     def _get_filters(self):
         return self._filters
     def _set_filters(self, value):
-        """Filters may be specified in a variety of different ways,
-        including by giving their name; we need to make sure we resolve
-        everything to an actual filter instance.
+        """Filters may be specified in a variety of different ways, including
+        by giving their name; we need to make sure we resolve everything to an
+        actual filter instance.
         """
         if value is None:
             self._filters = ()
@@ -280,24 +279,24 @@ class Bundle(object):
                          disable_cache=None):
         """Internal recursive build method.
 
-        ``parent_debug`` is the debug setting used by the parent bundle.
-        This is not necessarily ``bundle.debug``, but rather what the
-        calling method in the recursion tree is actually using.
+        ``parent_debug`` is the debug setting used by the parent bundle. This
+        is not necessarily ``bundle.debug``, but rather what the calling method
+        in the recursion tree is actually using.
 
-        ``parent_filters`` are what the parent passes along, for
-        us to be applied as input filters. Like ``parent_debug``, it is
-        a collection of the filters of all parents in the hierarchy.
+        ``parent_filters`` are what the parent passes along, for us to be
+        applied as input filters. Like ``parent_debug``, it is a collection of
+        the filters of all parents in the hierarchy.
 
-        ``extra_filters`` may exist if the parent is a container bundle
-        passing filters along to its children; these are applied as input
-        and output filters (since there is no parent who could do the
-        latter), and they are not passed further down the hierarchy
-        (but instead they become part of ``parent_filters``.
+        ``extra_filters`` may exist if the parent is a container bundle passing
+        filters along to its children; these are applied as input and output
+        filters (since there is no parent who could do the latter), and they
+        are not passed further down the hierarchy (but instead they become part
+        of ``parent_filters``.
 
-        ``disable_cache`` is necessary because in some cases, when an
-        external bundle dependency has changed, we must not rely on the
-        cache, since the cache key is not taking into account changes
-        in those dependencies (for now).
+        ``disable_cache`` is necessary because in some cases, when an external
+        bundle dependency has changed, we must not rely on the cache, since the
+        cache key is not taking into account changes in those dependencies
+        (for now).
         """
 
         assert not path.isabs(output)
@@ -359,20 +358,19 @@ class Bundle(object):
         if not resolved_contents:
             raise BuildError('empty bundle cannot be built')
 
-        # Unless we have been told by our caller to use or not use the
-        # cache for this, try to decide for ourselves. The issue here
-        # is that when a bundle has dependencies, like a sass file with
-        # includes otherwise not listed in the bundle sources, a change
-        # in such an external include would not influence the cache key,
-        # those the use of the cache causing such a change to be ignored.
-        # For now, we simply do not use the cache for any bundle with
-        # dependencies.  Another option would be to read the contents of
-        # all files declared via "depends", and use them as a cache key
-        # modifier. For now I am worried about the performance impact.
+        # Unless we have been told by our caller to use or not use the cache
+        # for this, try to decide for ourselves. The issue here is that when a
+        # bundle has dependencies, like a sass file with includes otherwise not
+        # listed in the bundle sources, a change in such an external include
+        # would not influence the cache key, those the use of the cache causing
+        # such a change to be ignored. For now, we simply do not use the cache
+        # for any bundle with dependencies.  Another option would be to read
+        # the contents of all files declared via "depends", and use them as a
+        # cache key modifier. For now I am worried about the performance impact.
         #
-        # Note: This decision only affects the current bundle instance.
-        # Even if dependencies cause us to ignore the cache for this
-        # bundle instance, child bundles may still use it!
+        # Note: This decision only affects the current bundle instance. Even if
+        # dependencies cause us to ignore the cache for this bundle instance,
+        # child bundles may still use it!
         if disable_cache is None:
             actually_skip_cache_here = bool(self.resolve_depends(env))
         else:
@@ -551,22 +549,20 @@ class Bundle(object):
         return hunk
 
     def build(self, env=None, force=None, output=None, disable_cache=None):
-        """Build this bundle, meaning create the file given by the
-        ``output`` attribute, applying the configured filters etc.
+        """Build this bundle, meaning create the file given by the ``output``
+        attribute, applying the configured filters etc.
 
-        If the bundle is a container bundle, then multiple files will
-        be built.
+        If the bundle is a container bundle, then multiple files will be built.
 
-        Unless ``force`` is given, the configured ``updater`` will be
-        used to check whether a build is even necessary. However,
-        if ``auto_build`` has been disabled, then ``True`` is assumed
-        for ``force``.
+        Unless ``force`` is given, the configured ``updater`` will be used to
+        check whether a build is even necessary. However, if ``auto_build``
+        has been disabled, then ``True`` is assumed for ``force``.
 
-        If ``output`` is a file object, the result will be written to it
-        rather than to the filesystem.
+        If ``output`` is a file object, the result will be written to it rather
+        than to the filesystem.
 
-        The return value is a list of ``FileHunk`` objects, one for
-        each bundle that was built.
+        The return value is a list of ``FileHunk`` objects, one for each bundle
+        that was built.
         """
         env = self._get_env(env)
         hunks = []
@@ -579,18 +575,17 @@ class Bundle(object):
     def iterbuild(self, env=None):
         """Iterate over the bundles which actually need to be built.
 
-        This will often only entail ``self``, though for container
-        bundles (and container bundle hierarchies), a list of all the
-        non-container leafs will be yielded.
+        This will often only entail ``self``, though for container bundles (and
+        container bundle hierarchies), a list of all the non-container leafs
+        will be yielded.
 
-        Essentially, what this does is "skip" bundles which do not need
-        to be built on their own (container bundles), and gives the
-        caller the child bundles instead.
+        Essentially, what this does is "skip" bundles which do not need to be
+        built on their own (container bundles), and gives the caller the child
+        bundles instead.
 
-        The return values are 2-tuples of (bundle, filter_list), with
-        the second item being a list of filters that the parent
-        "container bundles" this method is processing are passing down
-        to the children.
+        The return values are 2-tuples of (bundle, filter_list), with the
+        second item being a list of filters that the parent "container bundles"
+        this method is processing are passing down to the children.
         """
         env = self._get_env(env)
         if self.is_container:
@@ -665,12 +660,12 @@ class Bundle(object):
     def urls(self, env=None, *args, **kwargs):
         """Return a list of urls for this bundle.
 
-        Depending on the environment and given options, this may be a
-        single url (likely the case in production mode), or many urls
-        (when we source the original media files in DEBUG mode).
+        Depending on the environment and given options, this may be a single
+        url (likely the case in production mode), or many urls (when we source
+        the original media files in DEBUG mode).
 
-        Insofar necessary, this will automatically create or update
-        the files behind these urls.
+        Insofar necessary, this will automatically create or update the files
+        behind these urls.
         """
         env = self._get_env(env)
         urls = []
@@ -680,9 +675,8 @@ class Bundle(object):
 
 
 def get_all_bundle_files(bundle, env=None):
-    """Return a flattened list of all source files of the given
-    bundle, all its dependencies, recursively for all nested
-    bundles.
+    """Return a flattened list of all source files of the given bundle, all
+    its dependencies, recursively for all nested bundles.
 
     Making this a helper function rather than a part of the official
     Bundle feels right.

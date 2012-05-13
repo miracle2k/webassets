@@ -92,9 +92,9 @@ class UrlHunk(BaseHunk):
 
 
 class MemoryHunk(BaseHunk):
-    """Content that is no longer a direct representation of
-    a source file. It might have filters applied, and is probably
-    the result of merging multiple individual source files together.
+    """Content that is no longer a direct representation of a source file. It
+    might have filters applied, and is probably the result of merging multiple
+    individual source files together.
     """
 
     def __init__(self, data, files=None):
@@ -127,8 +127,7 @@ class MemoryHunk(BaseHunk):
 
 
 def merge(hunks, separator=None):
-    """Merge the given list of hunks, returning a new ``MemoryHunk``
-    object.
+    """Merge the given list of hunks, returning a new ``MemoryHunk`` object.
     """
     # TODO: combine the list of source files, we'd like to collect them
     # The linebreak is important in certain cases for Javascript
@@ -148,9 +147,8 @@ class MoreThanOneFilterError(Exception):
 class FilterTool(object):
     """Can apply filters to hunk objects, while using the cache.
 
-    If ``no_cache_read`` is given, then the cache will not be
-    considered for this operation (though the result will still be
-    written to the cache).
+    If ``no_cache_read`` is given, then the cache will not be considered for
+    this operation (though the result will still be written to the cache).
 
     ``kwargs`` are options that should be passed along to the filters.
     """
@@ -272,18 +270,16 @@ class FilterTool(object):
 def merge_filters(filters1, filters2):
     """Merge two filter lists into one.
 
-    Duplicate filters are removed. Since filter order is important,
-    the order of the arguments to this function also matter. Duplicates
-    are always removed from the second filter set if they exist in the
-    first.
+    Duplicate filters are removed. Since filter order is important, the order
+    of the arguments to this function also matter. Duplicates are always
+    removed from the second filter set if they exist in the first.
 
-    The result will always be ``filters1``, with additional unique
-    filters from ``filters2`` appended. Within the context of a
-    hierarchy, you want ``filters2`` to be the parent.
+    The result will always be ``filters1``, with additional unique filters
+    from ``filters2`` appended. Within the context of a hierarchy, you want
+    ``filters2`` to be the parent.
 
-    This function presumes that all the given filters inherit from
-    ``Filter``, which properly implements operators to determine
-    duplicate filters.
+    This function presumes that all the given filters inherit from ``Filter``,
+    which properly implements operators to determine duplicate filters.
     """
     result = list(filters1[:])
     if filters2:
