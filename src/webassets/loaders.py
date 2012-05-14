@@ -29,7 +29,8 @@ class LoaderError(Exception):
 
 
 class YAMLLoader(object):
-    """Will load bundles from a YAML configuration file.
+    """Will load an environment or a set of bundles from
+    `YAML <http://en.wikipedia.org/wiki/YAML>`_ files.
     """
 
     def __init__(self, file_or_filename):
@@ -96,10 +97,11 @@ class YAMLLoader(object):
         return file, getattr(file, 'name', False)
 
     def load_bundles(self):
-        """Load a list of ``Bundle`` instances defined in the YAML
-        file.
+        """Load a list of :class:`Bundle` instances defined in the YAML file.
 
-        Expects the following format::
+        Expects the following format:
+
+        .. code-block:: yaml
 
             bundle-name:
                 filters: sass,cssutils
@@ -107,6 +109,31 @@ class YAMLLoader(object):
                 contents:
                     - css/jquery.ui.calendar.css
                     - css/jquery.ui.slider.css
+            another-bundle:
+                # ...
+
+        Bundles may reference each either:
+
+        .. code-block:: yaml
+
+            js-all:
+                contents:
+                    - jquery.js
+                    - jquery-ui    # This is a bundle reference
+            jquery-ui:
+                contents: jqueryui/*.js
+
+        Finally, you may also use nesting:
+
+        .. code-block:: yaml
+
+            js-all:
+                contents:
+                    - jquery.js
+                    # This is a nested bundle
+                    - contents: "*.coffee"
+                      filters: coffeescript
+
         """
         # TODO: Support a "consider paths relative to YAML location, return
         # as absolute paths" option?
@@ -118,9 +145,11 @@ class YAMLLoader(object):
             f.close()
 
     def load_environment(self):
-        """Load an ``Environment`` instance defined in the YAML file.
+        """Load an :class:`Environment` instance defined in the YAML file.
 
-        Expects the following format::
+        Expects the following format:
+
+        .. code-block:: yaml
 
             directory: ../static
             url: /media
@@ -131,12 +160,19 @@ class YAMLLoader(object):
                 another_custom_config_value: foo
 
             bundles:
-                bundle-name:
-                    filters: sass,cssutils
-                    output: cache/default.css
-                    contents:
-                        - css/jquery.ui.calendar.css
-                        - css/jquery.ui.slider.css
+                # ...
+
+        All values, including ``directory`` and ``url`` are optional. The
+        syntax for defining bundles is the same as for
+        :meth:`~.YAMLLoader.load_bundles`.
+
+        Sample usage::
+
+            from webassets.loaders import YAMLLoader
+            loader = YAMLLoader('asset.yml')
+            env = loader.load_environment()
+
+            env['some-bundle'].urls()
         """
         f, filename = self._open()
         try:
