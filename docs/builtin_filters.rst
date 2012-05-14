@@ -1,3 +1,5 @@
+.. module:: webassets.filter
+
 .. _builtin-filters:
 
 ================

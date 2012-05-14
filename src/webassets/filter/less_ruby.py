@@ -12,18 +12,22 @@ __all__ = ('Less',)
 class Less(Filter):
     """Converts `Less <http://lesscss.org/>`_ markup to real CSS.
 
-    This uses the old Ruby implementation available in the 1.x versions
-    of the less gem. All 2.x versions of the gem are wrappers around
-    the newer NodeJS/Javascript implementation, which you are generally
-    encouraged to use, and which is available in webassets via the
-    ``less`` filter.
+    This uses the old Ruby implementation available in the 1.x versions of the
+    less gem. All 2.x versions of the gem are wrappers around the newer
+    NodeJS/Javascript implementation, which you are generally encouraged to
+    use, and which is available in webassets via the :class:`~.filter.less.Less`
+    filter.
 
     This filter for the Ruby version is being kept around for
     backwards-compatibility.
 
-    If you want to combine it with other CSS filters, make sure this
-    one runs first.
+    *Supported configuration options*:
+
+    LESS_RUBY_PATH (binary)
+        Path to the less executable used to compile source files. By default,
+        the filter will attempt to run ``lessc`` via the system path.
     """
+
     # XXX Deprecate this one.
     """
     XXX: Depending on how less is actually used in practice, it might actually
