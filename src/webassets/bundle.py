@@ -31,67 +31,24 @@ def has_placeholder(s):
     return '%(version)s' in s
 
 
-class Bundle(object):
-    """A bundle is the unit webassets uses to organize groups of media files,
-    which filters to apply and where to store them.
 
-    Bundles can be nested arbitrarily.
+class Container(object):
+    """Common base class for :class:`Bundle` and :class:`Builder`.
 
-    A note on the connection between a bundle and an "environment" instance:
-    The bundle requires a environment that it belongs to. Without an
-    environment, it lacks information about how to behave, and cannot know
-    where relative paths are actually based. However, I don't want to make the
-    ``Bundle.__init__`` syntax more complicated than it already is by requiring
-    an Environment object to be passed. This would be a particular nuisance
-    when nested bundles are used. Further, nested bundles are never explicitly
-    connected to an Environment, and what's more, the same child bundle can be
-    used in multiple parent bundles.
-
-    This is the reason why basically every method of the Bundle class takes an
-    ``env`` parameter - so a parent bundle can provide the environment for
-    child bundles that do not know it.
+    Holds files, other containers, a set of options, and an
+    :class:`Environment` reference.
     """
 
     def __init__(self, *contents, **options):
         self.env = None
         self.contents = contents
-        self.output = options.pop('output', None)
-        self.filters = options.pop('filters', None)
-        self.debug = options.pop('debug', None)
-        self.depends = options.pop('depends', [])
-        self.version = options.pop('version', [])
-        self.extra = options.pop('extra', {})
-        if options:
-            raise TypeError("got unexpected keyword argument '%s'" %
-                            options.keys()[0])
 
-    def __repr__(self):
-        return "<%s output=%s, filters=%s, contents=%s>" % (
-            self.__class__.__name__,
-            self.output,
-            self.filters,
-            self.contents,
-        )
-
-    def _get_filters(self):
-        return self._filters
-    def _set_filters(self, value):
-        """Filters may be specified in a variety of different ways, including
-        by giving their name; we need to make sure we resolve everything to an
-        actual filter instance.
-        """
-        if value is None:
-            self._filters = ()
-            return
-
-        if isinstance(value, basestring):
-            filters = map(unicode.strip, unicode(value).split(','))
-        elif isinstance(value, (list, tuple)):
-            filters = value
-        else:
-            filters = [value]
-        self._filters = [get_filter(f) for f in filters]
-    filters = property(_get_filters, _set_filters)
+    def _get_env(self, env):
+        # Note how bool(env) can be False, due to __len__.
+        env = env if env is not None else self.env
+        if env is None:
+            raise BundleError('Bundle is not connected to an environment')
+        return env
 
     def _get_contents(self):
         return self._contents
@@ -99,23 +56,6 @@ class Bundle(object):
         self._contents = value
         self._resolved_contents = None
     contents = property(_get_contents, _set_contents)
-
-    def _get_extra(self):
-        if not self._extra and not has_files(self):
-            # If this bundle has no extra values of it's own, and only
-            # wraps child bundles, use the extra values of those.
-            result = {}
-            for bundle in self.contents:
-                result.update(bundle.extra)
-            return result
-        else:
-            return self._extra
-    def _set_extra(self, value):
-        self._extra = value
-    extra = property(_get_extra, _set_extra, doc="""A custom user dict of
-    extra values attached to this bundle. Those will be available in
-    template tags, and can be used to attach things like a CSS
-    'media' value.""")
 
     def resolve_contents(self, env=None, force=False):
         """Convert bundle contents into something that can be easily processed.
@@ -179,6 +119,84 @@ class Bundle(object):
                             raise BundleError(e)
             self._resolved_contents = l
         return self._resolved_contents
+
+
+
+class Bundle(Container):
+    """A bundle is the unit webassets uses to organize groups of media files,
+    which filters to apply and where to store them.
+
+    Bundles can be nested arbitrarily.
+
+    A note on the connection between a bundle and an "environment" instance:
+    The bundle requires a environment that it belongs to. Without an
+    environment, it lacks information about how to behave, and cannot know
+    where relative paths are actually based. However, I don't want to make the
+    ``Bundle.__init__`` syntax more complicated than it already is by requiring
+    an Environment object to be passed. This would be a particular nuisance
+    when nested bundles are used. Further, nested bundles are never explicitly
+    connected to an Environment, and what's more, the same child bundle can be
+    used in multiple parent bundles.
+
+    This is the reason why basically every method of the Bundle class takes an
+    ``env`` parameter - so a parent bundle can provide the environment for
+    child bundles that do not know it.
+    """
+
+    def __init__(self, *contents, **options):
+        self.output = options.pop('output', None)
+        self.filters = options.pop('filters', None)
+        self.debug = options.pop('debug', None)
+        # XXX These three are things that might be in Bundle.
+        self.depends = options.pop('depends', [])
+        self.version = options.pop('version', [])
+        self.extra = options.pop('extra', {})
+        super(Bundle, self).__init__(*contents, **options)
+
+    def __repr__(self):
+        return "<%s output=%s, filters=%s, contents=%s>" % (
+            self.__class__.__name__,
+            self.output,
+            self.filters,
+            self.contents,
+        )
+
+    def _get_filters(self):
+        return self._filters
+    def _set_filters(self, value):
+        """Filters may be specified in a variety of different ways, including
+        by giving their name; we need to make sure we resolve everything to an
+        actual filter instance.
+        """
+        if value is None:
+            self._filters = ()
+            return
+
+        if isinstance(value, basestring):
+            filters = map(unicode.strip, unicode(value).split(','))
+        elif isinstance(value, (list, tuple)):
+            filters = value
+        else:
+            filters = [value]
+        self._filters = [get_filter(f) for f in filters]
+    filters = property(_get_filters, _set_filters)
+
+    def _get_extra(self):
+        if not self._extra and not has_files(self):
+            # If this bundle has no extra values of it's own, and only
+            # wraps child bundles, use the extra values of those.
+            result = {}
+            for bundle in self.contents:
+                result.update(bundle.extra)
+            return result
+        else:
+            return self._extra
+    def _set_extra(self, value):
+        self._extra = value
+    extra = property(_get_extra, _set_extra, doc="""A custom user dict of
+    extra values attached to this bundle. Those will be available in
+    template tags, and can be used to attach things like a CSS
+    'media' value.""")
 
     def _get_depends(self):
         return self._depends
@@ -282,13 +300,6 @@ class Bundle(object):
         ``output`` attribute.
         """
         return not has_files(self) and not self.output
-
-    def _get_env(self, env):
-        # Note how bool(env) can be False, due to __len__.
-        env = env if env is not None else self.env
-        if env is None:
-            raise BundleError('Bundle is not connected to an environment')
-        return env
 
     def _merge_and_apply(self, env, output, force, parent_debug=None,
                          parent_filters=[], extra_filters=[],
