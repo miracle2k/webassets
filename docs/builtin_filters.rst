@@ -75,7 +75,7 @@ CSS compressors
 
 
 ``cleancss``
-~~~~~~~~~~~
+~~~~~~~~~~~~
 
 .. autoclass:: webassets.filter.cleancss.CleanCSS
 
@@ -88,8 +88,8 @@ CSS compressors
 
 .. _filters-css-compilers:
 
-CSS Compilers
--------------
+JS/CSS compilers
+----------------
 
 ``clevercss``
 ~~~~~~~~~~~~~
@@ -137,22 +137,14 @@ CSS Compilers
 .. autoclass:: webassets.filter.pyscss.PyScss
 
 
-Other
------
+``coffeescript``
+~~~~~~~~~~~~~~~~
 
-.. _filters-cssrewrite:
-
-``cssrewrite``
-~~~~~~~~~~~~~~
-
-.. autoclass:: webassets.filter.cssrewrite.CSSRewrite
+.. autoclass:: webassets.filter.coffeescript.CoffeeScript
 
 
-``datauri``
-~~~~~~~~~~~~~~
-
-.. autoclass:: webassets.filter.datauri.CSSDataUri
-
+JavaScript templates
+--------------------
 
 ``jst``
 ~~~~~~~~~~~~~~
@@ -172,6 +164,23 @@ Other
 .. autoclass:: webassets.filter.dust.DustJS
 
 
+Other
+-----
+
+.. _filters-cssrewrite:
+
+``cssrewrite``
+~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.cssrewrite.CSSRewrite
+
+
+``datauri``
+~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.datauri.CSSDataUri
+
+
 ``cssprefixer``
 ~~~~~~~~~~~~~~~
 
@@ -183,8 +192,3 @@ Other
 
 .. autoclass:: webassets.filter.gzip.GZip
 
-
-``coffeescript``
-~~~~~~~~~~~~~~~~
-
-.. autoclass:: webassets.filter.coffeescript.CoffeeScript
