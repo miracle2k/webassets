@@ -112,7 +112,7 @@ class YAMLLoader(object):
             another-bundle:
                 # ...
 
-        Bundles may reference each either:
+        Bundles may reference each other:
 
         .. code-block:: yaml
 
