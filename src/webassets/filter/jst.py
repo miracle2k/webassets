@@ -1,5 +1,4 @@
 import os
-import re
 from webassets.filter import Filter
 from webassets.utils import common_path_prefix
 
@@ -112,8 +111,8 @@ class JST(JSTemplateFilter):
 
     def setup(self):
         super(JST, self).setup()
-        self.include_jst_script = \
-            (self.template_function == 'template') or not self.template_function
+        self.include_jst_script = (self.template_function == 'template') \
+                                  or not self.template_function
 
     def input(self, _in, out, source_path, output_path, **kw):
         data = _in.read()
@@ -126,7 +125,7 @@ class JST(JSTemplateFilter):
         base_path = self._find_base_path() + os.path.sep
         namespace = self.namespace or 'window.JST'
 
-        if self.bare == False:
+        if self.bare is False:
             out.write("(function(){\n    ")
 
         out.write("%s = %s || {};\n" % (namespace, namespace))
@@ -141,11 +140,11 @@ class JST(JSTemplateFilter):
                 os.path.splitext(path[len(base_path):])[0],
                 self.template_function or 'template', contents))
         
-        if self.bare == False:
+        if self.bare is False:
             out.write("})();")
 
     def _find_base_path(self):
-        """Hmmm.  There should aways be some common base path."""
+        """Hmmm. There should aways be some common base path."""
         paths = [path for path, content in self.templates]
         return JSTemplateFilter._find_base_path(self, paths)
 
