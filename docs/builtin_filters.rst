@@ -163,7 +163,7 @@ Other
 ``handlebars``
 ~~~~~~~~~~~~~~
 
-.. automodule:: webassets.filter.handlebars
+.. autoclass:: webassets.filter.handlebars.Handlebars
 
 
 ``dustjs``

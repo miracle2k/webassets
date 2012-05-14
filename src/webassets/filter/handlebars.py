@@ -1,13 +1,3 @@
-"""Compile `Handlebars <http://handlebarsjs.com/>`_ templates.
-
-This filter assumes that the ``handlebars`` executable is in the path.
-Otherwise, you may define a ``HANDLEBARS_BIN`` setting.
-
-Note: Use this filter if you want to precompile Handlebars templates.
-If compiling them in the browser is acceptable, you may use the JST
-filter, which needs no external dependency.
-"""
-
 import subprocess
 from os import path
 
@@ -20,6 +10,15 @@ __all__ = ('Handlebars',)
 
 
 class Handlebars(JSTemplateFilter):
+    """Compile `Handlebars <http://handlebarsjs.com/>`_ templates.
+
+    This filter assumes that the ``handlebars`` executable is in the path.
+    Otherwise, you may define a ``HANDLEBARS_BIN`` setting.
+
+    Note: Use this filter if you want to precompile Handlebars templates.
+    If compiling them in the browser is acceptable, you may use the JST
+    filter, which needs no external dependency.
+    """
 
     name = 'handlebars'
     options = {
