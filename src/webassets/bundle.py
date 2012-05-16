@@ -24,8 +24,8 @@ __all__ = ('Bundle', 'get_all_bundle_files',)
 def is_url(s):
     if not isinstance(s, str):
         return False
-    scheme = urlparse.urlsplit(s).scheme
-    return bool(scheme) and len(scheme) > 1
+    parsed = urlparse.urlsplit(s)
+    return bool(parsed.scheme and parsed.netloc) and len(parsed.scheme) > 1
 
 
 def has_placeholder(s):
