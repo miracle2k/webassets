@@ -1404,6 +1404,13 @@ class TestUrlContents(TempEnvironmentHelper):
         bundle = self.mkbundle('http://foo', output='out')
         TimestampUpdater().needs_rebuild(bundle, bundle.env)
 
+    def test_pyramid_asset_specs(self):
+        """Make sure that pyramid asset specs (in the form of
+        package:path) do not pass the url check."""
+        self.create_files({'foo:bar/qux': 'test'})
+        self.mkbundle('foo:bar/qux', output='out').build()
+        assert self.get('out') == 'test'
+
 
 class TestNormalizeSourcePath(TempEnvironmentHelper):
     """The Environment class allows overriding a
