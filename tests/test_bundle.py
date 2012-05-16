@@ -393,10 +393,12 @@ class AppendFilter(Filter):
 
 
 class TestFilterApplication(TempEnvironmentHelper):
-    """Test filter application during building.
+    """Test filter application during building - order, passing down to child
+    bundles, that kind of thing.
     """
 
-    default_files = {'1': 'foo', '2': 'foo', '3': 'foo'}
+    default_files = {'1': 'foo', '2': 'foo', '3': 'foo',
+                     'a': 'bar', 'b': 'qux'}
 
     def test_input_before_output(self):
         """Ensure that input filters are applied, and that they are applied
@@ -426,7 +428,7 @@ class TestFilterApplication(TempEnvironmentHelper):
         parent_bundle_with_input_filter.build()
         assert self.get('out') == 'input was here\ninput was here'
 
-    def test_input_before_output_nested_merged(self):
+    def test_input_before_output_nested_unique(self):
         """Same thing as above - a parent input filter is passed done -
         but this time, ensure that duplicate filters are not applied twice.
         """
@@ -437,20 +439,53 @@ class TestFilterApplication(TempEnvironmentHelper):
         parent_bundle.build()
         assert self.get('out') == 'foo-child\nfoo-child'
 
-    def test_container_bundle_with_filters(self):
-        """If a bundle has no output, but filters, those filters are
-        passed down to each sub-bundle.
+    def test_input_with_nested_in_merge_mode(self):
+        """[Regression] In merge mode, the input filters are not applied for
+        child bundles.
         """
-        self.mkbundle(
-            Bundle('1', output='out1', filters=()),
-            Bundle('2', output='out2', filters=AppendFilter(':childin', ':childout')),
-            Bundle('3', output='out3', filters=AppendFilter(':childin', ':childout', unique=False)),
-            filters=AppendFilter(':rootin', ':rootout', unique=False)
-        ).urls()
-        self.p('out1', 'out2', 'out3')
-        assert self.get('out1') == 'foo:rootin:rootout'
-        assert self.get('out2') == 'foo:childin:rootin:childout:rootout'
-        assert self.get('out3') == 'foo:childin:childout'
+        self.env.debug = True  # To allow "merge" at all
+        b = self.mkbundle(
+            'a',
+            self.mkbundle('b',
+                          filters=AppendFilter(':childin', ':childout')),
+            output='out', filters=AppendFilter(':rootin', ':rootout'),
+            debug='merge')
+        b.build()
+        # Neither the content of in1 or of in2 have filters applied.
+        assert self.get('out') == 'bar\nqux'
+
+    def test_input_with_nested_switch_from_merge_to_full_mode(self):
+        """A child bundle switches to full production mode (turning on the
+        filters), while the parent is only in merge mode. Ensure that in such
+        a case input filters declared in the parent are applied in the child
+        (and only there).
+        """
+        self.env.debug = 'merge'
+        child_filters = AppendFilter(':childin', ':childout')
+        parent_filters = AppendFilter(':rootin', ':rootout')
+        b = self.mkbundle(
+            'a', self.mkbundle('b', filters=child_filters, debug=False),
+            output='out', filters=parent_filters, debug='merge')
+        b.build()
+        # Note how the content of "in1" (A) does not have its filters applied.
+        assert self.get('out') == 'bar\nqux:childin:rootin:childout'
+
+    def test_open_before_input(self):
+        """[Regression] Test that if an open filter is used, input filters
+        still receive the ``source_path`` kwargs.
+        """
+        captured_kw = {}
+        class TestFilter(Filter):
+            def open(self, out, *a, **kw): out.write('foo')
+            def input(self, *a, **kw):
+                assert not captured_kw
+                captured_kw.update(kw)
+        self.create_files({'a': '1'})
+        self.mkbundle('a', filters=TestFilter, output='out').build()
+        # TODO: Could be generalized to test all the other values that
+        # each filter method expects to receive. This is currently not
+        # done anywhere )though it likely still wouldn't have caught this).
+        assert 'source_path' in captured_kw
 
     def test_duplicate_open_filters(self):
         """Test that only one open() filter can be used.
@@ -477,22 +512,59 @@ class TestFilterApplication(TempEnvironmentHelper):
         self.mkbundle('a', 'b', filters=ConcatFilter, output='out').build()
         assert self.get('out') == '1%%%2'
 
-    def test_open_before_input(self):
-        """[Regression] Test that if an open filter is used, input filters
-        still receive the ``source_path`` kwargs.
+    # TODO: concat filter child bundle behavior: This should probably be
+    # "special", i.e.  the parent concat filter is used, unless overridden
+    # in the child.
+
+    def test_container_bundle_with_filters(self):
+        """If a bundle has no output, but filters, those filters are
+        passed down to each sub-bundle.
         """
-        captured_kw = {}
-        class TestFilter(Filter):
-            def open(self, out, *a, **kw): out.write('foo')
-            def input(self, *a, **kw):
-                assert not captured_kw
-                captured_kw.update(kw)
-        self.create_files({'a': '1'})
-        self.mkbundle('a', filters=TestFilter, output='out').build()
-        # TODO: Could be generalized to test all the other values that
-        # each filter method expects to receive. This is currently not
-        # done anywhere )though it likely still wouldn't have caught this).
-        assert 'source_path' in captured_kw
+        self.mkbundle(
+            Bundle('1', output='out1', filters=()),
+            Bundle('2', output='out2', filters=AppendFilter(':childin', ':childout')),
+            Bundle('3', output='out3', filters=AppendFilter(':childin', ':childout', unique=False)),
+            filters=AppendFilter(':rootin', ':rootout', unique=False)
+        ).urls()
+        assert self.get('out1') == 'foo:rootin:rootout'
+        assert self.get('out2') == 'foo:childin:rootin:childout:rootout'
+        assert self.get('out3') == 'foo:childin:childout'
+
+    def test_max_debug_level_filters(self):
+        """Test how filters are applied when they define a non-default
+        ``max_debug_level`` value.
+        """
+
+        class MaxDebugLevelFilters(TempEnvironmentHelper):
+            default_files = {'1': 'foo'}
+
+            def test_with_level(self, level):
+                self.env.debug = True  # allows all bundle debug levels
+                f = AppendFilter(':in', ':out'); f.max_debug_level = level
+                self.mkbundle('1', output='out', filters=f, debug=level).build()
+                assert self.get('out') == 'foo:in:out'
+
+            def test_upgrading_affect_on_normal_filters(self):
+                """max_debug_level 'merge' upgrade does not cause filters with
+                a 'normal' max_debug_value to run. Note: A nested bundle is
+                used here, as otherwise the bundle's debug=True would also
+                override any upgrades through filter `max_debug_value``
+                attributes."""
+                self.env.debug = True  # allows all bundle debug levels
+                f = AppendFilter(':in_upgr', ':out_upgr')
+                f.max_debug_level = None
+                g = AppendFilter(':in_def', ':out_def')
+                self.mkbundle(Bundle('1', filters=(f, g), debug=True),
+                              output='out', debug='merge').build()
+                assert self.get('out') == 'foo:in_upgr:out_upgr'
+
+        yield MaxDebugLevelFilters.test_with_level, 'merge'
+        # With max_debug_level=True causes merge mode
+        yield MaxDebugLevelFilters.test_with_level, True
+        # With max_debug_level=None is same as =True
+        yield MaxDebugLevelFilters.test_with_level, None
+
+        yield MaxDebugLevelFilters.test_upgrading_affect_on_normal_filters
 
 
 class TestAutoBuild(TempEnvironmentHelper):
