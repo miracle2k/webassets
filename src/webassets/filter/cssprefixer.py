@@ -11,6 +11,7 @@ class CSSPrefixer(Filter):
     """
 
     name = 'cssprefixer'
+    max_debug_level = 'merge'
 
     def setup(self):
         import cssprefixer
