@@ -233,12 +233,15 @@ class CommandLineEnvironment():
                 changed_bundles = check_for_changes()
                 built = []
                 for bundle in changed_bundles:
-                    self.log.info("Rebuilding asset: %s" % bundle.output)
+                    print "Building bundle: %s ..." % bundle.output,
                     try:
                         bundle.build(force=True)
                         built.append(bundle)
                     except BuildError, e:
+                        print ""
                         print "Failed: %s" % e
+                    else:
+                        print "done"
                 if len(built):
                     self.event_handlers['post_build']()
                 do_end = loop() if loop else time.sleep(0.1)
