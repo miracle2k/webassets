@@ -196,6 +196,12 @@ class CommandLineEnvironment():
                 built.append(bundle)
             except BuildError, e:
                 self.log.error("Failed, error was: %s" % e)
+
+        # build external assets if we have any
+        if self.environment.external_assets:
+            self.log.info("Building external assets")
+            self.environment.external_assets.write_files()
+
         if len(built):
             self.event_handlers['post_build']()
 

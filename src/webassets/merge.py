@@ -42,6 +42,13 @@ class FileHunk(BaseHunk):
     def mtime(self):
         pass
 
+    def save(self, filename):
+        f = open(filename, 'wb')
+        try:
+            f.write(self.data())
+        finally:
+            f.close()
+
     def data(self):
         f = open(self.filename, 'rb')
         try:

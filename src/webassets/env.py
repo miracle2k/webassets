@@ -127,6 +127,7 @@ class BaseEnvironment(object):
     def __init__(self, **config):
         self._named_bundles = {}
         self._anon_bundles = []
+        self.external_assets = None
         self._config = self.config_storage_class(self)
 
         # directory, url currently do not have default values
@@ -156,6 +157,10 @@ class BaseEnvironment(object):
 
     def __len__(self):
         return len(self._named_bundles) + len(self._anon_bundles)
+
+    def register_externals(self, externals):
+        externals.env = self
+        self.external_assets = externals
 
     def register(self, name, *args, **kwargs):
         """Register a bundle with the given name.

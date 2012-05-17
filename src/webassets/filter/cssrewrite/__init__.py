@@ -84,7 +84,18 @@ class CSSRewriteFilter(CSSUrlRewriter):
             if not url.startswith('/') and not (url.startswith('http://') or url.startswith('https://')):
                 # rewritten url: relative path from new location (output)
                 # to location of referenced file (source + current url)
-                url = urlpath.relpath(self.output_url,
-                    urlparse.urljoin(self.source_url, url))
+                # let's look in the manifest to see if we have a versioned url for this
+                replacement = None
+                if self.env.manifest:
+                    file_path = urlpath.pathjoin(self.source_path, url)
+                    if self.env.external_assets:
+                        file_name = self.env.external_assets.get_versioned_file(file_path)
+                        replacement = urlpath.relpathto(self.env.directory, self.output_path, file_name)
+                    
+                if replacement is None:
+                    url = urlpath.relpath(self.output_url,
+                        urlparse.urljoin(self.source_url, url))
+                else:
+                    url = replacement.replace('img/','genimg/')
 
         return url
