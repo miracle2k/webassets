@@ -107,7 +107,7 @@ class Sass(Filter):
                     '--line-comments']
             if isinstance(self.env.cache, FilesystemCache):
                 args.extend(['--cache-location',
-                             os.path.join(self.env.cache.directory, 'sass')])
+                             os.path.join(old_dir, self.env.cache.directory, 'sass')])
             if (self.env.debug if self.debug_info is None else self.debug_info):
                 args.append('--debug-info')
             if self.use_scss:
