@@ -86,11 +86,6 @@ class CommandLineEnvironment():
             a file-based manifest will be used using the given value as the
             filename.
         """
-        if self.environment.debug != False:
-            self.log.warning(
-                ("Current debug option is '%s'. Building as "
-                 "if in production (debug=False)") % self.environment.debug)
-            self.environment.debug = False
 
         # Validate arguments
         if bundles and output:
