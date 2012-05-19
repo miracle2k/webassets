@@ -89,13 +89,17 @@ class CSSRewriteFilter(CSSUrlRewriter):
                 if self.env.manifest:
                     file_path = urlpath.pathjoin(self.source_path, url)
                     if self.env.external_assets:
-                        file_name = self.env.external_assets.get_versioned_file(file_path)
-                        replacement = urlpath.relpathto(self.env.directory, self.output_path, file_name)
-                    
+                        versioned_folder = self.env.external_assets.versioned_folder(file_path)
+                        self.env.external_assets.write_file(file_path)
+                        if self.env.url:
+                            replacement = urlparse.urljoin(self.env.url, versioned_folder)
+                        else:
+                            replacement = urlpath.relpathto(self.env.directory, self.output_path, versioned_folder)
+
                 if replacement is None:
                     url = urlpath.relpath(self.output_url,
                         urlparse.urljoin(self.source_url, url))
                 else:
-                    url = replacement.replace('img/','genimg/')
+                    url = replacement
 
         return url
