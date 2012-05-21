@@ -17,7 +17,7 @@ import os
 from os import path
 from webassets.merge import BaseHunk
 from webassets.filter import Filter, freezedicts
-from webassets.utils import md5_constructor
+from webassets.utils import md5_constructor, pickle
 
 
 __all__ = ('FilesystemCache', 'MemoryCache', 'get_cache',)
@@ -72,11 +72,26 @@ def make_md5(data):
     return md5.hexdigest()
 
 
+def maybe_pickle(value):
+    """Pickle the given value if it is not a string."""
+    if not isinstance(value, basestring):
+        return pickle.dumps(value)
+    return value
+
+
+def safe_unpickle(string):
+    """Unpickle the string, or return ``None`` if that fails."""
+    try:
+        return pickle.loads(string)
+    except:
+        return None
+
+
 class BaseCache(object):
     """Abstract base class.
 
     The cache key must be something that is supported by the Python hash()
-    function.
+    function. The cache value may be a string, or anything that can be pickled.
 
     Since the cache is used for multiple purposes, all webassets-internal code
     should always tag its keys with an id, like so:
@@ -86,11 +101,16 @@ class BaseCache(object):
     One cache instance can only be used safely with a single Environment.
     """
 
-    def get(self, key):
-        """Should return the cache contents, or False."""
+    def get(self, key, python=None):
+        """Should return the cache contents, or False.
+
+        If ``python`` is set, the cache value will be unpickled before it is
+        returned. You need this when you passed a non-string value to
+        :meth:`set`..
+        """
         raise NotImplementedError()
 
-    def set(self, key):
+    def set(self, key, value):
         raise NotImplementedError()
 
 
@@ -111,14 +131,14 @@ class MemoryCache(BaseCache):
         self.cache = {}
 
     def __eq__(self, other):
-        """Return equality with the config values
-        that instantiate this instance.
+        """Return equality with the config values that instantiate
+        this instance.
         """
         return False == other or \
                None == other or \
                id(self) == id(other)
 
-    def get(self, key):
+    def get(self, key, python=None):
         key = make_hashable(key)
         return self.cache.get(key, None)
 
@@ -153,21 +173,25 @@ class FilesystemCache(BaseCache):
                self.directory == other or \
                id(self) == id(other)
 
-    def get(self, key):
+    def get(self, key, python=None):
         filename = path.join(self.directory, '%s' % make_md5(key))
         if not path.exists(filename):
             return None
         f = open(filename, 'rb')
         try:
-            return f.read()
+            result = f.read()
         finally:
             f.close()
+
+        if python:
+            return safe_unpickle(result)
+        return result
 
     def set(self, key, data):
         filename = path.join(self.directory, '%s' % make_md5(key))
         f = open(filename, 'wb')
         try:
-            f.write(data)
+            f.write(maybe_pickle(data))
         finally:
             f.close()
 

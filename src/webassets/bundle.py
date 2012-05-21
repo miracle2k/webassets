@@ -428,7 +428,7 @@ class Bundle(object):
 
                 if not hunk:
                     if is_url(item):
-                        hunk = UrlHunk(item)
+                        hunk = UrlHunk(item, env=env)
                     else:
                         hunk = FileHunk(item)
 

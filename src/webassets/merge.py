@@ -1,5 +1,7 @@
 """Contains the core functionality that manages merging of assets.
 """
+from __future__ import with_statement
+import contextlib
 
 import urllib2
 import logging
@@ -73,21 +75,51 @@ class FileHunk(BaseHunk):
 
 class UrlHunk(BaseHunk):
     """Represents a file that is referenced by an Url.
+
+    If an environment is given, it's cache will be used to cache the url
+    contents, and to access it, as allowed by the etag/last modified headers.
     """
 
-    def __init__(self, url):
+    def __init__(self, url, env=None):
         self.url = url
+        self.env = env
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, self.url)
 
     def data(self):
         if not hasattr(self, '_data'):
-            r = urllib2.urlopen(self.url)
+            request = urllib2.Request(self.url)
+
+            # Look in the cache for etag / last modified headers to use
+            # TODO: "expires" header could be supported
+            if self.env and self.env.cache:
+                headers = self.env.cache.get(
+                    ('url', 'headers', self.url), python=True)
+                if headers:
+                    etag, lmod = headers
+                    if etag: request.add_header('If-None-Match', etag)
+                    if lmod: request.add_header('If-Modified-Since', lmod)
+
+            # Make a request
             try:
-                self._data = r.read()
-            finally:
-                r.close()
+                response = urllib2.urlopen(request)
+            except urllib2.HTTPError, e:
+                if e.code != 304:
+                    raise
+                    # Use the cached version of the url
+                self._data = self.env.cache.get(('url', 'contents', self.url))
+            else:
+                with contextlib.closing(response):
+                    self._data = response.read()
+
+                # Cache the info from this request
+                if self.env and self.env.cache:
+                    self.env.cache.set(
+                        ('url', 'headers', self.url),
+                        (response.headers.getheader("ETag"),
+                         response.headers.getheader("Last-Modified")))
+                    self.env.cache.set(('url', 'contents', self.url), self._data)
         return self._data
 
 

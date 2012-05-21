@@ -6,7 +6,8 @@ from itertools import takewhile
 from exceptions import BundleError
 
 
-__all__ = ('md5_constructor', 'common_path_prefix', 'working_directory')
+__all__ = ('md5_constructor', 'picle',
+           'common_path_prefix', 'working_directory')
 
 
 if sys.version_info >= (2, 5):
@@ -15,6 +16,12 @@ if sys.version_info >= (2, 5):
 else:
     import md5
     md5_constructor = md5.new
+
+
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 
 def common_path_prefix(paths, sep=os.path.sep):
