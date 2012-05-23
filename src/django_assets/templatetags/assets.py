@@ -7,23 +7,17 @@ from django_assets.env import get_env
 from webassets.exceptions import ImminentDeprecationWarning
 
 
-
 def parse_debug_value(value):
-    """Django templates do not know what a boolean is,
-    and anyway we need to support the 'merge' option."""
-    if value is None:
-        return value
-    value = value.lower()
-    if value in ('true', '1'):
-        return True
-    elif value in ('false', '0'):
-        return False
-    elif value in ('merge',):
-        return 'merge'
-    else:
+    """Django templates do not know what a boolean is, and anyway we need to
+    support the 'merge' option."""
+    try:
+        from webassets.env import parse_debug_value
+        return parse_debug_value(value)
+    except ValueError:
         raise template.TemplateSyntaxError(
             '"debug" argument must be one of the strings '
             '"true", "false" or "merge", not "%s"' % value)
+
 
 class AssetsNode(template.Node):
 

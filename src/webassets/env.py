@@ -505,3 +505,21 @@ class Environment(BaseEnvironment):
             self.directory = directory
         if url is not None:
             self.url = url
+
+
+def parse_debug_value(value):
+    """Resolve the given string value to a debug option.
+
+    Can be used to deal with os environment variables, for example.
+    """
+    if value is None:
+        return value
+    value = value.lower()
+    if value in ('true', '1'):
+        return True
+    elif value in ('false', '0'):
+        return False
+    elif value in ('merge',):
+        return 'merge'
+    else:
+        raise ValueError()
