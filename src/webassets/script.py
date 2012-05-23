@@ -57,7 +57,7 @@ class CommandLineEnvironment():
         return self.build()
 
     def build(self, bundles=None, output=None, directory=None, no_cache=None,
-              manifest=None):
+              manifest=None, production=None):
         """Build/Rebuild assets.
 
         ``bundles``
@@ -85,6 +85,10 @@ class CommandLineEnvironment():
             passed will be resolved through ``get_manifest()``. If this fails,
             a file-based manifest will be used using the given value as the
             filename.
+
+        ``production``
+            If set to ``True``, then :attr:`Environment.debug`` will forcibly
+            be disabled (set to ``False``) during the build.
         """
 
         # Validate arguments
@@ -96,6 +100,10 @@ class CommandLineEnvironment():
             raise CommandError('A custom output directory cannot be '
                                'combined with explicit output filenames '
                                'for individual bundles.')
+
+        if production:
+            # TODO: Reset again (refactor commands to be classes)
+            self.environment.debug = False
 
         # TODO: Oh how nice it would be to use the future options stack.
         if manifest is not None:
@@ -372,6 +380,10 @@ class GenericArgparseImplementation(object):
             help='Write a manifest to the given file. Also supports '
                  'the id:arg format, if you want to use a different '
                  'manifest implementation.')
+        parser.add_argument(
+            '--production', action='store_true',
+            help='Forcably turn off debug mode for the build. This '
+                 'only has an effect if debug is set to "merge".')
 
     def run_with_argv(self, argv):
         try:
