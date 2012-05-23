@@ -242,6 +242,7 @@ class CommandLineEnvironment():
                 built = []
                 for bundle in changed_bundles:
                     print "Building bundle: %s ..." % bundle.output,
+                    sys.stdout.flush()
                     try:
                         bundle.build(force=True)
                         built.append(bundle)
