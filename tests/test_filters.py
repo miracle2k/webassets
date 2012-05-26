@@ -480,6 +480,47 @@ class TestCssRewrite(TempEnvironmentHelper):
         self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
 
 
+class TestCssRewriteAbsolute(TempEnvironmentHelper):
+
+    def test(self):
+        self.create_files({'in.css': '''h1 { background: url(sub/icon.png) }'''})
+        self.create_directories('g')
+        self.mkbundle('in.css', filters='cssrewrite_absolute', output='g/out.css').build()
+        assert self.get('g/out.css') == '''h1 { background: url(../sub/icon.png) }'''
+
+    def test_change_folder(self):
+        """Test the replace mode of the cssrewrite_absolute filter.
+        """
+        self.create_files({'in.css': '''h1 { background: url(old/sub/icon.png) }'''})
+        try:
+            from collections import OrderedDict
+        except ImportError:
+            # Without OrderedDict available, use a simplified version
+            # of this test.
+            cssrewrite = get_filter('cssrewrite_absolute', replace=dict((
+                ('old/', '/new/'),       # this will match
+                )))
+        else:
+            cssrewrite = get_filter('cssrewrite_absolute', replace=OrderedDict((
+                ('old/', '/new/'),       # this will match
+                ('old/sub', '/error/'), # the first match is used, so this won't be
+                ('new', '/error/'),     # neither will this one match
+                )))
+        self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
+        assert self.get('out.css') == '''h1 { background: url(/new/sub/icon.png) }'''
+
+    def test_replace_with_cache(self):
+        """[Regression] Test replace mode while cache is active.
+
+        This used to fail due to an unhashable key being returned by
+        the filter."""
+        cssrewrite = get_filter('cssrewrite_absolute', replace={'old/': 'new/'})
+        self.env.cache = True
+        self.create_files({'in.css': '''h1 { background: url(old/sub/icon.png) }'''})
+        # Does not raise an exception.
+        self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
+        assert self.get('out.css') == '''h1 { background: url(new/sub/icon.png) }'''
+
 class TestDataUri(TempEnvironmentHelper):
 
     default_files = {
