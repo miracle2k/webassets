@@ -39,6 +39,7 @@ class CSSRewriteAbsolute(CSSUrlRewriter):
 
     This will rewrite all urls that point to files within the relative path
     ``images`` to the absolute path ``/images/`` as a prefix instead.
+    example: ``images/background.png`` to ``/images/background.png``
     """
 
 
