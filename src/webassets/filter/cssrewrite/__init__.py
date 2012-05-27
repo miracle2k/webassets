@@ -32,10 +32,14 @@ class CSSRewrite(CSSUrlRewriter):
 
     The filter also supports a manual mode::
 
-        get_filter('cssrewrite', replace={'old_directory', '/custom/path/'})
+        get_filter('cssrewrite', replace={'old_directory':'/custom/path/'})
 
     This will rewrite all urls that point to files within ``old_directory`` to
     use ``/custom/path`` as a prefix instead.
+
+    You may plug in your own replace function:
+        get_filter('cssrewrite', replace=lambda url: re.sub(r'^/?images/', '/images/', url))
+        get_filter('cssrewrite', replace=lambda url: '/images/'+url[7:] if url.startswith('images/') else url)
     """
 
     # TODO: If we want to support inline assets, this needs to be
@@ -59,7 +63,10 @@ class CSSRewrite(CSSUrlRewriter):
         # against the urls encountered in the CSS.
         replace_dict = False
         root = addsep(self.env.directory)
-        if self.replace not in (False, None):
+        if self.replace and hasattr(self.replace , '__call__'):
+            #user provided their own replace_url
+            self.replace_url = self.replace
+        elif self.replace not in (False, None):
             replace_dict = OrderedDict()
             for repldir, sub in self.replace.items():
                 repldir = addsep(os.path.normpath(join(root, repldir)))

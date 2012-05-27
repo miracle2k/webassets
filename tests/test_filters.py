@@ -7,6 +7,7 @@ from StringIO import StringIO
 from nose.tools import assert_raises, with_setup, assert_equals
 from nose import SkipTest
 from distutils.spawn import find_executable
+import re
 from webassets import Bundle, Environment
 from webassets.exceptions import FilterError
 from webassets.filter import Filter, get_filter, register_filter, JavaMixin
@@ -473,11 +474,18 @@ class TestCssRewrite(TempEnvironmentHelper):
 
         This used to fail due to an unhashable key being returned by
         the filter."""
-        cssrewrite = get_filter('cssrewrite', replace={'old': 'new'})
+        cssrewrite = get_filter('cssrewrite', replace={'old/': 'new/'})
         self.env.cache = True
         self.create_files({'in.css': '''h1 { background: url(old/sub/icon.png) }'''})
         # Does not raise an exception.
+        self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()sour
+        assert self.get('out.css') == '''h1 { background: url(new/sub/icon.png) }'''
+
+    def test_replacement_lambda(self):
+        self.create_files({'in.css': '''h1 { background: url(old/sub/icon.png) }'''})
+        cssrewrite = get_filter('cssrewrite', replace=lambda url: re.sub(r'^/?old/', '/new/', url))
         self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
+        assert self.get('out.css') == '''h1 { background: url(/new/sub/icon.png) }'''
 
 
 class TestDataUri(TempEnvironmentHelper):
