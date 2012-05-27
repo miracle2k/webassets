@@ -12,7 +12,7 @@ except ImportError:
 from base import CSSUrlRewriter, addsep, path2url
 
 
-__all__ = ('CSSRewrite','CSSRewriteAbsolute')
+__all__ = ('CSSRewrite',)
 
 
 class CSSRewrite(CSSUrlRewriter):
