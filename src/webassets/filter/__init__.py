@@ -115,7 +115,7 @@ class Filter(object):
     # Most filters only run in production mode (debug=False), so this is the
     # default value. However, a filter like ``cssrewrite`` needs to run in
     # ``merge`` mode. Further, compiler-type filters (like less/sass) would
-    # say ``True``, indicating that they have to run **always**.
+    # say ``None``, indicating that they have to run **always**.
     # There is an interesting and convenient twist here: If you use such a
     # filter, the bundle will automatically be merged, even in debug mode.
     # It couldn't work any other way of course, the output needs to be written

@@ -34,7 +34,7 @@ class Stylus(Filter):
         'plugins': option('STYLUS_PLUGINS', type=list),
         'extra_args': option('STYLUS_EXTRA_ARGS', type=list),
     }
-    max_debug_level = True
+    max_debug_level = None
 
     def input(self, _in, out, **kwargs):
         args = [self.stylus or 'stylus']
