@@ -358,6 +358,13 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('foo.css', filters='css_slimmer', output='out.css').build()
         assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
 
+    def test_stylus(self):
+        if not find_executable('stylus'):
+            raise SkipTest()
+        self.create_files({'in': """a\n  width:100px\n  height:(@width/2)"""})
+        self.mkbundle('in', filters='stylus', output='out.css').build()
+        assert self.get('out.css') == """a {\n  width: 100px;\n  height: 50px;\n}\n\n"""
+
 
 class TestCSSPrefixer(TempEnvironmentHelper):
 

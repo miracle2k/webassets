@@ -35,3 +35,4 @@ Django
 # sudo npm install -g uglify-js
 # sudo npm install -g coffee-script
 # sudo npm install -g clean-css
+# sudo npm install -g stylus
