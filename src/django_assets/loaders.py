@@ -2,6 +2,11 @@ from django.conf import settings
 from django import template
 from webassets.loaders import GlobLoader, LoaderError
 
+try:
+    set
+except NameError:
+    from sets import Set as set
+
 from django_assets.templatetags.assets import AssetsNode as AssetsNodeOriginal
 try:
     from django.templatetags.assets import AssetsNode as AssetsNodeMapped
@@ -25,21 +30,48 @@ def _shortpath(abspath):
     return p[len(os.path.commonprefix([b, p])):]
 
 
-def get_django_template_dirs():
+def uniq(seq):
+    """Remove duplicate items, preserve order.
+
+    http://www.peterbe.com/plog/uniqifiers-benchmark
+    """
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if x not in seen and not seen_add(x)]
+
+
+FILESYSTEM_LOADERS = [
+    'django.template.loaders.filesystem.load_template_source', # <= 1.1
+    'django.template.loaders.filesystem.Loader',                 # > 1.2
+]
+APPDIR_LOADERS = [
+    'django.template.loaders.app_directories.load_template_source', # <= 1.1
+    'django.template.loaders.app_directories.Loader'            # > 1.2
+]
+def get_django_template_dirs(loader_list=None):
     """Build a list of template directories based on configured loaders.
     """
+    if not loader_list:
+        loader_list = settings.TEMPLATE_LOADERS
+
     template_dirs = []
-    if 'django.template.loaders.filesystem.load_template_source' in settings.TEMPLATE_LOADERS or 'django.template.loaders.filesystem.Loader' in settings.TEMPLATE_LOADERS:
-        template_dirs.extend(settings.TEMPLATE_DIRS)
-    if 'django.template.loaders.app_directories.load_template_source' in settings.TEMPLATE_LOADERS or 'django.template.loaders.app_directories.Loader' in settings.TEMPLATE_LOADERS:
-        from django.template.loaders.app_directories import app_template_dirs
-        template_dirs.extend(app_template_dirs)
-    return template_dirs
+    for loader in loader_list:
+        if loader in FILESYSTEM_LOADERS:
+            template_dirs.extend(settings.TEMPLATE_DIRS)
+        if loader in APPDIR_LOADERS:
+            from django.template.loaders.app_directories import app_template_dirs
+            template_dirs.extend(app_template_dirs)
+        if isinstance(loader, (list, tuple)) and len(loader) >= 2:
+            # The cached loader uses the tuple syntax, but simply search all
+            # tuples for nested loaders; thus possibly support custom ones too.
+            template_dirs.extend(get_django_template_dirs(loader[1]))
+
+    return uniq(template_dirs)
 
 
 class DjangoLoader(GlobLoader):
-    """Parse all the templates of the current Django project, try to
-    find bundles in active use.
+    """Parse all the templates of the current Django project, try to find
+    bundles in active use.
     """
 
     def load_bundles(self):

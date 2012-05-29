@@ -135,6 +135,7 @@ class TestConfig(object):
             delsetting('ASSETS_EXPIRE')
             delsetting('ASSETS_UPDATER')
 
+
 class TestTemplateTag():
 
     def setup(self):
@@ -206,6 +207,18 @@ class TestTemplateTag():
 
 class TestLoader(TempDirHelper):
 
+    default_files = {
+        'template.html': """
+            {% load assets %}
+            <h1>Test</h1>
+            {% if foo %}
+                {% assets "A" "B" "C" output="output.html" %}
+                    {{ ASSET_URL }}
+                {% endassets %}
+            {% endif %}
+            """
+    }
+
     def setup(self):
         TempDirHelper.setup(self)
 
@@ -216,17 +229,16 @@ class TestLoader(TempDirHelper):
         settings.TEMPLATE_DIRS = [self.tempdir]
 
     def test(self):
-        self.create_files({
-            'template.html': """
-            {% load assets %}
-            <h1>Test</h1>
-            {% if foo %}
-                {% assets "A" "B" "C" output="output.html" %}
-                    {{ ASSET_URL }}
-                {% endassets %}
-            {% endif %}
-            """
-        })
+        bundles = self.loader.load_bundles()
+        assert len(bundles) == 1
+        assert bundles[0].output == "output.html"
+
+    def test_cached_loader(self):
+        settings.TEMPLATE_LOADERS = (
+            ('django.template.loaders.cached.Loader', (
+                'django.template.loaders.filesystem.Loader',
+                )),
+            )
         bundles = self.loader.load_bundles()
         assert len(bundles) == 1
         assert bundles[0].output == "output.html"
