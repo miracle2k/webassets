@@ -137,6 +137,12 @@ JS/CSS compilers
 .. autoclass:: webassets.filter.pyscss.PyScss
 
 
+``stylus``
+~~~~~~~~~~
+
+.. autoclass:: webassets.filter.stylus.Stylus
+
+
 ``coffeescript``
 ~~~~~~~~~~~~~~~~
 
