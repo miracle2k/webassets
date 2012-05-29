@@ -6,7 +6,7 @@ from itertools import takewhile
 from exceptions import BundleError
 
 
-__all__ = ('md5_constructor', 'picle',
+__all__ = ('md5_constructor', 'pickle',
            'common_path_prefix', 'working_directory')
 
 
