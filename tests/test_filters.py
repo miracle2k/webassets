@@ -293,13 +293,6 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
         assert self.get('out.js') == 'function foo(a){var b;document.write(a)};'
 
-    def test_less(self):
-        if not find_executable('lessc'):
-            raise SkipTest()
-        self.mkbundle('foo.css', filters='less', output='out.css').build()
-        print repr(self.get('out.css'))
-        assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n'
-
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
         # JS one. Maybe the solution is just to remove the old ruby filter.
@@ -516,6 +509,36 @@ class TestDataUri(TempEnvironmentHelper):
         self.create_files({'sub/icon.png': 'foo'})
         self.mkbundle('in.css', filters='datauri', output='out.css').build()
         assert self.get('out.css') == 'h1 { background: url(sub/icon.png) }'
+
+
+class TestLess(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.less': "h1 { color: #FFFFFF; }",
+    }
+
+    def setup(self):
+        if not find_executable('lessc'):
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.mkbundle('foo.less', filters='less', output='out.css').build()
+        print repr(self.get('out.css'))
+        assert self.get('out.css') == 'h1 {\n  color: #FFFFFF;\n}\n'
+
+    def test_import(self):
+        """Test referencing other files."""
+        # Note that apparently less can only import files that generate no
+        # output, i.e. mixins, variables etc.
+        self.create_files({
+            'import.less': '''
+               @import "foo.less";
+               span { color: @c }
+               ''',
+            'foo.less': '@c: red;'})
+        self.mkbundle('import.less', filters='less', output='out.css').build()
+        assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
 
 
 class TestSass(TempEnvironmentHelper):

@@ -39,14 +39,20 @@ def common_path_prefix(paths, sep=os.path.sep):
 
 
 @contextlib.contextmanager
-def working_directory(path):
+def working_directory(directory=None, filename=None):
     """A context manager which changes the working directory to the given
     path, and then changes it back to its previous value on exit.
 
     Filters will often find this helpful.
+
+    Instead of a ``directory``, you may also give a ``filename``, and the
+    working directory will be set to the directory that file is in.s
     """
+    assert bool(directory) != bool(filename)   # xor
+    if not directory:
+        directory = os.path.dirname(filename)
     prev_cwd = os.getcwd()
-    os.chdir(path)
+    os.chdir(directory)
     yield
     os.chdir(prev_cwd)
 
