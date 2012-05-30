@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 import subprocess
 from webassets.filter import Filter
 from webassets.exceptions import FilterError
