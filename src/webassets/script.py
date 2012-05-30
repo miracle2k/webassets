@@ -380,10 +380,17 @@ class GenericArgparseImplementation(object):
         if self.log:
             log = self.log
         else:
-            log = logging.getLogger('webassets')
-            log.setLevel(logging.DEBUG if ns.verbose else (
-                logging.WARNING if ns.quiet else logging.INFO))
-            log.addHandler(logging.StreamHandler())
+            log = logging.getLogger('webassets.script')
+            if not log.handlers:
+                # In theory, this could run multiple times (e.g. tests)
+                handler = logging.StreamHandler()
+                log.addHandler(handler)
+                # Note that setting the level filter at the handler level is
+                # better than the logger level, since this is "our" handler,
+                # we create it, for the purposes of having a default output.
+                # The logger itself the user may be modifying.
+                handler.setLevel(logging.DEBUG if ns.verbose else (
+                    logging.WARNING if ns.quiet else logging.INFO))
         return log
 
     def _setup_assets_env(self, ns, log):
