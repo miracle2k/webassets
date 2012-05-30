@@ -141,6 +141,7 @@ class AssetsExtension(Extension):
         # of ours when the tag needs to be rendered. That method can then
         # render the template body.
         call = self.call_method(
+            # Note: Changing the args here requires updating ``JinjaLoader``
             '_render_assets', args=[filters, output, dbg, nodes.List(files)])
         call_block = nodes.CallBlock(call, args, [], body)
         call_block.set_lineno(lineno)
@@ -221,7 +222,7 @@ class Jinja2Loader(GlobLoader):
                         if isinstance(node, jinja2.nodes.Call):
                             if isinstance(node.node, jinja2.nodes.ExtensionAttribute)\
                                and node.node.identifier == AssetsExtension.identifier:
-                                filter, output, files = node.args
+                                filter, output, dbg, files = node.args
                                 bundle = Bundle(
                                     *AssetsExtension.resolve_contents(files.as_const(), self.asset_env),
                                     **{

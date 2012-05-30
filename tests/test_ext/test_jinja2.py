@@ -1,5 +1,6 @@
 from nose.plugins.skip import SkipTest
 from webassets import Environment as AssetsEnvironment, Bundle
+from webassets.test import TempEnvironmentHelper
 
 
 try:
@@ -8,7 +9,7 @@ except ImportError:
     raise SkipTest('Jinja2 not installed')
 else:
     from jinja2 import Template, Environment as JinjaEnvironment
-    from webassets.ext.jinja2 import AssetsExtension
+    from webassets.ext.jinja2 import AssetsExtension, Jinja2Loader
 
 
 class TestTemplateTag(object):
@@ -86,3 +87,29 @@ class TestTemplateTag(object):
         output = self.jinja_env.from_string(
             '{% assets "foo_bundle" %}{{ EXTRA.moo }}{% endassets %}').render()
         assert output == '42'
+
+
+class TestLoader(TempEnvironmentHelper):
+
+    default_files = {
+        'template.html': """
+            <h1>Test</h1>
+            {% if foo %}
+                {% assets "A", "B", "C", output="output.html" %}
+                    {{ ASSET_URL }}
+                {% endassets %}
+            {% endif %}
+            """
+    }
+
+    def setup(self):
+        TempEnvironmentHelper.setup(self)
+        self.jinja_env = JinjaEnvironment()
+        self.jinja_env.add_extension(AssetsExtension)
+        self.jinja_env.assets_environment = self.env
+
+    def test(self):
+        loader = Jinja2Loader(self.env, [self.tempdir], [self.jinja_env])
+        bundles = loader.load_bundles()
+        assert len(bundles) == 1
+        assert bundles[0].output == "output.html"
