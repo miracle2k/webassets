@@ -23,10 +23,10 @@ class CommandError(Exception):
 
 
 class CommandLineEnvironment():
-    """Implements the core functionality for a command line frontend
-    to ``webassets``, abstracted in a way to allow frameworks to
-    integrate the functionality into their own tools, for example,
-    as a Django management command.
+    """Implements the core functionality for a command line frontend to
+    ``webassets``, abstracted in a way to allow frameworks to integrate the
+    functionality into their own tools, for example, as a Django
+    management command.
     """
 
     def __init__(self, env, log, post_build=None):
@@ -304,16 +304,14 @@ class CommandLineEnvironment():
 
 
 class GenericArgparseImplementation(object):
-    """Generic command line utility to interact with an webassets
-    environment.
+    """Generic command line utility to interact with an webassets environment.
 
-    This is effectively a reference implementation of a command line
-    utility based on the ``CommandLineEnvironment`` class.
-    Implementers may find it feasible to simple base their own command
-    line utility on this, rather than implementing something custom on
-    top of ``CommandLineEnvironment``. In fact, if that is possible,
-    you are encouraged to do so for greater consistency across
-    implementations.
+    This is effectively a reference implementation of a command line utility
+    based on the ``CommandLineEnvironment`` class. Implementers may find it
+    feasible to simple base their own command line utility on this, rather than
+    implementing something custom on top of ``CommandLineEnvironment``. In
+    fact, if that is possible, you are encouraged to do so for greater
+    consistency across implementations.
     """
 
     def __init__(self, env=None, log=None, prog=None, no_global_options=False):
@@ -386,6 +384,51 @@ class GenericArgparseImplementation(object):
             help='Forcably turn off debug mode for the build. This '
                  'only has an effect if debug is set to "merge".')
 
+    def _setup_logging(self, ns):
+        if self.log:
+            log = self.log
+        else:
+            log = logging.getLogger('webassets')
+            log.setLevel(logging.DEBUG if ns.verbose else (
+                logging.WARNING if ns.quiet else logging.INFO))
+            log.addHandler(logging.StreamHandler())
+        return log
+
+    def _setup_assets_env(self, ns, log):
+        env = self.env
+        if env is None:
+            assert not (ns.module and ns.config)
+            if ns.module:
+                env = PythonLoader(ns.module).load_environment()
+            if ns.config:
+                env = YAMLLoader(ns.config).load_environment()
+        return env
+
+    def _setup_cmd_env(self, assets_env, log, ns):
+        return CommandLineEnvironment(assets_env, log)
+
+    def _prepare_command_args(self, ns):
+        # Prepare a dict of arguments cleaned of values that are not
+        # command-specific, and which the command method would not accept.
+        args = vars(ns).copy()
+        for action in self.parser._actions:
+            dest = action.dest
+            if dest in args:
+                del args[dest]
+        return args
+
+    def run_with_ns(self, ns):
+        log = self._setup_logging(ns)
+        env = self._setup_assets_env(ns, log)
+        if env is None:
+            raise CommandError(
+                "Error: No environment given or found. Maybe use -m?")
+        cmd = self._setup_cmd_env(env, log, ns)
+
+        # Run the selected command
+        args = self._prepare_command_args(ns)
+        return cmd.invoke(ns.command, args)
+
     def run_with_argv(self, argv):
         try:
             ns = self.parser.parse_args(argv)
@@ -394,47 +437,15 @@ class GenericArgparseImplementation(object):
             # See run() instead.
             return 1
 
-        # Setup logging
-        if self.log:
-            log = self.log
-        else:
-            log = logging.getLogger('webassets')
-            log.setLevel(logging.DEBUG if ns.verbose else (
-                logging.WARNING if ns.quiet else logging.INFO))
-            log.addHandler(logging.StreamHandler())
-
-        # Load the bundles we shall work with
-        env = self.env
-        if env is None:
-            assert not (ns.module  and ns.config)
-            if ns.module:
-                env = PythonLoader(ns.module).load_environment()
-            if ns.config:
-                env = YAMLLoader(ns.config).load_environment()
-
-        if env is None:
-            raise CommandError(
-                "Error: No environment given or found. Maybe use -m?")
-
-        # Prepare a dict of arguments cleaned of values that are not
-        # command-specific, and which the command method would not accept.
-        args = vars(ns).copy()
-        for name in ('verbose', 'quiet', 'module', 'config', 'command'):
-            if name in args:
-                del args[name]
-
-        # Run the selected command
-        cmd = CommandLineEnvironment(env, log)
-        return cmd.invoke(ns.command, args)
+        return self.run_with_ns(ns)
 
     def main(self, argv):
         """Parse the given command line.
 
-        The command ine is expected to NOT including what would be
-        sys.argv[0].
+        The commandline is expected to NOT including what would be sys.argv[0].
         """
         try:
-            self.run_with_argv(argv)
+            return self.run_with_argv(argv)
         except CommandError, e:
             print e
             return 1
@@ -443,18 +454,18 @@ class GenericArgparseImplementation(object):
 def main(argv, env=None):
     """Execute the generic version of the command line interface.
 
-    You only need to work directly with ``GenericArgparseImplementation``
-    if you desire to customize things.
+    You only need to work directly with ``GenericArgparseImplementation`` if
+    you desire to customize things.
 
-    If no environment is givne, additional arguments will be supported to
-    allow the user to specify/construct the environment on the command line.
+    If no environment is givne, additional arguments will be supported to allow
+    the user to specify/construct the environment on the command line.
     """
     return GenericArgparseImplementation(env).main(argv)
 
 
 def run():
-    """Runs the command line interface via ``main``, then exists the
-    process with the proper return code."""
+    """Runs the command line interface via ``main``, then exists the process
+    with the proper return code."""
     sys.exit(main(sys.argv[1:]) or 0)
 
 
