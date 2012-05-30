@@ -62,9 +62,6 @@ or whatever your framework provides as a command line utility shell), and
 then invoking the corresponding methods on your instance of
 ``CommandLineEnvironment``.
 
-For an example, you could have a look at the ``werkzeug.script``
-integration in ``webassets.ext.werkzeug``.
-
 
 .. _script-commands:
 
