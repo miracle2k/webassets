@@ -76,13 +76,14 @@ class Less(Filter):
             # Disable running in debug mode for this instance.
             self.max_debug_level = False
 
-    def open(self, out, source_path, **kw):
-        proc = subprocess.Popen(
-            [self.less or 'lessc', source_path],
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE
-        )
-        stdout, stderr = proc.communicate()
+    def output(self, _in, out, **kw):
+        binary = self.less or 'lessc'
+        args = '-'
+        proc = subprocess.Popen([binary, args],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        stdout, stderr = proc.communicate(_in.read())
 
         # At the moment (2011-12-09), there's a bug in the current version of
         # Less that always prints an error to stdout so the returncode is the
