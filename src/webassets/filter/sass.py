@@ -83,7 +83,7 @@ class Sass(Filter):
     max_debug_level = None
 
     def _apply_sass(self, _in, out, cd=None):
-        # Switch to source file directory if asked, so that  this directory
+        # Switch to source file directory if asked, so that this directory
         # is by default on the load path. We could pass it via -I, but then
         # files in the (undefined) wd could shadow the correct files.
         if cd:
@@ -108,6 +108,10 @@ class Sass(Filter):
             if isinstance(self.env.cache, FilesystemCache):
                 args.extend(['--cache-location',
                              os.path.join(old_dir, self.env.cache.directory, 'sass')])
+            elif not cd:
+                # Without a fixed working directory, the location of the cache
+                # is basically undefined, so prefer not to use one at all.
+                args.extend(['--no-cache'])
             if (self.env.debug if self.debug_info is None else self.debug_info):
                 args.append('--debug-info')
             if self.use_scss:
