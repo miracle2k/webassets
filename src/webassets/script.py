@@ -49,16 +49,9 @@ class CommandLineEnvironment():
         else:
             return function(self, **args)
 
-    def rebuild(self):
-        import warnings
-        warnings.warn(
-            'The rebuild() method has been renamed to build().',
-            ImminentDeprecationWarning)
-        return self.build()
-
     def build(self, bundles=None, output=None, directory=None, no_cache=None,
               manifest=None, production=None):
-        """Build/Rebuild assets.
+        """Build assets.
 
         ``bundles``
             A list of bundle names. If given, only this list of bundles
@@ -298,8 +291,7 @@ class CommandLineEnvironment():
         'build': build,
         'watch': watch,
         'clean': clean,
-        'check': check,
-        'rebuild': rebuild,  # Deprecated
+        'check': check
     }
 
 

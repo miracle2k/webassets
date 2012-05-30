@@ -31,7 +31,7 @@ class TestArgParse(TempEnvironmentHelper):
         the commandline, we fail with a clean error.
         """
         impl = GenericArgparseImplementation(env=None)
-        assert_raises(CommandError, impl.run_with_argv, ['rebuild'])
+        assert_raises(CommandError, impl.run_with_argv, ['build'])
 
 
 class MockBundle(Bundle):

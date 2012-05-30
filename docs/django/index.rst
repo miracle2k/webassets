@@ -65,14 +65,14 @@ The management command
 ``django-assets`` also provides a management command, ``manage.py assets``.
 It can be used to manually cause your bundles to be rebuilt::
 
-    $ ./manage.py assets rebuild
+    $ ./manage.py assets build
     Building asset: cache/site.js
     Building asset: cache/ie7.js
     Building asset: cache/site.css
 
 Note that this is more difficult if you are defining your bundles within
 your templates, rather than in code. You then need to use the
-``--parse-templates`` option, so the rebuild command can find the bundles.
+``--parse-templates`` option, so the ``build`` command can find the bundles.
 
 More about the management commands which are available (in generic,
 non-Django specific form) can be found on the :doc:`../script` page.
@@ -99,7 +99,7 @@ In production mode, ``django-assets`` will expect all source files
 to be located within ``STATIC_ROOT``. It will not use the ``staticfiles``
 finder system to locate source files. You are expected to call the
 ``./manage.py collectstatic`` command before running
-``./manage.py assets rebuild``. If you are using automatic rebuilding,
+``./manage.py assets build``. If you are using automatic rebuilding,
 changes will currently not be picked up in production until you have run
 ``collectstatic``.
 

@@ -65,6 +65,8 @@ In Development version
   reference these classes directly, rather than using their id (such as
   ``jsmin``), which should be rare.
 
+- Removed the previously deprecated ``rebuild`` alias for the ``build`` command.
+
 
 In 0.7
 ~~~~~~

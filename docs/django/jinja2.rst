@@ -33,7 +33,7 @@ Jinja with Django. For example:
   ``webassets.ext.jinja2.AssetsExtension``.
 
 However, there is a minor difficulty if you intend to use the management
-command to manually rebuild assets: Since that step involves parsing your
+command to manually build assets: Since that step involves parsing your
 templates, the command needs to know what other Jinja2 extensions you are
 using to successfully do so. Because there is no "one way" to integrate
 Jinja and Django, it can't determine the extensions you are using all by
