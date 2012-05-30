@@ -39,8 +39,8 @@ from django_assets.loaders import get_django_template_dirs, DjangoLoader
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--parse-templates', action='store_true',
-            help='Rebuild assets found by parsing project templates '
-                 'instead of using the tracking database.'),
+            help='Search project templates to find bundles. You need '
+                 'this if you directly define your bundles in templates.'),
     )
     help = 'Manage assets.'
     args = 'subcommand'
