@@ -161,8 +161,6 @@ class FilterTool(object):
         def func():
             kwargs_final = self.kwargs.copy()
             kwargs_final.update(kwargs or {})
-            if hasattr(hunk, 'filename'):
-                kwargs_final.setdefault('source_path', hunk.filename)
 
             data = StringIO.StringIO(hunk.data())
             for filter in filters:

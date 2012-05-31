@@ -199,14 +199,22 @@ class CommandLineEnvironment():
         if len(built):
             self.event_handlers['post_build']()
 
-    def watch(self):
+    def watch(self, loop=None):
         """Watch assets for changes.
 
-        TODO: This should probably also restart when the code changes.
+        ``loop``
+            A callback, taking no arguments, to be called once every loop
+            iteration. Can be useful to integrate the command with other code.
+            If not specified, the loop wil call ``time.sleep()``.
         """
+        # TODO: This should probably also restart when the code changes.
         _mtimes = {}
         _win = (sys.platform == "win32")
         def check_for_changes():
+            # Do not update original mtimes dict right away, so that we detect
+            # all bundle changes if a file is in multiple bundles.
+            _new_mtimes = _mtimes.copy()
+
             changed_bundles = []
             for bundle in self.environment:
                 for filename in get_all_bundle_files(bundle):
@@ -217,9 +225,11 @@ class CommandLineEnvironment():
 
                     if _mtimes.get(filename, mtime) != mtime:
                         changed_bundles.append(bundle)
-                        _mtimes[filename] = mtime
+                        _new_mtimes[filename] = mtime
                         break
-                    _mtimes[filename] = mtime
+                    _new_mtimes[filename] = mtime
+
+            _mtimes.update(_new_mtimes)
             return changed_bundles
 
         try:
@@ -236,7 +246,9 @@ class CommandLineEnvironment():
                         print "Failed: %s" % e
                 if len(built):
                     self.event_handlers['post_build']()
-                time.sleep(0.1)
+                do_end = loop() if loop else time.sleep(0.1)
+                if do_end:
+                    break
         except KeyboardInterrupt:
             pass
 

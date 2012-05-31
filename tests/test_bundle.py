@@ -456,6 +456,23 @@ class TestFilters(TempEnvironmentHelper):
         self.mkbundle('a', 'b', filters=ConcatFilter, output='out').build()
         assert self.get('out') == '1%%%2'
 
+    def test_open_before_input(self):
+        """[Regression] Test that if an open filter is used, input filters
+        still receive the ``source_path`` kwargs.
+        """
+        captured_kw = {}
+        class TestFilter(Filter):
+            def open(self, out, *a, **kw): out.write('foo')
+            def input(self, *a, **kw):
+                assert not captured_kw
+                captured_kw.update(kw)
+        self.create_files({'a': '1'})
+        self.mkbundle('a', filters=TestFilter, output='out').build()
+        # TODO: Could be generalized to test all the other values that
+        # each filter method expects to receive. This is currently not
+        # done anywhere )though it likely still wouldn't have caught this).
+        assert 'source_path' in captured_kw
+
 
 class TestAutoUpdate(TempEnvironmentHelper):
     """Test bundle auto rebuild, and generally everything involving
@@ -1260,6 +1277,13 @@ class TestUrlContents(TempEnvironmentHelper):
         self.create_files({'out': 'foo'})
         bundle = self.mkbundle('http://foo', output='out')
         TimestampUpdater().needs_rebuild(bundle, bundle.env)
+
+    def test_pyramid_asset_specs(self):
+        """Make sure that pyramid asset specs (in the form of
+        package:path) do not pass the url check."""
+        self.create_files({'foo:bar/qux': 'test'})
+        self.mkbundle('foo:bar/qux', output='out').build()
+        assert self.get('out') == 'test'
 
 
 class TestNormalizeSourcePath(TempEnvironmentHelper):

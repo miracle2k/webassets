@@ -24,8 +24,8 @@ __all__ = ('Bundle', 'get_all_bundle_files',)
 def is_url(s):
     if not isinstance(s, str):
         return False
-    scheme = urlparse.urlsplit(s).scheme
-    return bool(scheme) and len(scheme) > 1
+    parsed = urlparse.urlsplit(s)
+    return bool(parsed.scheme and parsed.netloc) and len(parsed.scheme) > 1
 
 
 def has_placeholder(s):
@@ -376,16 +376,13 @@ class Bundle(object):
                     combined_filters, disable_cache=disable_cache)
                 hunks.append(hunk)
             else:
-                # Pass along the original relative path, as specified by the
-                # user. This may differ from the actual filesystem path, if
-                # extensions provide a virtualized filesystem (e.g. Flask
-                # blueprints, Django staticfiles).
-                kwargs = {'source': rel_name}
-
                 # Give a filter the chance to open his file.
                 try:
                     hunk = filtertool.apply_func(
-                        combined_filters, 'open', [item], kwargs=kwargs)
+                        combined_filters, 'open', [item],
+                        # Also pass along the original relative path, as
+                        # specified by the user, before resolving.
+                        kwargs={'source': rel_name})
                 except MoreThanOneFilterError, e:
                     raise BuildError(e)
 
@@ -399,7 +396,11 @@ class Bundle(object):
                     hunks.append(hunk)
                 else:
                     hunks.append(filtertool.apply(
-                        hunk, combined_filters, 'input', kwargs=kwargs))
+                        hunk, combined_filters, 'input',
+                        # Pass along both the original relative path, as
+                        # specified by the user, and the one that has been
+                        # resolved to a filesystem location.
+                        kwargs={'source': rel_name, 'source_path': item}))
 
         # Merge the individual files together.
         try:
