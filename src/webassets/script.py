@@ -18,6 +18,11 @@ from webassets.merge import MemoryHunk
 __all__ = ('CommandError', 'CommandLineEnvironment', 'main')
 
 
+# logging has WARNING as default level, for the CLI we want INFO. Set this
+# as early as possible, so that user customizations will not be overwritten.
+logging.getLogger('webassets.script').setLevel(logging.INFO)
+
+
 class CommandError(Exception):
     pass
 
