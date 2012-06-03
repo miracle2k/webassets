@@ -27,34 +27,27 @@ class CommandError(Exception):
     pass
 
 
-class CommandLineEnvironment():
-    """Implements the core functionality for a command line frontend to
-    ``webassets``, abstracted in a way to allow frameworks to integrate the
-    functionality into their own tools, for example, as a Django
-    management command.
+class Command(object):
+    """Base-class for a command used by :class:`CommandLineEnvironment`.
+
+    Each command opens up certain possibilities with respect to subclassing
+    and customizing the default CLI.
     """
 
-    def __init__(self, env, log, post_build=None):
-        self.environment = env
-        self.log = log
-        self.event_handlers = dict(post_build=lambda: True)
-        if callable(post_build):
-            self.event_handlers['post_build'] = post_build
+    def __init__(self, cmd_env):
+        self.cmd = cmd_env
 
-    def invoke(self, command, args):
-        """Invoke ``command``, or throw a CommandError.
+    def __getattr__(self, name):
+        # Make stuff from cmd environment easier to access
+        return getattr(self.cmd, name)
 
-        This is essentially a simple validation mechanism. Feel free
-        to call the individual command methods manually.
-        """
-        try:
-            function = self.Commands[command]
-        except KeyError, e:
-            raise CommandError('unknown command: %s' % e)
-        else:
-            return function(self, **args)
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError()
 
-    def build(self, bundles=None, output=None, directory=None, no_cache=None,
+
+class BuildCommand(Command):
+
+    def __call__(self, bundles=None, output=None, directory=None, no_cache=None,
               manifest=None, production=None):
         """Build assets.
 
@@ -130,7 +123,7 @@ class CommandLineEnvironment():
         if bundle_names:
             # TODO: It's not ok to use an internal property here.
             bundles = [(n,b) for n, b in self.environment._named_bundles.items()
-                       if n in bundle_names]
+                             if n in bundle_names]
         else:
             # Includes unnamed bundles as well.
             bundles = [(None, b) for b in self.environment]
@@ -177,7 +170,7 @@ class CommandLineEnvironment():
             try:
                 if not overwrite_filename:
                     bundle.build(force=True, env=self.environment,
-                                 disable_cache=no_cache)
+                        disable_cache=no_cache)
                 else:
                     # TODO: Rethink how we deal with container bundles here.
                     # As it currently stands, we write all child bundles
@@ -187,7 +180,7 @@ class CommandLineEnvironment():
                     # anyway.
                     output = StringIO()
                     bundle.build(force=True, env=self.environment, output=output,
-                                 disable_cache=no_cache)
+                        disable_cache=no_cache)
                     if directory:
                         # Only auto-create directories in this mode.
                         output_dir = os.path.dirname(overwrite_filename)
@@ -202,7 +195,10 @@ class CommandLineEnvironment():
         if len(built) != len(to_build):
             return 2
 
-    def watch(self, loop=None):
+
+class WatchCommand(Command):
+
+    def __call__(self, loop=None):
         """Watch assets for changes.
 
         ``loop``
@@ -267,7 +263,10 @@ class CommandLineEnvironment():
         except KeyboardInterrupt:
             pass
 
-    def clean(self):
+
+class CleanCommand(Command):
+
+    def __call__(self):
         """Delete generated assets.
 
         TODO: Clean the cache?
@@ -281,7 +280,10 @@ class CommandLineEnvironment():
                 os.unlink(file_path)
                 self.log.info("Deleted asset: %s" % bundle.output)
 
-    def check(self):
+
+class CheckCommand(Command):
+
+    def __call__(self):
         """Check to see if assets need to be rebuilt.
 
         A non-zero exit status will be returned if any of the input files are
@@ -301,12 +303,50 @@ class CommandLineEnvironment():
         if needsupdate:
             sys.exit(-1)
 
-    # List of command methods
-    Commands = {
-        'build': build,
-        'watch': watch,
-        'clean': clean,
-        'check': check
+
+class CommandLineEnvironment(object):
+    """Implements the core functionality for a command line frontend to
+    ``webassets``, abstracted in a way to allow frameworks to integrate the
+    functionality into their own tools, for example, as a Django management
+    command, or a command for ``Flask-Script``.
+    """
+
+    def __init__(self, env, log, post_build=None, commands=None):
+        self.environment = env
+        self.log = log
+        self.event_handlers = dict(post_build=lambda: True)
+        if callable(post_build):
+            self.event_handlers['post_build'] = post_build
+
+        # Instantiate each command, make them available as instance methods.
+        command_def = self.DefaultCommands.copy()
+        command_def.update(commands or {})
+        self.commands = {}
+        for name, cmd_class in command_def.items():
+            if not cmd_class:
+                continue
+            self.commands[name] = cmd_class(self)
+            setattr(self, name, self.commands[name])
+
+    def invoke(self, command, args):
+        """Invoke ``command``, or throw a CommandError.
+
+        This is essentially a simple validation mechanism. Feel free
+        to call the individual command methods manually.
+        """
+        try:
+            function = self.commands[command]
+        except KeyError, e:
+            raise CommandError('unknown command: %s' % e)
+        else:
+            return function(**args)
+
+    # List of commands installed
+    DefaultCommands = {
+        'build': BuildCommand,
+        'watch': WatchCommand,
+        'clean': CleanCommand,
+        'check': CheckCommand
     }
 
 
@@ -355,7 +395,7 @@ class GenericArgparseImplementation(object):
 
         # Add subparsers.
         subparsers = parser.add_subparsers(dest='command')
-        for command in CommandLineEnvironment.Commands.keys():
+        for command in CommandLineEnvironment.DefaultCommands.keys():
             command_parser = subparsers.add_parser(command)
             maker = getattr(self, 'make_%s_parser' % command, False)
             if maker:

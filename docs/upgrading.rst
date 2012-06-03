@@ -87,6 +87,11 @@ In Development version
   and :meth:`Bundle.url` methods directly. The behavior of the command line
   interface, or the template tags is not affected.
 
+- The implementation of the :class:`CommandLineEnvironment` has changed, and
+  each command is now a separate class. If you have been subclassing
+  :class:`CommandLineEnvironment` to override individual command methods like
+  :meth:`CommandLineEnvironment.build`, you need to update your code.
+
 
 In 0.7
 ~~~~~~
