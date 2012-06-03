@@ -6,12 +6,13 @@ I wonder whether I shouldn't just do full-stack tests here instead of mocking.
 
 from __future__ import with_statement
 
-from os import path
 import logging
 from threading import Thread, Event
 from nose.tools import assert_raises
 import time
+
 from webassets import Bundle
+from webassets.exceptions import BuildError
 from webassets.script import (
     main, CommandLineEnvironment, CommandError, GenericArgparseImplementation)
 from webassets.test import TempEnvironmentHelper
@@ -153,6 +154,23 @@ class TestBuildCommand(TestCLI):
         self.cmd_env.build(manifest='file:miau')
         assert self.exists('media/sub/miau')
 
+    def test_build_failure(self):
+        """If one bundle fails to build, the command continues, but
+        returns an error code in the end."""
+        def failing_filter(*a, **kw):
+            raise BuildError()
+        self.create_files(['file'])
+        a = Bundle('file', filters=failing_filter, output='outA')
+        self.assets_env.register('a', a)
+        b = Bundle('file', output='outB')
+        self.assets_env.register('b', b)
+
+        # build() returns an error code
+        assert self.cmd_env.build() == 2
+        # the second bundle will have been built, event though the first failed
+        assert self.exists('outB')
+        assert not self.exists('outA')
+
 
 class TestWatchCommand(TestCLI):
     """This is a hard one to test.
@@ -211,7 +229,6 @@ class TestWatchCommand(TestCLI):
 
         # output file has been updated.
         assert self.get('out') == 'foo'
-
 
     def test_same_file_multiple_bundles(self):
         """[Bug] Test watch command can deal with the same file being part

@@ -194,6 +194,8 @@ class CommandLineEnvironment():
                 self.log.error("Failed, error was: %s" % e)
         if len(built):
             self.event_handlers['post_build']()
+        if len(built) != len(to_build):
+            return 2
 
     def watch(self, loop=None):
         """Watch assets for changes.
