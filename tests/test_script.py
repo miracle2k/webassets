@@ -179,8 +179,6 @@ class TestWatchCommand(TestCLI):
     to stop the thread again.
     """
 
-    default_files = {'in': 'foo', 'out': 'bar'}
-
     def watch_loop(self):
         # Hooked into the loop of the ``watch`` command.
         # Allows stopping the thread.
@@ -211,6 +209,16 @@ class TestWatchCommand(TestCLI):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop_watching()
+
+    default_files = {'in': 'foo', 'out': 'bar'}
+
+    def setup(self):
+        super(TestWatchCommand, self).setup()
+
+        # Pay particular attention that the watch command works with auto_build
+        # disabled (since normally this implies no use of the updater, but
+        # obviously the command cannot pay attention to that).
+        self.env.auto_build = False
 
     def test(self):
         # Register a bundle to watch
