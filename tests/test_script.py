@@ -280,6 +280,24 @@ class TestWatchCommand(TestWatchMixin, TestCLI):
         assert self.get('out') == 'foo'
 
 
+class TestCleanCommand(TestCLI):
+
+    def test(self):
+        self.create_files(['in'])
+        self.env.cache = True
+
+        bundle = self.mkbundle('in', output='out')
+        self.env.add(bundle)
+
+        bundle.build()
+        assert self.exists('out')
+        assert self.exists('.webassets-cache')
+
+        self.cmd_env.clean()
+        assert not self.exists('out')
+        assert not self.exists('.webassets-cache')
+
+
 class TestArgparseImpl(TestWatchMixin, TempEnvironmentHelper):
     """Test the argparse-based implementation of the CLI interface."""
 

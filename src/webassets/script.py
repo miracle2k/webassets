@@ -1,3 +1,4 @@
+import shutil
 import os, sys
 import time
 import logging
@@ -18,6 +19,7 @@ from webassets.exceptions import BuildError
 from webassets.updater import TimestampUpdater
 from webassets.merge import MemoryHunk
 from webassets.version import get_manifest
+from webassets.cache import FilesystemCache
 
 
 __all__ = ('CommandError', 'CommandLineEnvironment', 'main')
@@ -296,8 +298,6 @@ class CleanCommand(Command):
 
     def __call__(self):
         """Delete generated assets.
-
-        TODO: Clean the cache?
         """
         self.log.info('Cleaning generated assets...')
         for bundle in self.environment:
@@ -307,6 +307,8 @@ class CleanCommand(Command):
             if os.path.exists(file_path):
                 os.unlink(file_path)
                 self.log.info("Deleted asset: %s" % bundle.output)
+        if isinstance(self.environment.cache, FilesystemCache):
+            shutil.rmtree(self.environment.cache.directory)
 
 
 class CheckCommand(Command):
