@@ -25,6 +25,7 @@ __all__ = ('FileHunk', 'MemoryHunk', 'merge', 'FilterTool',
 # However, we might want to change this in the future. The CLI --verbose option
 # could instead just set the level to NOTICE, for example.
 log = logging.getLogger('webassets.debug')
+log.addHandler(logging.StreamHandler())
 import os
 if os.environ.get('WEBASSETS_DEBUG'):
     log.setLevel(logging.DEBUG)
