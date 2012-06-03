@@ -254,3 +254,26 @@ class TestWatchCommand(TestCLI):
         # Both output files have been updated.
         assert self.get('out') == 'foo'
         assert self.get('out2') == 'foo'
+
+    def test_initial_build(self):
+        """The watch command also detects changes that were made while it was
+        not running, and applies those right away on start.
+        """
+        # Register a bundle to watch
+        bundle = self.mkbundle('in', output='out')
+        self.env.register('test', bundle)
+
+        # Mark the input file has changed before we even run the command.
+        now = self.setmtime('in')
+        self.setmtime('out', mtime=now-100)
+
+        # Assert initial state
+        assert self.get('out') == 'bar'
+
+        # Run the watch command for a while, but don't make any changes.
+        with self:
+            time.sleep(0.2)
+
+        # Output file has been updated, not due to a change detected by watch,
+        # but because watch recognized the initial requirement for a build.
+        assert self.get('out') == 'foo'

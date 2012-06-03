@@ -231,7 +231,15 @@ class CommandLineEnvironment():
             return changed_bundles
 
         try:
-            self.log.info("Watching %d bundles for changes..." % len(self.environment))
+            # Before starting to watch for changes, also recognize changes
+            # made while we did not run, and apply those immediately.
+            for bundle in self.environment:
+                print 'Bringing up to date: %s' % bundle.output
+                bundle.build(force=False)
+
+            self.log.info("Watching %d bundles for changes..." %
+                          len(self.environment))
+
             while True:
                 changed_bundles = check_for_changes()
                 built = []
