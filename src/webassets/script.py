@@ -37,8 +37,8 @@ class CommandError(Exception):
 class Command(object):
     """Base-class for a command used by :class:`CommandLineEnvironment`.
 
-    Each command opens up certain possibilities with respect to subclassing
-    and customizing the default CLI.
+    Each command being a class opens up certain possibilities with respect to
+    subclassing and customizing the default CLI.
     """
 
     def __init__(self, cmd_env):
@@ -348,7 +348,7 @@ class CommandLineEnvironment(object):
         if callable(post_build):
             self.event_handlers['post_build'] = post_build
 
-        # Instantiate each command, make them available as instance methods.
+        # Instantiate each command
         command_def = self.DefaultCommands.copy()
         command_def.update(commands or {})
         self.commands = {}
@@ -361,6 +361,7 @@ class CommandLineEnvironment(object):
                 self, *construct[1], **construct[2])
 
     def __getattr__(self, item):
+        # Allow method-like access to commands.
         if item in self.commands:
             return self.commands[item]
         raise AttributeError(item)
@@ -572,15 +573,15 @@ def main(argv, env=None):
     You only need to work directly with ``GenericArgparseImplementation`` if
     you desire to customize things.
 
-    If no environment is givne, additional arguments will be supported to allow
+    If no environment is given, additional arguments will be supported to allow
     the user to specify/construct the environment on the command line.
     """
     return GenericArgparseImplementation(env).main(argv)
 
 
 def run():
-    """Runs the command line interface via ``main``, then exists the process
-    with the proper return code."""
+    """Runs the command line interface via ``main``, then exits the process
+    with a proper return code."""
     sys.exit(main(sys.argv[1:]) or 0)
 
 
