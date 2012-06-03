@@ -568,8 +568,8 @@ class TestFilterApplication(TempEnvironmentHelper):
 
 
 class TestAutoBuild(TempEnvironmentHelper):
-    """Test bundle auto rebuild, and generally everything involving
-    the updater from the bundle's perspective.
+    """Test bundle auto rebuild (which affects the urls() method) and
+    generally everything involving the updater (as used by the build() method).
     """
 
     def setup(self):
@@ -582,61 +582,40 @@ class TestAutoBuild(TempEnvironmentHelper):
         self.env.updater = self.updater = CustomUpdater()
 
     def test_autocreate(self):
-        """If an output file doesn't yet exist, it'll be created (as long
-        as automatic building is enabled, anyway).
+        """If an output file doesn't yet exist, it'll be created.
         """
         self.env.auto_build = True
-        self.mkbundle('in1', output='out').build()
+        self.mkbundle('in1', output='out').urls()
         assert self.get('out') == 'A'
 
-    def test_no_autocreate(self):
-        """If auto_build is disabled, and a build is not forced, then the
-        initial build of a previously non-existent output file will not
-        happen either.
-
-        Note: This used to raise an exception, no it is simply a noop.
+    def test_autocreate_with_autobuild_disabled(self):
+        """Behavior of urls() and build() interfaces with auto_build
+        setting disabled.
         """
         self.env.auto_build = False
-        assert self.mkbundle('in1', output='out').build(force=False) == [False]
-        # However, it works fine if force is used
-        self.mkbundle('in1', output='out').build(force=True)
+        self.env.url_expire = False
+        bundle = self.mkbundle('in1', output='out')
+
+        # urls() doesn't cause a build with auto_build = False
+        bundle.urls()
+        assert not self.exists('out')
+
+        # build() always builds, regardless of auto_build setting.
+        # Note: This used to raise an exception, then it was a simple noop,
+        # now it does what the name says it'll do.
+        bundle.build(force=False)
         assert self.get('out') == 'A'
-
-    def test_no_auto_create_env_via_argument(self):
-        """Regression test for a bug that occurred when the environment
-        was only given via an argument to build(), rather than at Bundle
-        __init__ time.
-        """
-        self.env.auto_build = False
-        assert Bundle('in1', output='out').build(force=False, env=self.env) == [False]
 
     def test_no_updater(self):
         """[Regression] If Environment.updater is set to False/None,
-        this won't cause problems during the build.
+        this won't cause problems during the build, and will in fact be the
+        equivalent of always passing force=True.
         """
         self.env.updater = False
         self.create_files({'out': 'old_value'})
         self.mkbundle('in1', output='out').build(force=False)
-        # And it also means that we don't to auto-rebuilding
-        assert self.get('out') == 'old_value'
-
-    def test_no_updater_force_defaults_true(self):
-        """If no updater is configured, then bundle.build() will
-        assume force=False by default.
-        """
-        self.env.auto_build = False
-        self.env.debug = False
-        self.env.expire = False # can't use this if there is no output file
-
-        # With explicit False, file is not built
-        self.mkbundle('in1', output='out').build(force=False)
-        assert not self.exists('out')
-        # When calling urls(), file is not built either
-        assert len(self.mkbundle('in1', output='out').urls()) == 1
-        assert not self.exists('out')
-        # But when specifically calling the build() API, even
-        # without asking for "force", then a build does happen.
-        self.mkbundle('in1', output='out').build()
+        # Despite force=False we will do a built, because there is in fact no
+        # updater that the force argument could disable.
         assert self.get('out') == 'A'
 
     def test_updater_says_no(self):

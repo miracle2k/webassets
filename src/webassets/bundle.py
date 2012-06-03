@@ -469,9 +469,6 @@ class Bundle(object):
         Unless ``force`` is given, in which case the bundle will always be
         built, without considering timestamps.
 
-        Note: The default value of ``force`` is normally ``False``, unless
-        ``auto_build`` is disabled, in which case ``True`` is assumed.
-
         A ``FileHunk`` will be returned, or in a certain case, with no updater
         defined and force=False, the return value may be ``False``.
 
@@ -483,37 +480,21 @@ class Bundle(object):
         if not self.output:
             raise BuildError('No output target found for %s' % self)
 
-        # Default force to True if auto_build is disabled, as otherwise
-        # no build would happen. This is only a question of API design.
-        # We want auto_build=False users to be able to call bundle.build()
-        # and have it have an effect.
-        if force is None:
-            force = not env.auto_build
-
         # Determine if we really need to build, or if the output file
         # already exists and nothing has changed.
         if force:
             update_needed = True
-        elif not env.auto_build:
-            # If the user disables the updater, he expects to be able
-            # to manage builds all on his one. Don't even bother wasting
-            # IO ops on an update check. It's also convenient for
-            # deployment scenarios where the media files are on a different
-            # server, and we can't even access the output file.
-            return False
         elif not has_placeholder(self.output) and \
                 not path.exists(env.abspath(self.output)):
             update_needed = True
         else:
-            if env.auto_build:
-                update_needed = env.updater.needs_rebuild(self, env)
-                # _merge_and_apply() is now smart enough to do without
-                # this disable_cache hint, but for now, keep passing it
-                # along if we get the info from the updater.
-                if update_needed==SKIP_CACHE:
-                    disable_cache = True
-            else:
-                update_needed = False
+            update_needed = env.updater.needs_rebuild(self, env) \
+                if env.updater else True
+            # _merge_and_apply() is now smart enough to do without
+            # this disable_cache hint, but for now, keep passing it
+            # along if we get the info from the updater.
+            if update_needed==SKIP_CACHE:
+                disable_cache = True
 
         if not update_needed:
             # We can simply return the existing output file
@@ -560,7 +541,8 @@ class Bundle(object):
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
         # bundle definition, like new source files.
-        env.updater.build_done(self, env)
+        if env.updater:
+            env.updater.build_done(self, env)
 
         return hunk
 
@@ -571,8 +553,7 @@ class Bundle(object):
         If the bundle is a container bundle, then multiple files will be built.
 
         Unless ``force`` is given, the configured ``updater`` will be used to
-        check whether a build is even necessary. However, if ``auto_build``
-        has been disabled, then ``True`` is assumed for ``force``.
+        check whether a build is even necessary.
 
         If ``output`` is a file object, the result will be written to it rather
         than to the filesystem.
@@ -651,13 +632,17 @@ class Bundle(object):
         else:
             raise BundleError('Invalid debug value: %s' % debug)
 
+        # We will output a single url for this bundle unless a) the
+        # configuration tells us to output the source urls
+        # ("supposed_to_merge"), or b) this bundle isn't actually configured to
+        # be built, that is, has no filters and no output target.
         if supposed_to_merge and (self.filters or self.output):
-            # We need to build this bundle, unless a) the configuration
-            # tells us not to ("supposed_to_merge"), or b) this bundle
-            # isn't actually configured to be built, that is, has no
-            # filters and no output target.
-            hunk = self._build(env, extra_filters=extra_filters,
-                               force=False, *args, **kwargs)
+            # With ``auto_build``, build the bundle to make sure the output is
+            # up to date; otherwise, we just assume the file already exists.
+            # (not wasting any IO ops)
+            if env.auto_build:
+                self._build(env, extra_filters=extra_filters, force=False,
+                            *args, **kwargs)
             return [self._make_url(env)]
         else:
             # We either have no files (nothing to build), or we are

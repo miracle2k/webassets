@@ -85,7 +85,7 @@ class ConfigStorage(object):
             self['url_expire'] = bool(value)
             return True
         if key == 'updater':
-            if not value or value == 'never':
+            if value == 'never':
                 self['auto_build'] = False
                 warnings.warn((
                     'The "updater" option no longer can be set to False '
@@ -360,7 +360,6 @@ class BaseEnvironment(object):
     def set_updater(self, updater):
         self.config['updater'] = updater
     def get_updater(self):
-        value = self.config['updater']
         updater = get_updater(self.config['updater'])
         if updater != self.config['updater']:
             self.config['updater'] = updater

@@ -128,9 +128,9 @@ class TestYAML(object):
             environment = self.loader("""
             url: /foo
             directory: something
-            updater: false
+            expire: false
             """).load_environment()
-            assert environment.auto_build == False
+            assert environment.url_expire == False
 
     def test_load_environment_directory_base(self):
         environment = self.loader("""

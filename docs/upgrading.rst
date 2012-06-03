@@ -7,8 +7,8 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
-In 0.7
-~~~~~~
+In Development version
+~~~~~~~~~~~~~~~~~~~~~~
 
 - Some filters now run in debug mode. Specifically, there are two things that
   deserve mention:
@@ -66,6 +66,26 @@ In 0.7
   ``jsmin``), which should be rare.
 
 - Removed the previously deprecated ``rebuild`` alias for the ``build`` command.
+
+- Subtly changed how the ``auto_build`` setting affects the
+  :meth:`Bundle.build` method: It doesn't anymore. Instead, the setting now
+  only works on the level of :meth:`Bundle.urls`. The new behaviour is more
+  consistent, makes more sense, and simplifies the code.
+
+  The main backwards-incompatiblity caused by this is that when
+  ``environment.auto_build=False``, and you are calling ``bundle.build()``
+  without specifying an explicit ``force`` argument, it used to be the case
+  that ``force=True`` was assumed, i.e. the bundle was built without looking
+  at the timestamps to see if a rebuild is necessary. Now, the timestamps will
+  be checked, unless ``force=True`` is explicitly given.
+
+  In case you don't want to pass ``force=True``, you can instead also set
+  the :attr:`Environment.updater` property to ``False``; without an updater
+  to check timestamps, every ``build()`` call will act as if ``force=True``.
+
+  **Note**: This only affects you if you work with the :meth:`Bundle.build`
+  and :meth:`Bundle.url` methods directly. The behavior of the command line
+  interface, or the template tags is not affected.
 
 
 In 0.7
