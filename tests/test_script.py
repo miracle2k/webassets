@@ -24,17 +24,6 @@ def test_script():
     main([])
 
 
-class TestArgParse(TempEnvironmentHelper):
-    """Test the argparse-based implementation of the CLI interface."""
-
-    def test_no_env(self):
-        """[Regression] If no env is hardcoded, nor one given via
-        the commandline, we fail with a clean error.
-        """
-        impl = GenericArgparseImplementation(env=None)
-        assert_raises(CommandError, impl.run_with_argv, ['build'])
-
-
 class MockBundle(Bundle):
     build_called = False
     on_build = None
@@ -172,12 +161,8 @@ class TestBuildCommand(TestCLI):
         assert not self.exists('outA')
 
 
-class TestWatchCommand(TestCLI):
-    """This is a hard one to test.
-
-    We run the watch command in a thread, and rely on its ``loop`` argument
-    to stop the thread again.
-    """
+class TestWatchMixin(object):
+    """Testing the watch command is hard."""
 
     def watch_loop(self):
         # Hooked into the loop of the ``watch`` command.
@@ -192,7 +177,7 @@ class TestWatchCommand(TestCLI):
         self.has_looped = Event()
         t = Thread(target=self.cmd_env.watch, kwargs={'loop': self.watch_loop})
         t.daemon = True   # In case something goes wrong with stopping, this
-                          # will allow the test process to be end nonetheless.
+        # will allow the test process to be end nonetheless.
         t.start()
         self.t = t
         # Wait for first iteration, which will initialize the mtimes. Only
@@ -209,6 +194,14 @@ class TestWatchCommand(TestCLI):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop_watching()
+
+
+class TestWatchCommand(TestWatchMixin, TestCLI):
+    """This is a hard one to test.
+
+    We run the watch command in a thread, and rely on its ``loop`` argument
+    to stop the thread again.
+    """
 
     default_files = {'in': 'foo', 'out': 'bar'}
 
@@ -285,3 +278,46 @@ class TestWatchCommand(TestCLI):
         # Output file has been updated, not due to a change detected by watch,
         # but because watch recognized the initial requirement for a build.
         assert self.get('out') == 'foo'
+
+
+class TestArgparseImpl(TestWatchMixin, TempEnvironmentHelper):
+    """Test the argparse-based implementation of the CLI interface."""
+
+    def test_no_env(self):
+        """[Regression] If no env is hardcoded, nor one given via
+        the commandline, we fail with a clean error.
+        """
+        impl = GenericArgparseImplementation(env=None)
+        assert_raises(CommandError, impl.run_with_argv, ['build'])
+
+    def test_watch_config_file(self):
+        """The watch command has an eye on the config file. This is an
+        extension to the base watch command."""
+        import argparse
+        self.cmd_env = CommandLineEnvironment(self.env, logging)
+        self.cmd_env.commands['watch'] = \
+            GenericArgparseImplementation.WatchCommand(
+                self.cmd_env, argparse.Namespace(config=self.path('config.yml')))
+
+        self.create_files({'in': 'foo'})
+        template = """
+directory: .
+bundles:
+  foo:
+    contents:
+        - in
+    output: %s
+"""
+        self.create_files({'config.yml': template % 'outA'})
+
+        with self:
+            time.sleep(0.1)
+            # Change the config file; this change is detected; we update
+            # the timestamp explicitly or we might not have enough precision
+            self.create_files({'config.yml': template % 'outB'})
+            self.setmtime('config.yml', mod=100)
+            time.sleep(0.2)
+
+        # The second output file has been built
+        assert self.get('outB') == 'foo'
+

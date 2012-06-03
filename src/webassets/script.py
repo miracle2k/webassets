@@ -1,7 +1,11 @@
 import os, sys
 import time
 import logging
-from webassets.version import get_manifest
+
+try:
+    set
+except NameError:
+    from sets import Set as set
 
 try:
     from cStringIO import StringIO
@@ -10,9 +14,10 @@ except ImportError:
 
 from webassets.loaders import PythonLoader, YAMLLoader
 from webassets.bundle import get_all_bundle_files
-from webassets.exceptions import BuildError, ImminentDeprecationWarning
+from webassets.exceptions import BuildError
 from webassets.updater import TimestampUpdater
 from webassets.merge import MemoryHunk
+from webassets.version import get_manifest
 
 
 __all__ = ('CommandError', 'CommandLineEnvironment', 'main')
@@ -207,29 +212,7 @@ class WatchCommand(Command):
             If not specified, the loop wil call ``time.sleep()``.
         """
         # TODO: This should probably also restart when the code changes.
-        _mtimes = {}
-        _win = (sys.platform == "win32")
-        def check_for_changes():
-            # Do not update original mtimes dict right away, so that we detect
-            # all bundle changes if a file is in multiple bundles.
-            _new_mtimes = _mtimes.copy()
-
-            changed_bundles = []
-            for bundle in self.environment:
-                for filename in get_all_bundle_files(bundle):
-                    stat = os.stat(filename)
-                    mtime = stat.st_mtime
-                    if _win:
-                        mtime -= stat.st_ctime
-
-                    if _mtimes.get(filename, mtime) != mtime:
-                        changed_bundles.append(bundle)
-                        _new_mtimes[filename] = mtime
-                        break
-                    _new_mtimes[filename] = mtime
-
-            _mtimes.update(_new_mtimes)
-            return changed_bundles
+        mtimes = {}
 
         try:
             # Before starting to watch for changes, also recognize changes
@@ -242,7 +225,8 @@ class WatchCommand(Command):
                           len(self.environment))
 
             while True:
-                changed_bundles = check_for_changes()
+                changed_bundles = self.check_for_changes(mtimes)
+
                 built = []
                 for bundle in changed_bundles:
                     print "Building bundle: %s ..." % bundle.output,
@@ -255,13 +239,57 @@ class WatchCommand(Command):
                         print "Failed: %s" % e
                     else:
                         print "done"
+
                 if len(built):
                     self.event_handlers['post_build']()
+
                 do_end = loop() if loop else time.sleep(0.1)
                 if do_end:
                     break
         except KeyboardInterrupt:
             pass
+
+    def check_for_changes(self, mtimes):
+        # Do not update original mtimes dict right away, so that we detect
+        # all bundle changes if a file is in multiple bundles.
+        _new_mtimes = mtimes.copy()
+
+        changed_bundles = set()
+        # TODO: An optimization was lost here, skipping a bundle once
+        # a single file has been found to have changed. Bring back.
+        for filename, bundles_to_update in self.yield_files_to_watch():
+            stat = os.stat(filename)
+            mtime = stat.st_mtime
+            if sys.platform == "win32":
+                mtime -= stat.st_ctime
+
+            if mtimes.get(filename, mtime) != mtime:
+                if callable(bundles_to_update):
+                    # Hook for when file has changed
+                    try:
+                        bundles_to_update = bundles_to_update()
+                    except EnvironmentError:
+                        # EnvironmentError is what the hooks is allowed to
+                        # raise for a temporary problem, like an invalid config
+                        import traceback
+                        traceback.print_exc()
+                        # Don't update anything, wait for another change
+                        bundles_to_update = set()
+
+                if bundles_to_update is True:
+                    # Indicates all bundles should be rebuilt for the change
+                    bundles_to_update = set(self.environment)
+                changed_bundles |= bundles_to_update
+                _new_mtimes[filename] = mtime
+            _new_mtimes[filename] = mtime
+
+        mtimes.update(_new_mtimes)
+        return changed_bundles
+
+    def yield_files_to_watch(self):
+        for bundle in self.environment:
+            for filename in get_all_bundle_files(bundle):
+                yield filename, set([bundle])
 
 
 class CleanCommand(Command):
@@ -322,11 +350,18 @@ class CommandLineEnvironment(object):
         command_def = self.DefaultCommands.copy()
         command_def.update(commands or {})
         self.commands = {}
-        for name, cmd_class in command_def.items():
-            if not cmd_class:
+        for name, construct in command_def.items():
+            if not construct:
                 continue
-            self.commands[name] = cmd_class(self)
-            setattr(self, name, self.commands[name])
+            if not isinstance(construct, (list, tuple)):
+                construct = [construct, (), {}]
+            self.commands[name] = construct[0](
+                self, *construct[1], **construct[2])
+
+    def __getattr__(self, item):
+        if item in self.commands:
+            return self.commands[item]
+        raise AttributeError(item)
 
     def invoke(self, command, args):
         """Invoke ``command``, or throw a CommandError.
@@ -360,6 +395,28 @@ class GenericArgparseImplementation(object):
     fact, if that is possible, you are encouraged to do so for greater
     consistency across implementations.
     """
+
+    class WatchCommand(WatchCommand):
+        """Extended watch command that also looks at the config file itself."""
+
+        def __init__(self, cmd_env, argparse_ns):
+            WatchCommand.__init__(self, cmd_env)
+            self.ns = argparse_ns
+
+        def yield_files_to_watch(self):
+            for result in WatchCommand.yield_files_to_watch(self):
+                yield result
+            # If the config changes, rebuild all bundles
+            if self.ns.config:
+                yield self.ns.config, self.reload_config
+
+        def reload_config(self):
+            try:
+                self.cmd.environment = YAMLLoader(self.ns.config).load_environment()
+            except Exception, e:
+                raise EnvironmentError(e)
+            return True
+
 
     def __init__(self, env=None, log=None, prog=None, no_global_options=False):
         try:
@@ -459,7 +516,9 @@ class GenericArgparseImplementation(object):
         return env
 
     def _setup_cmd_env(self, assets_env, log, ns):
-        return CommandLineEnvironment(assets_env, log)
+        return CommandLineEnvironment(assets_env, log, commands={
+            'watch': (GenericArgparseImplementation.WatchCommand, (ns,), {})
+        })
 
     def _prepare_command_args(self, ns):
         # Prepare a dict of arguments cleaned of values that are not
