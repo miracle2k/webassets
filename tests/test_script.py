@@ -9,6 +9,7 @@ from __future__ import with_statement
 import logging
 from threading import Thread, Event
 from nose.tools import assert_raises
+from nose import SkipTest
 import time
 
 from webassets import Bundle
@@ -311,7 +312,12 @@ class TestArgparseImpl(TestWatchMixin, TempEnvironmentHelper):
     def test_watch_config_file(self):
         """The watch command has an eye on the config file. This is an
         extension to the base watch command."""
+        try:
+            import yaml
+        except EnvironmentError:
+            raise SkipTest()
         import argparse
+
         self.cmd_env = CommandLineEnvironment(self.env, logging)
         self.cmd_env.commands['watch'] = \
             GenericArgparseImplementation.WatchCommand(
