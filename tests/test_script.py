@@ -314,7 +314,7 @@ class TestArgparseImpl(TestWatchMixin, TempEnvironmentHelper):
         extension to the base watch command."""
         try:
             import yaml
-        except EnvironmentError:
+        except ImportError:
             raise SkipTest()
         import argparse
 
