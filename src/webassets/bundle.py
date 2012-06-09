@@ -106,7 +106,8 @@ class Bundle(object):
             # wraps child bundles, use the extra values of those.
             result = {}
             for bundle in self.contents:
-                result.update(bundle.extra)
+                if bundle.extra is not None:
+                    result.update(bundle.extra)
             return result
         else:
             return self._extra

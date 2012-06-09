@@ -61,7 +61,7 @@ class YAMLLoader(object):
             filters=data.get('filters', None),
             output=data.get('output', None),
             debug=data.get('debug', None),
-            extra=data.get('extra', None),
+            extra=data.get('extra', {}),
             depends=data.get('depends', None))
         return Bundle(*list(self._yield_bundle_contents(data)), **kwargs)
 

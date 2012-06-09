@@ -140,6 +140,14 @@ class TestYAML(object):
         # The directory is considered relative to the YAML file location.
         assert environment.directory == '/var/www/project/something'
 
+    def test_load_extra_default(self):
+        """[Regression] If no extra= is given, the value defaults to {}"""
+        bundles = self.loader("""
+        foo:
+           output: foo
+        """).load_bundles()
+        assert bundles['foo'].extra == {}
+
 
 class TestPython(object):
     """Test the PythonLoader.

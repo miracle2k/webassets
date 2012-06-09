@@ -43,6 +43,11 @@ class TestBundleConfig(TempEnvironmentHelper):
                       Bundle(extra={'baz': 'qux'})).extra == {
             'foo': 'bar', 'baz': 'qux'}
 
+        # [Regression] None values in child bundles raise no exception
+        bundle = Bundle('foo')
+        bundle.extra = None
+        assert Bundle(bundle).extra == {}
+
     def test_filter_assign(self):
         """Test the different ways we can assign filters to the bundle.
         """
