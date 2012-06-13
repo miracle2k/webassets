@@ -410,7 +410,7 @@ class GenericArgparseImplementation(object):
             for result in WatchCommand.yield_files_to_watch(self):
                 yield result
             # If the config changes, rebuild all bundles
-            if self.ns.config:
+            if getattr(self.ns, 'config', None):
                 yield self.ns.config, self.reload_config
 
         def reload_config(self):

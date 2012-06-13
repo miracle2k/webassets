@@ -12,6 +12,11 @@ from nose.tools import assert_raises
 from nose import SkipTest
 import time
 
+try:
+    import argparse
+except ImportError:
+    raise SkipTest()
+
 from webassets import Bundle
 from webassets.exceptions import BuildError
 from webassets.script import (
@@ -187,6 +192,7 @@ class TestWatchMixin(object):
 
     def stop_watching(self):
         """Stop the watch command thread."""
+        assert self.t.is_alive() # If it has already ended, something is wrong
         self.stopped = True
         self.t.join(1)
 
@@ -316,7 +322,6 @@ class TestArgparseImpl(TestWatchMixin, TempEnvironmentHelper):
             import yaml
         except ImportError:
             raise SkipTest()
-        import argparse
 
         self.cmd_env = CommandLineEnvironment(self.env, logging)
         self.cmd_env.commands['watch'] = \
@@ -344,4 +349,18 @@ bundles:
 
         # The second output file has been built
         assert self.get('outB') == 'foo'
+
+    def test_watch_with_fixed_env_and_no_config(self):
+        """[Regression[ The custom 'watch' command does not break if the
+        CLI is initialized via fixed environment, instead of reading one from
+        a configuration file.
+        """
+        self.cmd_env = CommandLineEnvironment(self.env, logging)
+        self.cmd_env.commands['watch'] = \
+            GenericArgparseImplementation.WatchCommand(
+                self.cmd_env, argparse.Namespace())
+        with self:
+            time.sleep(0.1)
+        # No errors occured
+
 
