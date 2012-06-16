@@ -65,3 +65,7 @@ Get rid of the global parts. The shipped filters would be loaded globally,
 but the filter registry would be maintained by the environment.
 
 See if we can integrate with python-livereload.
+
+A nice feature would be to allow globs overlapping with explicit filenames
+while maintaining order. In other words, ['a', '*', 'z'] takes all files but
+ensures a is first and z is last. 
