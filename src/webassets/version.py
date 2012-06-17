@@ -185,7 +185,7 @@ class Manifest(object):
           example, this hash would need to be recalculated every time a new
           process is started. (*)
 
-    (*) It needs to happen only once per process, because each Bundle is smart
+    (*) It needs to happen only once per process, because Bundles are smart
         enough to cache their own version in memory.
 
     A special case is the ``Environment.auto_build`` option. A manifest
@@ -195,14 +195,7 @@ class Manifest(object):
     rebuild in one process all other processes would continue to serve an old
     version of the file (or attach an old version to the query string).
 
-    It is important for the manifest to read from its data source
-    on every request if autobuild is enabled (at least if you want to support
-    the option). if the data source is
-    cached in the process space, and your app is served by multiple
-    processes, then you might yield old version information, and you might
-    continue to serve the old file, or attach the wrong url expire string.
-
-    A manifest instance is currently only not guaranteed to function correctly
+    A manifest instance is currently not guaranteed to function correctly
     with multiple Environment instances.
     """
 

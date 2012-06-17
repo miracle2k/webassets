@@ -379,9 +379,9 @@ class Bundle(object):
         # for this, try to decide for ourselves. The issue here is that when a
         # bundle has dependencies, like a sass file with includes otherwise not
         # listed in the bundle sources, a change in such an external include
-        # would not influence the cache key, those the use of the cache causing
+        # would not influence the cache key, thus the use of the cache causing
         # such a change to be ignored. For now, we simply do not use the cache
-        # for any bundle with dependencies.  Another option would be to read
+        # for any bundle with dependencies. Another option would be to read
         # the contents of all files declared via "depends", and use them as a
         # cache key modifier. For now I am worried about the performance impact.
         #
