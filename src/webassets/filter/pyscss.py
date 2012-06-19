@@ -51,8 +51,8 @@ class PyScss(Filter):
 
         # This directory PyScss will use when generating new files,
         # like a spritemap. Maybe we should REQUIRE this to be set.
-        scss.ASSETS_ROOT = self.assets_url or self.env.url
-        scss.ASSETS_URL = self.assets_root or self.env.directory
+        scss.ASSETS_ROOT = self.assets_root or self.env.url
+        scss.ASSETS_URL = self.assets_url or self.env.directory
 
     def input(self, _in, out, **kw):
         """Like the original sass filter, this also needs to work as
