@@ -70,15 +70,11 @@ class Compass(Filter):
         object of Ruby libraries to load.
 
     COMPASS_CONFIG
-        An optional dictionary of Compass configuration options. The values
-        are interpreted as strings; if you need full Ruby evaluation, use
-        ``COMPASS_CONFIG_FILE``. By default, paths are relative to
-        ``MEDIA_ROOT``.
-
-    COMPASS_CONFIG_FILE
-        An optional Ruby configuration file for Compass. The contents of this
-        file will be appended to any values in ``COMPASS_CONFIG``, and thus
-        can override those values.
+        An optional dictionary of Compass `configuration options
+        <http://compass-style.org/help/tutorials/configuration-reference/>`_.
+        The values are emitted as strings, and paths are relative to the
+        Environment's ``directory`` by default; include a ``project_path``
+        entry to override this.
     """
 
     name = 'compass'
@@ -87,7 +83,6 @@ class Compass(Filter):
         'compass': ('binary', 'COMPASS_BIN'),
         'plugins': option('COMPASS_PLUGINS', type=list),
         'config': 'COMPASS_CONFIG',
-        'config_file': 'COMPASS_CONFIG_FILE',
     }
 
     def open(self, out, source_path, **kw):
@@ -148,8 +143,8 @@ class Compass(Filter):
             # However, this partly negates the purpose of an utility like
             # image-url() in the first place - you not having to hard code
             # the location of your images. So we allow direct modification of
-            # the configuration file via COMPASS_CONFIG and
-            # COMPASS_CONFIG_FILE (see tickets #36 and #125).
+            # the configuration file via the COMPASS_CONFIG setting (see
+            # tickets #36 and #125).
             #
             # Note that is also the --relative-assets option, which we can't
             # use because it calculates an actual relative path between the
@@ -164,21 +159,13 @@ class Compass(Filter):
                 http_javascripts_dir='',
                 images_dir=self.env.directory,
             )
-            # Append the given config dictionary, if any.
+            # Update with the custom config dictionary, if any.
             if self.config:
                 config.update(self.config)
-            temp_config_file = path.join(tempout, '.config.rb')
-            f = open(temp_config_file, 'w')
+            config_file = path.join(tempout, '.config.rb')
+            f = open(config_file, 'w')
             try:
                 f.write(config.to_string())
-                # Append the given config_file, if any.
-                if self.config_file:
-                    try:
-                        fin = open(path.join(
-                            self.env.directory, self.config_file), 'r')
-                        f.write(fin.read())
-                    finally:
-                        fin.close()
                 f.flush()
             finally:
                 f.close()
@@ -188,7 +175,7 @@ class Compass(Filter):
                 command.extend(('--require', plugin))
             command.extend(['--sass-dir', sassdir,
                             '--css-dir', tempout,
-                            '--config', temp_config_file,
+                            '--config', config_file,
                             '--quiet',
                             '--boring',
                             '--output-style', 'expanded',
