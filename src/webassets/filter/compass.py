@@ -38,6 +38,13 @@ from webassets.filter import Filter, option
 __all__ = ('Compass',)
 
 
+class CompassConfig(dict):
+    """A trivial dict wrapper that can generate a Compass config file."""
+
+    def to_string(self):
+        return '\n'.join(['%s = "%s"' % (k, v) for k, v in self.items()])
+
+
 class Compass(Filter):
     """Converts `Compass <http://compass-style.org/>`_ .sass files to
     CSS.
@@ -61,13 +68,21 @@ class Compass(Filter):
         Compass plugins to use. This is equivalent to the ``--require``
         command line option of the Compass. and expects a Python list
         object of Ruby libraries to load.
+
+    COMPASS_CONFIG
+        An optional dictionary of Compass `configuration options
+        <http://compass-style.org/help/tutorials/configuration-reference/>`_.
+        The values are emitted as strings, and paths are relative to the
+        Environment's ``directory`` by default; include a ``project_path``
+        entry to override this.
     """
 
     name = 'compass'
     max_debug_level = None
     options = {
         'compass': ('binary', 'COMPASS_BIN'),
-        'plugins': option('COMPASS_PLUGINS', type=list)
+        'plugins': option('COMPASS_PLUGINS', type=list),
+        'config': 'COMPASS_CONFIG',
     }
 
     def open(self, out, source_path, **kw):
@@ -125,26 +140,32 @@ class Compass(Filter):
             # words, in Compass, both inline-image("img/test.png) and
             # image-url("img/test.png") will find the same file, and assume it
             # to be {env.directory}/img/test.png.
-            # However, this partly negates the purpose of an utiility like
+            # However, this partly negates the purpose of an utility like
             # image-url() in the first place - you not having to hard code
-            # the location of your images. So a possiblity for the future
-            # might be adding options that allow changing this behavior (see
-            # ticket #36).
+            # the location of your images. So we allow direct modification of
+            # the configuration file via the COMPASS_CONFIG setting (see
+            # tickets #36 and #125).
             #
             # Note that is also the --relative-assets option, which we can't
             # use because it calculates an actual relative path between the
             # image and the css output file, the latter being in a temporary
             # directory in our case.
+            config = CompassConfig(
+                project_path=self.env.directory,
+                http_path=self.env.url,
+                http_images_dir='',
+                http_stylesheets_dir='',
+                http_fonts_dir='',
+                http_javascripts_dir='',
+                images_dir=self.env.directory,
+            )
+            # Update with the custom config dictionary, if any.
+            if self.config:
+                config.update(self.config)
             config_file = path.join(tempout, '.config.rb')
             f = open(config_file, 'w')
             try:
-                f.write("""
-http_path = "%s"
-http_images_dir = ""
-http_stylesheets_dir = ""
-http_fonts_dir = ""
-http_javascripts_dir = ""
-    """ % self.env.url)
+                f.write(config.to_string())
                 f.flush()
             finally:
                 f.close()
@@ -154,7 +175,6 @@ http_javascripts_dir = ""
                 command.extend(('--require', plugin))
             command.extend(['--sass-dir', sassdir,
                             '--css-dir', tempout,
-                            '--image-dir', self.env.directory,
                             '--config', config_file,
                             '--quiet',
                             '--boring',
