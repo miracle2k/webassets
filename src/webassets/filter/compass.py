@@ -29,6 +29,7 @@ See:
 import os, subprocess
 from os import path
 import tempfile
+import types
 import shutil
 
 from webassets.exceptions import FilterError
@@ -42,7 +43,13 @@ class CompassConfig(dict):
     """A trivial dict wrapper that can generate a Compass config file."""
 
     def to_string(self):
-        return '\n'.join(['%s = "%s"' % (k, v) for k, v in self.items()])
+        def string_rep(val):
+            """ Determine the correct string rep for the config file """
+            if type(val) == types.ListType:
+                return str(val)
+            else:
+                return '"%s"' % val
+        return '\n'.join(['%s = %s' % (k, string_rep(v)) for k, v in self.items()])
 
 
 class Compass(Filter):
