@@ -157,7 +157,7 @@ class Compass(Filter):
                 http_stylesheets_dir='',
                 http_fonts_dir='',
                 http_javascripts_dir='',
-                images_dir=self.env.directory,
+                images_dir='',
             )
             # Update with the custom config dictionary, if any.
             if self.config:
