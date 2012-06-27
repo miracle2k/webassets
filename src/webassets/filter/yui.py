@@ -17,15 +17,17 @@ run the ``.jar`` file, or will otherwise assume that ``java`` is
 on the system path.
 """
 
-from webassets.filter import Filter, JavaMixin
+from webassets.filter import JavaTool
 
 
 __all__ = ('YUIJS', 'YUICSS',)
 
 
-class YUIBase(Filter, JavaMixin):
+class YUIBase(JavaTool):
 
     def setup(self):
+        super(YUIBase, self).setup()
+
         try:
             self.jar = self.get_config('YUI_COMPRESSOR_PATH',
                                        what='YUI Compressor')
@@ -43,10 +45,9 @@ class YUIBase(Filter, JavaMixin):
                     "YUI compressor jar."
                 )
 
-        self.java_setup()
-
     def output(self, _in, out, **kw):
-        self.java_run(_in, out, ['--charset=utf-8', '--type=%s' % self.mode])
+        self.subprocess(
+            ['--charset=utf-8', '--type=%s' % self.mode], out, _in)
 
 
 class YUIJS(YUIBase):

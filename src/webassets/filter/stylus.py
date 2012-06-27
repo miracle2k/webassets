@@ -1,12 +1,10 @@
-import subprocess
-
-from webassets.filter import Filter, FilterError, option
+from webassets.filter import ExternalTool, option
 
 
 __all__ = ('Stylus',)
 
 
-class Stylus(Filter):
+class Stylus(ExternalTool):
     """Converts `Stylus <http://learnboost.github.com/stylus/>`_ markup to CSS.
 
     Requires the Stylus executable to be available externally. You can install
@@ -42,12 +40,4 @@ class Stylus(Filter):
             args.extend(('--use', plugin))
         if self.extra_args:
             args.extend(self.extra_args)
-
-        PIPE = subprocess.PIPE
-        proc = subprocess.Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = proc.communicate(_in.read())
-
-        if proc.returncode != 0:
-            raise FilterError('%s: subprocess had error: stderr=%s, code=%s',
-                              self.name, stderr, proc.returncode)
-        out.write(stdout)
+        self.subprocess(args, out, _in)

@@ -513,7 +513,7 @@ class JavaTool(ExternalTool):
         else:
             self.java_bin = 'java'
 
-    def subprocess(self, args, data=None, out=None):
+    def subprocess(self, args, out, data=None):
         ExternalTool.subprocess(
             [self.java_bin, '-jar', self.jar] + args, out, data)
 

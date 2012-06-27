@@ -1,7 +1,6 @@
 from __future__ import with_statement
 
 import os
-import tempfile
 from contextlib import contextmanager
 from StringIO import StringIO
 from nose.tools import assert_raises, assert_equals
