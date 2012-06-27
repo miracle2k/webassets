@@ -4,13 +4,15 @@ import os
 import tempfile
 from contextlib import contextmanager
 from StringIO import StringIO
-from nose.tools import assert_raises, with_setup, assert_equals
+from nose.tools import assert_raises, assert_equals
 from nose import SkipTest
+from mock import patch, Mock, DEFAULT
 from distutils.spawn import find_executable
 import re
-from webassets import Bundle, Environment
+from webassets import Environment
 from webassets.exceptions import FilterError
-from webassets.filter import Filter, get_filter, register_filter, JavaMixin
+from webassets.filter import (
+    Filter, ExternalTool, get_filter, register_filter, JavaMixin)
 from helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
@@ -29,7 +31,7 @@ def os_environ_sandbox():
         os.environ.update(backup)
 
 
-class TestFilter(object):
+class TestFilterBaseClass(object):
     """Test the API ``Filter`` provides to descendants.
     """
 
@@ -169,6 +171,201 @@ class TestFilter(object):
            assert_raises(FilterError, f1.input, StringIO(), StringIO())
         finally:
            os.unlink(f1.jar)
+
+
+class TestExternalToolClass(object):
+    """Test the API ``Filter`` provides to descendants.
+    """
+
+    class MockTool(ExternalTool):
+        method = None
+        def subprocess(self, argv, out, data=None):
+            self.__class__.result = \
+                argv, data.getvalue() if data is not None else data
+
+    def setup(self):
+        self.patcher = patch('subprocess.Popen')
+        self.popen = self.patcher.start()
+        self.popen.return_value = Mock()
+        self.popen.return_value.communicate = Mock()
+
+    def teardown(self):
+        self.patcher.stop()
+
+    def test_argv_variables(self):
+        """In argv, a number of placeholders can be used. Ensure they work."""
+        class Filter(self.MockTool):
+            argv = [
+                # The filter instance
+                '{self.__class__}',
+                # Keyword and positional args to filter method
+                '{kwarg}', '{0.len}',
+                # Special placeholders that are passed through
+                '{input}', '{output}']
+        Filter().output(StringIO('content'), StringIO(), kwarg='value')
+        print Filter.result
+        assert Filter.result == (
+            ["<class 'tests.test_filters.Filter'>", 'value', '7',
+             '{input}', '{output}'],
+            'content')
+
+    def test_method_input(self):
+        """The method=input."""
+        class Filter(self.MockTool):
+            method = 'input'
+        assert getattr(Filter, 'output') is None
+        assert getattr(Filter, 'open') is None
+        Filter().input(StringIO('bla'), StringIO())
+        assert Filter.result == ([], 'bla')
+
+    def test_method_output(self):
+        """The method=output."""
+        class Filter(self.MockTool):
+            method = 'output'
+        assert getattr(Filter, 'input') is None
+        assert getattr(Filter, 'open') is None
+        Filter().output(StringIO('bla'), StringIO())
+        assert Filter.result == ([], 'bla')
+
+    def test_method_open(self):
+        """The method=open."""
+        class Filter(self.MockTool):
+            method = 'open'
+        assert getattr(Filter, 'output') is None
+        assert getattr(Filter, 'input') is None
+        Filter().open(StringIO(), 'filename')
+        assert Filter.result == ([], None)
+
+    def test_method_invalid(self):
+        assert_raises(AssertionError,
+            type, 'Filter', (ExternalTool,), {'method': 'foobar'})
+
+    def test_no_method(self):
+        """When no method is given."""
+        # If no method and no argv is given, no method will be implemented
+        class Filter(ExternalTool):
+            pass
+        assert getattr(Filter, 'output') is None
+        assert getattr(Filter, 'open') is None
+        assert getattr(Filter, 'input') is None
+
+        # If no method, but argv is given, the output  method will be
+        # implemented by default.
+        class Filter(ExternalTool):
+            argv = ['app']
+        assert not getattr(Filter, 'output') is None
+        assert getattr(Filter, 'open') is None
+        assert getattr(Filter, 'input') is None
+
+        # If method is set to None, all method will remain available
+        class Filter(ExternalTool):
+            method = None
+        assert not getattr(Filter, 'output') is None
+        assert not getattr(Filter, 'open') is None
+        assert not getattr(Filter, 'input') is None
+
+    def test_subsubclass(self):
+        """Test subclassing a class based on ExternalTool again.
+
+        The ``method`` argument no longer has any effect if already used
+        in parent class.
+        """
+        class Baseclass(ExternalTool):
+            method = 'open'
+        class Subclass(Baseclass):
+            method = 'input'
+        assert getattr(Baseclass, 'output') is None
+        assert getattr(Baseclass, 'input') is None
+        assert not getattr(Baseclass, 'open') is None
+        # No all is None - very useless.
+        assert getattr(Subclass, 'output') is None
+        assert getattr(Subclass, 'input') is None
+        assert not getattr(Subclass, 'open') is None
+
+    def test_method_no_override(self):
+        """A subclass may implement specific methods itself; if it
+        does, the base class must not override those with None."""
+        class Filter(self.MockTool):
+            method = 'open'
+            def input(self, _in, out, **kw):
+                pass
+        assert not getattr(Filter, 'input') is None
+        assert getattr(Filter, 'output') is None
+
+    def test_subprocess(self):
+        """Instead of the ``argv`` shortcut, subclasses can also use the
+        ``subprocess`` helper manually.
+        """
+
+        class Filter(ExternalTool): pass
+
+        # Without stdin data
+        self.popen.return_value.returncode = 0
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        out = StringIO()
+        Filter.subprocess(['test'], out)
+        assert out.getvalue() == 'stdout'
+        self.popen.return_value.communicate.assert_called_with(None)
+
+        # With stdin data
+        self.popen.reset_mock()
+        self.popen.return_value.returncode = 0
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        out = StringIO()
+        Filter.subprocess(['test'], out, data='data')
+        assert out.getvalue() == 'stdout'
+        self.popen.return_value.communicate.assert_called_with('data')
+
+        # With error
+        self.popen.return_value.returncode = 1
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        assert_raises(FilterError, Filter.subprocess, ['test'], StringIO())
+
+    def test_input_var(self):
+        """Test {input} variable."""
+        class Filter(ExternalTool): pass
+        self.popen.return_value.returncode = 0
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+
+        # {input} creates an input file
+        intercepted = {}
+        def check_input_file(argv,  **kw):
+            intercepted['filename'] = argv[0]
+            with open(argv[0], 'r') as f:
+                # File has been generated with input data
+                assert f.read() == 'foo'
+            return DEFAULT
+        self.popen.side_effect = check_input_file
+        Filter.subprocess(['{input}'], StringIO(), data='foo')
+        # No stdin was passed
+        self.popen.return_value.communicate.assert_called_with(None)
+        # File has been deleted
+        assert not os.path.exists(intercepted['filename'])
+
+        # {input} requires input data
+        assert_raises(ValueError, Filter.subprocess, ['{input}'], StringIO())
+
+    def test_output_var(self):
+        class Filter(ExternalTool): pass
+        self.popen.return_value.returncode = 0
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+
+        # {input} creates an input file
+        intercepted = {}
+        def fake_output_file(argv,  **kw):
+            intercepted['filename'] = argv[0]
+            with open(argv[0], 'w') as f:
+                f.write('bat')
+            return DEFAULT
+        self.popen.side_effect = fake_output_file
+        # We get the result we generated in the hook above
+        out = StringIO()
+        Filter.subprocess(['{output}'], out)
+        assert out.getvalue() == 'bat'
+        # File has been deleted
+        assert not os.path.exists(intercepted['filename'])
+
+
 
 
 def test_register_filter():
