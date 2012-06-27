@@ -203,4 +203,4 @@ Other
 ``spritemapper``
 ~~~~~~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.spritemapper.SpritemapperFilter
+.. autoclass:: webassets.filter.spritemapper.Spritemapper

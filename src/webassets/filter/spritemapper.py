@@ -36,10 +36,10 @@ else:
             yield CSSParser.read_file(self.data)
 
 
-__all__ = ('SpritemapperFilter',)
+__all__ = ('Spritemapper',)
 
 
-class SpritemapperFilter(Filter):
+class Spritemapper(Filter):
     """
     Generate CSS spritemaps using
     `Spritemapper <http://yostudios.github.com/Spritemapper/>`_, a Python
