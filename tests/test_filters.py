@@ -12,7 +12,7 @@ import re
 from webassets import Environment
 from webassets.exceptions import FilterError
 from webassets.filter import (
-    Filter, ExternalTool, get_filter, register_filter, JavaMixin)
+    Filter, ExternalTool, get_filter, register_filter)
 from helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
@@ -150,27 +150,6 @@ class TestFilterBaseClass(object):
                 return 'foo'
         g = AnotherFilter()
         assert f1 != g
-
-    def test_java_mixin_error_handling(self):
-        """The mixin class for java-based external tools.
-
-        Test the codepath that deals with errors raised by the
-        external tool.
-        """
-        class TestFilter(Filter, JavaMixin):
-            def setup(self):
-                # This is not going to be a valid jar
-                self.jar = tempfile.mkstemp()[1]
-                self.java_setup()
-            def input(self, _in, out, *a, **kw):
-                self.java_run(_in, out, [])
-        # Run the filter, which will result in an error
-        try:
-           f1 = TestFilter()
-           f1.setup()
-           assert_raises(FilterError, f1.input, StringIO(), StringIO())
-        finally:
-           os.unlink(f1.jar)
 
 
 class TestExternalToolClass(object):

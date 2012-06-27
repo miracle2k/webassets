@@ -92,6 +92,10 @@ In Development version
   :class:`CommandLineEnvironment` to override individual command methods like
   :meth:`CommandLineEnvironment.build`, you need to update your code.
 
+- The class:`JavaMixin` helper class to implement Java-based filters has been
+  removed, and in it's stead there is now a :class:`JavaTool` base class that
+  can be used.
+
 
 In 0.7
 ~~~~~~

@@ -14,7 +14,8 @@ from webassets.exceptions import FilterError
 from webassets.importlib import import_module
 
 
-__all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',)
+__all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',
+           'ExternalTool', 'JavaTool')
 
 
 def freezedicts(obj):
@@ -489,35 +490,32 @@ class ExternalTool(Filter):
                 os.unlink(input_file.filename)
 
 
-class JavaMixin(object):
-    """Mixin for filters which use Java ARchives (JARs) to perform tasks.
+class JavaTool(ExternalTool):
+    """Helper class for filters which are implemented as Java ARchives (JARs).
+
+    The subclass is expected to define a ``jar`` attribute in :meth:`setup`.
+
+    If the ``argv`` definition is used, it is expected to contain only the
+    arguments to be passed to the Java tool. The path to the java binary and
+    the jar file are added by the base class.
     """
 
-    def java_setup(self):
+    method = None
+
+    def setup(self):
+        super(JavaTool, self).setup()
+
         # We can reasonably expect that java is just on the path, so
         # don't require it, but hope for the best.
         path = self.get_config(env='JAVA_HOME', require=False)
         if path is not None:
-            self.java = os.path.join(path, 'bin/java')
+            self.java_bin = os.path.join(path, 'bin/java')
         else:
-            self.java = 'java'
+            self.java_bin = 'java'
 
-    def java_run(self, _in, out, args):
-        proc = subprocess.Popen(
-            [self.java, '-jar', self.jar] + args,
-            # we cannot use the in/out streams directly, as they might be
-            # StringIO objects (which are not supported by subprocess)
-            stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        stdout, stderr = proc.communicate(_in.read())
-        if proc.returncode:
-            raise FilterError('%s: subprocess returned a '
-                'non-success result code: %s, stdout=%s, stderr=%s' % (
-                     self.name, proc.returncode, stdout, stderr))
-            # stderr contains error messages
-        else:
-            out.write(stdout)
+    def subprocess(self, args, data=None, out=None):
+        ExternalTool.subprocess(
+            [self.java_bin, '-jar', self.jar] + args, out, data)
 
 
 _FILTERS = {}
