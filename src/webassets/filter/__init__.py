@@ -2,6 +2,8 @@
 contents (think minification, compression).
 """
 
+from __future__ import with_statement
+
 import os, subprocess
 import inspect
 import shlex
@@ -404,21 +406,27 @@ class ExternalTool(Filter):
         self._evaluate([_in, out], kw, out, _in)
 
     def _evaluate(self, args, kwargs, out, data=None):
-        # Add 'self' to the keywords available in format strings
-        kwargs = kwargs.copy()
-        kwargs.update({'self': self})
+        # For now, still support Python 2.5, but the format strings in argv
+        # are not supported (making the feature mostly useless). For this
+        # reason none of the builtin filters is using argv currently.
+        if hasattr(str, 'format'):
+            # Add 'self' to the keywords available in format strings
+            kwargs = kwargs.copy()
+            kwargs.update({'self': self})
 
-        # Resolve all the format strings in argv
-        def replace(arg):
-            try:
-                return arg.format(*args, **kwargs)
-            except KeyError, e:
-                # Treat "output" and "input" variables special, they
-                # are dealt with in :meth:`subprocess` instead.
-                if e.args[0] not in ('input', 'output'):
-                    raise
-                return arg
-        argv = map(replace, self.argv)
+            # Resolve all the format strings in argv
+            def replace(arg):
+                try:
+                    return arg.format(*args, **kwargs)
+                except KeyError, e:
+                    # Treat "output" and "input" variables special, they
+                    # are dealt with in :meth:`subprocess` instead.
+                    if e.args[0] not in ('input', 'output'):
+                        raise
+                    return arg
+            argv = map(replace, self.argv)
+        else:
+            argv = self.argv
         self.subprocess(argv, out, data=data)
 
     @classmethod
@@ -450,8 +458,9 @@ class ExternalTool(Filter):
         # Replace input and output placeholders
         input_file = tempfile_on_demand()
         output_file = tempfile_on_demand()
-        argv = map(lambda item:
-            item.format(input=input_file, output=output_file), argv)
+        if hasattr(str, 'format'):   # Support Python 2.5 without the feature
+            argv = map(lambda item:
+                item.format(input=input_file, output=output_file), argv)
 
         try:
             if input_file.created:

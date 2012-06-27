@@ -162,6 +162,9 @@ class TestExternalToolClass(object):
                 argv, data.getvalue() if data is not None else data
 
     def setup(self):
+        if not hasattr(str, 'format'):
+            # A large part of this functionality is not available on Python 2.5
+            raise SkipTest()
         self.patcher = patch('subprocess.Popen')
         self.popen = self.patcher.start()
         self.popen.return_value = Mock()
