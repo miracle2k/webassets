@@ -1,12 +1,10 @@
-import subprocess
-from webassets.exceptions import FilterError
-from webassets.filter import Filter
+from webassets.filter import ExternalTool
 
 
 __all__ = ('UglifyJS',)
 
 
-class UglifyJS(Filter):
+class UglifyJS(ExternalTool):
     """
     Minify Javascript using `UglifyJS <https://github.com/mishoo/UglifyJS/>`_.
 
@@ -28,14 +26,4 @@ class UglifyJS(Filter):
         args = [self.binary or 'uglifyjs']
         if self.extra_args:
             args.extend(self.extra_args)
-        proc = subprocess.Popen(
-            args, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        stdout, stderr = proc.communicate(_in.read())
-
-        if proc.returncode != 0:
-            raise FilterError(('uglifyjs: subprocess had error: stderr=%s, '+
-                               'stdout=%s, returncode=%s') % (
-                                    stderr, stdout, proc.returncode))
-        out.write(stdout)
+        self.subprocess(args, out, _in)

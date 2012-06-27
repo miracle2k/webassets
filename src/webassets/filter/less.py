@@ -1,12 +1,10 @@
 from __future__ import with_statement
 
-import subprocess
-from webassets.filter import Filter
-from webassets.exceptions import FilterError
+from webassets.filter import ExternalTool
 from webassets.utils import working_directory
 
 
-class Less(Filter):
+class Less(ExternalTool):
     """Converts `less <http://lesscss.org/>`_ markup to real CSS.
 
     This depends on the NodeJS implementation of less, installable via npm.
@@ -82,21 +80,4 @@ class Less(Filter):
     def input(self, in_, out, source_path, **kw):
         # Set working directory to the source file so that includes are found
         with working_directory(filename=source_path):
-            proc = subprocess.Popen(
-                [self.less or 'lessc', '-'],
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE,
-                stdin  = subprocess.PIPE
-            )
-            stdout, stderr = proc.communicate(in_.read())
-
-            # At the moment (2011-12-09), there's a bug in the current version of
-            # Less that always prints an error to stdout so the returncode is the
-            # only way of determining if Less is actually having a compilation
-            # error.
-            if proc.returncode != 0:
-                raise FilterError(('less: subprocess had error: stderr=%s, ' +
-                                   'stdout=%s, returncode=%s') % (
-                    stderr, stdout, proc.returncode))
-
-            out.write(stdout)
+            self.subprocess([self.less or 'lessc', '-'], out, in_)

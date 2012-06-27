@@ -1,12 +1,10 @@
-import subprocess
-from webassets.exceptions import FilterError
-from webassets.filter import Filter
+from webassets.filter import ExternalTool
 
 
 __all__ = ('CleanCSS',)
 
 
-class CleanCSS(Filter):
+class CleanCSS(ExternalTool):
     """
     Minify css using `Clean-css <https://github.com/GoalSmashers/clean-css/>`_.
 
@@ -21,15 +19,4 @@ class CleanCSS(Filter):
     }
 
     def output(self, _in, out, **kw):
-        args = [self.binary or 'cleancss']
-        proc = subprocess.Popen(
-            args, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        stdout, stderr = proc.communicate(_in.read())
-
-        if proc.returncode != 0:
-            raise FilterError(('cleancss: subprocess had error: stderr=%s, '+
-                               'stdout=%s, returncode=%s') % (
-                                    stderr, stdout, proc.returncode))
-        out.write(stdout)
+        self.subprocess([self.binary or 'cleancss'], out, _in)
