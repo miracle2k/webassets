@@ -198,3 +198,9 @@ Other
 
 .. autoclass:: webassets.filter.gzip.GZip
 
+
+
+``spritemapper``
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.spritemapper.SpritemapperFilter
