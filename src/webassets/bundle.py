@@ -650,13 +650,20 @@ class Bundle(object):
             # in debug mode: Instead of building the bundle, we
             # source all contents instead.
             urls = []
-            for c, _ in self.resolve_contents(env):
-                if isinstance(c, Bundle):
-                    urls.extend(c.urls(env, *args, **kwargs))
-                elif is_url(c):
-                    urls.append(c)
+            for item, _ in self.resolve_contents(env):
+                if isinstance(item, Bundle):
+                    urls.extend(item.urls(env, *args, **kwargs))
+                elif is_url(item):
+                    urls.append(item)
                 else:
-                    urls.append(env.absurl(c))
+                    if isinstance(item, basestring) and path.isabs(item):
+                        # We cannot generate a url to a path outside the
+                        # media directory. So if that happens, we copy the
+                        # file into the media directory.
+                        target = pull_external(env, item)
+                        urls.append(env.absurl(target))
+                    else:
+                        urls.append(env.absurl(item))
             return urls
 
     def urls(self, env=None, *args, **kwargs):
@@ -674,6 +681,32 @@ class Bundle(object):
         for bundle, extra_filters in self.iterbuild(env):
             urls.extend(bundle._urls(env, extra_filters, *args, **kwargs))
         return urls
+
+
+def pull_external(env, filename):
+    """Helper which will pull ``filename`` into
+    :attr:`Environment.directory`, for the purposes of being able to
+    generate a url for it.
+    """
+    assert path.isabs(filename)
+    # Generate the target filename. Use a hash to keep it unique and short,
+    # but attach the base filename for readability.
+    # The bit-shifting rids us of ugly leading - characters.
+    hashed_filename = hash(filename) & ((1<<64)-1)
+    rel_path = path.join('webassets-external',
+        "%s_%s" % (hashed_filename, path.basename(filename)))
+    full_path = path.join(env.directory, rel_path)
+
+    # Copy the file if necessary
+    if path.isfile(full_path):
+        gs = lambda p: os.stat(p).st_mtime
+        if gs(full_path) > gs(filename):
+            return rel_path
+    directory = path.dirname(full_path)
+    if not path.exists(directory):
+        os.makedirs(directory)
+    FileHunk(filename).save(full_path)
+    return rel_path
 
 
 def get_all_bundle_files(bundle, env=None):

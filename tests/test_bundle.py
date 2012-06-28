@@ -4,7 +4,7 @@ from os import path
 import urllib2
 from StringIO import StringIO
 
-from nose.tools import assert_raises, assert_equals
+from nose.tools import assert_raises, assert_equals, assert_regexp_matches
 from nose import SkipTest
 
 from webassets import Bundle
@@ -16,7 +16,8 @@ from webassets.updater import TimestampUpdater, BaseUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache
 from webassets.version import Manifest, Version, VersionIndeterminableError
 
-from helpers import TempEnvironmentHelper, noop, assert_raises_regexp
+from helpers import (
+    TempEnvironmentHelper, TempDirHelper, noop, assert_raises_regexp)
 
 
 class TestBundleConfig(TempEnvironmentHelper):
@@ -886,6 +887,18 @@ class TestUrlsVarious(BaseUrlsTester):
         bundle.debug = True
         assert bundle.urls() == ['/a']
         assert len(self.build_called) == 1  # no change
+
+    def test_external_refs(self):
+        """If a bundle contains absolute paths outside of the
+        media directory, to generate a url they are copied in.
+        """
+        self.env.debug = True
+        with TempDirHelper() as h:
+            h.create_files(['foo.css'])
+            bundle = self.mkbundle(h.path('foo.css'))
+            urls = bundle.urls()
+            assert len(urls) == 1
+            assert_regexp_matches(urls[0], r'/webassets-external/\d*_foo.css')
 
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):
