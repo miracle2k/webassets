@@ -388,10 +388,7 @@ class Bundle(object):
         # Note: This decision only affects the current bundle instance. Even if
         # dependencies cause us to ignore the cache for this bundle instance,
         # child bundles may still use it!
-        if disable_cache is None:
-            actually_skip_cache_here = bool(self.resolve_depends(env))
-        else:
-            actually_skip_cache_here = disable_cache
+        actually_skip_cache_here = disable_cache or bool(self.resolve_depends(env))
 
         filtertool = FilterTool(
             env.cache, no_cache_read=actually_skip_cache_here,
@@ -491,9 +488,6 @@ class Bundle(object):
         else:
             update_needed = env.updater.needs_rebuild(self, env) \
                 if env.updater else True
-            # _merge_and_apply() is now smart enough to do without
-            # this disable_cache hint, but for now, keep passing it
-            # along if we get the info from the updater.
             if update_needed==SKIP_CACHE:
                 disable_cache = True
 
