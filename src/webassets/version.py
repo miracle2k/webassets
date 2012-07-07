@@ -215,7 +215,7 @@ get_manifest = Manifest.resolve
 class FileManifest(Manifest):
     """Stores version data in a single file.
 
-    Uses Python's pickle module to stores a dict data structure. You should
+    Uses Python's pickle module to store a dict data structure. You should
     only use this when the manifest is read-only in production, since it is
     not multi-process safe. If you use ``auto_build`` in production, use
     ``CacheManifest`` instead.

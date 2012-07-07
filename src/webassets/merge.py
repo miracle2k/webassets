@@ -52,6 +52,10 @@ class BaseHunk(object):
     def data(self):
         raise NotImplementedError()
 
+    def save(self, filename):
+        with open(filename, 'wb') as f:
+            f.write(self.data())
+
 
 class FileHunk(BaseHunk):
     """Exposes a single file through as a hunk.
