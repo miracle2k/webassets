@@ -4,7 +4,7 @@ from os import path
 import urllib2
 from StringIO import StringIO
 
-from nose.tools import assert_raises, assert_equals, assert_regexp_matches
+from nose.tools import assert_raises, assert_equals
 from nose import SkipTest
 
 from webassets import Bundle
@@ -892,6 +892,10 @@ class TestUrlsVarious(BaseUrlsTester):
         """If a bundle contains absolute paths outside of the
         media directory, to generate a url they are copied in.
         """
+        try:
+            from nose.tools import assert_regexp_matches
+        except ImportError:
+            raise SkipTest("Assertion method only present in 2.7+")
         self.env.debug = True
         with TempDirHelper() as h:
             h.create_files(['foo.css'])
