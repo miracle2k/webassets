@@ -17,6 +17,8 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="django-assets" />
+    <orderEntry type="module" module-name="flask-assets" />
   </component>
 </module>
 
