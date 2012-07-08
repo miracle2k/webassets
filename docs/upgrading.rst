@@ -10,6 +10,10 @@ incompatibility. The ``webassets`` API is not stable yet.
 In Development version
 ~~~~~~~~~~~~~~~~~~~~~~
 
+- **``django_assets`` is no longer included!**
+  You need to install it's package separately. See the current
+  `development version <https://github.com/miracle2k/django-assets>`_.
+
 - Some filters now run in debug mode. Specifically, there are two things that
   deserve mention:
 
@@ -152,7 +156,7 @@ Other changes:
 - ``django_assets`` no longer tries to load a global ``assets.py`` module (it
   will still find bundles defined in application-level ``assets.py`` files). If
   you want to define bundles in other modules, you now need to list those
-  explicitly in the :ref:`ASSETS_MODULES <django-setting-modules>` setting.
+  explicitly in the :ref:`ASSETS_MODULES <django:django-setting-modules>` setting.
 
 In 0.6
 ~~~~~~
@@ -209,7 +213,7 @@ In 0.1
   setting this to ``True`` meant *enable the django-assets debugging mode*.
   However, ``django-assets`` now follows the default Django ``DEBUG``
   setting, and ``ASSETS_DEBUG`` should be understood as meaning *how to
-  behave when in debug mode*. See :ref:`ASSETS_DEBUG <django-setting-debug>`
+  behave when in debug mode*. See :ref:`ASSETS_DEBUG <django:django-setting-debug>`
   for more information.
 - ``ASSETS_AUTO_CREATE`` now causes an error to be thrown if due it it
   being disabled a file cannot be created. Previously, it caused

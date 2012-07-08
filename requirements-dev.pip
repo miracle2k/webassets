@@ -23,9 +23,6 @@ http://michael.elsdoerfer.name/rjsmin/rjsmin-1.0.1-webassets.tar.gz
 # cssprefixer
 #cssprefixer
 
-# Necessary for autodoc to build documentation regarding django-assets.
-Django
-
 # The following Ruby gems are required for some filter tests to run:
 # sudo gem install sass
 # sudo gem install compass

@@ -137,9 +137,8 @@ Further, they usually allow you to define bundles on-the-fly, so you can
 reference your assets directly from within your templates, rather than
 predefining them in code.
 
-For example, there are template tags for both :doc:`Django </django/index>`
-and :doc:`Jinja2 </integration/jinja2>`, which allow you do something like
-this:
+For example, there is a template tag for :doc:`Jinja2 </integration/jinja2>`,
+which allows you do something like this:
 
 .. code-block:: jinja
 

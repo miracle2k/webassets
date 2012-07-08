@@ -86,7 +86,7 @@ always act as output filters.
 The easy way
 ------------
 
-This works by subclassing ``django.filter.Filter``. In doing so, you
+This works by subclassing ``webassets.filter.Filter``. In doing so, you
 need to write a bit more code, but you'll be able to enjoy a few perks.
 
 The ``noop`` filter from the previous example, written as a class, would
@@ -136,7 +136,7 @@ the filter. First, you need to register the class with the system though:
 
 .. code-block:: python
 
-    from django_assets.filter import register_filter
+    from webassets.filter import register_filter
     register_filter(NoopFilter)
 
 After that, you can use the filter like you would any of the built-in ones:
@@ -248,7 +248,7 @@ not enough, you can implement custom options yourself using the
         def setup(self):
             self.bin = self.get_config('BINARY_PATH')
 
-This will check first the Django settings, then the environment for
+This will check first the configuration, then the environment for
 ``BINARY_PATH``, and raise an exception if nothing is found.
 
 ``get_config()`` allows you to specify different names for the setting
@@ -287,5 +287,5 @@ automatically in any case.
 More?
 -----
 
-You can have a look inside the ``django_assets.filter`` module source
+You can have a look inside the ``webassets.filter`` module source
 code to see a large number of example filters.

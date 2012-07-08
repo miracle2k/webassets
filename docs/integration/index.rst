@@ -10,7 +10,7 @@ and libraries.
 .. toctree::
    :maxdepth: 1
 
-   Django <../django/index>
+   Django <http://elsdoerfer.name/docs/django-assets/>
    Flask-Assets <http://elsdoerfer.name/docs/flask-assets/>
    jinja2
    pyramid <https://github.com/sontek/pyramid_webassets>

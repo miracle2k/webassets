@@ -10,7 +10,7 @@ It also allows you to create bundles on-the-fly, thus making it possible
 to define your assets entirly within your templates.
 
 If you are using Jinja2 inside of Django, see
-:doc:`this page </django/jinja2>`.
+:django:`this page <jinja2>`.
 
 
 Setting up the extension

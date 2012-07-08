@@ -8,10 +8,8 @@ except ImportError:
     cmdclass = {}
 
 
-# Figure out the version; this could be done by importing the
-# module, though that requires Django to be already installed,
-# which may not be the case when processing a pip requirements
-# file, for example.
+# Figure out the version. This could also be done by importing the
+# module, the parsing takes place for historical reasons.
 import re
 here = os.path.dirname(os.path.abspath(__file__))
 version_re = re.compile(
