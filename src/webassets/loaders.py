@@ -194,7 +194,8 @@ class YAMLLoader(object):
             # path of the YAML file, if we know it.
             if filename and 'directory' in env.config:
                 env.directory = path.normpath(
-                    path.join(path.dirname(filename), env.directory))
+                    path.join(path.dirname(filename),
+                              env.config['directory']))
 
             # Load custom config options
             if 'config' in obj:

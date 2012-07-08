@@ -1,5 +1,6 @@
 from __future__ import with_statement
 
+import os
 from nose.tools import assert_raises, with_setup
 
 from webassets import Environment
@@ -94,8 +95,9 @@ class TestEnvApi(object):
 
         # Test constructing the environment with values for url and directory
         env = Environment('foo', 'bar')
-        assert env.directory == 'foo'
         assert env.url == 'bar'
+        assert env.config['directory'] == 'foo'
+        assert env.directory == os.path.join(os.getcwd(), 'foo')
 
 
 class TestEnvConfig(object):

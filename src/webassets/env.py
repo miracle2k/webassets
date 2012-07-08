@@ -2,7 +2,14 @@ from os import path
 import urlparse
 from itertools import chain
 import warnings
-from bundle import Bundle
+try:
+    import glob2 as glob
+    from glob import has_magic
+except ImportError:
+    import glob
+    from glob import has_magic
+
+from bundle import Bundle, is_url
 from cache import get_cache
 from version import get_versioner, get_manifest
 from updater import get_updater
@@ -107,6 +114,106 @@ class ConfigStorage(object):
                     ImminentDeprecationWarning)
 
 
+class Resolver(object):
+    """Responsible for resolving user-specified :class:`Bundle`
+    contents to actual files, as well as to urls.
+
+    In this base version, this is essentially responsible for searching
+    the load path for the queried file.
+
+    A custom implementation of this class is tremendously useful when
+    integrating with frameworks, which usually have some system to
+    spread static files across applications or modules.
+
+    The class is designed for maximum extensibility.
+    """
+
+    def __init__(self, env):
+        self.env = env
+
+    def _glob(self, basedir, item):
+        expr = path.join(basedir, item)
+        for filename in glob.iglob(expr):
+            if path.isdir(filename):
+                continue
+            yield filename
+
+    def _search_env_directory(self, item):
+        expr = path.join(self.env.directory, item)
+        if has_magic(expr):
+            # Note: No error if glob returns an empty list
+            return list(self._glob(self.env.directory, item))
+        else:
+            if path.exists(expr):
+                return expr
+            raise IOError("'%s' does not exist" % expr)
+
+    def _search_for_source(self, item):
+        return self._search_env_directory(item)
+
+    def resolve_source(self, item):
+        """Given ``item`` from a Bundle's contents, return an absolute
+        filesystem path.
+
+        ``item`` may include glob syntax, in which a list of paths
+        should be returned.
+
+        .. note::
+            This is also allowed to return urls and bundles (or in fact
+            anything else the calling :class:`Bundle` instance may be
+            able to handle.
+        """
+
+        # Pass through some things unscathed
+        if not isinstance(item, basestring):
+            return item
+        if is_url(item) or path.isabs(item):
+            return item
+
+        return self._search_for_source(item)
+
+    def resolve_output_to_path(self, target, bundle):
+        """Given ``target``, return the absolute path to which the
+        output file should be written.
+
+        If a version-placeholder is used, it is still unresolved at
+        this point.
+        """
+        return path.join(self.env.directory, target)
+
+    def resolve_source_to_url(self, filepath, item):
+        """Given the absolute path in ``filepath``, return the url
+        through which it is to be referenced.
+
+        The method is also passed the original ``item`` that resolved
+        to the given ``path``.
+
+        It should raise a ``ValueError`` if a proper url cannot be
+        determined.
+        """
+        basepath = path.normpath(self.env.directory)
+        if path.normpath(filepath).startswith(basepath):
+            # File is within env.directory
+            rel_path = filepath[len(basepath):]
+            return self.resolve_output_to_url(rel_path)
+        raise ValueError()
+
+    def resolve_output_to_url(self, target):
+        """Given the output ``target``, return the url through which
+        the output file can be referenced.
+
+        This is different from :meth:`resolve_source_to_url` in that
+        the absolute filesystem path is not available, for this step
+        needs to happen without filesystem access, for optimal
+        performance.
+        """
+        # Output file are always written to env.directory, thus we
+        # can simply base all values off of env.url.
+        root = self.env.url
+        root += root[-1:] != '/' and '/' or ''
+        return urlparse.urljoin(root, target)
+
+
 # Those are config keys used by the environment. Framework-wrappers may
 # find this list useful if they desire to prefix those settings. For example,
 # in Django, it would be ASSETS_DEBUG. Other config keys are encouraged to use
@@ -123,11 +230,13 @@ class BaseEnvironment(object):
     """
 
     config_storage_class = None
+    resolver_class = Resolver
 
     def __init__(self, **config):
         self._named_bundles = {}
         self._anon_bundles = []
         self._config = self.config_storage_class(self)
+        self.resolver = self.resolver_class(self)
 
         # directory, url currently do not have default values
         #
@@ -404,7 +513,7 @@ class BaseEnvironment(object):
         self.config['directory'] = directory
     def _get_directory(self):
         try:
-            return self.config['directory']
+            return path.abspath(self.config['directory'])
         except KeyError:
             raise EnvironmentError(
                 'The environment has no "directory" configured')
@@ -432,41 +541,6 @@ class BaseEnvironment(object):
     def _get_expire(self):
         return self.config['expire']
     expire = property(_get_expire, _set_expire)
-
-    def absurl(self, fragment):
-        """Create an absolute url based on the root url.
-
-        TODO: Not sure if it feels right that these are environment
-        methods, rather than global helpers.
-        """
-        root = self.url
-        root += root[-1:] != '/' and '/' or ''
-        return urlparse.urljoin(root, fragment)
-
-    def abspath(self, filename):
-        """Create an absolute path based on the directory.
-        """
-        if path.isabs(filename):
-            return filename
-        return path.abspath(path.join(self.directory, filename))
-
-    def _normalize_source_path(self, spath):
-        """Called once for every source item processed by a Bundle.
-
-        It is supposed to return the absolute path to the file, or
-        raise an exception. It is primarily intended as a hook for
-        third party integration libraries to provide support for
-        virtual paths (like Flask Blueprints, or Django staticfiles).
-
-        The function is not called for urls. It is also currently
-        not called for paths that use glob patterns, meaning those
-        cannot be virtualized at this point (TODO: See if we can
-        do something about this).
-        """
-        spath = self.abspath(spath)
-        if not path.exists(spath):
-            raise IOError("'%s' does not exist" % spath)
-        return spath
 
 
 class DictConfigStorage(ConfigStorage):
@@ -522,3 +596,4 @@ def parse_debug_value(value):
         return 'merge'
     else:
         raise ValueError()
+

@@ -100,6 +100,21 @@ In Development version
   removed, and in it's stead there is now a :class:`JavaTool` base class that
   can be used.
 
+- The code to resolve bundle contents has been refactored. As a result, the
+  behavior of the semi-internal method :meth:`Bundle.resolve_contents` has
+  changed slightly; in addition, the
+  :meth:`Environment._normalize_source_path` method used mainly by
+  extensions like ``Flask-Assets`` has been removed. Instead, extensions now
+  need to implement a custom :class:`Resolver`. The
+  :class:`Evironment.absurl` method has also disappeared, and replacing it
+  can now be done via a custom :class:`Resolver`` class.
+
+- :attr:`Environment.directory` now always returns an absolute path; if a
+  relative path is stored, it is based off on the current working directory.
+  This spares *a lot* of calls to ``os.abspath`` throughout the code. If you
+  need the original value you can always use
+  ``environment.config['directory']``.
+
 
 In 0.7
 ~~~~~~

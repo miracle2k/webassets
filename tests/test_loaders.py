@@ -113,7 +113,7 @@ class TestYAML(object):
         # Because the loader isn't aware of the file location, the
         # directory is read as-is, relative to cwd rather than the
         # file location.
-        assert environment.directory == 'something'
+        assert environment.config['directory'] == 'something'
 
         # [bug] Make sure the bundles are loaded as well.
         assert len(environment) == 1
