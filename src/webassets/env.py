@@ -147,10 +147,12 @@ class Resolver(object):
                 continue
             yield filename
 
-    def search_env_directory(self, item):
-        """Runs when :attr:`Environment.load_path` is not set.
+    def consider_single_directory(self, directory, item):
+        """Resolve ``item`` within ``directory``, glob or non-glob style
+
+        Primarily to be called from subclasses rather than overridden.
         """
-        expr = path.join(self.env.directory, item)
+        expr = path.join(directory, item)
         if has_magic(expr):
             # Note: No error if glob returns an empty list
             return list(self.glob(self.env.directory, item))
@@ -158,6 +160,11 @@ class Resolver(object):
             if path.exists(expr):
                 return expr
             raise IOError("'%s' does not exist" % expr)
+
+    def search_env_directory(self, item):
+        """Runs when :attr:`Environment.load_path` is not set.
+        """
+        return self.consider_single_directory(self.env.directory, item)
 
     def search_load_path(self, item):
         """Runs when :attr:`Environment.load_path` is set.
