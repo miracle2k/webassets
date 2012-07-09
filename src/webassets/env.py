@@ -138,7 +138,7 @@ class Resolver(object):
     def __init__(self, env):
         self.env = env
 
-    def _glob(self, basedir, expr):
+    def glob(self, basedir, expr):
         """Runs when a glob expression needs to be resolved.
         """
         expr = path.join(basedir, expr)
@@ -147,47 +147,47 @@ class Resolver(object):
                 continue
             yield filename
 
-    def _search_env_directory(self, item):
+    def search_env_directory(self, item):
         """Runs when :attr:`Environment.load_path` is not set.
         """
         expr = path.join(self.env.directory, item)
         if has_magic(expr):
             # Note: No error if glob returns an empty list
-            return list(self._glob(self.env.directory, item))
+            return list(self.glob(self.env.directory, item))
         else:
             if path.exists(expr):
                 return expr
             raise IOError("'%s' does not exist" % expr)
 
-    def _search_load_path(self, item):
+    def search_load_path(self, item):
         """Runs when :attr:`Environment.load_path` is set.
         """
         if has_magic(item):
             # We glob all paths.
             result = []
             for path in self.env.load_path:
-                result.extend(list(self._glob(path, item)))
+                result.extend(list(self.glob(path, item)))
             return result
         else:
             # Single file, stop when we find the first match, or error
             # out otherwise. We still use glob() because then the load_path
             # itself can contain globs. Neat!
             for path in self.env.load_path:
-                result = list(self._glob(path, item))
+                result = list(self.glob(path, item))
                 if result:
                     return result
             raise IOError("'%s' not found in load path: %s" % (
                 item, self.env.load_path))
 
-    def _search_for_source(self, item):
+    def search_for_source(self, item):
         """Runs when the item is a relative filesystem path.
         """
         if self.env.load_path:
-            return self._search_load_path(item)
+            return self.search_load_path(item)
         else:
-            return self._search_env_directory(item)
+            return self.search_env_directory(item)
 
-    def _query_url_mapping(self, filepath):
+    def query_url_mapping(self, filepath):
         # Build a list of dir -> url mappings
         mapping = self.env.url_mapping.items()
         mapping.append((self.env.directory, self.env.url))
@@ -224,7 +224,7 @@ class Resolver(object):
         if is_url(item) or path.isabs(item):
             return item
 
-        return self._search_for_source(item)
+        return self.search_for_source(item)
 
     def resolve_output_to_path(self, target, bundle):
         """Given ``target``, return the absolute path to which the
@@ -245,7 +245,7 @@ class Resolver(object):
         It should raise a ``ValueError`` if a proper url cannot be
         determined.
         """
-        return self._query_url_mapping(filepath)
+        return self.query_url_mapping(filepath)
 
     def resolve_output_to_url(self, target):
         """Given the output ``target``, return the url through which
@@ -263,7 +263,7 @@ class Resolver(object):
         else:
             # If an absolute output path was specified, then search
             # the url mappings.
-            return self._query_url_mapping(target)
+            return self.query_url_mapping(target)
 
 
 # Those are config keys used by the environment. Framework-wrappers may
