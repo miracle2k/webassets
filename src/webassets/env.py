@@ -114,6 +114,13 @@ class ConfigStorage(object):
                     ImminentDeprecationWarning)
 
 
+def url_prefix_join(prefix, fragment):
+    """Join url prefix with fragment."""
+    # Ensures urljoin will not cut the last part.
+    prefix += prefix[-1:] != '/' and '/' or ''
+    return urlparse.urljoin(prefix, fragment)
+
+
 class Resolver(object):
     """Responsible for resolving user-specified :class:`Bundle`
     contents to actual files, as well as to urls.
@@ -131,14 +138,18 @@ class Resolver(object):
     def __init__(self, env):
         self.env = env
 
-    def _glob(self, basedir, item):
-        expr = path.join(basedir, item)
+    def _glob(self, basedir, expr):
+        """Runs when a glob expression needs to be resolved.
+        """
+        expr = path.join(basedir, expr)
         for filename in glob.iglob(expr):
             if path.isdir(filename):
                 continue
             yield filename
 
     def _search_env_directory(self, item):
+        """Runs when :attr:`Environment.load_path` is not set.
+        """
         expr = path.join(self.env.directory, item)
         if has_magic(expr):
             # Note: No error if glob returns an empty list
@@ -148,8 +159,51 @@ class Resolver(object):
                 return expr
             raise IOError("'%s' does not exist" % expr)
 
+    def _search_load_path(self, item):
+        """Runs when :attr:`Environment.load_path` is set.
+        """
+        if has_magic(item):
+            # We glob all paths.
+            result = []
+            for path in self.env.load_path:
+                result.extend(list(self._glob(path, item)))
+            return result
+        else:
+            # Single file, stop when we find the first match, or error
+            # out otherwise. We still use glob() because then the load_path
+            # itself can contain globs. Neat!
+            for path in self.env.load_path:
+                result = list(self._glob(path, item))
+                if result:
+                    return result
+            raise IOError("'%s' not found in load path: %s" % (
+                item, self.env.load_path))
+
     def _search_for_source(self, item):
-        return self._search_env_directory(item)
+        """Runs when the item is a relative filesystem path.
+        """
+        if self.env.load_path:
+            return self._search_load_path(item)
+        else:
+            return self._search_env_directory(item)
+
+    def _query_url_mapping(self, filepath):
+        # Build a list of dir -> url mappings
+        mapping = self.env.url_mapping.items()
+        mapping.append((self.env.directory, self.env.url))
+        # Make sure paths are absolute, normalized, and sorted by length
+        mapping = map(
+            lambda (p,u): (path.normpath(path.abspath(p)), u),
+            mapping)
+        mapping.sort(cmp=lambda i, j: cmp(len(i[0]), len(j[0])), reverse=True)
+
+        needle = path.normpath(filepath)
+        for candidate, url in mapping:
+            if needle.startswith(candidate):
+                # Found it!
+                rel_path = filepath[len(candidate)+1:]
+                return url_prefix_join(url, rel_path)
+        raise ValueError('Cannot determine url for %s' % filepath)
 
     def resolve_source(self, item):
         """Given ``item`` from a Bundle's contents, return an absolute
@@ -191,12 +245,7 @@ class Resolver(object):
         It should raise a ``ValueError`` if a proper url cannot be
         determined.
         """
-        basepath = path.normpath(self.env.directory)
-        if path.normpath(filepath).startswith(basepath):
-            # File is within env.directory
-            rel_path = filepath[len(basepath):]
-            return self.resolve_output_to_url(rel_path)
-        raise ValueError()
+        return self._query_url_mapping(filepath)
 
     def resolve_output_to_url(self, target):
         """Given the output ``target``, return the url through which
@@ -207,11 +256,14 @@ class Resolver(object):
         needs to happen without filesystem access, for optimal
         performance.
         """
-        # Output file are always written to env.directory, thus we
-        # can simply base all values off of env.url.
-        root = self.env.url
-        root += root[-1:] != '/' and '/' or ''
-        return urlparse.urljoin(root, target)
+        if not path.isabs(target):
+            # If relative, output files are written to env.directory,
+            # thus we can simply base all values off of env.url.
+            return url_prefix_join(self.env.url, target)
+        else:
+            # If an absolute output path was specified, then search
+            # the url mappings.
+            return self._query_url_mapping(target)
 
 
 # Those are config keys used by the environment. Framework-wrappers may
@@ -221,7 +273,7 @@ class Resolver(object):
 # filter setting might be CSSMIN_BIN.
 env_options = [
     'directory', 'url', 'debug', 'cache', 'updater', 'auto_build',
-    'url_expire', 'versions', 'manifest']
+    'url_expire', 'versions', 'manifest', 'load_path', 'url_mapping']
 
 
 class BaseEnvironment(object):
@@ -251,6 +303,8 @@ class BaseEnvironment(object):
         self.config.setdefault('manifest', 'cache')
         self.config.setdefault('versions', 'hash')
         self.config.setdefault('updater', 'timestamp')
+        self.config.setdefault('load_path', [])
+        self.config.setdefault('url_mapping', {})
 
         self.config.update(config)
 
@@ -305,12 +359,20 @@ class BaseEnvironment(object):
         naming them.
 
         This isn't terribly useful in most cases. It exists primarily
-        because in some cases, like when loading bundles by seaching
+        because in some cases, like when loading bundles by searching
         in templates for the use of an "assets" tag, no name is available.
         """
         for bundle in bundles:
             self._anon_bundles.append(bundle)
             bundle.env = self    # take ownership
+
+    def append_path(self, path, url=None):
+        """Appends ``path`` to :attr:`load_path`, and adds a
+        corresponding entry to :attr:`url_mapping`.
+        """
+        self.load_path.append(path)
+        if url:
+            self.url_mapping[path] = url
 
     @property
     def config(self):
@@ -518,7 +580,11 @@ class BaseEnvironment(object):
             raise EnvironmentError(
                 'The environment has no "directory" configured')
     directory = property(_get_directory, _set_directory, doc=
-    """The base directory to which all paths will be relative to.
+    """The base directory to which all paths will be relative to,
+    unless :attr:`load_paths` are given, in which case this will
+    only serve as the output directory.
+
+    In the url space, it is mapped to :attr:`urls`.
     """)
 
     def _set_url(self, url):
@@ -530,8 +596,45 @@ class BaseEnvironment(object):
             raise EnvironmentError(
                 'The environment has no "url" configured')
     url = property(_get_url, _set_url, doc=
-    """The base used to construct urls under which :attr:`directory`
-    should be exposed.
+    """The url prefix used to construct urls for files in
+    :attr:`directory`.
+
+    To define url spaces for other directories, see
+    :attr:`url_mapping`.
+    """)
+
+    def _set_load_path(self, load_path):
+        self.config['load_path'] = load_path
+    def _get_load_path(self):
+        return self.config['load_path']
+    load_path = property(_get_load_path, _set_load_path, doc=
+    """An list of directories that will be searched for source files.
+
+    If this is set, source files will only be looked for in these
+    directories, and :attr:`directory` is used as a location for
+    output files only.
+
+    .. note:
+        You are free to add :attr:`directory` to your load path as
+        well.
+
+    To modify this list, you should use :meth:`append_path`, since
+    it makes it easy to add the corresponding url prefix to
+    :attr:`url_mapping`.
+    """)
+
+    def _set_url_mapping(self, url_mapping):
+        self.config['url_mapping'] = url_mapping
+    def _get_url_mapping(self):
+        return self.config['url_mapping']
+    url_mapping = property(_get_url_mapping, _set_url_mapping, doc=
+    """A dictionary of directory -> url prefix mappings that will
+    be considered when generating urls, in addition to the pair of
+    :attr:`directory` and :attr:`url`, which is always active.
+
+    You should use :meth:`append_path` to add directories to the
+    load path along with their respective url spaces, instead of
+    modifying this setting directly.
     """)
 
     # Deprecated attributes, remove in 0.8?; warnings are raised by

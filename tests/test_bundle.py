@@ -1297,6 +1297,100 @@ class TestVersionFeatures(TempEnvironmentHelper):
         assert bundle1.urls() == bundle2.urls() == ['/out-latest?latest']
 
 
+class TestLoadPath(TempEnvironmentHelper):
+    """Test the load_path, url_mapping settings, which are basically
+    an optional feature.
+    """
+
+    def setup(self):
+        TempEnvironmentHelper.setup(self)
+        self.env.updater = False
+        self.env.directory = self.path('dir')
+        self.env.debug = True
+
+    def test_single_file(self):
+        """Querying a single file (no glob) via the load path."""
+        self.env.append_path(self.path('a'))
+        self.env.append_path(self.path('b'))
+        self.create_files({
+            'a/foo': 'a', 'b/foo': 'b', 'b/bar': '42'})
+
+        self.mkbundle('foo', 'bar', output='out').build()
+        # Only the first "foo" is found, and "bar" found in second path
+        assert self.get('dir/out') == 'a\n42'
+
+    def test_directory_ignored(self):
+        """env.directory is ignored with load paths set."""
+        self.env.append_path(self.path('a'))
+        self.create_files({
+            'a/foo': 'a', 'dir/foo': 'dir', 'dir/bar': '42'})
+
+        # The file from the load path is found, not the one from directory
+        self.mkbundle('foo', output='out').build()
+        assert self.get('dir/out') == 'a'
+
+        # Error because the file from directory is not found
+        assert_raises(BundleError, self.mkbundle('bar', output='out').build)
+
+    def test_globbing(self):
+        """When used with globbing."""
+        self.env.append_path(self.path('a'))
+        self.env.append_path(self.path('b'))
+        self.create_files({
+            'a/foo': 'a', 'b/foo': 'b', 'b/bar': '42'})
+
+        # Returns all files, even duplicate relative filenames in
+        # multiple load paths (foo in this case).
+        self.mkbundle('*', output='out').build()
+        assert self.get('dir/out') == 'a\n42\nb'
+
+    def test_url_mapping(self):
+        """Test mapping the load paths to urls works."""
+        self.env.append_path(self.path('a'), '/a')
+        self.env.append_path(self.path('b'), '/b')
+        self.create_files({
+            'a/foo': 'a', 'b/foo': 'b', 'b/bar': '42'})
+
+        assert self.mkbundle('*', output='out').urls() == [
+            '/a/foo', '/b/bar', '/b/foo',
+        ]
+
+    def test_entangled_url_mapping(self):
+        """A url mapping for a subpath takes precedence over mappings
+        that relate to containing folders.
+        """
+        self.env.append_path(self.path('a'), '/a')
+        # Map a subdir to something else
+        self.env.url_mapping[self.path('a/sub')] = '/s'
+        self.create_files({'a/sub/foo': '42'})
+        #  The most inner url mapping, path-wise, takes precedence
+        print self.mkbundle('sub/foo').urls()
+        assert self.mkbundle('sub/foo').urls() == ['/s/foo']
+
+    def test_absolute_output_to_loadpath(self):
+        """URL generation if output file is written to the load path."""
+        self.env.append_path(self.path('a'), '/a')
+        self.create_files({'a/foo': 'a'})
+        self.env.debug = False
+        self.env.url_expire = False
+        assert self.mkbundle('*', output=self.path('a/out')).urls() == [
+            '/a/out'
+        ]
+
+    def test_globbed_load_path(self):
+        """The load path itself can contain globs."""
+        self.env.append_path(self.path('*'))
+        self.create_files({'a/foo': 'a', 'b/foo': 'b', 'dir/bar': 'dir'})
+
+        # With a non-globbed reference
+        self.mkbundle('foo', output='out').build()
+        assert self.get('dir/out') == 'b\na'
+
+        # With a globbed reference
+        self.mkbundle('???', output='out').build()
+        assert self.get('dir/out') == 'dir\nb\na'
+
+
 class TestGlobbing(TempEnvironmentHelper):
     """Test the bundle contents support for patterns.
     """

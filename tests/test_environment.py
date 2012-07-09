@@ -99,6 +99,19 @@ class TestEnvApi(object):
         assert env.config['directory'] == 'foo'
         assert env.directory == os.path.join(os.getcwd(), 'foo')
 
+    def test_append_load_path(self):
+        env = Environment()
+        assert env.load_path == []
+
+        env.append_path('foo', '/foo')
+        assert env.load_path == ['foo']
+        assert env.url_mapping == {'foo': '/foo'}
+
+        # Works without path
+        env.append_path('bar')
+        assert env.load_path == ['foo', 'bar']
+        assert env.url_mapping == {'foo': '/foo'}
+
 
 class TestEnvConfig(object):
     """Custom config values through get_config/set_config.
