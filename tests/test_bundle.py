@@ -285,6 +285,10 @@ class TestBuildWithVariousDebugOptions(TempEnvironmentHelper):
 
         If they attempt to, these attempts are silently ignored.
         """
+
+        self.env.debug = True      # Start with highest level
+        self.env.updater = False   # Always rebuild
+
         # False to True has no effect
         self.mkbundle('in1', self.mkbundle('in2', debug=True),
                       output='out', debug=False).build()
@@ -301,7 +305,7 @@ class TestBuildWithVariousDebugOptions(TempEnvironmentHelper):
             'in1', self.mkbundle('in2', debug='merge',
                                  filters=AppendFilter('_')),
             output='out', debug=False).build()
-        assert self.get('out') == 'A\nB'
+        assert self.get('out') == 'A\nB_'
 
     def test_decreasing_debug_level(self):
         """A child bundle may switch to full production mode (turning on the
