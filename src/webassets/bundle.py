@@ -2,13 +2,6 @@ import os
 from os import path
 import urlparse
 
-try:
-    # Current version of glob2 does not let us access has_magic :/
-    import glob2 as glob
-    from glob import has_magic
-except ImportError:
-    import glob
-    from glob import has_magic
 from filter import get_filter
 from merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
                    select_filters, MoreThanOneFilterError)
@@ -146,39 +139,30 @@ class Bundle(object):
         # change. Not to mention that a different env object may be passed
         # in. We should find a fix for this.
         if getattr(self, '_resolved_contents', None) is None or force:
-            l = []
+            resolved = []
             for item in self.contents:
-                if isinstance(item, Bundle):
-                    l.append((item, item))
-                else:
-                    if is_url(item):
-                        # Is a URL
-                        l.append((item, item))
-                    elif isinstance(item, basestring) and has_magic(item):
-                        # Is globbed pattern
-                        path = env.abspath(item)
-                        for f in glob.glob(path):
-                            if os.path.isdir(f):
-                                continue
-                            if self.output and env.abspath(self.output) == f:
-                                # Exclude the output file. Note this will
-                                # not work if nested bundles do the
-                                # including. TODO: Should be even have this
-                                # test if it doesn't work properly? Should
-                                # be throw an error during building instead?
-                                # Or can be give this method access to the
-                                # parent bundle, since allowing env settings
-                                # overrides in bundles is planned anyway?
-                                continue
-                            l.append((f[len(path)-len(item):], f))
-                    else:
-                        # Is just a normal path; Send it through
-                        # _normalize_source_path().
-                        try:
-                            l.append((item, env._normalize_source_path(item)))
-                        except IOError, e:
-                            raise BundleError(e)
-            self._resolved_contents = l
+                try:
+                    result = env.resolver.resolve_source(item)
+                except IOError, e:
+                    raise BundleError(e)
+                if not isinstance(result, list):
+                    result = [result]
+
+                # Exclude the output file.
+                # TODO: This will not work for nested bundle contents. If it
+                # doesn't work properly anyway, should be do it in the first
+                # place? If there are multiple versions, it will fail as well.
+                # TODO: There is also the question whether we can/should
+                # exclude glob duplicates.
+                if self.output:
+                    try:
+                        result.remove(self.resolve_output(env))
+                    except (ValueError, BundleError):
+                        pass
+
+                resolved.extend(map(lambda r: (item, r), result))
+
+            self._resolved_contents = resolved
         return self._resolved_contents
 
     def _get_depends(self):
@@ -197,18 +181,16 @@ class Bundle(object):
         if not self.depends:
             return []
         if getattr(self, '_resolved_depends', None) is None:
-            l = []
+            resolved = []
             for item in self.depends:
-                if has_magic(item):
-                    dir = env.abspath(item)
-                    for f in glob.glob(dir):
-                        l.append(f)
-                else:
-                    try:
-                        l.append(env._normalize_source_path(item))
-                    except IOError, e:
-                        raise BundleError(e)
-            self._resolved_depends = l
+                try:
+                    result = env.resolver.resolve_source(item)
+                except IOError, e:
+                    raise BundleError(e)
+                if not isinstance(result, list):
+                    result = [result]
+                resolved.extend(result)
+            self._resolved_depends = resolved
         return self._resolved_depends
 
     def get_version(self, env=None, refresh=False):
@@ -245,18 +227,16 @@ class Bundle(object):
             self.version = version
         return self.version
 
-    def resolve_output(self, env=None, version=None, rel=False):
+    def resolve_output(self, env=None, version=None):
         """Return the full, absolute output path.
 
         If a %(version)s placeholder is used, it is replaced.
         """
         env = self._get_env(env)
-        output = self.output
+        output = env.resolver.resolve_output_to_path(self.output, self)
         if has_placeholder(output):
             output = output % {'version': version or self.get_version(env)}
-        if rel:
-            return output
-        return env.abspath(output)
+        return output
 
     def __hash__(self):
         """This is used to determine when a bundle definition has changed so
@@ -315,8 +295,6 @@ class Bundle(object):
         cache key is not taking into account changes in those dependencies
         (for now).
         """
-
-        assert not path.isabs(output)
 
         # Determine the debug level to use. It determines if and which filters
         # should be applied.
@@ -392,14 +370,14 @@ class Bundle(object):
 
         filtertool = FilterTool(
             env.cache, no_cache_read=actually_skip_cache_here,
-            kwargs={'output': output,
-                    'output_path': env.abspath(output)})
+            kwargs={'output': output[0],
+                    'output_path': output[1]})
 
         # Apply input()/open() filters to all the contents.
         hunks = []
-        for rel_name, item in resolved_contents:
-            if isinstance(item, Bundle):
-                hunk = item._merge_and_apply(
+        for item, cnt in resolved_contents:
+            if isinstance(cnt, Bundle):
+                hunk = cnt._merge_and_apply(
                     env, output, force, current_debug_level,
                     filters_to_pass_down, disable_cache=disable_cache)
                 hunks.append(hunk)
@@ -407,10 +385,10 @@ class Bundle(object):
                 # Give a filter the chance to open his file.
                 try:
                     hunk = filtertool.apply_func(
-                        filters_to_run, 'open', [item],
+                        filters_to_run, 'open', [cnt],
                         # Also pass along the original relative path, as
                         # specified by the user, before resolving.
-                        kwargs={'source': rel_name},
+                        kwargs={'source': item},
                         # We still need to open the file ourselves too and use
                         # it's content as part of the cache key, otherwise this
                         # filter application would only be cached by filename,
@@ -420,22 +398,22 @@ class Bundle(object):
                         # that reading and hashing some files unnecessarily
                         # very often is better than running filters
                         # unnecessarily occasionally.
-                        cache_key=[FileHunk(item)] if not is_url(item) else [])
+                        cache_key=[FileHunk(cnt)] if not is_url(cnt) else [])
                 except MoreThanOneFilterError, e:
                     raise BuildError(e)
 
                 if not hunk:
-                    if is_url(item):
-                        hunk = UrlHunk(item, env=env)
+                    if is_url(cnt):
+                        hunk = UrlHunk(cnt, env=env)
                     else:
-                        hunk = FileHunk(item)
+                        hunk = FileHunk(cnt)
 
                 hunks.append(filtertool.apply(
                     hunk, filters_to_run, 'input',
                     # Pass along both the original relative path, as
                     # specified by the user, and the one that has been
                     # resolved to a filesystem location.
-                    kwargs={'source': rel_name, 'source_path': item}))
+                    kwargs={'source': item, 'source_path': cnt}))
 
         # Merge the individual files together. There is an optional hook for
         # a filter here, by implementing a concat() method.
@@ -483,7 +461,7 @@ class Bundle(object):
         if force:
             update_needed = True
         elif not has_placeholder(self.output) and \
-                not path.exists(env.abspath(self.output)):
+                not path.exists(self.resolve_output(env, self.output)):
             update_needed = True
         else:
             update_needed = env.updater.needs_rebuild(self, env) \
@@ -493,19 +471,18 @@ class Bundle(object):
 
         if not update_needed:
             # We can simply return the existing output file
-            return FileHunk(env.abspath(self.output))
+            return FileHunk(self.resolve_output(env, self.output))
 
         hunk = self._merge_and_apply(
-            env, self.output, force,
-            disable_cache=disable_cache,
-            extra_filters=extra_filters)
+            env, [self.output, self.resolve_output(env, version='?')],
+            force, disable_cache=disable_cache, extra_filters=extra_filters)
 
         if output:
             # If we are given a stream, just write to it.
             output.write(hunk.data())
         else:
             # If it doesn't exist yet, create the target directory.
-            output = env.abspath(self.output)
+            output = path.join(env.directory, self.output)
             output_dir = path.dirname(output)
             if not path.exists(output_dir):
                 os.makedirs(output_dir)
@@ -590,8 +567,8 @@ class Bundle(object):
         else:
             yield self, []
 
-    def _make_url(self, env):
-        """Return a output url, modified for expire header handling.
+    def _make_output_url(self, env):
+        """Return the output url, modified for expire header handling.
         """
 
         # Only query the version if we need to for performance
@@ -601,18 +578,21 @@ class Bundle(object):
             # value, or we might serve old versions.
             version = self.get_version(env, refresh=env.auto_build)
 
-        result = self.resolve_output(env, version, rel=True)
+        url = env.resolver.resolve_output_to_url(self.output)
+        if has_placeholder(url):
+            url = url % {'version': version}
+
         if env.url_expire or (
                 env.url_expire is None and not has_placeholder(self.output)):
-            result = "%s?%s" % (result, version)
-        return env.absurl(result)
+            url = "%s?%s" % (url, version)
+        return url
 
     def _urls(self, env, extra_filters, *args, **kwargs):
         """Return a list of urls for this bundle, and all subbundles,
         and, when it becomes necessary, start a build process.
         """
 
-        # Look at the debug value to see of this bundle we should return the
+        # Look at the debug value to see if this bundle should return the
         # source urls (in debug mode), or a single url of the bundle in built
         # form. Once a bundle needs to be built, all of it's child bundles
         # are built as well of course, so at this point we leave the urls()
@@ -638,26 +618,28 @@ class Bundle(object):
             if env.auto_build:
                 self._build(env, extra_filters=extra_filters, force=False,
                             *args, **kwargs)
-            return [self._make_url(env)]
+            return [self._make_output_url(env)]
         else:
             # We either have no files (nothing to build), or we are
             # in debug mode: Instead of building the bundle, we
             # source all contents instead.
             urls = []
-            for item, _ in self.resolve_contents(env):
-                if isinstance(item, Bundle):
-                    urls.extend(item.urls(env, *args, **kwargs))
-                elif is_url(item):
-                    urls.append(item)
+            for org, cnt in self.resolve_contents(env):
+                if isinstance(cnt, Bundle):
+                    urls.extend(org.urls(env, *args, **kwargs))
+                elif is_url(cnt):
+                    urls.append(cnt)
                 else:
-                    if isinstance(item, basestring) and path.isabs(item):
-                        # We cannot generate a url to a path outside the
+                    try:
+                        url = env.resolver.resolve_source_to_url(cnt, org)
+                    except ValueError:
+                        # If we cannot generate a url to a path outside the
                         # media directory. So if that happens, we copy the
                         # file into the media directory.
-                        target = pull_external(env, item)
-                        urls.append(env.absurl(target))
-                    else:
-                        urls.append(env.absurl(item))
+                        external = pull_external(env, cnt)
+                        url = env.resolver.resolve_source_to_url(external, org)
+
+                    urls.append(url)
             return urls
 
     def urls(self, env=None, *args, **kwargs):
@@ -682,7 +664,7 @@ def pull_external(env, filename):
     :attr:`Environment.directory`, for the purposes of being able to
     generate a url for it.
     """
-    assert path.isabs(filename)
+
     # Generate the target filename. Use a hash to keep it unique and short,
     # but attach the base filename for readability.
     # The bit-shifting rids us of ugly leading - characters.
@@ -700,7 +682,7 @@ def pull_external(env, filename):
     if not path.exists(directory):
         os.makedirs(directory)
     FileHunk(filename).save(full_path)
-    return rel_path
+    return full_path
 
 
 def get_all_bundle_files(bundle, env=None):

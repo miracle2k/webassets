@@ -908,7 +908,7 @@ class TestUrlsVarious(BaseUrlsTester):
             bundle = self.mkbundle(h.path('foo.css'))
             urls = bundle.urls()
             assert len(urls) == 1
-            assert_regexp_matches(urls[0], r'/webassets-external/\d*_foo.css')
+            assert_regexp_matches(urls[0], r'.*/webassets-external/\d*_foo.css')
 
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):
@@ -1297,11 +1297,108 @@ class TestVersionFeatures(TempEnvironmentHelper):
         assert bundle1.urls() == bundle2.urls() == ['/out-latest?latest']
 
 
+class TestLoadPath(TempEnvironmentHelper):
+    """Test the load_path, url_mapping settings, which are basically
+    an optional feature.
+    """
+
+    def setup(self):
+        TempEnvironmentHelper.setup(self)
+        self.env.updater = False
+        self.env.directory = self.path('dir')
+        self.env.debug = True
+
+    def test_single_file(self):
+        """Querying a single file (no glob) via the load path."""
+        self.env.append_path(self.path('a'))
+        self.env.append_path(self.path('b'))
+        self.create_files({
+            'a/foo': 'a', 'b/foo': 'b', 'b/bar': '42'})
+
+        self.mkbundle('foo', 'bar', output='out').build()
+        # Only the first "foo" is found, and "bar" found in second path
+        assert self.get('dir/out') == 'a\n42'
+
+    def test_directory_ignored(self):
+        """env.directory is ignored with load paths set."""
+        self.env.append_path(self.path('a'))
+        self.create_files({
+            'a/foo': 'a', 'dir/foo': 'dir', 'dir/bar': '42'})
+
+        # The file from the load path is found, not the one from directory
+        self.mkbundle('foo', output='out').build()
+        assert self.get('dir/out') == 'a'
+
+        # Error because the file from directory is not found
+        assert_raises(BundleError, self.mkbundle('bar', output='out').build)
+
+    def test_globbing(self):
+        """When used with globbing."""
+        self.env.append_path(self.path('a'))
+        self.env.append_path(self.path('b'))
+        self.create_files({
+            'a/foo': 'a', 'b/foo': 'b', 'b/bar': '42'})
+
+        # Returns all files, even duplicate relative filenames in
+        # multiple load paths (foo in this case).
+        self.mkbundle('*', output='out').build()
+        assert self.get('dir/out') == 'a\n42\nb'
+
+    def test_url_mapping(self):
+        """Test mapping the load paths to urls works."""
+        self.env.append_path(self.path('a'), '/a')
+        self.env.append_path(self.path('b'), '/b')
+        self.create_files({
+            'a/foo': 'a', 'b/foo': 'b', 'b/bar': '42'})
+
+        assert self.mkbundle('*', output='out').urls() == [
+            '/a/foo', '/b/bar', '/b/foo',
+        ]
+
+    def test_entangled_url_mapping(self):
+        """A url mapping for a subpath takes precedence over mappings
+        that relate to containing folders.
+        """
+        self.env.append_path(self.path('a'), '/a')
+        # Map a subdir to something else
+        self.env.url_mapping[self.path('a/sub')] = '/s'
+        self.create_files({'a/sub/foo': '42'})
+        #  The most inner url mapping, path-wise, takes precedence
+        print self.mkbundle('sub/foo').urls()
+        assert self.mkbundle('sub/foo').urls() == ['/s/foo']
+
+    def test_absolute_output_to_loadpath(self):
+        """URL generation if output file is written to the load path."""
+        self.env.append_path(self.path('a'), '/a')
+        self.create_files({'a/foo': 'a'})
+        self.env.debug = False
+        self.env.url_expire = False
+        assert self.mkbundle('*', output=self.path('a/out')).urls() == [
+            '/a/out'
+        ]
+
+    def test_globbed_load_path(self):
+        """The load path itself can contain globs."""
+        self.env.append_path(self.path('*'))
+        self.create_files({'a/foo': 'a', 'b/foo': 'b', 'dir/bar': 'dir'})
+
+        # With a non-globbed reference
+        self.mkbundle('foo', output='out').build()
+        assert self.get('dir/out') == 'b\na'
+
+        # With a globbed reference
+        self.mkbundle('???', output='out').build()
+        assert self.get('dir/out') == 'dir\nb\na'
+
+
 class TestGlobbing(TempEnvironmentHelper):
     """Test the bundle contents support for patterns.
     """
 
-    default_files = {'file1.js': 'foo', 'file2.js': 'bar', 'file3.css': 'test'}
+    default_files = {
+        'file1.js': 'foo',
+        'file2.js': 'bar',
+        'file3.css': 'test'}
 
     def test_building(self):
         """Globbing works!"""
@@ -1321,7 +1418,8 @@ class TestGlobbing(TempEnvironmentHelper):
 
     def test_empty_pattern(self):
         bundle = self.mkbundle('*.xyz', output='out')
-        assert_raises(BuildError, bundle.build)
+        # No error when accessing contents
+        bundle.resolve_contents()
 
     def test_non_pattern_missing_files(self):
         """Ensure that if we specify a non-existant file, it will still
@@ -1419,23 +1517,43 @@ class TestUrlContents(TempEnvironmentHelper):
         assert self.get('out') == 'test'
 
 
-class TestNormalizeSourcePath(TempEnvironmentHelper):
-    """The Environment class allows overriding a
-    _normalize_source_path() method, which can be used to
-    support some simple filesystem virtualization, and other
-    hackaries.
+class TestResolverAPI(TempEnvironmentHelper):
+    """The Environment class uses the :class:`Resolver` class to go
+    from raw bundle contents to actual paths and urls.
+
+    Subclassing the resolver can be used to do filesystem
+    virtualization, and other hackaries.
     """
 
-    def test(self):
+    def test_resolve_source(self):
         """Test the method is properly used in the build process.
         """
-        class MyEnv(self.env.__class__):
-            def _normalize_source_path(self, path):
-                return self.abspath("foo")
-        self.env.__class__ = MyEnv
+        class MyResolver(self.env.resolver_class):
+            def resolve_source(self, item):
+                return path.join(self.env.directory, 'foo')
+        self.env.resolver = MyResolver(self.env)
+
         self.create_files({'foo': 'foo'})
         self.mkbundle('bar', output='out').build()
         assert self.get('out') == 'foo'
+
+    def test_depends(self):
+        """The bundle dependencies also go through normalization.
+        """
+        class MyResolver(self.env.resolver_class):
+            def resolve_source(self, item):
+                return path.join(self.env.directory, item[::-1])
+        self.env.resolver = MyResolver(self.env)
+
+        self.create_files(['foo', 'dep', 'out'])
+        b = self.mkbundle('oof', depends=('ped',), output='out')
+
+        now = self.setmtime('foo', 'dep', 'out')
+        # At this point, no rebuild is required
+        assert self.env.updater.needs_rebuild(b, self.env) == False
+        # But it is if we update the dependency
+        now = self.setmtime('dep', mtime=now+10)
+        assert self.env.updater.needs_rebuild(b, self.env) == SKIP_CACHE
 
     def test_non_string(self):
         """Non-String values can be passed to the bundle, without
@@ -1444,12 +1562,11 @@ class TestNormalizeSourcePath(TempEnvironmentHelper):
 
         See https://github.com/miracle2k/webassets/issues/71
         """
-        class MyEnv(self.env.__class__):
-            def _normalize_source_path(self, path):
-                return self.abspath(".".join(path))
-            def absurl(self, url):
-                return url[0]
-        self.env.__class__ = MyEnv
+        class MyResolver(self.env.resolver_class):
+            def resolve_source(self, item):
+                return path.join(self.env.directory, (".".join(item)))
+        self.env.resolver = MyResolver(self.env)
+
         self.create_files({'foo.css': 'foo'})
         bundle = self.mkbundle(('foo', 'css'), output='out')
 
@@ -1466,21 +1583,3 @@ class TestNormalizeSourcePath(TempEnvironmentHelper):
         urls = bundle.urls()
         assert len(urls) == 1
         assert 'foo' in urls[0]
-
-    def test_depends(self):
-        """The bundle dependencies also go through
-        normalization.
-        """
-        class MyEnv(self.env.__class__):
-            def _normalize_source_path(self, path):
-                return self.abspath(path[::-1])
-        self.env.__class__ = MyEnv
-        self.create_files(['foo', 'dep', 'out'])
-        b = self.mkbundle('oof', depends=('ped',), output='out')
-
-        now = self.setmtime('foo', 'dep', 'out')
-        # At this point, no rebuild is required
-        assert self.env.updater.needs_rebuild(b, self.env) == False
-        # But it is if we update the dependency
-        now = self.setmtime('dep', mtime=now+10)
-        assert self.env.updater.needs_rebuild(b, self.env) == SKIP_CACHE
