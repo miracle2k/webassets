@@ -155,7 +155,7 @@ class Resolver(object):
         expr = path.join(directory, item)
         if has_magic(expr):
             # Note: No error if glob returns an empty list
-            return list(self.glob(self.env.directory, item))
+            return list(self.glob(directory, item))
         else:
             if path.exists(expr):
                 return expr
