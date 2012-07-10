@@ -625,6 +625,9 @@ class BaseEnvironment(object):
         You are free to add :attr:`directory` to your load path as
         well.
 
+    .. note:
+        Items on the load path are allowed to contain globs.
+
     To modify this list, you should use :meth:`append_path`, since
     it makes it easy to add the corresponding url prefix to
     :attr:`url_mapping`.
