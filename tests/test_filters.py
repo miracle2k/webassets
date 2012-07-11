@@ -702,7 +702,6 @@ class TestLess(TempEnvironmentHelper):
 
     def test(self):
         self.mkbundle('foo.less', filters='less', output='out.css').build()
-        print repr(self.get('out.css'))
         assert self.get('out.css') == 'h1 {\n  color: #FFFFFF;\n}\n'
 
     def test_import(self):
@@ -717,6 +716,14 @@ class TestLess(TempEnvironmentHelper):
             'foo.less': '@c: red;'})
         self.mkbundle('import.less', filters='less', output='out.css').build()
         assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
+
+    def test_run_in_debug_mode(self):
+        """A setting can be used to make less not run in debug."""
+        self.env.debug = True
+        self.env.config['less_run_in_debug'] = False
+        self.mkbundle('foo.less', filters='less', output='out.css').build()
+        assert self.get('out.css') == self.default_files['foo.less']
+
 
 
 class TestSass(TempEnvironmentHelper):

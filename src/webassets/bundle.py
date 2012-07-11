@@ -325,6 +325,19 @@ class Bundle(object):
         # include input/open filters pushed down by a parent build iteration.
         filters = merge_filters(self.filters, extra_filters)
 
+        # Initialize the filters. This happens before we choose which of
+        # them should actually run, so that Filter.setup() can influence
+        # this choice.
+        for filter in filters:
+            filter.set_environment(env)
+            # Since we call this now every single time before the filter
+            # is used, we might pass the bundle instance it is going
+            # to be used with. For backwards-compatibility reasons, this
+            # is problematic. However, by inspecting the support arguments,
+            # we can deal with it. We probably then want to deprecate
+            # the old syntax before 1.0 (TODO).
+            filter.setup()
+
         # Given the debug level, determine which of the filters want to run
         selected_filters = select_filters(filters, current_debug_level)
 
@@ -337,17 +350,6 @@ class Bundle(object):
         filters_to_run = merge_filters(
             selected_filters, select_filters(parent_filters, current_debug_level))
         filters_to_pass_down = merge_filters(filters, parent_filters)
-
-        # Initialize al the filters (those we use now, those we pass down).
-        for filter in filters:
-            filter.set_environment(env)
-            # Since we call this now every single time before the filter
-            # is used, we might pass the bundle instance it is going
-            # to be used with. For backwards-compatibility reasons, this
-            # is problematic. However, by inspecting the support arguments,
-            # we can deal with it. We probably then want to deprecate
-            # the old syntax before 1.0 (TODO).
-            filter.setup()
 
         # Prepare contents
         resolved_contents = self.resolve_contents(env, force=True)
