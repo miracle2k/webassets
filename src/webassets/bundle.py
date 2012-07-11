@@ -112,25 +112,26 @@ class Bundle(object):
     'media' value.""")
 
     def resolve_contents(self, env=None, force=False):
-        """Convert bundle contents into something that can be easily processed.
+        """Return an actual list of source files.
 
-        - Glob patterns are resolved
-        - Validate all the source paths to complain about missing files early.
-        - Third party extensions get to hook into this to provide a basic
-          virtualized filesystem.
+        What the user specifies as the bundle contents cannot be
+        processed directly. There may be glob patterns of course. We
+        may need to search the load path. It's common for third party
+        extensions to provide support for referencing assets spread
+        across multiple directories.
 
-        The return value is a list of 2-tuples (relpath, abspath). The first
-        element is the path that is assumed to be relative to the
-        ``Environment.directory`` value. We need it to construct urls to the
-        source files.
-        The second element is the absolute path to the actual location of the
-        file. Depending on the magic a third party extension does, this may be
-        somewhere completely different.
+        This passes everything through :class:`Environment.resolver`,
+        through which this process can be customized.
 
-        URLs and nested Bundles are returned as a 2-tuple where both items are
-        the same.
+        At this point, we also validate source paths to complain about
+        missing files early.
 
-        Set ``force`` to ignore any cache, and always re-resolve glob patterns.
+        The return value is a list of 2-tuples ``(original_item,
+        abspath)``. In the case of urls and nested bundles both tuple
+        values are the same.
+
+        Set ``force`` to ignore any cache, and always re-resolve
+        glob  patterns.
         """
         env = self._get_env(env)
 
