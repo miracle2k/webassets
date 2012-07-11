@@ -328,19 +328,36 @@ class BaseEnvironment(object):
         return len(self._named_bundles) + len(self._anon_bundles)
 
     def register(self, name, *args, **kwargs):
-        """Register a bundle with the given name.
+        """Register a :class:`Bundle` with the given ``name``.
 
-        There are two possible ways to call this:
+        This can be called in multiple ways:
 
-          - With a single ``Bundle`` instance argument:
+        - With a single :class:`Bundle` instance::
 
-              register('jquery', jquery_bundle)
+              env.register('jquery', jquery_bundle)
 
-          - With one or multiple arguments, automatically creating a
-            new bundle inline:
+        - With a dictionary, registering multiple bundles at once:
 
-              register('all.js', jquery_bundle, 'common.js', output='packed.js')
+              bundles = {'js': js_bundle, 'css': css_bundle}
+              env.register(bundles)
+
+          .. note::
+              This is a convenient way to use a :doc:`loader <loaders>`:
+
+                   env.register(YAMLLoader('assets.yaml').load_bundles())
+
+        - With many arguments, creating a new bundle on the fly::
+
+              env.register('all_js', jquery_bundle, 'common.js',
+                           filters='rjsmin', output='packed.js')
         """
+
+        # Register a dict
+        if isinstance(name, dict) and not args and not kwargs:
+            for name, bundle in name.items():
+                self.register(name, bundle)
+            return
+
         if len(args) == 0:
             raise TypeError('at least two arguments are required')
         else:
