@@ -585,6 +585,10 @@ class TestCoffeeScript(TempEnvironmentHelper):
 class TestJinja2(TempEnvironmentHelper):
 
     def setup(self):
+        try:
+            import jinja2
+        except ImportError:
+            raise SkipTest()
         TempEnvironmentHelper.setup(self)
 
     def test_default_options(self):
