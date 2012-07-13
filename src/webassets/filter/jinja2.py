@@ -23,6 +23,7 @@ class Jinja2(Filter):
             raise EnvironmentError('The "jinja2" package is not installed.')
         else:
             self.jinja2 = jinja2
+        super(Jinja2, self).setup()
 
     def output(self, _in, out, **kw):
         out.write(self.jinja2.Template(_in.read()).render(self.context or {}))
