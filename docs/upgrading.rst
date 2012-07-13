@@ -14,6 +14,21 @@ In Development version
   You need to install it's package separately. See the current
   `development version <https://github.com/miracle2k/django-assets>`_.
 
+  .. warning::
+    When upgrading, you need to take extra care to rid yourself of the old
+    version of webassets before installing the separate ``django-assets``
+    package. This is to avoid that Python still finds the old ``django_assets``
+    that used to be included in the ``webassets`` package.
+
+    In some cases, even ``pip uninstall webassets`` is not be enough, and old
+    ``*.pyc`` files are kept around. I recommend that you delete the old
+    webassets install manually from the filesystem. To find out where it is
+    stored, open a Python shell and do::
+
+        >>> import webassets
+        >>> webassets
+        <module 'webassets' from '/usr/local/lib/python2.7/dist-packages/webassets/src/webassets/__init__.pyc'>
+
 - Some filters now run in debug mode. Specifically, there are two things that
   deserve mention:
 
