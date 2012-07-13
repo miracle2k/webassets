@@ -582,6 +582,23 @@ class TestCoffeeScript(TempEnvironmentHelper):
         assert self.get('out.js') == 'this.a = 1;\n'
 
 
+class TestJinja2(TempEnvironmentHelper):
+
+    def setup(self):
+        TempEnvironmentHelper.setup(self)
+
+    def test_default_options(self):
+        self.create_files({'in': """Hi there, {{ name }}!"""})
+        self.mkbundle('in', filters='jinja2', output='out.template').build()
+        assert self.get('out.template') == """Hi there, !"""
+
+    def test_bare_option(self):
+        self.env.config['JINJA2_CONTEXT'] = {'name': 'Randall'}
+        self.create_files({'in': """Hi there, {{ name }}!"""})
+        self.mkbundle('in', filters='jinja2', output='out.template').build()
+        assert self.get('out.template') == """Hi there, Randall!"""
+
+
 class TestClosure(TempEnvironmentHelper):
 
     default_files = {
