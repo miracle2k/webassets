@@ -4,6 +4,8 @@ However, URL generation that is associated with a special feature is
 more likely` found in `test_bundle_various.py``.
 """
 
+from __future__ import with_statement
+
 from nose.tools import assert_raises, assert_equals
 from nose import SkipTest
 
