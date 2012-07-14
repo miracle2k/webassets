@@ -536,8 +536,6 @@ def register_filter(f):
         raise ValueError("Must be a subclass of 'Filter'")
     if not f.name:
         raise ValueError('Must have a name')
-    if f.name in _FILTERS:
-        raise KeyError('Filter with name %s already registered' % f.name)
     _FILTERS[f.name] = f
 
 
