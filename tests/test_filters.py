@@ -3,7 +3,7 @@ from __future__ import with_statement
 import os
 from contextlib import contextmanager
 from StringIO import StringIO
-from nose.tools import assert_raises, assert_equals
+from nose.tools import assert_raises, assert_equals, assert_true
 from nose import SkipTest
 from mock import patch, Mock, DEFAULT
 from distutils.spawn import find_executable
@@ -367,8 +367,13 @@ def test_register_filter():
     MyFilter.name = 'bar'
     register_filter(MyFilter)
 
-    # But the same name cannot be registered multiple times.
-    assert_raises(KeyError, register_filter, MyFilter)
+    # A filter should be able to override a pre-registered filter of the same
+    # name.
+    class OverrideMyFilter(Filter):
+        name = 'foo'
+        def output(self, *a, **kw): pass
+    register_filter(OverrideMyFilter)
+    assert_true(isinstance(get_filter('foo'), OverrideMyFilter))
 
 
 def test_get_filter():
