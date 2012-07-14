@@ -361,10 +361,8 @@ def test_register_filter():
         def output(self, *a, **kw): pass
     assert_raises(ValueError, register_filter, MyFilter)
 
-    # The same filter cannot be registered under multiple names.
+    # We should be able to register a filter with a name.
     MyFilter.name = 'foo'
-    register_filter(MyFilter)
-    MyFilter.name = 'bar'
     register_filter(MyFilter)
 
     # A filter should be able to override a pre-registered filter of the same
