@@ -14,6 +14,7 @@ from nose.tools import assert_raises, assert_equals
 from nose import SkipTest
 
 from webassets import Bundle
+from webassets.utils import set
 from webassets.bundle import get_all_bundle_files
 from webassets.env import Environment
 from webassets.exceptions import BundleError, BuildError
@@ -396,9 +397,9 @@ class TestLoadPath(TempEnvironmentHelper):
         self.create_files({
             'a/foo': 'a', 'b/foo': 'b', 'b/bar': '42'})
 
-        assert self.mkbundle('*', output='out').urls() == [
+        assert set(self.mkbundle('*', output='out').urls()) == {
             '/a/foo', '/b/bar', '/b/foo',
-        ]
+        }
 
     def test_entangled_url_mapping(self):
         """A url mapping for a subpath takes precedence over mappings
