@@ -10,7 +10,7 @@ incompatibility. The ``webassets`` API is not stable yet.
 In Development version
 ~~~~~~~~~~~~~~~~~~~~~~
 
-- **``django_assets`` is no longer included!**
+- **django-assets is no longer included!**
   You need to install it's package separately. See the current
   `development version <https://github.com/miracle2k/django-assets>`_.
 
@@ -18,10 +18,10 @@ In Development version
     When upgrading, you need to take extra care to rid yourself of the old
     version of webassets before installing the separate ``django-assets``
     package. This is to avoid that Python still finds the old ``django_assets``
-    that used to be included in the ``webassets`` package.
+    module that used to be included with ``webassets``.
 
-    In some cases, even ``pip uninstall webassets`` is not be enough, and old
-    ``*.pyc`` files are kept around. I recommend that you delete the old
+    In some cases, even ``pip uninstall webassets`` is not enough, and old
+    ``*.pyc`` files are kept around. I recommend that you delete your old
     webassets install manually from the filesystem. To find out where it is
     stored, open a Python shell and do::
 
@@ -111,7 +111,7 @@ In Development version
   :class:`CommandLineEnvironment` to override individual command methods like
   :meth:`CommandLineEnvironment.build`, you need to update your code.
 
-- The class:`JavaMixin` helper class to implement Java-based filters has been
+- The :class:`JavaMixin` helper class to implement Java-based filters has been
   removed, and in it's stead there is now a :class:`JavaTool` base class that
   can be used.
 
