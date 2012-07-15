@@ -30,10 +30,6 @@ CSS files when ASSETS_EXPIRE is enabled.
 Find a good solution to making filter debug/log information available in a
 standardized way across the board.
 
-Allow an option to fall back to rendering source files in case asset
-building fails for some reason. Right now, the user would get to see a
-server error.
-
 Support asset deployment to services like Amazon S3.
 
 Add support for Bundle subclasses to customize behavior on a
