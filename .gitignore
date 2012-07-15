@@ -15,7 +15,7 @@
 /docs/_build/*
 
 /.tox
-/LOCAL_TODO
+/LOCAL_TODO*
 
 *.~*
 *.pyc
