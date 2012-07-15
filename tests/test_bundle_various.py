@@ -387,8 +387,10 @@ class TestLoadPath(TempEnvironmentHelper):
 
         # Returns all files, even duplicate relative filenames in
         # multiple load paths (foo in this case).
-        self.mkbundle('*', output='out').build()
-        assert self.get('dir/out') == 'a\n42\nb'
+        bundle = self.mkbundle('*', output='out')
+        assert set(get_all_bundle_files(bundle)) == set([
+            self.path('a/foo'), self.path('b/foo'), self.path('b/bar')
+        ])
 
     def test_url_mapping(self):
         """Test mapping the load paths to urls works."""
@@ -397,9 +399,9 @@ class TestLoadPath(TempEnvironmentHelper):
         self.create_files({
             'a/foo': 'a', 'b/foo': 'b', 'b/bar': '42'})
 
-        assert set(self.mkbundle('*', output='out').urls()) == {
-            '/a/foo', '/b/bar', '/b/foo',
-        }
+        assert set(self.mkbundle('*', output='out').urls()) == set([
+            '/a/foo', '/b/bar', '/b/foo'
+        ])
 
     def test_entangled_url_mapping(self):
         """A url mapping for a subpath takes precedence over mappings
@@ -410,7 +412,6 @@ class TestLoadPath(TempEnvironmentHelper):
         self.env.url_mapping[self.path('a/sub')] = '/s'
         self.create_files({'a/sub/foo': '42'})
         #  The most inner url mapping, path-wise, takes precedence
-        print self.mkbundle('sub/foo').urls()
         assert self.mkbundle('sub/foo').urls() == ['/s/foo']
 
     def test_absolute_output_to_loadpath(self):
@@ -429,12 +430,16 @@ class TestLoadPath(TempEnvironmentHelper):
         self.create_files({'a/foo': 'a', 'b/foo': 'b', 'dir/bar': 'dir'})
 
         # With a non-globbed reference
-        self.mkbundle('foo', output='out').build()
-        assert self.get('dir/out') == 'b\na'
+        bundle = self.mkbundle('foo', output='out')
+        assert set(get_all_bundle_files(bundle)) == set([
+            self.path('a/foo'), self.path('b/foo')
+        ])
 
         # With a globbed reference
-        self.mkbundle('???', output='out').build()
-        assert self.get('dir/out') == 'dir\nb\na'
+        bundle = self.mkbundle('???', output='out')
+        assert set(get_all_bundle_files(bundle)) == set([
+            self.path('a/foo'), self.path('b/foo'), self.path('dir/bar')
+        ])
 
 
 class TestGlobbing(TempEnvironmentHelper):
