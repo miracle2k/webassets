@@ -6,7 +6,7 @@ from itertools import takewhile
 from exceptions import BundleError
 
 
-__all__ = ('md5_constructor', 'pickle',
+__all__ = ('md5_constructor', 'pickle', 'set', 'StringIO',
            'common_path_prefix', 'working_directory')
 
 
@@ -22,6 +22,19 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+
+
+try:
+    set
+except NameError:
+    from sets import Set as set
+else:
+    set = set
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 
 def common_path_prefix(paths, sep=os.path.sep):

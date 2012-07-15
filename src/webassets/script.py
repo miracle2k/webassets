@@ -3,16 +3,6 @@ import os, sys
 import time
 import logging
 
-try:
-    set
-except NameError:
-    from sets import Set as set
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
 from webassets.loaders import PythonLoader, YAMLLoader
 from webassets.bundle import get_all_bundle_files
 from webassets.exceptions import BuildError
@@ -20,6 +10,7 @@ from webassets.updater import TimestampUpdater
 from webassets.merge import MemoryHunk
 from webassets.version import get_manifest
 from webassets.cache import FilesystemCache
+from webassets.utils import set, StringIO
 
 
 __all__ = ('CommandError', 'CommandLineEnvironment', 'main')
