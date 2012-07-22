@@ -5,7 +5,7 @@ implementations.
 from __future__ import with_statement
 
 import os
-import pickle
+import json
 
 from webassets.bundle import has_placeholder, is_url, get_all_bundle_files
 from webassets.merge import FileHunk
@@ -215,7 +215,7 @@ get_manifest = Manifest.resolve
 class FileManifest(Manifest):
     """Stores version data in a single file.
 
-    Uses Python's pickle module to store a dict data structure. You should
+    Uses JSON (UTF-8 encoded) to store a dict data structure. You should
     only use this when the manifest is read-only in production, since it is
     not multi-process safe. If you use ``auto_build`` in production, use
     ``CacheManifest`` instead.
@@ -248,13 +248,13 @@ class FileManifest(Manifest):
     def _load_manifest(self):
         if os.path.exists(self.filename):
             with open(self.filename, 'rb') as f:
-                self.manifest = pickle.load(f)
+                self.manifest = json.load(f)
         else:
             self.manifest = {}
 
     def _save_manifest(self):
         with open(self.filename, 'wb') as f:
-            pickle.dump(self.manifest, f, protocol=2)
+            json.dump(self.manifest, f)
 
 
 class CacheManifest(Manifest):
