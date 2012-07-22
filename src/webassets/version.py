@@ -215,7 +215,7 @@ get_manifest = Manifest.resolve
 class FileManifest(Manifest):
     """Stores version data in a single file.
 
-    Uses JSON (UTF-8 encoded) to store a dict data structure. You should
+    Uses Python's pickle module to store a dict data structure. You should
     only use this when the manifest is read-only in production, since it is
     not multi-process safe. If you use ``auto_build`` in production, use
     ``CacheManifest`` instead.
@@ -244,6 +244,23 @@ class FileManifest(Manifest):
         if env.auto_build:
             self._load_manifest()
         return self.manifest.get(bundle.output, None)
+
+    def _load_manifest(self):
+        if os.path.exists(self.filename):
+            with open(self.filename, 'rb') as f:
+                self.manifest = pickle.load(f)
+        else:
+            self.manifest = {}
+
+    def _save_manifest(self):
+        with open(self.filename, 'wb') as f:
+            pickle.dump(self.manifest, f, protocol=2)
+
+
+class JsonManifest(FileManifest):
+    """Same as ``FileManifest``, but uses JSON instead of pickle."""
+
+    id = 'json'
 
     def _load_manifest(self):
         if os.path.exists(self.filename):
