@@ -125,14 +125,18 @@ class CommandLineEnvironment():
                 raise CommandError(
                     'I do not know a bundle name named "%s".' % name)
 
-        # Make a list of bundles to build, and the filename to write to.
+        # Make a list of all the named bundles to build, and the filename to write to.
+        # TODO: It's not ok to use an internal property here.
+        bundles = [(n,b) for n, b in self.environment._named_bundles.items()]
+
         if bundle_names:
-            # TODO: It's not ok to use an internal property here.
-            bundles = [(n,b) for n, b in self.environment._named_bundles.items()
+            # if bundle names have been specified, filter by those
+            bundles = [(n,b) for n, b in bundles
                        if n in bundle_names]
         else:
-            # Includes unnamed bundles as well.
-            bundles = [(None, b) for b in self.environment]
+            # Otherwise include unnamed bundles as well, if not already in
+            bundles = bundles + [(None, b) for b in self.environment
+                                 if b not in [b for (n, b) in bundles]]
 
         # Determine common prefix for use with ``directory`` option.
         if directory:
@@ -166,7 +170,7 @@ class CommandLineEnvironment():
         built = []
         for bundle, overwrite_filename, name in to_build:
             if name:
-                # A name is not necessary available of the bundle was
+                # A name is not necessarily available if the bundle was
                 # registered without one.
                 self.log.info("Building bundle: %s (to %s)" % (
                     name, overwrite_filename or bundle.output))
@@ -196,11 +200,6 @@ class CommandLineEnvironment():
                 built.append(bundle)
             except BuildError, e:
                 self.log.error("Failed, error was: %s" % e)
-
-        # build external assets if we have any
-        if self.environment.external_assets:
-            self.log.info("Building external assets")
-            self.environment.external_assets.write_files()
 
         if len(built):
             self.event_handlers['post_build']()

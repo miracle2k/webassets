@@ -3,6 +3,7 @@ import urlparse
 from itertools import chain
 import warnings
 from bundle import Bundle
+from external import ExternalAssets
 from cache import get_cache
 from version import get_versioner, get_manifest
 from updater import get_updater
@@ -158,10 +159,6 @@ class BaseEnvironment(object):
     def __len__(self):
         return len(self._named_bundles) + len(self._anon_bundles)
 
-    def register_externals(self, externals):
-        externals.env = self
-        self.external_assets = externals
-
     def register(self, name, *args, **kwargs):
         """Register a bundle with the given name.
 
@@ -179,7 +176,7 @@ class BaseEnvironment(object):
         if len(args) == 0:
             raise TypeError('at least two arguments are required')
         else:
-            if len(args) == 1 and not kwargs and isinstance(args[0], Bundle):
+            if len(args) == 1 and not kwargs and (isinstance(args[0], Bundle) or isinstance(args[0], ExternalAssets)):
                 bundle = args[0]
             else:
                 bundle = Bundle(*args, **kwargs)

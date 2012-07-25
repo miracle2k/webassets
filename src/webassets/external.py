@@ -16,24 +16,39 @@ __all__ = ('ExternalAssets',)
 
 class ExternalAssets(object):
 
-    def __init__(self, folders):
-        
+    def __init__(self, *folders, **options):
+        self.env = None
         self.folders = folders
-        #self.version = options.pop('version', [])
+        self.output = options.pop('output', None)
+        if options:
+            raise TypeError("got unexpected keyword argument '%s'" %
+                            options.keys()[0])
+        self.extra_data = {}
+
+    def __repr__(self):
+        return "<%s folders=%s>" % (
+            self.__class__.__name__,
+            self.folders,
+        )
 
     def get_versioned_file(self, file_name):
         version = self.get_version(file_name)
         bits = file_name.split('.')
         bits.insert(len(bits)-1, version)
         return '.'.join(bits)
-        
+
     def versioned_folder(self, file_name):
-        output_folder = self.env.config.get('external_assets_output_folder', None)
+        if self.output:
+            output_folder = self.output
+        else:
+            output_folder = self.env.config.get('external_assets_output_folder', None)
         if output_folder is None:
-            raise ExternalAssetsError('You must set the external_assets_output_folder config value')
+            raise ExternalAssetsError(
+                'You must set an output folder for these ExternalAssets '
+                'or the external_assets_output_folder config value')
         versioned = self.get_versioned_file(file_name)
         return path.join(output_folder, path.basename(versioned))
-        
+
     def get_output_path(self, file_name):
         return self.env.abspath(self.versioned_folder(file_name))
 
@@ -47,7 +62,7 @@ class ExternalAssets(object):
         if self.env.manifest:
             self.env.manifest.remember_file(file_name, self.env, self.get_version(file_name))
 
-    def write_files(self):
+    def build(self, env=None, force=None, disable_cache=None):
         for folder in self.folders:
             path = self.env.abspath(folder)
             for file_name in glob.glob(path):
@@ -71,3 +86,9 @@ class ExternalAssets(object):
         if version is None:
             version = self.env.versions.determine_file_version(file_name, self.env)
         return version
+
+    @property
+    def is_container(self):
+        """ExternalAssets cannot be containers
+        """
+        return False
