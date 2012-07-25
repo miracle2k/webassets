@@ -6,7 +6,11 @@ from __future__ import with_statement
 
 import os
 import pickle
-import json
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 from webassets.bundle import has_placeholder, is_url, get_all_bundle_files
 from webassets.merge import FileHunk
