@@ -581,9 +581,10 @@ class Bundle(object):
             # value, or we might serve old versions.
             version = self.get_version(env, refresh=env.auto_build)
 
-        url = env.resolver.resolve_output_to_url(self.output)
+        url = self.output
         if has_placeholder(url):
             url = url % {'version': version}
+        url = env.resolver.resolve_output_to_url(url)
 
         if env.url_expire or (
                 env.url_expire is None and not has_placeholder(self.output)):

@@ -196,6 +196,13 @@ class TestVersionFeatures(TempEnvironmentHelper):
         # DummyManifest has two log entries now
         assert len(self.env.manifest.log) == 2
 
+    def test_url(self):
+        """Test generating an url for %(version)s outputs."""
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        self.env.auto_build = False
+        bundle.version = 'foo'
+        assert bundle.urls() == ['/out-foo']
+
     def test_version_from_attr(self):
         """If version attr is set, it will be used before anything else."""
         bundle = self.mkbundle('in', output='out-%(version)s')
@@ -634,3 +641,18 @@ class TestResolverAPI(TempEnvironmentHelper):
         urls = bundle.urls()
         assert len(urls) == 1
         assert 'foo' in urls[0]
+
+    def test_resolve_output_to_url_runs_after_version(self):
+        """Test that the ``resolve_output_to_url`` method is called after
+        the version placeholder is already replaced.
+
+        This is so that implementations can apply url encoding without
+        worrying.
+        """
+        def dummy(url):
+            return url % {'version': 'not the correct version'}
+        self.env.resolver.resolve_output_to_url = dummy
+        bundle = self.mkbundle('in', output='out-%(version)s')
+        self.env.auto_build = False
+        bundle.version = 'foo'
+        assert bundle.urls() == ['out-foo']
