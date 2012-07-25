@@ -13,6 +13,7 @@ from webassets.bundle import get_all_bundle_files
 from webassets.exceptions import BuildError, ImminentDeprecationWarning
 from webassets.updater import TimestampUpdater
 from webassets.merge import MemoryHunk
+from webassets.external import ExternalAssets
 
 
 __all__ = ('CommandError', 'CommandLineEnvironment', 'main')
@@ -169,13 +170,20 @@ class CommandLineEnvironment():
         # Build.
         built = []
         for bundle, overwrite_filename, name in to_build:
+            if isinstance(bundle, ExternalAssets):
+                bundle_type = 'external assets'
+                output_destination = bundle.output or\
+                        self.environment.config.get('external_assets_output_folder', None)
+            else:
+                bundle_type = 'bundle'
+                output_destination = overwrite_filename or bundle.output
             if name:
                 # A name is not necessarily available if the bundle was
                 # registered without one.
-                self.log.info("Building bundle: %s (to %s)" % (
-                    name, overwrite_filename or bundle.output))
+                self.log.info("Building %s: %s (to %s)" % (
+                    bundle_type, name, output_destination))
             else:
-                self.log.info("Building bundle: %s" % bundle.output)
+                self.log.info("Building %s: %s" % (bundle_type, output_destination))
 
             try:
                 if not overwrite_filename:
