@@ -79,6 +79,7 @@ class CSSRewriteFilter(CSSUrlRewriter):
         for bundle in self.env:
             if isinstance(bundle, ExternalAssets):
                 self.external.append(bundle)
+            #pass
 
         return super(CSSRewriteFilter, self).input(_in, out, **kw)
 

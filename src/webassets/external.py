@@ -2,7 +2,8 @@ import os
 from os import path
 from merge import FileHunk
 
-from exceptions import ExternalAssetsError
+from exceptions import ExternalAssetsError, BuildError
+from container import Container
 
 try:
     # Current version of glob2 does not let us access has_magic :/
@@ -14,11 +15,12 @@ except ImportError:
 
 __all__ = ('ExternalAssets',)
 
-class ExternalAssets(object):
+class ExternalAssets(Container):
 
-    def __init__(self, *folders, **options):
+    def __init__(self, *contents, **options):
+        super(Container, self).__init__()
         self.env = None
-        self.folders = folders
+        self.contents = contents
         self.output = options.pop('output', None)
         if options:
             raise TypeError("got unexpected keyword argument '%s'" %
@@ -28,7 +30,7 @@ class ExternalAssets(object):
     def __repr__(self):
         return "<%s folders=%s>" % (
             self.__class__.__name__,
-            self.folders,
+            self.contents,
         )
 
     def get_versioned_file(self, file_name):
@@ -63,10 +65,12 @@ class ExternalAssets(object):
             self.env.manifest.remember_file(file_name, self.env, self.get_version(file_name))
 
     def build(self, env=None, force=None, disable_cache=None):
-        for folder in self.folders:
-            path = self.env.abspath(folder)
-            for file_name in glob.glob(path):
-                self.write_file(file_name.replace('%s/' % self.env.abspath(''),''))
+        # Prepare contents
+        resolved_contents = self.resolve_contents(env, force=True)
+        if not resolved_contents:
+            raise BuildError('empty external assets cannot be built')
+        for relpath, abspath in resolved_contents:
+            self.write_file(relpath)
 
     def show_manifest(self):
         if self.env.manifest:

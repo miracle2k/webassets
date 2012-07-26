@@ -7,7 +7,8 @@ from __future__ import with_statement
 import os
 import pickle
 
-from webassets.bundle import has_placeholder, is_url, get_all_bundle_files
+from webassets.container import is_url
+from webassets.bundle import has_placeholder, get_all_bundle_files
 from webassets.merge import FileHunk
 from webassets.utils import md5_constructor, RegistryMetaclass
 

@@ -1,11 +1,16 @@
-__all__ = ('BundleError', 'BuildError', 'FilterError',
-           'EnvironmentError', 'ImminentDeprecationWarning', 'ExternalAssetsError')
+__all__ = ('BundleError', 'BuildError', 'ContainerError', 'FilterError',
+           'EnvironmentError', 'ExternalAssetsError', 'ImminentDeprecationWarning', )
 
 
 class EnvironmentError(Exception):
     pass
 
+
 class ExternalAssetsError(Exception):
+    pass
+
+
+class ContainerError(Exception):
     pass
 
 
