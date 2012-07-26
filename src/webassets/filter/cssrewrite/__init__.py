@@ -1,6 +1,7 @@
 import os, urlparse
 from os.path import join
 from webassets.utils import common_path_prefix
+from webassets.external import ExternalAssets
 import urlpath
 try:
     from collections import OrderedDict
@@ -51,10 +52,10 @@ class CSSRewriteFilter(CSSUrlRewriter):
 
     name = 'cssrewrite'
 
-    def __init__(self, replace=False, external=False):
+    def __init__(self, replace=False):
         super(CSSRewriteFilter, self).__init__()
         self.replace = replace
-        self.external = external
+        self.external = []
 
     def unique(self):
         # Allow mixing the standard version of this filter, and replace mode.
@@ -74,8 +75,10 @@ class CSSRewriteFilter(CSSUrlRewriter):
                 replace_dict[replurl] = sub
             self.replace_dict = replace_dict
 
-        if self.external not in (False, None):
-            self.external_assets = self.env.__getitem__(self.external)
+        # see if we have external assets in the environment
+        for bundle in self.env:
+            if isinstance(bundle, ExternalAssets):
+                self.external.append(bundle)
 
         return super(CSSRewriteFilter, self).input(_in, out, **kw)
 
@@ -93,28 +96,36 @@ class CSSRewriteFilter(CSSUrlRewriter):
                     break
 
         else:
-            # External mode: use an ExternalAssets object
-            # to work out replacements
-            if self.external is not False:
+            # External mode: use ExternalAssets objects
+            # to fetch replacements
+            if len(self.external):
                 # If path is an absolute one, keep it
                 if not self._is_abs_url(url):
 
                     replacement = None
 
                     file_path = urlpath.pathjoin(self.source_path, url)
-                    asset_path = self.external_assets.versioned_folder(file_path)
+                    asset_path = None
+                    for external_assets in self.external:
+                        # see if our file has a versioned version available
+                        try:
+                            asset_path = external_assets.versioned_folder(file_path)
+                            break
+                        except IOError:
+                            pass
 
-                    if self.env.url:
-                        # see if it's a complete url (rather than a folder)
-                        # otherwise we want a relative path in the CSS
-                        if self.env.url.startswith('http://')\
-                            or self.env.url.startswith('https://')\
-                            or self.env.url.startswith('//'):
-                            replacement = urlparse.urljoin(self.env.url, asset_path)
+                    if asset_path is not None:
+                        if self.env.url:
+                            # see if it's a complete url (rather than a folder)
+                            # otherwise we want a relative path in the CSS
+                            if self.env.url.startswith('http://')\
+                                or self.env.url.startswith('https://')\
+                                or self.env.url.startswith('//'):
+                                replacement = urlparse.urljoin(self.env.url, asset_path)
+                            else:
+                                replacement = urlpath.relpathto(self.env.directory, self.output_path, self.env.absurl(asset_path))
                         else:
-                            replacement = urlpath.relpathto(self.env.directory, self.output_path, self.env.absurl(asset_path))
-                    else:
-                        replacement = urlpath.relpathto(self.env.directory, self.output_path, asset_path)
+                            replacement = urlpath.relpathto(self.env.directory, self.output_path, asset_path)
 
                     if replacement is None:
                         url = urlpath.relpath(self.output_url,
