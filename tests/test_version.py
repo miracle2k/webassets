@@ -9,8 +9,8 @@ from webassets.env import Environment
 from webassets.merge import MemoryHunk
 from webassets.test import TempEnvironmentHelper
 from webassets.version import (
-    FileManifest, CacheManifest, TimestampVersion, VersionIndeterminableError,
-    HashVersion, get_versioner, get_manifest)
+    FileManifest, JsonManifest, CacheManifest, TimestampVersion,
+    VersionIndeterminableError, HashVersion, get_versioner, get_manifest)
 
 
 def test_builtin_version_accessors():
@@ -172,6 +172,29 @@ class TestFileManifest(TempEnvironmentHelper):
         # However, if auto_build is enabled, the manifest is reloaded
         self.env.auto_build = True
         assert manifest.query(self.bundle, self.env) is None
+
+
+class TestJsonManifest(TempEnvironmentHelper):
+
+    def setup(self):
+        super(TestJsonManifest, self).setup()
+        self.bundle = self.mkbundle(output='foo')
+
+    def test_repl(self):
+        """Test simple in and out."""
+        bundle = self.bundle
+        manifest = JsonManifest.make(self.env, 'manifest')
+
+        # None is returned for missing information
+        assert manifest.query(bundle, self.env) is None
+
+        # Store something, validate we get it back
+        manifest.remember(bundle, self.env, 'the-version')
+        assert manifest.query(bundle, self.env) == 'the-version'
+
+        # Recreate the manifest to ensure it has been written to disc
+        manifest = JsonManifest.make(self.env, 'manifest')
+        assert manifest.query(bundle, self.env) == 'the-version'
 
 
 class TestCacheManifest(TempEnvironmentHelper):
