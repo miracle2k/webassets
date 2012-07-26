@@ -7,10 +7,6 @@ from __future__ import with_statement
 import os
 import pickle
 
-try:
-    import json
-except ImportError:
-    import simplejson as json
 
 from webassets.bundle import has_placeholder, is_url, get_all_bundle_files
 from webassets.merge import FileHunk
@@ -267,16 +263,24 @@ class JsonManifest(FileManifest):
 
     id = 'json'
 
+    def __init__(self, *a, **kw):
+        try:
+            import json
+        except ImportError:
+            import simplejson as json
+        self.json = json
+        super(JsonManifest, self).__init__(*a, **kw)
+
     def _load_manifest(self):
         if os.path.exists(self.filename):
             with open(self.filename, 'rb') as f:
-                self.manifest = json.load(f)
+                self.manifest = self.json.load(f)
         else:
             self.manifest = {}
 
     def _save_manifest(self):
         with open(self.filename, 'wb') as f:
-            json.dump(self.manifest, f)
+            self.json.dump(self.manifest, f)
 
 
 class CacheManifest(Manifest):
