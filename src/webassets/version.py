@@ -7,6 +7,11 @@ from __future__ import with_statement
 import os
 import pickle
 
+try:
+    import json
+except ImportError:
+    import simplejson as json
+
 from webassets.bundle import has_placeholder, is_url, get_all_bundle_files
 from webassets.merge import FileHunk
 from webassets.utils import md5_constructor, RegistryMetaclass
@@ -255,6 +260,23 @@ class FileManifest(Manifest):
     def _save_manifest(self):
         with open(self.filename, 'wb') as f:
             pickle.dump(self.manifest, f, protocol=2)
+
+
+class JsonManifest(FileManifest):
+    """Same as ``FileManifest``, but uses JSON instead of pickle."""
+
+    id = 'json'
+
+    def _load_manifest(self):
+        if os.path.exists(self.filename):
+            with open(self.filename, 'rb') as f:
+                self.manifest = json.load(f)
+        else:
+            self.manifest = {}
+
+    def _save_manifest(self):
+        with open(self.filename, 'wb') as f:
+            json.dump(self.manifest, f)
 
 
 class CacheManifest(Manifest):
