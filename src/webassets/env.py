@@ -547,9 +547,6 @@ class BaseEnvironment(object):
 
       Any custom version implementation.
 
-    The default value is ``timestamp``. Along with ``hash``, one
-    of these two values are going to be what most users are looking
-    for.
     """)
 
     def set_updater(self, updater):
