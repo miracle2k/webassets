@@ -2,7 +2,14 @@ from os import path
 import urlparse
 from itertools import chain
 import warnings
-from bundle import Bundle
+try:
+    import glob2 as glob
+    from glob import has_magic
+except ImportError:
+    import glob
+    from glob import has_magic
+
+from bundle import Bundle, is_url
 from external import ExternalAssets
 from cache import get_cache
 from version import get_versioner, get_manifest
@@ -19,7 +26,7 @@ class RegisterError(Exception):
 
 class ConfigStorage(object):
     """This is the backend which :class:`Environment` uses to store
-    it's configuration values.
+    its configuration values.
 
     Environment-subclasses like the one used by ``django-assets`` will
     often want to use a custom ``ConfigStorage`` as well, building upon
@@ -86,7 +93,7 @@ class ConfigStorage(object):
             self['url_expire'] = bool(value)
             return True
         if key == 'updater':
-            if not value or value == 'never':
+            if value == 'never':
                 self['auto_build'] = False
                 warnings.warn((
                     'The "updater" option no longer can be set to False '
@@ -108,6 +115,165 @@ class ConfigStorage(object):
                     ImminentDeprecationWarning)
 
 
+def url_prefix_join(prefix, fragment):
+    """Join url prefix with fragment."""
+    # Ensures urljoin will not cut the last part.
+    prefix += prefix[-1:] != '/' and '/' or ''
+    return urlparse.urljoin(prefix, fragment)
+
+
+class Resolver(object):
+    """Responsible for resolving user-specified :class:`Bundle`
+    contents to actual files, as well as to urls.
+
+    In this base version, this is essentially responsible for searching
+    the load path for the queried file.
+
+    A custom implementation of this class is tremendously useful when
+    integrating with frameworks, which usually have some system to
+    spread static files across applications or modules.
+
+    The class is designed for maximum extensibility.
+    """
+
+    def __init__(self, env):
+        self.env = env
+
+    def glob(self, basedir, expr):
+        """Runs when a glob expression needs to be resolved.
+        """
+        expr = path.join(basedir, expr)
+        for filename in glob.iglob(expr):
+            if path.isdir(filename):
+                continue
+            yield filename
+
+    def consider_single_directory(self, directory, item):
+        """Resolve ``item`` within ``directory``, glob or non-glob style
+
+        Primarily to be called from subclasses rather than overridden.
+        """
+        expr = path.join(directory, item)
+        if has_magic(expr):
+            # Note: No error if glob returns an empty list
+            return list(self.glob(directory, item))
+        else:
+            if path.exists(expr):
+                return expr
+            raise IOError("'%s' does not exist" % expr)
+
+    def search_env_directory(self, item):
+        """Runs when :attr:`Environment.load_path` is not set.
+        """
+        return self.consider_single_directory(self.env.directory, item)
+
+    def search_load_path(self, item):
+        """Runs when :attr:`Environment.load_path` is set.
+        """
+        if has_magic(item):
+            # We glob all paths.
+            result = []
+            for path in self.env.load_path:
+                result.extend(list(self.glob(path, item)))
+            return result
+        else:
+            # Single file, stop when we find the first match, or error
+            # out otherwise. We still use glob() because then the load_path
+            # itself can contain globs. Neat!
+            for path in self.env.load_path:
+                result = list(self.glob(path, item))
+                if result:
+                    return result
+            raise IOError("'%s' not found in load path: %s" % (
+                item, self.env.load_path))
+
+    def search_for_source(self, item):
+        """Runs when the item is a relative filesystem path.
+        """
+        if self.env.load_path:
+            return self.search_load_path(item)
+        else:
+            return self.search_env_directory(item)
+
+    def query_url_mapping(self, filepath):
+        # Build a list of dir -> url mappings
+        mapping = self.env.url_mapping.items()
+        mapping.append((self.env.directory, self.env.url))
+        # Make sure paths are absolute, normalized, and sorted by length
+        mapping = map(
+            lambda (p,u): (path.normpath(path.abspath(p)), u),
+            mapping)
+        mapping.sort(cmp=lambda i, j: cmp(len(i[0]), len(j[0])), reverse=True)
+
+        needle = path.normpath(filepath)
+        for candidate, url in mapping:
+            if needle.startswith(candidate):
+                # Found it!
+                rel_path = filepath[len(candidate)+1:]
+                return url_prefix_join(url, rel_path)
+        raise ValueError('Cannot determine url for %s' % filepath)
+
+    def resolve_source(self, item):
+        """Given ``item`` from a Bundle's contents, return an absolute
+        filesystem path.
+
+        ``item`` may include glob syntax, in which a list of paths
+        should be returned.
+
+        .. note::
+            This is also allowed to return urls and bundles (or in fact
+            anything else the calling :class:`Bundle` instance may be
+            able to handle.
+        """
+
+        # Pass through some things unscathed
+        if not isinstance(item, basestring):
+            return item
+        if is_url(item) or path.isabs(item):
+            return item
+
+        return self.search_for_source(item)
+
+    def resolve_output_to_path(self, target, bundle):
+        """Given ``target``, return the absolute path to which the
+        output file should be written.
+
+        If a version-placeholder is used, it is still unresolved at
+        this point.
+        """
+        return path.join(self.env.directory, target)
+
+    def resolve_source_to_url(self, filepath, item):
+        """Given the absolute path in ``filepath``, return the url
+        through which it is to be referenced.
+
+        The method is also passed the original ``item`` that resolved
+        to the given ``path``.
+
+        It should raise a ``ValueError`` if a proper url cannot be
+        determined.
+        """
+        return self.query_url_mapping(filepath)
+
+    def resolve_output_to_url(self, target):
+        """Given the output ``target``, return the url through which
+        the output file can be referenced.
+
+        This is different from :meth:`resolve_source_to_url` in that
+        the absolute filesystem path is not available, for this step
+        needs to happen without filesystem access, for optimal
+        performance.
+        """
+        if not path.isabs(target):
+            # If relative, output files are written to env.directory,
+            # thus we can simply base all values off of env.url.
+            return url_prefix_join(self.env.url, target)
+        else:
+            # If an absolute output path was specified, then search
+            # the url mappings.
+            return self.query_url_mapping(target)
+
+
 # Those are config keys used by the environment. Framework-wrappers may
 # find this list useful if they desire to prefix those settings. For example,
 # in Django, it would be ASSETS_DEBUG. Other config keys are encouraged to use
@@ -115,21 +281,24 @@ class ConfigStorage(object):
 # filter setting might be CSSMIN_BIN.
 env_options = [
     'directory', 'url', 'debug', 'cache', 'updater', 'auto_build',
-    'url_expire', 'versions', 'manifest']
+    'url_expire', 'versions', 'manifest', 'load_path', 'url_mapping']
 
 
 class BaseEnvironment(object):
-    """Abstract base class for :class:`Environment` which makes
-    subclassing easier.
+    """Abstract base class for :class:`Environment` with slightly more generic
+    assumptions, to ease subclassing.
     """
 
     config_storage_class = None
+    resolver_class = Resolver
 
     def __init__(self, **config):
         self._named_bundles = {}
-        self._anon_bundles = []
+        self._anon_bundles = []		
         self.external_assets = None
+		
         self._config = self.config_storage_class(self)
+        self.resolver = self.resolver_class(self)
 
         # directory, url currently do not have default values
         #
@@ -144,6 +313,8 @@ class BaseEnvironment(object):
         self.config.setdefault('manifest', 'cache')
         self.config.setdefault('versions', 'hash')
         self.config.setdefault('updater', 'timestamp')
+        self.config.setdefault('load_path', [])
+        self.config.setdefault('url_mapping', {})
 
         self.config.update(config)
 
@@ -160,19 +331,36 @@ class BaseEnvironment(object):
         return len(self._named_bundles) + len(self._anon_bundles)
 
     def register(self, name, *args, **kwargs):
-        """Register a bundle with the given name.
+        """Register a :class:`Bundle` with the given ``name``.
 
-        There are two possible ways to call this:
+        This can be called in multiple ways:
 
-          - With a single ``Bundle`` instance argument:
+        - With a single :class:`Bundle` instance::
 
-              register('jquery', jquery_bundle)
+              env.register('jquery', jquery_bundle)
 
-          - With one or multiple arguments, automatically creating a
-            new bundle inline:
+        - With a dictionary, registering multiple bundles at once:
 
-              register('all.js', jquery_bundle, 'common.js', output='packed.js')
+              bundles = {'js': js_bundle, 'css': css_bundle}
+              env.register(bundles)
+
+          .. note::
+              This is a convenient way to use a :doc:`loader <loaders>`:
+
+                   env.register(YAMLLoader('assets.yaml').load_bundles())
+
+        - With many arguments, creating a new bundle on the fly::
+
+              env.register('all_js', jquery_bundle, 'common.js',
+                           filters='rjsmin', output='packed.js')
         """
+
+        # Register a dict
+        if isinstance(name, dict) and not args and not kwargs:
+            for name, bundle in name.items():
+                self.register(name, bundle)
+            return
+
         if len(args) == 0:
             raise TypeError('at least two arguments are required')
         else:
@@ -198,12 +386,20 @@ class BaseEnvironment(object):
         naming them.
 
         This isn't terribly useful in most cases. It exists primarily
-        because in some cases, like when loading bundles by seaching
+        because in some cases, like when loading bundles by searching
         in templates for the use of an "assets" tag, no name is available.
         """
         for bundle in bundles:
             self._anon_bundles.append(bundle)
             bundle.env = self    # take ownership
+
+    def append_path(self, path, url=None):
+        """Appends ``path`` to :attr:`load_path`, and adds a
+        corresponding entry to :attr:`url_mapping`.
+        """
+        self.load_path.append(path)
+        if url:
+            self.url_mapping[path] = url
 
     @property
     def config(self):
@@ -354,15 +550,11 @@ class BaseEnvironment(object):
 
       Any custom version implementation.
 
-    The default value is ``timestamp``. Along with ``hash``, one
-    of these two values are going to be what most users are looking
-    for.
     """)
 
     def set_updater(self, updater):
         self.config['updater'] = updater
     def get_updater(self):
-        value = self.config['updater']
         updater = get_updater(self.config['updater'])
         if updater != self.config['updater']:
             self.config['updater'] = updater
@@ -406,18 +598,70 @@ class BaseEnvironment(object):
     def _set_directory(self, directory):
         self.config['directory'] = directory
     def _get_directory(self):
-        return self.config['directory']
+        try:
+            return path.abspath(self.config['directory'])
+        except KeyError:
+            raise EnvironmentError(
+                'The environment has no "directory" configured')
     directory = property(_get_directory, _set_directory, doc=
-    """The base directory to which all paths will be relative to.
+    """The base directory to which all paths will be relative to,
+    unless :attr:`load_paths` are given, in which case this will
+    only serve as the output directory.
+
+    In the url space, it is mapped to :attr:`urls`.
     """)
 
     def _set_url(self, url):
         self.config['url'] = url
     def _get_url(self):
-        return self.config['url']
+        try:
+            return self.config['url']
+        except KeyError:
+            raise EnvironmentError(
+                'The environment has no "url" configured')
     url = property(_get_url, _set_url, doc=
-    """The base used to construct urls under which :attr:`directory`
-    should be exposed.
+    """The url prefix used to construct urls for files in
+    :attr:`directory`.
+
+    To define url spaces for other directories, see
+    :attr:`url_mapping`.
+    """)
+
+    def _set_load_path(self, load_path):
+        self.config['load_path'] = load_path
+    def _get_load_path(self):
+        return self.config['load_path']
+    load_path = property(_get_load_path, _set_load_path, doc=
+    """An list of directories that will be searched for source files.
+
+    If this is set, source files will only be looked for in these
+    directories, and :attr:`directory` is used as a location for
+    output files only.
+
+    .. note:
+        You are free to add :attr:`directory` to your load path as
+        well.
+
+    .. note:
+        Items on the load path are allowed to contain globs.
+
+    To modify this list, you should use :meth:`append_path`, since
+    it makes it easy to add the corresponding url prefix to
+    :attr:`url_mapping`.
+    """)
+
+    def _set_url_mapping(self, url_mapping):
+        self.config['url_mapping'] = url_mapping
+    def _get_url_mapping(self):
+        return self.config['url_mapping']
+    url_mapping = property(_get_url_mapping, _set_url_mapping, doc=
+    """A dictionary of directory -> url prefix mappings that will
+    be considered when generating urls, in addition to the pair of
+    :attr:`directory` and :attr:`url`, which is always active.
+
+    You should use :meth:`append_path` to add directories to the
+    load path along with their respective url spaces, instead of
+    modifying this setting directly.
     """)
 
     # Deprecated attributes, remove in 0.8?; warnings are raised by
@@ -427,41 +671,6 @@ class BaseEnvironment(object):
     def _get_expire(self):
         return self.config['expire']
     expire = property(_get_expire, _set_expire)
-
-    def absurl(self, fragment):
-        """Create an absolute url based on the root url.
-
-        TODO: Not sure if it feels right that these are environment
-        methods, rather than global helpers.
-        """
-        root = self.url
-        root += root[-1:] != '/' and '/' or ''
-        return urlparse.urljoin(root, fragment)
-
-    def abspath(self, filename):
-        """Create an absolute path based on the directory.
-        """
-        if path.isabs(filename):
-            return filename
-        return path.abspath(path.join(self.directory, filename))
-
-    def _normalize_source_path(self, spath):
-        """Called once for every source item processed by a Bundle.
-
-        It is supposed to return the absolute path to the file, or
-        raise an exception. It is primarily intended as a hook for
-        third party integration libraries to provide support for
-        virtual paths (like Flask Blueprints, or Django staticfiles).
-
-        The function is not called for urls. It is also currently
-        not called for paths that use glob patterns, meaning those
-        cannot be virtualized at this point (TODO: See if we can
-        do something about this).
-        """
-        spath = self.abspath(spath)
-        if not path.exists(spath):
-            raise IOError("'%s' does not exist" % spath)
-        return spath
 
 
 class DictConfigStorage(ConfigStorage):
@@ -487,13 +696,34 @@ class DictConfigStorage(ConfigStorage):
 
 
 class Environment(BaseEnvironment):
-    """Owns a collection of bundles, and a set of configuration values
-    which will be used when processing these bundles.
+    """Owns a collection of bundles, and a set of configuration values which
+    will be used when processing these bundles.
     """
 
     config_storage_class = DictConfigStorage
 
-    def __init__(self, directory, url, **more_config):
+    def __init__(self, directory=None, url=None, **more_config):
         super(Environment, self).__init__(**more_config)
-        self.directory = directory
-        self.url = url
+        if directory is not None:
+            self.directory = directory
+        if url is not None:
+            self.url = url
+
+
+def parse_debug_value(value):
+    """Resolve the given string value to a debug option.
+
+    Can be used to deal with os environment variables, for example.
+    """
+    if value is None:
+        return value
+    value = value.lower()
+    if value in ('true', '1'):
+        return True
+    elif value in ('false', '0'):
+        return False
+    elif value in ('merge',):
+        return 'merge'
+    else:
+        raise ValueError()
+

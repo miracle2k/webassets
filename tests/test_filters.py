@@ -1,20 +1,22 @@
 from __future__ import with_statement
 
 import os
-import tempfile
 from contextlib import contextmanager
 from StringIO import StringIO
-from nose.tools import assert_raises, with_setup, assert_equals
+from nose.tools import assert_raises, assert_equals, assert_true
 from nose import SkipTest
+from mock import patch, Mock, DEFAULT
 from distutils.spawn import find_executable
-from webassets import Bundle, Environment
+import re
+from webassets import Environment
 from webassets.exceptions import FilterError
-from webassets.filter import Filter, get_filter, register_filter, JavaMixin
+from webassets.filter import (
+    Filter, ExternalTool, get_filter, register_filter)
 from helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
 # unpredictable text like temp paths or timestamps. doctest has
-# the same problem, so we just steal it's solution.
+# the same problem, so we just steal its solution.
 from doctest import _ellipsis_match as doctest_match
 
 
@@ -28,7 +30,7 @@ def os_environ_sandbox():
         os.environ.update(backup)
 
 
-class TestFilter(object):
+class TestFilterBaseClass(object):
     """Test the API ``Filter`` provides to descendants.
     """
 
@@ -148,26 +150,203 @@ class TestFilter(object):
         g = AnotherFilter()
         assert f1 != g
 
-    def test_java_mixin_error_handling(self):
-        """The mixin class for java-based external tools.
 
-        Test the codepath that deals with errors raised by the
-        external tool.
+class TestExternalToolClass(object):
+    """Test the API ``Filter`` provides to descendants.
+    """
+
+    class MockTool(ExternalTool):
+        method = None
+        def subprocess(self, argv, out, data=None):
+            self.__class__.result = \
+                argv, data.getvalue() if data is not None else data
+
+    def setup(self):
+        if not hasattr(str, 'format'):
+            # A large part of this functionality is not available on Python 2.5
+            raise SkipTest()
+        self.patcher = patch('subprocess.Popen')
+        self.popen = self.patcher.start()
+        self.popen.return_value = Mock()
+        self.popen.return_value.communicate = Mock()
+
+    def teardown(self):
+        self.patcher.stop()
+
+    def test_argv_variables(self):
+        """In argv, a number of placeholders can be used. Ensure they work."""
+        class Filter(self.MockTool):
+            argv = [
+                # The filter instance
+                '{self.__class__}',
+                # Keyword and positional args to filter method
+                '{kwarg}', '{0.len}',
+                # Special placeholders that are passed through
+                '{input}', '{output}']
+        Filter().output(StringIO('content'), StringIO(), kwarg='value')
+        print Filter.result
+        assert Filter.result == (
+            ["<class 'tests.test_filters.Filter'>", 'value', '7',
+             '{input}', '{output}'],
+            'content')
+
+    def test_method_input(self):
+        """The method=input."""
+        class Filter(self.MockTool):
+            method = 'input'
+        assert getattr(Filter, 'output') is None
+        assert getattr(Filter, 'open') is None
+        Filter().input(StringIO('bla'), StringIO())
+        assert Filter.result == ([], 'bla')
+
+    def test_method_output(self):
+        """The method=output."""
+        class Filter(self.MockTool):
+            method = 'output'
+        assert getattr(Filter, 'input') is None
+        assert getattr(Filter, 'open') is None
+        Filter().output(StringIO('bla'), StringIO())
+        assert Filter.result == ([], 'bla')
+
+    def test_method_open(self):
+        """The method=open."""
+        class Filter(self.MockTool):
+            method = 'open'
+        assert getattr(Filter, 'output') is None
+        assert getattr(Filter, 'input') is None
+        Filter().open(StringIO(), 'filename')
+        assert Filter.result == ([], None)
+
+    def test_method_invalid(self):
+        assert_raises(AssertionError,
+            type, 'Filter', (ExternalTool,), {'method': 'foobar'})
+
+    def test_no_method(self):
+        """When no method is given."""
+        # If no method and no argv is given, no method will be implemented
+        class Filter(ExternalTool):
+            pass
+        assert getattr(Filter, 'output') is None
+        assert getattr(Filter, 'open') is None
+        assert getattr(Filter, 'input') is None
+
+        # If no method, but argv is given, the output  method will be
+        # implemented by default.
+        class Filter(ExternalTool):
+            argv = ['app']
+        assert not getattr(Filter, 'output') is None
+        assert getattr(Filter, 'open') is None
+        assert getattr(Filter, 'input') is None
+
+        # If method is set to None, all method will remain available
+        class Filter(ExternalTool):
+            method = None
+        assert not getattr(Filter, 'output') is None
+        assert not getattr(Filter, 'open') is None
+        assert not getattr(Filter, 'input') is None
+
+    def test_subsubclass(self):
+        """Test subclassing a class based on ExternalTool again.
+
+        The ``method`` argument no longer has any effect if already used
+        in parent class.
         """
-        class TestFilter(Filter, JavaMixin):
-            def setup(self):
-                # This is not going to be a valid jar
-                self.jar = tempfile.mkstemp()[1]
-                self.java_setup()
-            def input(self, _in, out, *a, **kw):
-                self.java_run(_in, out, [])
-        # Run the filter, which will result in an error
-        try:
-           f1 = TestFilter()
-           f1.setup()
-           assert_raises(FilterError, f1.input, StringIO(), StringIO())
-        finally:
-           os.unlink(f1.jar)
+        class Baseclass(ExternalTool):
+            method = 'open'
+        class Subclass(Baseclass):
+            method = 'input'
+        assert getattr(Baseclass, 'output') is None
+        assert getattr(Baseclass, 'input') is None
+        assert not getattr(Baseclass, 'open') is None
+        # No all is None - very useless.
+        assert getattr(Subclass, 'output') is None
+        assert getattr(Subclass, 'input') is None
+        assert not getattr(Subclass, 'open') is None
+
+    def test_method_no_override(self):
+        """A subclass may implement specific methods itself; if it
+        does, the base class must not override those with None."""
+        class Filter(self.MockTool):
+            method = 'open'
+            def input(self, _in, out, **kw):
+                pass
+        assert not getattr(Filter, 'input') is None
+        assert getattr(Filter, 'output') is None
+
+    def test_subprocess(self):
+        """Instead of the ``argv`` shortcut, subclasses can also use the
+        ``subprocess`` helper manually.
+        """
+
+        class Filter(ExternalTool): pass
+
+        # Without stdin data
+        self.popen.return_value.returncode = 0
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        out = StringIO()
+        Filter.subprocess(['test'], out)
+        assert out.getvalue() == 'stdout'
+        self.popen.return_value.communicate.assert_called_with(None)
+
+        # With stdin data
+        self.popen.reset_mock()
+        self.popen.return_value.returncode = 0
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        out = StringIO()
+        Filter.subprocess(['test'], out, data='data')
+        assert out.getvalue() == 'stdout'
+        self.popen.return_value.communicate.assert_called_with('data')
+
+        # With error
+        self.popen.return_value.returncode = 1
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        assert_raises(FilterError, Filter.subprocess, ['test'], StringIO())
+
+    def test_input_var(self):
+        """Test {input} variable."""
+        class Filter(ExternalTool): pass
+        self.popen.return_value.returncode = 0
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+
+        # {input} creates an input file
+        intercepted = {}
+        def check_input_file(argv,  **kw):
+            intercepted['filename'] = argv[0]
+            with open(argv[0], 'r') as f:
+                # File has been generated with input data
+                assert f.read() == 'foo'
+            return DEFAULT
+        self.popen.side_effect = check_input_file
+        Filter.subprocess(['{input}'], StringIO(), data='foo')
+        # No stdin was passed
+        self.popen.return_value.communicate.assert_called_with(None)
+        # File has been deleted
+        assert not os.path.exists(intercepted['filename'])
+
+        # {input} requires input data
+        assert_raises(ValueError, Filter.subprocess, ['{input}'], StringIO())
+
+    def test_output_var(self):
+        class Filter(ExternalTool): pass
+        self.popen.return_value.returncode = 0
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+
+        # {input} creates an input file
+        intercepted = {}
+        def fake_output_file(argv,  **kw):
+            intercepted['filename'] = argv[0]
+            with open(argv[0], 'w') as f:
+                f.write('bat')
+            return DEFAULT
+        self.popen.side_effect = fake_output_file
+        # We get the result we generated in the hook above
+        out = StringIO()
+        Filter.subprocess(['{output}'], out)
+        assert out.getvalue() == 'bat'
+        # File has been deleted
+        assert not os.path.exists(intercepted['filename'])
+
+
 
 
 def test_register_filter():
@@ -182,14 +361,17 @@ def test_register_filter():
         def output(self, *a, **kw): pass
     assert_raises(ValueError, register_filter, MyFilter)
 
-    # The same filter cannot be registered under multiple names.
+    # We should be able to register a filter with a name.
     MyFilter.name = 'foo'
     register_filter(MyFilter)
-    MyFilter.name = 'bar'
-    register_filter(MyFilter)
 
-    # But the same name cannot be registered multiple times.
-    assert_raises(KeyError, register_filter, MyFilter)
+    # A filter should be able to override a pre-registered filter of the same
+    # name.
+    class OverrideMyFilter(Filter):
+        name = 'foo'
+        def output(self, *a, **kw): pass
+    register_filter(OverrideMyFilter)
+    assert_true(isinstance(get_filter('foo'), OverrideMyFilter))
 
 
 def test_get_filter():
@@ -261,15 +443,6 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         assert self.get('out.css')[:3] == '\x1f\x8b\x08'
         assert len(self.get('out.css')) == 24
 
-    def test_cssprefixer(self):
-        try:
-            import cssprefixer
-        except ImportError:
-            raise SkipTest()
-        self.create_files({'in': """a { border-radius: 1em; }"""})
-        self.mkbundle('in', filters='cssprefixer', output='out.css').build()
-        assert self.get('out.css') == 'a {\n    -webkit-border-radius: 1em;\n    -moz-border-radius: 1em;\n    border-radius: 1em\n    }'
-
     def test_cssmin(self):
         try:
             self.mkbundle('foo.css', filters='cssmin', output='out.css').build()
@@ -300,13 +473,6 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             raise SkipTest()
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
         assert self.get('out.js') == 'function foo(a){var b;document.write(a)};'
-
-    def test_less(self):
-        if not find_executable('lessc'):
-            raise SkipTest()
-        self.mkbundle('foo.css', filters='less', output='out.css').build()
-        print repr(self.get('out.css'))
-        assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n'
 
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
@@ -352,6 +518,48 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('foo.css', filters='yui_css', output='out.css').build()
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
 
+    def test_cleancss(self):
+        if not find_executable('cleancss'):
+            raise SkipTest()
+        self.mkbundle('foo.css', filters='cleancss', output='out.css').build()
+        assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
+
+    def test_cssslimmer(self):
+        try:
+            import slimmer
+        except ImportError:
+            raise SkipTest()
+        self.mkbundle('foo.css', filters='css_slimmer', output='out.css').build()
+        assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
+
+    def test_stylus(self):
+        if not find_executable('stylus'):
+            raise SkipTest()
+        self.create_files({'in': """a\n  width:100px\n  height:(@width/2)"""})
+        self.mkbundle('in', filters='stylus', output='out.css').build()
+        assert self.get('out.css') == """a {\n  width: 100px;\n  height: 50px;\n}\n\n"""
+
+
+class TestCSSPrefixer(TempEnvironmentHelper):
+
+    def setup(self):
+        try:
+            import cssprefixer
+        except ImportError:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.create_files({'in': """a { border-radius: 1em; }"""})
+        self.mkbundle('in', filters='cssprefixer', output='out.css').build()
+        assert self.get('out.css') == 'a {\n    -moz-border-radius: 1em;\n    -webkit-border-radius: 1em;\n    border-radius: 1em\n    }'
+
+    def test_encoding(self):
+        self.create_files({'in': u"""a { content: '\xe4'; }""".encode('utf8')})
+        self.mkbundle('in', filters='cssprefixer', output='out.css').build()
+        self.p('out.css')
+        assert self.get('out.css') == 'a {\n    content: "\xc3\xa4"\n    }'
+
 
 class TestCoffeeScript(TempEnvironmentHelper):
 
@@ -363,7 +571,7 @@ class TestCoffeeScript(TempEnvironmentHelper):
     def test_default_options(self):
         self.create_files({'in': "alert \"I knew it!\" if elvis?"})
         self.mkbundle('in', filters='coffeescript', output='out.js').build()
-        assert self.get('out.js') == """if (typeof elvis !== "undefined" && elvis !== null) alert("I knew it!");\n"""
+        assert self.get('out.js') == """if (typeof elvis !== "undefined" && elvis !== null) {\n  alert("I knew it!");\n}\n"""
 
     def test_bare_option(self):
         self.env.config['COFFEE_NO_BARE'] = True
@@ -375,6 +583,27 @@ class TestCoffeeScript(TempEnvironmentHelper):
         self.create_files({'in': "@a = 1"})
         self.mkbundle('in', filters='coffeescript', output='out.js').build(force=True)
         assert self.get('out.js') == 'this.a = 1;\n'
+
+
+class TestJinja2(TempEnvironmentHelper):
+
+    def setup(self):
+        try:
+            import jinja2
+        except ImportError:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test_default_options(self):
+        self.create_files({'in': """Hi there, {{ name }}!"""})
+        self.mkbundle('in', filters='jinja2', output='out.template').build()
+        assert self.get('out.template') == """Hi there, !"""
+
+    def test_bare_option(self):
+        self.env.config['JINJA2_CONTEXT'] = {'name': 'Randall'}
+        self.create_files({'in': """Hi there, {{ name }}!"""})
+        self.mkbundle('in', filters='jinja2', output='out.template').build()
+        assert self.get('out.template') == """Hi there, Randall!"""
 
 
 class TestClosure(TempEnvironmentHelper):
@@ -447,11 +676,18 @@ class TestCssRewrite(TempEnvironmentHelper):
 
         This used to fail due to an unhashable key being returned by
         the filter."""
-        cssrewrite = get_filter('cssrewrite', replace={'old': 'new'})
+        cssrewrite = get_filter('cssrewrite', replace={'old/': 'new/'})
         self.env.cache = True
         self.create_files({'in.css': '''h1 { background: url(old/sub/icon.png) }'''})
         # Does not raise an exception.
         self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
+        assert self.get('out.css') == '''h1 { background: url(new/sub/icon.png) }'''
+
+    def test_replacement_lambda(self):
+        self.create_files({'in.css': '''h1 { background: url(old/sub/icon.png) }'''})
+        cssrewrite = get_filter('cssrewrite', replace=lambda url: re.sub(r'^/?old/', '/new/', url))
+        self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
+        assert self.get('out.css') == '''h1 { background: url(/new/sub/icon.png) }'''
 
 
 class TestDataUri(TempEnvironmentHelper):
@@ -475,6 +711,43 @@ class TestDataUri(TempEnvironmentHelper):
         self.create_files({'sub/icon.png': 'foo'})
         self.mkbundle('in.css', filters='datauri', output='out.css').build()
         assert self.get('out.css') == 'h1 { background: url(sub/icon.png) }'
+
+
+class TestLess(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.less': "h1 { color: #FFFFFF; }",
+    }
+
+    def setup(self):
+        if not find_executable('lessc'):
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.mkbundle('foo.less', filters='less', output='out.css').build()
+        assert self.get('out.css') == 'h1 {\n  color: #FFFFFF;\n}\n'
+
+    def test_import(self):
+        """Test referencing other files."""
+        # Note that apparently less can only import files that generate no
+        # output, i.e. mixins, variables etc.
+        self.create_files({
+            'import.less': '''
+               @import "foo.less";
+               span { color: @c }
+               ''',
+            'foo.less': '@c: red;'})
+        self.mkbundle('import.less', filters='less', output='out.css').build()
+        assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
+
+    def test_run_in_debug_mode(self):
+        """A setting can be used to make less not run in debug."""
+        self.env.debug = True
+        self.env.config['less_run_in_debug'] = False
+        self.mkbundle('foo.less', filters='less', output='out.css').build()
+        assert self.get('out.css') == self.default_files['foo.less']
+
 
 
 class TestSass(TempEnvironmentHelper):
@@ -727,7 +1000,7 @@ class TestJST(TempEnvironmentHelper):
         self.create_files({'baz.jst': """new value"""})
 
         # Rebuild with force=True, so it's not a question of the updater
-        # not doing it's job.
+        # not doing its job.
         bundle.build(force=True)
 
         assert 'new value' in self.get('out.js')

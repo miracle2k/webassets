@@ -2,6 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../django-assets/.idea/django-assets.iml" filepath="$PROJECT_DIR$/../django-assets/.idea/django-assets.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../flask-assets/.idea/flask-assets.iml" filepath="$PROJECT_DIR$/../flask-assets/.idea/flask-assets.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/webassets.iml" filepath="$PROJECT_DIR$/.idea/webassets.iml" />
     </modules>
   </component>

@@ -1,0 +1,15 @@
+ul#comments, ol#comments:
+  margin: 0
+  padding: 0
+
+  li:
+    padding: 0.4em
+    margin: 0.8em 0 0.8em
+
+    h3:
+      font-size: 1.2em
+    p:
+      padding: 0.3em
+    p.meta:
+      text-align: right
+      color: #ddd

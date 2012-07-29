@@ -8,19 +8,18 @@ Creating custom filters can be easy, or very easy.
 
 Before we get to that though, it is first necessary to understand that
 there are two types of filters: *input filters* and *output filters*.
-Output filters applied after the complete content after all a bundle's
-contents have been merged together. Input filters, on the other, are
+Output filters are applied after the complete content after all a bundle's
+contents have been merged together. Input filters, on the other hand, are
 applied to each source file after it is read from the disk. In the case
-of nested bundles, input filters will even be passed down so that the
-input filters of a parent bundle are applied before the output filter
-of a child bundle:
+of nested bundles, input filters will be passed down, with the input filters 
+of a parent bundle are applied before the output filter of a child bundle:
 
 .. code-block:: python
 
     child_bundle = Bundle('file.css', filters='yui_css')
-    Bundle('child_bundle', filters='cssrewrite')
+    Bundle(child_bundle, filters='cssrewrite')
 
-In this example, because cssrewrite acts as an in put filter, what will
+In this example, because cssrewrite acts as an input filter, what will
 essentially happen is:
 
 .. code-block:: python
@@ -35,7 +34,7 @@ this:
 
     cssrewrite.output(yui_css.output((cssrewrite.input((yui_css.input(file.css)))))
 
-The usual reason to use an in put filter is that the filter's
+The usual reason to use an input filter is that the filter's
 transformation depends on the source file's filename. For example,
 the :ref:`cssrewrite <filters-cssrewrite>` filter needs to know the
 location of the source file relative to the final output file, so it
@@ -87,7 +86,7 @@ always act as output filters.
 The easy way
 ------------
 
-This works by subclassing ``django.filter.Filter``. In doing so, you
+This works by subclassing ``webassets.filter.Filter``. In doing so, you
 need to write a bit more code, but you'll be able to enjoy a few perks.
 
 The ``noop`` filter from the previous example, written as a class, would
@@ -95,7 +94,7 @@ look something like this:
 
 .. code-block:: python
 
-    from django_assets.filter import Filter
+    from webassets.filter import Filter
 
     class NoopFilter(Filter):
         name = 'noop'
@@ -137,7 +136,7 @@ the filter. First, you need to register the class with the system though:
 
 .. code-block:: python
 
-    from django_assets.filter import register_filter
+    from webassets.filter import register_filter
     register_filter(NoopFilter)
 
 After that, you can use the filter like you would any of the built-in ones:
@@ -249,7 +248,7 @@ not enough, you can implement custom options yourself using the
         def setup(self):
             self.bin = self.get_config('BINARY_PATH')
 
-This will check first the Django settings, then the environment for
+This will check first the configuration, then the environment for
 ``BINARY_PATH``, and raise an exception if nothing is found.
 
 ``get_config()`` allows you to specify different names for the setting
@@ -288,5 +287,5 @@ automatically in any case.
 More?
 -----
 
-You can have a look inside the ``django_assets.filter`` module source
+You can have a look inside the ``webassets.filter`` module source
 code to see a large number of example filters.

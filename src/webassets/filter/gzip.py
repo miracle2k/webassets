@@ -4,10 +4,10 @@ import gzip
 from webassets.filter import Filter
 
 
-__all__ = ('GZipFilter',)
+__all__ = ('GZip',)
 
 
-class GZipFilter(Filter):
+class GZip(Filter):
     """Applies gzip compression to the content given.
 
     This can be used if you are unable to let the webserver do the

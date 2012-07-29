@@ -71,6 +71,10 @@ The environment supports the following configuration options:
 
 .. autoattribute:: webassets.env.Environment.cache
 
+.. autoattribute:: webassets.env.Environment.load_path
+
+.. autoattribute:: webassets.env.Environment.url_mapping
+
 
 Filter configuration
 ====================

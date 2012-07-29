@@ -74,8 +74,9 @@ class CSSUrlRewriter(PatternRewriter):
 
         self.source_path = source_path
         self.output_path = output_path
-        self.source_url = self.env.absurl(source)
-        self.output_url = self.env.absurl(output)
+        self.source_url = self.env.resolver.resolve_source_to_url(
+            source_path, source)
+        self.output_url = self.env.resolver.resolve_output_to_url(output)
 
         return super(CSSUrlRewriter, self).input(_in, out, **kw)
 

@@ -3,15 +3,13 @@ loaded in the browser, registers automatically.
 
 """
 
-from webassets.filter import Filter
-import subprocess
-from webassets.exceptions import FilterError
+from webassets.filter import ExternalTool
 
 
-__all__ = ('DustJSFilter',)
+__all__ = ('DustJS',)
 
 
-class DustJSFilter(Filter):
+class DustJS(ExternalTool):
     """`DustJS <http://akdubya.github.com/dustjs/>`_ templates compilation
     filter.
 
@@ -46,6 +44,7 @@ class DustJSFilter(Filter):
     name = 'dustjs'
     options = {'dusty_path': 'DUSTY_PATH',
                'node_path': 'NODE_PATH'}
+    max_debug_level = None
 
     def open(self, out, source_path, **kw):
         args = []
@@ -55,14 +54,4 @@ class DustJSFilter(Filter):
         # no need for --single, as we output to STDOUT
         args += [source_path]
 
-        proc = subprocess.Popen(
-            args, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        stdout, stderr = proc.communicate()
-
-        if proc.returncode != 0:
-            raise FilterError(('dusty: subprocess had error: stderr=%s,' +
-                               'stdout=%s, returncode=%s') % (
-                                    stderr, stdout, proc.returncode))
-        out.write(stdout)
+        self.subprocess(args, out)

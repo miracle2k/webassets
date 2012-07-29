@@ -10,31 +10,25 @@ could look at request.current_app when resolving, or take an argument.
 There should be some solution though, since it's easy to clash with names
 like "js" or "js-all". "admin:js" works much nicer.
 
-Since running an external tool is not uncommon for a filter, the Filter
-base class could support a helper function that simplifies the calls to
-the subprocess module.
-
 Support functionality for applying a filter directly within a template,
 i.e. pack inline scripts. On the other end, allow piping an assets
 directly into the template. The latter is probably best using
 a MemoryBundle() class that requires an id to be set to replace the
 output filename as a cache key.
 
-Should be provide features for normalizing encodings? This could be
-added as properties to the bundles.
+We should provide functionality to deal with encodings? This seems rarely
+needed, since we did fine so far, but still: An encoding property on each
+bundle that will be used when opening files (via a respective encoding
+property on FileHunk) is simple enough. Then, if you need to deal with a
+set of files with a different encoding, you can put them in a bundle of their
+own, or define them as a FileHunk() object
 
 Handle far future expires for images: add a new templatetag that can output
 image urls with timestamps; the cssrewrite filter could modify urls within
 CSS files when ASSETS_EXPIRE is enabled.
 
-Support image sprites like django-media-bundler does.
-
 Find a good solution to making filter debug/log information available in a
 standardized way across the board.
-
-Allow an option to fall back to rendering source files in case asset
-building fails for some reason. Right now, the user would get to see a
-server error.
 
 Support asset deployment to services like Amazon S3.
 
@@ -46,22 +40,17 @@ bundle-by-bundle basis:
 Basically, all the settings should be customizable this way, with the
 settings themselves only serving as a default.
 
-I was never really happy with the debug=False approach to solving
-the CSS compiler in debug mode problem. Maybe it should be up to
-filters to decide if they need to run. There shouldn't really be
-a case in which, say, "less" should NOT compile. The output wouldn't
-be usable in the browser otherwise.
-
 It might be possible to get rid of the ASSETS_JINJA2_EXTENSIONS setting,
 or the requirement that the Jinja2Loader need to know about the extensions
 used, if we can somehow hack Jinja2 to ignore unknown tags.
 
 The input filter step can be parallelised. Is this worth it?
 
-Currently, all files need to be within the media directory. It would be
-nice to be able to include files from arbitrary paths. The problem with
-this is the debug mode, where the files need to be served directly. For
-this, webassets could support copying them to the media directory.
-
 Get rid of the global parts. The shipped filters would be loaded globally,
 but the filter registry would be maintained by the environment.
+
+See if we can integrate with python-livereload.
+
+A nice feature would be to allow globs overlapping with explicit filenames
+while maintaining order. In other words, ['a', '*', 'z'] takes all files but
+ensures a is first and z is last. 

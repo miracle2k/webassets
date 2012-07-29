@@ -90,7 +90,7 @@ class TestTimestampUpdater(TempEnvironmentHelper):
 
     def test_source_file_deleted(self):
         """If a source file is deleted, rather than raising an error
-        when failing to check it's timestamp, we ask for a rebuild.
+        when failing to check its timestamp, we ask for a rebuild.
 
         The reason is that when a wildcard is used to build the list of
         source files, this is the behavior we want: At the time of the
@@ -223,7 +223,7 @@ class TestTimestampUpdater(TempEnvironmentHelper):
 
     def test_placeholder_output(self):
         """Test behaviour if the output contains a placeholder."""
-        from test_bundle import DummyVersion
+        from test_bundle_various import DummyVersion
         self.env.versions = DummyVersion('init')
         self.env.manifest = None
         b = self.mkbundle('in', output='out-%(version)s')
@@ -255,9 +255,9 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         an update check.
 
         If it isn't, then the updater refuses to work, not being able to
-        do it's job.
+        do its job.
         """
-        from test_bundle import DummyVersion, DummyManifest
+        from test_bundle_various import DummyVersion, DummyManifest
 
         # Placeholder output, and versioner will not help
         self.env.versions = DummyVersion(None)

@@ -16,7 +16,7 @@ Use the builtin :ref:`cssrewrite <filters-cssrewrite>` filter which
 will transparently fix ``url()`` instructions in CSS files on the fly.
 
 
-I am using a CSS compiler and I need it's filter to apply even in debug mode!
+I am using a CSS compiler and I need its filter to apply even in debug mode!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 See :doc:`css_compilers` for how this is best done.

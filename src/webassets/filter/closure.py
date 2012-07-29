@@ -31,13 +31,13 @@ CLOSURE_EXTRA_ARGS
 """
 
 from __future__ import absolute_import
-from webassets.filter import Filter, JavaMixin
+from webassets.filter import JavaTool
 
 
-__all__ = ('ClosureJSFilter',)
+__all__ = ('ClosureJS',)
 
 
-class ClosureJSFilter(Filter, JavaMixin):
+class ClosureJS(JavaTool):
 
     name = 'closure_js'
     options = {
@@ -46,7 +46,7 @@ class ClosureJSFilter(Filter, JavaMixin):
     }
 
     def setup(self):
-        super(ClosureJSFilter, self).setup()
+        super(ClosureJS, self).setup()
 
         try:
             self.jar = self.get_config('CLOSURE_COMPRESSOR_PATH',
@@ -64,11 +64,10 @@ class ClosureJSFilter(Filter, JavaMixin):
                     "or an environment variable with the full path to "
                     "the Closure compiler jar."
                 )
-        self.java_setup()
 
     def output(self, _in, out, **kw):
         args = ['--charset', 'UTF-8',
                 '--compilation_level', self.opt or 'WHITESPACE_ONLY']
         if self.extra_args:
             args.extend(self.extra_args)
-        self.java_run(_in, out, args)
+        self.subprocess(args, out, _in)

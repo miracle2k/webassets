@@ -1,3 +1,5 @@
+.. module:: webassets.filter
+
 .. _builtin-filters:
 
 ================
@@ -17,14 +19,14 @@ Javascript compressors
 ``rjsmin``
 ~~~~~~~~~~
 
-.. autoclass:: webassets.filter.rjsmin.RJSMinFilter
+.. autoclass:: webassets.filter.rjsmin.RJSMin
 
 
 ``yui_js``
 ~~~~~~~~~~
 
 .. automodule:: webassets.filter.yui
-.. autoclass:: webassets.filter.yui.YUIJSFilter
+.. autoclass:: webassets.filter.yui.YUIJS
 
 
 ``closure_js``
@@ -36,19 +38,19 @@ Javascript compressors
 ``uglifyjs``
 ~~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.uglifyjs.UglifyJSFilter
+.. autoclass:: webassets.filter.uglifyjs.UglifyJS
 
 
 ``jsmin``
 ~~~~~~~~~
 
-.. autoclass:: webassets.filter.jsmin.JSMinFilter
+.. autoclass:: webassets.filter.jsmin.JSMin
 
 
 ``jspacker``
 ~~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.jspacker.JSPackerFilter
+.. autoclass:: webassets.filter.jspacker.JSPacker
 
 
 CSS compressors
@@ -57,30 +59,42 @@ CSS compressors
 ``cssmin``
 ~~~~~~~~~~
 
-.. autoclass:: webassets.filter.cssmin.CSSMinFilter
+.. autoclass:: webassets.filter.cssmin.CSSMin
 
 
 ``cssutils``
 ~~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.cssutils.CSSUtilsFilter
+.. autoclass:: webassets.filter.cssutils.CSSUtils
 
 
 ``yui_css``
 ~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.yui.YUICSSFilter
+.. autoclass:: webassets.filter.yui.YUICSS
+
+
+``cleancss``
+~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.cleancss.CleanCSS
+
+
+``slimmer_css``
+~~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.slimmer.CSSSlimmer
 
 
 .. _filters-css-compilers:
 
-CSS Compilers
--------------
+JS/CSS compilers
+----------------
 
 ``clevercss``
 ~~~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.clevercss.CleverCSSFilter
+.. autoclass:: webassets.filter.clevercss.CleverCSS
 
 
 .. _filters-less:
@@ -88,13 +102,13 @@ CSS Compilers
 ``less``
 ~~~~~~~~
 
-.. autoclass:: webassets.filter.less.LessFilter
+.. autoclass:: webassets.filter.less.Less
 
 
 ``less_ruby``
 ~~~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.less_ruby.LessFilter
+.. autoclass:: webassets.filter.less_ruby.Less
 
 
 .. _filters-sass:
@@ -102,25 +116,58 @@ CSS Compilers
 ``sass``
 ~~~~~~~~
 
-.. autoclass:: webassets.filter.sass.SassFilter
+.. autoclass:: webassets.filter.sass.Sass
 
 
 ``scss``
 ~~~~~~~~
 
-.. autoclass:: webassets.filter.sass.SCSSFilter
+.. autoclass:: webassets.filter.sass.SCSS
 
 
 ``compass``
 ~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.compass.CompassFilter
+.. autoclass:: webassets.filter.compass.Compass
 
 
 ``pyscss``
 ~~~~~~~~~~
 
-.. autoclass:: webassets.filter.pyscss.PyScssFilter
+.. autoclass:: webassets.filter.pyscss.PyScss
+
+
+``stylus``
+~~~~~~~~~~
+
+.. autoclass:: webassets.filter.stylus.Stylus
+
+
+``coffeescript``
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.coffeescript.CoffeeScript
+
+
+JavaScript templates
+--------------------
+
+``jst``
+~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.jst.JST
+
+
+``handlebars``
+~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.handlebars.Handlebars
+
+
+``dustjs``
+~~~~~~~~~~
+
+.. autoclass:: webassets.filter.dust.DustJS
 
 
 Other
@@ -131,46 +178,34 @@ Other
 ``cssrewrite``
 ~~~~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.cssrewrite.CSSRewriteFilter
+.. autoclass:: webassets.filter.cssrewrite.CSSRewrite
 
 
 ``datauri``
 ~~~~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.datauri.CSSDataUriFilter
-
-
-``jst``
-~~~~~~~~~~~~~~
-
-.. autoclass:: webassets.filter.jst.JSTFilter
-
-
-``handlebars``
-~~~~~~~~~~~~~~
-
-.. automodule:: webassets.filter.handlebars
-
-
-``dustjs``
-~~~~~~~~~~
-
-.. autoclass:: webassets.filter.dust.DustJSFilter
+.. autoclass:: webassets.filter.datauri.CSSDataUri
 
 
 ``cssprefixer``
 ~~~~~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.cssprefixer.CSSPrefixerFilter
+.. autoclass:: webassets.filter.cssprefixer.CSSPrefixer
 
 
 ``gzip``
 ~~~~~~~~
 
-.. autoclass:: webassets.filter.gzip.GZipFilter
+.. autoclass:: webassets.filter.gzip.GZip
 
 
-``coffeescript``
+``jinja2``
+~~~~~~~~~~
+
+.. autoclass:: webassets.filter.jinja2.Jinja2
+
+
+``spritemapper``
 ~~~~~~~~~~~~~~~~
 
-.. autoclass:: webassets.filter.coffeescript.CoffeeScriptFilter
+.. autoclass:: webassets.filter.spritemapper.Spritemapper
