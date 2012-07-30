@@ -56,6 +56,7 @@ class Bundle(object):
         self.depends = options.pop('depends', [])
         self.version = options.pop('version', [])
         self.extra = options.pop('extra', {})
+        self.prefix = options.pop('prefix', '')
         if options:
             raise TypeError("got unexpected keyword argument '%s'" %
                             list(options.keys())[0])
@@ -667,7 +668,7 @@ class Bundle(object):
                         url = env.resolver.resolve_source_to_url(external, org)
 
                     urls.append(url)
-            return urls
+            return ["%s%s" % (self.prefix, url) for url in urls]
 
     def urls(self, env=None, *args, **kwargs):
         """Return a list of urls for this bundle.
