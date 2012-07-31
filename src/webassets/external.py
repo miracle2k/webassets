@@ -52,7 +52,7 @@ class ExternalAssets(Container):
         return path.join(output_folder, path.basename(versioned))
 
     def get_output_path(self, file_name):
-        return self.env.abspath(self.versioned_folder(file_name))
+        return self.env.resolver.resolve_source(self.versioned_folder(file_name))
 
     def write_file(self, file_name):
         output_path = self.get_output_path(file_name)
@@ -78,8 +78,8 @@ class ExternalAssets(Container):
 
     def url(self, file_name):
         versioned = self.versioned_folder(file_name)
-        url = self.env.absurl(versioned)
-        if not path.exists(self.env.abspath(versioned)):
+        url = self.env.resolver.resolve_output_to_url(versioned)
+        if not path.exists(self.env.resolver.resolve_source(versioned)):
             self.write_file(file_name)
         return url
 

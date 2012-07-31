@@ -1,3 +1,8 @@
+0.7.1 (2012-05-31)
+    - Fixed: "watch" command was broken with single file in multiple bundles.
+    - Fixed an issue with input()/open() filter application.
+    - Let pyramid_webassets support asset specifications (Kai Kroner).
+
 0.7 (2012-04-11)
     The big new thing is an abstract "version" concept, which allows the
     version of an asset, in form of a hash or timestamp, to be added the the

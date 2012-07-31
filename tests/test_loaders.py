@@ -88,18 +88,7 @@ class TestYAML(object):
         """YAML loader can deal with empty files.
         """
         self.loader("""""").load_bundles()
-        # A LoaderError is what we expect here, rather than, say, a TypeError.
-        assert_raises(LoaderError, self.loader("""""").load_environment)
-
-    def test_load_environment_error(self):
-        """Check that "url" and "directory" are required.
-        """
-        assert_raises(LoaderError, self.loader("""
-        url: /foo
-        """).load_environment)
-        assert_raises(LoaderError, self.loader("""
-        directory: bar
-        """).load_environment)
+        self.loader("""""").load_environment()
 
     def test_load_environment(self):
         environment = self.loader("""
@@ -124,19 +113,24 @@ class TestYAML(object):
         # Because the loader isn't aware of the file location, the
         # directory is read as-is, relative to cwd rather than the
         # file location.
-        assert environment.directory == 'something'
+        assert environment.config['directory'] == 'something'
 
         # [bug] Make sure the bundles are loaded as well.
         assert len(environment) == 1
+
+    def test_load_environment_no_url_or_directory(self):
+        """Check that "url" and "directory" are not required.
+        """
+        self.loader("""foo: bar""").load_environment()
 
     def test_load_deprecated_attrs(self):
         with check_warnings(("", ImminentDeprecationWarning)) as w:
             environment = self.loader("""
             url: /foo
             directory: something
-            updater: false
+            expire: false
             """).load_environment()
-            assert environment.auto_build == False
+            assert environment.url_expire == False
 
     def test_load_environment_directory_base(self):
         environment = self.loader("""
@@ -145,6 +139,14 @@ class TestYAML(object):
         """, filename='/var/www/project/config/yaml').load_environment()
         # The directory is considered relative to the YAML file location.
         assert environment.directory == '/var/www/project/something'
+
+    def test_load_extra_default(self):
+        """[Regression] If no extra= is given, the value defaults to {}"""
+        bundles = self.loader("""
+        foo:
+           output: foo
+        """).load_bundles()
+        assert bundles['foo'].extra == {}
 
 
 class TestPython(object):

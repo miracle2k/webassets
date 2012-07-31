@@ -8,10 +8,8 @@ except ImportError:
     cmdclass = {}
 
 
-# Figure out the version; this could be done by importing the
-# module, though that requires Django to be already installed,
-# which may not be the case when processing a pip requirements
-# file, for example.
+# Figure out the version. This could also be done by importing the
+# module, the parsing takes place for historical reasons.
 import re
 here = os.path.dirname(os.path.abspath(__file__))
 version_re = re.compile(
@@ -29,22 +27,21 @@ fp.close()
 
 
 setup(
-    name = 'webassets',
-    version = ".".join(map(str, version)),
-    description = 'Media asset management for Python, with glue code for '+\
+    name='webassets',
+    version=".".join(map(str, version)),
+    description='Media asset management for Python, with glue code for '+\
         'various web frameworks',
-    long_description = 'Merges, minifies and compresses Javascript and '
+    long_description='Merges, minifies and compresses Javascript and '
         'CSS files, supporting a variety of different filters, including '
         'YUI, jsmin, jspacker or CSS tidy. Also supports URL rewriting '
         'in CSS files.',
-    author = 'Michael Elsdoerfer',
-    author_email = 'michael@elsdoerfer.com',
-    license = 'BSD',
-    url = 'http://github.com/miracle2k/webassets/',
-    classifiers = [
+    author='Michael Elsdoerfer',
+    author_email='michael@elsdoerfer.com',
+    license='BSD',
+    url='http://github.com/miracle2k/webassets/',
+    classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
-        'Framework :: Django',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
@@ -52,8 +49,8 @@ setup(
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Software Development :: Libraries',
         ],
-    entry_points = """[console_scripts]\nwebassets = webassets.script:run\n""",
-    packages = find_packages('src'),
-    package_dir = {'': 'src'},
-    cmdclass = cmdclass,
+    entry_points="""[console_scripts]\nwebassets = webassets.script:run\n""",
+    packages=find_packages('src'),
+    package_dir={'': 'src'},
+    cmdclass=cmdclass,
 )

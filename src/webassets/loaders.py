@@ -29,7 +29,8 @@ class LoaderError(Exception):
 
 
 class YAMLLoader(object):
-    """Will load bundles from a YAML configuration file.
+    """Will load an environment or a set of bundles from
+    `YAML <http://en.wikipedia.org/wiki/YAML>`_ files.
     """
 
     def __init__(self, file_or_filename):
@@ -59,7 +60,9 @@ class YAMLLoader(object):
         kwargs = dict(
             filters=data.get('filters', None),
             output=data.get('output', None),
-            debug=data.get('debug', None))
+            debug=data.get('debug', None),
+            extra=data.get('extra', {}),
+            depends=data.get('depends', None))
         return Bundle(*list(self._yield_bundle_contents(data)), **kwargs)
 
     def _get_bundles(self, obj):
@@ -96,10 +99,11 @@ class YAMLLoader(object):
         return file, getattr(file, 'name', False)
 
     def load_bundles(self):
-        """Load a list of ``Bundle`` instances defined in the YAML
-        file.
+        """Load a list of :class:`Bundle` instances defined in the YAML file.
 
-        Expects the following format::
+        Expects the following format:
+
+        .. code-block:: yaml
 
             bundle-name:
                 filters: sass,cssutils
@@ -107,6 +111,31 @@ class YAMLLoader(object):
                 contents:
                     - css/jquery.ui.calendar.css
                     - css/jquery.ui.slider.css
+            another-bundle:
+                # ...
+
+        Bundles may reference each other:
+
+        .. code-block:: yaml
+
+            js-all:
+                contents:
+                    - jquery.js
+                    - jquery-ui    # This is a bundle reference
+            jquery-ui:
+                contents: jqueryui/*.js
+
+        Finally, you may also use nesting:
+
+        .. code-block:: yaml
+
+            js-all:
+                contents:
+                    - jquery.js
+                    # This is a nested bundle
+                    - contents: "*.coffee"
+                      filters: coffeescript
+
         """
         # TODO: Support a "consider paths relative to YAML location, return
         # as absolute paths" option?
@@ -118,9 +147,11 @@ class YAMLLoader(object):
             f.close()
 
     def load_environment(self):
-        """Load an ``Environment`` instance defined in the YAML file.
+        """Load an :class:`Environment` instance defined in the YAML file.
 
-        Expects the following format::
+        Expects the following format:
+
+        .. code-block:: yaml
 
             directory: ../static
             url: /media
@@ -131,40 +162,46 @@ class YAMLLoader(object):
                 another_custom_config_value: foo
 
             bundles:
-                bundle-name:
-                    filters: sass,cssutils
-                    output: cache/default.css
-                    contents:
-                        - css/jquery.ui.calendar.css
-                        - css/jquery.ui.slider.css
+                # ...
+
+        All values, including ``directory`` and ``url`` are optional. The
+        syntax for defining bundles is the same as for
+        :meth:`~.YAMLLoader.load_bundles`.
+
+        Sample usage::
+
+            from webassets.loaders import YAMLLoader
+            loader = YAMLLoader('asset.yml')
+            env = loader.load_environment()
+
+            env['some-bundle'].urls()
         """
         f, filename = self._open()
         try:
             obj = self.yaml.load(f) or {}
 
-            # construct the environment
-            if not 'url' in obj or not 'directory' in obj:
-                raise LoaderError('"url" and "directory" must be defined')
-            directory = obj['directory']
-            if filename:
-                # If we know the location of the file, make sure that the
-                # paths included are considered relative to the file location.
-                directory = path.normpath(path.join(path.dirname(filename), directory))
-            env = Environment(directory, obj['url'])
+            env = Environment()
 
-            # load environment settings
+            # Load environment settings
             for setting in ('debug', 'cache', 'versions', 'url_expire',
-                            'auto_build',
+                            'auto_build', 'url', 'directory',
                             # TODO: The deprecated values; remove at some point
                             'expire', 'updater'):
                 if setting in obj:
                     setattr(env, setting, obj[setting])
 
-            # load custom config options
+            # Treat the 'directory' option special, make it relative to the
+            # path of the YAML file, if we know it.
+            if filename and 'directory' in env.config:
+                env.directory = path.normpath(
+                    path.join(path.dirname(filename),
+                              env.config['directory']))
+
+            # Load custom config options
             if 'config' in obj:
                 env.config.update(obj['config'])
 
-            # load bundles
+            # Load bundles
             bundles = self._get_bundles(obj.get('bundles', {}))
             for name, bundle in bundles.iteritems():
                 env.register(name, bundle)

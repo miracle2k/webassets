@@ -1,10 +1,11 @@
 ﻿from __future__ import absolute_import
 from webassets.filter import Filter
 
-__all__ = ('CleverCSSFilter',)
+
+__all__ = ('CleverCSS',)
 
 
-class CleverCSSFilter(Filter):
+class CleverCSS(Filter):
     """Converts `CleverCSS <http://sandbox.pocoo.org/clevercss/>`_ markup
     to real CSS.
 
@@ -13,6 +14,7 @@ class CleverCSSFilter(Filter):
     """
 
     name = 'clevercss'
+    max_debug_level = None
 
     def setup(self):
         import clevercss

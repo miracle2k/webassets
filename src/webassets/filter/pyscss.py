@@ -4,10 +4,10 @@ from webassets.filter import Filter
 from webassets.utils import working_directory
 
 
-__all__ = ('SassFilter', 'SCSSFilter')
+__all__ = ('PyScss',)
 
 
-class PyScssFilter(Filter):
+class PyScss(Filter):
     """Converts `Scss <http://sass-lang.com/>`_ markup to real CSS.
 
     This uses `PyScss <https://github.com/Kronuz/pyScss>`_, a native
@@ -28,9 +28,10 @@ class PyScssFilter(Filter):
         'assets_url': 'PYSCSS_ASSETS_URL',
         'assets_root': 'PYSCSS_ASSETS_ROOT',
     }
+    max_debug_level = None
 
     def setup(self):
-        super(PyScssFilter, self).setup()
+        super(PyScss, self).setup()
 
         import scss
         self.scss = scss
@@ -50,8 +51,8 @@ class PyScssFilter(Filter):
 
         # This directory PyScss will use when generating new files,
         # like a spritemap. Maybe we should REQUIRE this to be set.
-        scss.ASSETS_ROOT = self.assets_url or self.env.url
-        scss.ASSETS_URL = self.assets_root or self.env.directory
+        scss.ASSETS_ROOT = self.assets_root or self.env.url
+        scss.ASSETS_URL = self.assets_url or self.env.directory
 
     def input(self, _in, out, **kw):
         """Like the original sass filter, this also needs to work as

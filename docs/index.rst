@@ -10,7 +10,7 @@ you are using one of the supported frameworks, to go the respective page:
 .. toctree::
    :maxdepth: 1
 
-   With Django <django/index>
+   With Django <http://elsdoerfer.name/docs/django-assets/>
    With Flask <http://elsdoerfer.name/docs/flask-assets/>
    With Pyramid <https://github.com/sontek/pyramid_webassets>
    Other or no framework <generic/index>

@@ -110,10 +110,14 @@ class TempDirHelper(object):
         """Print the contents of the given files to stdout; useful
         for some quick debugging.
         """
+        if not files:
+            files = ['out']   # This is a often used output filename
         for f in files:
+            content = self.get(f)
             print f
             print "-" * len(f)
-            print self.get(f)
+            print repr(content)
+            print content
             print
 
 

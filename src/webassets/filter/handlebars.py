@@ -1,13 +1,3 @@
-"""Compile `Handlebars <http://handlebarsjs.com/>`_ templates.
-
-This filter assumes that the ``handlebars`` executable is in the path.
-Otherwise, you may define a ``HANDLEBARS_BIN`` setting.
-
-Note: Use this filter if you want to precompile Handlebars templates.
-If compiling them in the browser is acceptable, you may use the JST
-filter, which needs no external dependency.
-"""
-
 import subprocess
 from os import path
 
@@ -16,10 +6,19 @@ from webassets.filter.jst import JSTemplateFilter
 from webassets.merge import FileHunk
 
 
-__all__ = ('HandlebarsFilter',)
+__all__ = ('Handlebars',)
 
 
-class HandlebarsFilter(JSTemplateFilter):
+class Handlebars(JSTemplateFilter):
+    """Compile `Handlebars <http://handlebarsjs.com/>`_ templates.
+
+    This filter assumes that the ``handlebars`` executable is in the path.
+    Otherwise, you may define a ``HANDLEBARS_BIN`` setting.
+
+    Note: Use this filter if you want to precompile Handlebars templates.
+    If compiling them in the browser is acceptable, you may use the JST
+    filter, which needs no external dependency.
+    """
 
     name = 'handlebars'
     options = {
@@ -27,6 +26,7 @@ class HandlebarsFilter(JSTemplateFilter):
         'extra_args': 'HANDLEBARS_EXTRA_ARGS',
         'root': 'HANDLEBARS_ROOT',
     }
+    max_debug_level = None
 
     # XXX Due to the way this filter works, any other filters applied
     # WILL BE IGNORED. Maybe this method should be allowed to return True

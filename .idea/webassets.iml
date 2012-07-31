@@ -13,11 +13,12 @@
       <excludeFolder url="file://$MODULE_DIR$/examples/appengine/static/.webassets-cache" />
       <excludeFolder url="file://$MODULE_DIR$/examples/appengine/webassets" />
       <excludeFolder url="file://$MODULE_DIR$/src/.webassets-cache" />
-      <excludeFolder url="file://$MODULE_DIR$/src/webassets.egg-info" />
       <excludeFolder url="file://$MODULE_DIR$/tests/.webassets-cache" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="django-assets" />
+    <orderEntry type="module" module-name="flask-assets" />
   </component>
 </module>
 

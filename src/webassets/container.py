@@ -1,6 +1,6 @@
 import urlparse
 import os
-from exceptions import ContainerError
+from exceptions import ContainerError, BundleError
 
 try:
     # Current version of glob2 does not let us access has_magic :/
@@ -10,11 +10,14 @@ except ImportError:
     import glob
     from glob import has_magic
 
+def has_placeholder(s):
+    return '%(version)s' in s
+
 def is_url(s):
     if not isinstance(s, str):
         return False
-    scheme = urlparse.urlsplit(s).scheme
-    return bool(scheme) and len(scheme) > 1
+    parsed = urlparse.urlsplit(s)
+    return bool(parsed.scheme and parsed.netloc) and len(parsed.scheme) > 1
 
 class Container(object):
 
@@ -35,26 +38,38 @@ class Container(object):
             raise ContainerError('Container not connected to an environment')
         return env
 
+    def resolve_output(self, env=None, version=None):
+        """Return the full, absolute output path.
+
+        If a %(version)s placeholder is used, it is replaced.
+        """
+        env = self._get_env(env)
+        output = env.resolver.resolve_output_to_path(self.output, self)
+        if has_placeholder(output):
+            output = output % {'version': version or self.get_version(env)}
+        return output
+
     def resolve_contents(self, env=None, force=False):
-        """Convert bundle contents into something that can be easily processed.
+        """Return an actual list of source files.
 
-        - Glob patterns are resolved
-        - Validate all the source paths to complain about missing files early.
-        - Third party extensions get to hook into this to provide a basic
-          virtualized filesystem.
+        What the user specifies as the bundle contents cannot be
+        processed directly. There may be glob patterns of course. We
+        may need to search the load path. It's common for third party
+        extensions to provide support for referencing assets spread
+        across multiple directories.
 
-        The return value is a list of 2-tuples (relpath, abspath). The first
-        element is the path that is assumed to be relative to the
-        ``Environment.directory`` value. We need it to construct urls to the
-        source files.
-        The second element is the absolute path to the actual location of the
-        file. Depending on the magic a third party extension does, this may be
-        somewhere completely different.
+        This passes everything through :class:`Environment.resolver`,
+        through which this process can be customized.
 
-        URLs and nested Bundles are returned as a 2-tuple where both items are
-        the same.
+        At this point, we also validate source paths to complain about
+        missing files early.
 
-        Set ``force`` to ignore any cache, and always re-resolve glob patterns.
+        The return value is a list of 2-tuples ``(original_item,
+        abspath)``. In the case of urls and nested bundles both tuple
+        values are the same.
+
+        Set ``force`` to ignore any cache, and always re-resolve
+        glob  patterns.
         """
         env = self._get_env(env)
 
@@ -63,37 +78,28 @@ class Container(object):
         # change. Not to mention that a different env object may be passed
         # in. We should find a fix for this.
         if getattr(self, '_resolved_contents', None) is None or force:
-            l = []
+            resolved = []
             for item in self.contents:
-                if isinstance(item, Container):
-                    l.append((item, item))
-                else:
-                    if is_url(item):
-                        # Is a URL
-                        l.append((item, item))
-                    elif isinstance(item, basestring) and has_magic(item):
-                        # Is globbed pattern
-                        path = env.abspath(item)
-                        for f in glob.glob(path):
-                            if os.path.isdir(f):
-                                continue
-                            if self.output and env.abspath(self.output) == f:
-                                # Exclude the output file. Note this will
-                                # not work if nested bundles do the
-                                # including. TODO: Should be even have this
-                                # test if it doesn't work properly? Should
-                                # be throw an error during building instead?
-                                # Or can be give this method access to the
-                                # parent bundle, since allowing env settings
-                                # overrides in bundles is planned anyway?
-                                continue
-                            l.append((f[len(path)-len(item):], f))
-                    else:
-                        # Is just a normal path; Send it through
-                        # _normalize_source_path().
-                        try:
-                            l.append((item, env._normalize_source_path(item)))
-                        except IOError, e:
-                            raise BundleError(e)
-            self._resolved_contents = l
+                try:
+                    result = env.resolver.resolve_source(item)
+                except IOError, e:
+                    raise BundleError(e)
+                if not isinstance(result, list):
+                    result = [result]
+
+                # Exclude the output file.
+                # TODO: This will not work for nested bundle contents. If it
+                # doesn't work properly anyway, should be do it in the first
+                # place? If there are multiple versions, it will fail as well.
+                # TODO: There is also the question whether we can/should
+                # exclude glob duplicates.
+                if self.output:
+                    try:
+                        result.remove(self.resolve_output(env))
+                    except (ValueError, BundleError):
+                        pass
+
+                resolved.extend(map(lambda r: (item, r), result))
+
+            self._resolved_contents = resolved
         return self._resolved_contents

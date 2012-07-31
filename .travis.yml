@@ -2,8 +2,7 @@ language: python
 python:
   - 2.6
 install: pip install tox
-# List envs explicitly to skip PyPy
-script: tox -e py27_django14,py27_django13,py27_django12,py27_django11,py26_django14,py26_django13,py26_django12,py26_django11,py25_django14,py25_django13,py25_django12,py25_django11,no-glob2,external-jsmin,external-rjsmin
+script: tox
 notifications:
   email:
     - michael@elsdoerfer.com

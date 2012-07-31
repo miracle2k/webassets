@@ -1,0 +1,9 @@
+directory: "./media"
+url: "/media"
+
+bundles:
+  test:
+    filters: clevercss
+    output: out.css
+    contents:
+      - in.clever
