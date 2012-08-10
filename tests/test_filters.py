@@ -482,6 +482,10 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #ffffff;\n}\n'
 
     def test_jsmin(self):
+        try:
+            import jsmin
+        except ImportError:
+            raise SkipTest()
         self.mkbundle('foo.js', filters='jsmin', output='out.js').build()
         assert self.get('out.js') in (
             # Builtin jsmin
