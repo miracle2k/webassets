@@ -128,7 +128,7 @@ class TestCacheIsUsed(TempEnvironmentHelper):
 
         Both in the process of a standard build.
         """
-        bundle = self.mkbundle('in1', 'in2', output='out', filters="jsmin")
+        bundle = self.mkbundle('in1', 'in2', output='out', filters="rjsmin")
         self.env.cache = True   # use the filesystem cache
         self.env.updater = TimestampUpdater()
         bundle.build(force=True)
