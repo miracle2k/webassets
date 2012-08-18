@@ -41,6 +41,7 @@ class AssetsExtension(Extension):
         output = nodes.Const(None)
         filters = nodes.Const(None)
         dbg = nodes.Const(None)
+        depends = nodes.Const(None)
 
         # Parse the arguments
         first = True
@@ -67,6 +68,8 @@ class AssetsExtension(Extension):
                     output = value
                 elif name == 'debug':
                     dbg = value
+                elif name == 'depends':
+                    depends = value
                 else:
                     parser.fail('Invalid keyword argument: %s' % name)
             # Otherwise assume a source file is given, which may be any
@@ -141,8 +144,8 @@ class AssetsExtension(Extension):
         # of ours when the tag needs to be rendered. That method can then
         # render the template body.
         call = self.call_method(
-            # Note: Changing the args here requires updating ``JinjaLoader``
-            '_render_assets', args=[filters, output, dbg, nodes.List(files)])
+            # Note: Changing the args here requires updating ``Jinja2Loader``
+            '_render_assets', args=[filters, output, dbg, depends, nodes.List(files)])
         call_block = nodes.CallBlock(call, args, [], body)
         call_block.set_lineno(lineno)
         return call_block
@@ -158,7 +161,7 @@ class AssetsExtension(Extension):
                 result.append(f)
         return result
 
-    def _render_assets(self, filter, output, dbg, files, caller=None):
+    def _render_assets(self, filter, output, dbg, depends, files, caller=None):
         env = self.environment.assets_environment
         if env is None:
             raise RuntimeError('No assets environment configured in '+
@@ -168,7 +171,8 @@ class AssetsExtension(Extension):
         bundle_kwargs = {
             'output': output,
             'filters': filter,
-            'debug': dbg
+            'debug': dbg,
+            'depends': depends,
         }
         bundle = self.BundleClass(
             *self.resolve_contents(files, env), **bundle_kwargs)
@@ -222,11 +226,12 @@ class Jinja2Loader(GlobLoader):
                         if isinstance(node, jinja2.nodes.Call):
                             if isinstance(node.node, jinja2.nodes.ExtensionAttribute)\
                                and node.node.identifier == AssetsExtension.identifier:
-                                filter, output, dbg, files = node.args
+                                filter, output, dbg, depends, files = node.args
                                 bundle = Bundle(
                                     *AssetsExtension.resolve_contents(files.as_const(), self.asset_env),
                                     **{
                                         'output': output.as_const(),
+                                        'depends': depends.as_const(),
                                         'filters': filter.as_const()})
                                 result.append(bundle)
                         else:
