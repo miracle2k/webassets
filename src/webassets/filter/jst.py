@@ -81,6 +81,10 @@ class JST(JSTemplateFilter):
         If you assign a custom function, it is your responsibility to ensure
         that it is available in your final JavaScript.
 
+        If this option is set to ``False``, then the template strings will be
+        output directly, which is to say, ``JST.foo`` will be a string holding
+        the raw source of the ``foo`` template.
+
     JST_NAMESPACE (namespace)
         How the templates should be made available in JavaScript. Defaults to
         ``window.JST``, which gives you a global ``JST`` object.
@@ -136,10 +140,15 @@ class JST(JSTemplateFilter):
         for path, contents in self.templates:
             # Make it a valid Javascript string. Is this smart enough?
             contents = contents.replace('\n', '\\n').replace("'", r"\'")
-            out.write("%s['%s'] = %s('%s');\n" % (namespace,
-                os.path.splitext(path[len(base_path):])[0],
-                self.template_function or 'template', contents))
-        
+
+            out.write("%s['%s'] = " % (namespace,
+                os.path.splitext(path[len(base_path):])[0]))
+            if self.template_function is False:
+                out.write("'%s';\n" % (contents))
+            else:
+                out.write("%s('%s');\n" % (
+                    self.template_function or 'template', contents))
+
         if self.bare is False:
             out.write("})();")
 

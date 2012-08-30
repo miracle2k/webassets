@@ -130,6 +130,11 @@ In Development version
   need the original value you can always use
   ``environment.config['directory']``.
 
+- If the ``JST_COMPILER`` option of the ``jst`` filter is set to ``False``
+  (as opposed to the default value, ``None``), the templates will now be
+  output as raw strings. Before, ``False`` behaved like ``None`` and used
+  the builtin compiler.
+
 
 In 0.7
 ~~~~~~
