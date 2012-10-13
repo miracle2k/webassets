@@ -153,7 +153,7 @@ class Resolver(object):
         resolve glob instructions.
 
         Subclasses can call this when they have narrowed done the
-        location of a bundle to a single directory.
+        location of a bundle item to a single directory.
         """
         expr = path.join(directory, item)
         if has_magic(expr):
@@ -213,7 +213,7 @@ class Resolver(object):
         the correct url for ``filepath``.
 
         Subclasses should be sure that they really want to call this
-        method, instead of simply falling back to the ``super()``.
+        method, instead of simply falling back to ``super()``.
         """
         # Build a list of dir -> url mappings
         mapping = self.env.url_mapping.items()
@@ -244,7 +244,7 @@ class Resolver(object):
             reason why the name of this method does not imply a
             return type.
 
-        The incoming is usually a relative path, but may also be
+        The incoming item is usually a relative path, but may also be
         an absolute path, or a url. These you will commonly want to
         return unmodified.
 

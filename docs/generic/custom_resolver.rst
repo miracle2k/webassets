@@ -19,7 +19,7 @@ __ django_assets_
 
 For normal usage, you will not need to write your own resolver, or
 indeed need to know how they work. However, if you want to integrate
-``webassets`` with another framework, or if you applicatoin is
+``webassets`` with another framework, or if your application is
 complex enough that it requires custom file referencing, read on.
 
 
@@ -45,10 +45,10 @@ Methods to overwrite
 However, in practice, you will usually want to override the builtin
 :class:`Resolver`, and customize it's behaviour where necessary. The
 default resolver already splits what is is doing into multiple
-methods; so that you can either override then, or
+methods; so that you can either override them, or
 refer to them in your own implementation, as makes sense.
 
-Instead of the official entry points above, may may instead prefer
+Instead of the official entrypoints above, you may instead prefer
 to override the following methods of the default resolver class:
 
 .. automethod:: Resolver.search_for_source
@@ -103,7 +103,9 @@ directory part.
             return self.consider_single_directory(self.map[prefix], name)
 
 
-Using it::
+Using it:
+
+.. code-block:: python
 
      env = webassets.Environment(path, url)
      env.resolver = PrefixResolver(env, {
