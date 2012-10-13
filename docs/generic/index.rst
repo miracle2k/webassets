@@ -95,4 +95,5 @@ Further Reading
     /css_compilers
     /loaders
     /integration/index
+    custom_resolver
     /faq
