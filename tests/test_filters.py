@@ -945,6 +945,12 @@ class TestJST(TempEnvironmentHelper):
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
         assert '_.template' in self.get('out.js')
 
+    def test_compiler_is_false(self):
+        """Output strings directly if template_function == False."""
+        self.env.config['JST_COMPILER'] = False
+        self.mkbundle('templates/*.jst', filters='jst', output='out.js').build()
+        assert "JST['foo'] = '" in self.get('out.js')
+
     def test_namespace_config(self):
         self.env.config['JST_NAMESPACE'] = 'window.Templates'
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
