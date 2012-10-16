@@ -5,15 +5,8 @@ from merge import FileHunk
 from exceptions import ExternalAssetsError, BuildError
 from container import Container
 
-try:
-    # Current version of glob2 does not let us access has_magic :/
-    import glob2 as glob
-    from glob import has_magic
-except ImportError:
-    import glob
-    from glob import has_magic
-
 __all__ = ('ExternalAssets',)
+
 
 class ExternalAssets(Container):
 
@@ -36,7 +29,7 @@ class ExternalAssets(Container):
     def get_versioned_file(self, file_name):
         version = self.get_version(file_name)
         bits = file_name.split('.')
-        bits.insert(len(bits)-1, version)
+        bits.insert(len(bits) - 1, version)
         return '.'.join(bits)
 
     def versioned_folder(self, file_name):
@@ -51,12 +44,12 @@ class ExternalAssets(Container):
         versioned = self.get_versioned_file(file_name)
         return path.join(output_folder, path.basename(versioned))
 
-    def get_output_path(self, file_name):
-        return self.env.resolver.resolve_source(self.versioned_folder(file_name))
+    def get_resolved_path(self, file_name):
+        return self.env.resolver.resolve_source(file_name)
 
     def write_file(self, file_name):
-        output_path = self.get_output_path(file_name)
-        hunk = FileHunk(self.env.abspath(file_name))
+        hunk = FileHunk(file_name)
+        output_path = path.join(self.env.directory, self.versioned_folder(file_name))
         output_dir = path.dirname(output_path)
         if not path.exists(output_dir):
             os.makedirs(output_dir)
@@ -64,13 +57,20 @@ class ExternalAssets(Container):
         if self.env.manifest:
             self.env.manifest.remember_file(file_name, self.env, self.get_version(file_name))
 
+    def write_files(self, external_assets_path):
+        resolved_paths = self.get_resolved_path(external_assets_path)
+        if type(resolved_paths) is not list:
+            resolved_paths = [resolved_paths]
+        for path in resolved_paths:
+            self.write_file(path)
+
     def build(self, env=None, force=None, disable_cache=None):
         # Prepare contents
         resolved_contents = self.resolve_contents(env, force=True)
         if not resolved_contents:
             raise BuildError('empty external assets cannot be built')
         for relpath, abspath in resolved_contents:
-            self.write_file(relpath)
+            self.write_files(relpath)
 
     def show_manifest(self):
         if self.env.manifest:
@@ -79,8 +79,9 @@ class ExternalAssets(Container):
     def url(self, file_name):
         versioned = self.versioned_folder(file_name)
         url = self.env.resolver.resolve_output_to_url(versioned)
-        if not path.exists(self.env.resolver.resolve_source(versioned)):
-            self.write_file(file_name)
+        file_path = self.env.resolver.resolve_source(file_name)
+        if not path.exists(file_path):
+            self.write_file(file_path)
         return url
 
     def get_version(self, file_name):

@@ -157,7 +157,6 @@ class HashVersion(Version):
         self.hasher = hash
 
     def determine_file_version(self, file_name, env):
-        print env.resolver.resolve_source(file_name)
         hunk = FileHunk(env.resolver.resolve_source(file_name))
         hasher = self.hasher()
         hasher.update(hunk.data())
