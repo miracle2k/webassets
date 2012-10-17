@@ -7,8 +7,8 @@ from __future__ import with_statement
 import os
 import pickle
 
-
-from webassets.bundle import has_placeholder, is_url, get_all_bundle_files
+from webassets.container import has_placeholder, is_url
+from webassets.bundle import get_all_bundle_files
 from webassets.merge import FileHunk
 from webassets.utils import md5_constructor, RegistryMetaclass
 
@@ -41,6 +41,9 @@ class Version(object):
     __metaclass__ = RegistryMetaclass(
         clazz=lambda: Version, attribute='determine_version',
         desc='a version implementation')
+
+    def determine_file_version(self, file_name, env=None):
+        raise NotImplementedError()
 
     def determine_version(self, bundle, hunk=None, env=None):
         """Return a string that represents the current version of the given
@@ -153,6 +156,12 @@ class HashVersion(Version):
         self.length = length
         self.hasher = hash
 
+    def determine_file_version(self, file_name, env):
+        hunk = FileHunk(env.resolver.resolve_source(file_name))
+        hasher = self.hasher()
+        hasher.update(hunk.data())
+        return hasher.hexdigest()[:self.length]
+
     def determine_version(self, bundle, env, hunk=None):
         if not hunk:
             if not has_placeholder(bundle.output):
@@ -209,6 +218,11 @@ class Manifest(object):
     def query(self, bundle, env):
         raise NotImplementedError()
 
+    def remember_file(self, file_name, env, version):
+        raise NotImplementedError()
+
+    def query_file(self, file_name, env):
+        raise NotImplementedError()
 
 get_manifest = Manifest.resolve
 
@@ -245,6 +259,19 @@ class FileManifest(Manifest):
         if env.auto_build:
             self._load_manifest()
         return self.manifest.get(bundle.output, None)
+
+    def remember_file(self, file_name, env, version):
+        self.manifest[file_name] = version
+        self._save_manifest()
+
+    def query_file(self, file_name, env):
+        if env.auto_build:
+            self._load_manifest()
+        return self.manifest.get(file_name, None)
+
+    def get_manifest(self):
+        self._load_manifest()
+        return self.manifest
 
     def _load_manifest(self):
         if os.path.exists(self.filename):

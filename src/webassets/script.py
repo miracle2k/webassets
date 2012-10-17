@@ -8,6 +8,7 @@ from webassets.bundle import get_all_bundle_files
 from webassets.exceptions import BuildError
 from webassets.updater import TimestampUpdater
 from webassets.merge import MemoryHunk
+from webassets.external import ExternalAssets
 from webassets.version import get_manifest
 from webassets.cache import FilesystemCache
 from webassets.utils import set, StringIO
@@ -117,14 +118,18 @@ class BuildCommand(Command):
                 raise CommandError(
                     'I do not know a bundle name named "%s".' % name)
 
-        # Make a list of bundles to build, and the filename to write to.
+        # Make a list of all the named bundles to build, and the filename to write to.
+        # TODO: It's not ok to use an internal property here.
+        bundles = [(n,b) for n, b in self.environment._named_bundles.items()]
+
         if bundle_names:
-            # TODO: It's not ok to use an internal property here.
-            bundles = [(n,b) for n, b in self.environment._named_bundles.items()
-                             if n in bundle_names]
+            # if bundle names have been specified, filter by those
+            bundles = [(n,b) for n, b in bundles
+                       if n in bundle_names]
         else:
-            # Includes unnamed bundles as well.
-            bundles = [(None, b) for b in self.environment]
+            # Otherwise include unnamed bundles as well, if not already in
+            bundles = bundles + [(None, b) for b in self.environment
+                                 if b not in [b for (n, b) in bundles]]
 
         # Determine common prefix for use with ``directory`` option.
         if directory:
@@ -157,13 +162,20 @@ class BuildCommand(Command):
         # Build.
         built = []
         for bundle, overwrite_filename, name in to_build:
-            if name:
-                # A name is not necessary available of the bundle was
-                # registered without one.
-                self.log.info("Building bundle: %s (to %s)" % (
-                    name, overwrite_filename or bundle.output))
+            if isinstance(bundle, ExternalAssets):
+                bundle_type = 'external assets'
+                output_destination = bundle.output or\
+                        self.environment.config.get('external_assets_output_folder', None)
             else:
-                self.log.info("Building bundle: %s" % bundle.output)
+                bundle_type = 'bundle'
+                output_destination = overwrite_filename or bundle.output
+            if name:
+                # A name is not necessarily available if the bundle was
+                # registered without one.
+                self.log.info("Building %s: %s (to %s)" % (
+                    bundle_type, name, output_destination))
+            else:
+                self.log.info("Building %s: %s" % (bundle_type, output_destination))
 
             try:
                 if not overwrite_filename:
@@ -188,6 +200,7 @@ class BuildCommand(Command):
                 built.append(bundle)
             except BuildError, e:
                 self.log.error("Failed, error was: %s" % e)
+
         if len(built):
             self.event_handlers['post_build']()
         if len(built) != len(to_build):

@@ -6,6 +6,7 @@ from filter import get_filter
 from merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
                    select_filters, MoreThanOneFilterError)
 from updater import SKIP_CACHE
+from container import Container, has_placeholder, is_url
 from exceptions import BundleError, BuildError
 from utils import cmp_debug_levels
 
@@ -13,18 +14,7 @@ from utils import cmp_debug_levels
 __all__ = ('Bundle', 'get_all_bundle_files',)
 
 
-def is_url(s):
-    if not isinstance(s, str):
-        return False
-    parsed = urlparse.urlsplit(s)
-    return bool(parsed.scheme and parsed.netloc) and len(parsed.scheme) > 1
-
-
-def has_placeholder(s):
-    return '%(version)s' in s
-
-
-class Bundle(object):
+class Bundle(Container):
     """A bundle is the unit webassets uses to organize groups of media files,
     which filters to apply and where to store them.
 
@@ -46,6 +36,7 @@ class Bundle(object):
     """
 
     def __init__(self, *contents, **options):
+        super(Container, self).__init__()
         self.env = None
         self.contents = contents
         self.output = options.pop('output', None)
@@ -86,13 +77,6 @@ class Bundle(object):
         self._filters = [get_filter(f) for f in filters]
     filters = property(_get_filters, _set_filters)
 
-    def _get_contents(self):
-        return self._contents
-    def _set_contents(self, value):
-        self._contents = value
-        self._resolved_contents = None
-    contents = property(_get_contents, _set_contents)
-
     def _get_extra(self):
         if not self._extra and not has_files(self):
             # If this bundle has no extra values of it's own, and only
@@ -110,61 +94,6 @@ class Bundle(object):
     extra values attached to this bundle. Those will be available in
     template tags, and can be used to attach things like a CSS
     'media' value.""")
-
-    def resolve_contents(self, env=None, force=False):
-        """Return an actual list of source files.
-
-        What the user specifies as the bundle contents cannot be
-        processed directly. There may be glob patterns of course. We
-        may need to search the load path. It's common for third party
-        extensions to provide support for referencing assets spread
-        across multiple directories.
-
-        This passes everything through :class:`Environment.resolver`,
-        through which this process can be customized.
-
-        At this point, we also validate source paths to complain about
-        missing files early.
-
-        The return value is a list of 2-tuples ``(original_item,
-        abspath)``. In the case of urls and nested bundles both tuple
-        values are the same.
-
-        Set ``force`` to ignore any cache, and always re-resolve
-        glob  patterns.
-        """
-        env = self._get_env(env)
-
-        # TODO: We cache the values, which in theory is problematic, since
-        # due to changes in the env object, the result of the globbing may
-        # change. Not to mention that a different env object may be passed
-        # in. We should find a fix for this.
-        if getattr(self, '_resolved_contents', None) is None or force:
-            resolved = []
-            for item in self.contents:
-                try:
-                    result = env.resolver.resolve_source(item)
-                except IOError, e:
-                    raise BundleError(e)
-                if not isinstance(result, list):
-                    result = [result]
-
-                # Exclude the output file.
-                # TODO: This will not work for nested bundle contents. If it
-                # doesn't work properly anyway, should be do it in the first
-                # place? If there are multiple versions, it will fail as well.
-                # TODO: There is also the question whether we can/should
-                # exclude glob duplicates.
-                if self.output:
-                    try:
-                        result.remove(self.resolve_output(env))
-                    except (ValueError, BundleError):
-                        pass
-
-                resolved.extend(map(lambda r: (item, r), result))
-
-            self._resolved_contents = resolved
-        return self._resolved_contents
 
     def _get_depends(self):
         return self._depends
@@ -227,17 +156,6 @@ class Bundle(object):
                     'determined dynamically, because: %s') % (self, reason))
             self.version = version
         return self.version
-
-    def resolve_output(self, env=None, version=None):
-        """Return the full, absolute output path.
-
-        If a %(version)s placeholder is used, it is replaced.
-        """
-        env = self._get_env(env)
-        output = env.resolver.resolve_output_to_path(self.output, self)
-        if has_placeholder(output):
-            output = output % {'version': version or self.get_version(env)}
-        return output
 
     def __hash__(self):
         """This is used to determine when a bundle definition has changed so
