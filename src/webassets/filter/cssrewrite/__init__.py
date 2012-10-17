@@ -125,7 +125,8 @@ class CSSRewrite(CSSUrlRewriter):
                                 or self.env.url.startswith('//'):
                                 replacement = urlparse.urljoin(self.env.url, asset_path)
                             else:
-                                replacement = urlpath.relpathto(self.env.directory, self.output_path, self.env.absurl(asset_path))
+                                abs_asset_path = os.path.join(self.env.directory, asset_path)
+                                replacement = urlpath.relpathto(self.env.directory, self.output_path, abs_asset_path)
                         else:
                             replacement = urlpath.relpathto(self.env.directory, self.output_path, asset_path)
 
