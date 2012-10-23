@@ -120,12 +120,10 @@ class CSSRewrite(CSSUrlRewriter):
                         if self.env.url:
                             # see if it's a complete url (rather than a folder)
                             # otherwise we want a relative path in the CSS
-                            if self.env.url.startswith('http://')\
-                                or self.env.url.startswith('https://')\
-                                or self.env.url.startswith('//'):
+                            if self._is_abs_url(self.env.url):
                                 replacement = urlparse.urljoin(self.env.url, asset_path)
                             else:
-                                replacement = urlpath.relpathto(self.env.directory, self.output_path, self.env.absurl(asset_path))
+                                replacement = urlpath.relpathto(self.env.directory, self.output_path, self.env.resolver.resolve_source(asset_path))
                         else:
                             replacement = urlpath.relpathto(self.env.directory, self.output_path, asset_path)
 
