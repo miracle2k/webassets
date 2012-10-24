@@ -69,8 +69,8 @@ class ExternalAssets(Container):
         resolved_contents = self.resolve_contents(env, force=True)
         if not resolved_contents:
             raise BuildError('empty external assets cannot be built')
-        for relpath, abspath in resolved_contents:
-            self.write_files(relpath)
+        for path in self.contents:
+            self.write_files(path)
 
     def show_manifest(self):
         if self.env.manifest:
