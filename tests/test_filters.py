@@ -1048,3 +1048,18 @@ class TestHandlebars(TempEnvironmentHelper):
         self.mkbundle('dir/bar.html', filters='handlebars', output='out.js').build()
         assert "'bar.html'" in self.get('out.js')
 
+
+class TestTypeScript(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.ts': """class X { z: number; }"""
+    }
+
+    def setup(self):
+        if not find_executable('tsc'):
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.mkbundle('foo.ts', filters='typescript', output='out.js').build()
+        assert self.get("out.js") == """var X = (function () {\r\n    function X() { }\r\n    return X;\r\n})();\r\n"""
