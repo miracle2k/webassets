@@ -18,6 +18,7 @@ class TypeScript(Filter):
     """
 
     name = 'typescript'
+    max_debug_level = None
     options = {
         'binary': 'TYPESCRIPT_BIN',
     }
