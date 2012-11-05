@@ -10,7 +10,7 @@ __all__ = ('TypeScript',)
 
 
 class TypeScript(Filter):
-    """Compile  `TypeScript <http://www.typescriptlang.org`_ to JavaScript.
+    """Compile  `TypeScript <http://www.typescriptlang.org>`_ to JavaScript.
 
     TypeScript is an external tool written for NodeJS.
     This filter assumes that the ``tsc`` executable is in the path. Otherwise, you
