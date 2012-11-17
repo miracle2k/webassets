@@ -353,8 +353,6 @@ class Bundle(object):
 
         # Prepare contents
         resolved_contents = self.resolve_contents(env, force=True)
-        if not resolved_contents:
-            raise BuildError('empty bundle cannot be built')
 
         # Unless we have been told by our caller to use or not use the cache
         # for this, try to decide for ourselves. The issue here is that when a
@@ -383,7 +381,8 @@ class Bundle(object):
                 hunk = cnt._merge_and_apply(
                     env, output, force, current_debug_level,
                     filters_to_pass_down, disable_cache=disable_cache)
-                hunks.append(hunk)
+                if hunk is not None:
+                    hunks.append(hunk)
             else:
                 # Give a filter the chance to open his file.
                 try:
@@ -417,6 +416,11 @@ class Bundle(object):
                     # specified by the user, and the one that has been
                     # resolved to a filesystem location.
                     kwargs={'source': item, 'source_path': cnt}))
+
+        # If this bundle is empty (if it has nested bundles, they did
+        # not yield any hunks either), return None to indicate so.
+        if len(hunks) == 0:
+            return None
 
         # Merge the individual files together. There is an optional hook for
         # a filter here, by implementing a concat() method.
@@ -479,6 +483,8 @@ class Bundle(object):
         hunk = self._merge_and_apply(
             env, [self.output, self.resolve_output(env, version='?')],
             force, disable_cache=disable_cache, extra_filters=extra_filters)
+        if hunk is None:
+            raise BuildError('Nothing to build for %s, is empty' % self)
 
         if output:
             # If we are given a stream, just write to it.

@@ -78,12 +78,17 @@ class TestBuildVarious(TempEnvironmentHelper):
         """
         assert_raises(BuildError, self.mkbundle('in1', 'in2').build)
 
-    def test_empty_bundle_error(self):
-        """An empty bundle cannot be built.
+    def test_empty_bundles(self):
+        """Building an empty bundle must be an error. Creating an
+        empty output file is not correct, and not doing anything
+        is too unpredictable.
         """
         assert_raises(BuildError, self.mkbundle(output='out').build)
-        # That is true even for child bundles
-        assert_raises(BuildError, self.mkbundle(self.mkbundle(), 'in1', output='out').build)
+        # Even an empty child bundle structure would not bypass this.
+        assert_raises(BuildError, self.mkbundle(self.mkbundle(), output='out').build)
+        # However, empty child bundles are perfectly valid per se.
+        #There just needs to be *something* to build.
+        self.mkbundle(self.mkbundle(), 'in1', output='out').build()
 
     def test_rebuild(self):
         """Regression test for a bug that occurred when a bundle
