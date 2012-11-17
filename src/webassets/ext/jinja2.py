@@ -4,12 +4,26 @@ import warnings
 import jinja2
 from jinja2.ext import Extension
 from jinja2 import nodes
-from webassets import Bundle
+from jinja2.utils import environmentfunction
+from webassets import Bundle, ExternalAssets
 from webassets.loaders import GlobLoader, LoaderError
 from webassets.exceptions import ImminentDeprecationWarning
 
 
-__all__ = ('assets', 'Jinja2Loader',)
+__all__ = ('assets', 'Jinja2Loader', 'webasset_tag')
+
+
+@environmentfunction
+def webasset_tag(env, file_path):
+    for bundle in env.assets_environment:
+        if isinstance(bundle, ExternalAssets):
+            # see if our file has a versioned version available
+            try:
+                asset_path = bundle.versioned_folder(file_path)
+                return env.assets_environment.resolver.resolve_output_to_url(asset_path)
+                break
+            except IOError:
+                return file_path
 
 
 class AssetsExtension(Extension):

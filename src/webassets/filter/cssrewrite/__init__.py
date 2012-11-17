@@ -1,6 +1,7 @@
 import os, urlparse
 from os.path import join
 from webassets.utils import common_path_prefix
+from webassets.external import ExternalAssets
 import urlpath
 try:
     from collections import OrderedDict
@@ -30,7 +31,7 @@ class CSSRewrite(CSSUrlRewriter):
 
     No configuration is necessary.
 
-    The filter also supports a manual mode::
+    The filter also supports a manual mode, using either ``replace`` or ``external``::
 
         get_filter('cssrewrite', replace={'old_directory':'/custom/path/'})
 
@@ -53,6 +54,7 @@ class CSSRewrite(CSSUrlRewriter):
     def __init__(self, replace=False):
         super(CSSRewrite, self).__init__()
         self.replace = replace
+        self.external = []
 
     def unique(self):
         # Allow mixing the standard version of this filter, and replace mode.
@@ -72,7 +74,16 @@ class CSSRewrite(CSSUrlRewriter):
                 replace_dict[replurl] = sub
             self.replace_dict = replace_dict
 
+        # see if we have external assets in the environment
+        for bundle in self.env:
+            if isinstance(bundle, ExternalAssets):
+                self.external.append(bundle)
+            #pass
+
         return super(CSSRewrite, self).input(_in, out, **kw)
+
+    def _is_abs_url(self, url):
+        return url.startswith('/') and (url.startswith('http://') or url.startswith('https://'))
 
     def replace_url(self, url):
         # Replace mode: manually adjust the location of files
@@ -86,13 +97,49 @@ class CSSRewrite(CSSUrlRewriter):
                     # Only apply the first match
                     break
 
-        # Default mode: auto correct relative urls
         else:
-            # If path is an absolute one, keep it
-            if not url.startswith('/') and not (url.startswith('http://') or url.startswith('https://')):
-                # rewritten url: relative path from new location (output)
-                # to location of referenced file (source + current url)
-                url = urlpath.relpath(self.output_url,
-                    urlparse.urljoin(self.source_url, url))
+            # External mode: use ExternalAssets objects
+            # to fetch replacements
+            if len(self.external):
+                # If path is an absolute one, keep it
+                if not self._is_abs_url(url):
+
+                    replacement = None
+
+                    file_path = urlpath.pathjoin(self.source_path, url)
+                    asset_path = None
+                    for external_assets in self.external:
+                        # see if our file has a versioned version available
+                        try:
+                            asset_path = external_assets.versioned_folder(file_path)
+                            break
+                        except IOError:
+                            pass
+
+                    if asset_path is not None:
+                        if self.env.url:
+                            # see if it's a complete url (rather than a folder)
+                            # otherwise we want a relative path in the CSS
+                            if self._is_abs_url(self.env.url):
+                                replacement = urlparse.urljoin(self.env.url, asset_path)
+                            else:
+                                replacement = urlpath.relpathto(self.env.directory, self.output_path, self.env.resolver.resolve_source(asset_path))
+                        else:
+                            replacement = urlpath.relpathto(self.env.directory, self.output_path, asset_path)
+
+                    if replacement is None:
+                        url = urlpath.relpath(self.output_url,
+                            urlparse.urljoin(self.source_url, url))
+                    else:
+                        url = replacement
+
+            else:
+                # Default mode: auto correct relative urls
+                # If path is an absolute one, keep it
+                if not self._is_abs_url(url):
+                    # rewritten url: relative path from new location (output)
+                    # to location of referenced file (source + current url)
+                    url = urlpath.relpath(self.output_url,
+                        urlparse.urljoin(self.source_url, url))
 
         return url

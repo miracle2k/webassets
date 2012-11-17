@@ -2,6 +2,10 @@ from os import path
 import urlparse
 from itertools import chain
 import warnings
+
+from bundle import Bundle, is_url
+from external import ExternalAssets
+
 try:
     import glob2 as glob
     from glob import has_magic
@@ -9,7 +13,6 @@ except ImportError:
     import glob
     from glob import has_magic
 
-from bundle import Bundle, is_url
 from cache import get_cache
 from version import get_versioner, get_manifest
 from updater import get_updater
@@ -339,6 +342,7 @@ class BaseEnvironment(object):
     def __init__(self, **config):
         self._named_bundles = {}
         self._anon_bundles = []
+        self.external_assets = None
         self._config = self.config_storage_class(self)
         self.resolver = self.resolver_class(self)
 
@@ -406,7 +410,7 @@ class BaseEnvironment(object):
         if len(args) == 0:
             raise TypeError('at least two arguments are required')
         else:
-            if len(args) == 1 and not kwargs and isinstance(args[0], Bundle):
+            if len(args) == 1 and not kwargs and (isinstance(args[0], Bundle) or isinstance(args[0], ExternalAssets)):
                 bundle = args[0]
             else:
                 bundle = Bundle(*args, **kwargs)
