@@ -681,7 +681,7 @@ def pull_external(env, filename):
     if path.isfile(full_path):
         gs = lambda p: os.stat(p).st_mtime
         if gs(full_path) > gs(filename):
-            return rel_path
+            return full_path
     directory = path.dirname(full_path)
     if not path.exists(directory):
         os.makedirs(directory)
