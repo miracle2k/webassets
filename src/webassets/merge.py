@@ -14,7 +14,7 @@ from utils import cmp_debug_levels
 
 
 __all__ = ('FileHunk', 'MemoryHunk', 'merge', 'FilterTool',
-           'MoreThanOneFilterError')
+           'MoreThanOneFilterError', 'NoFilters')
 
 
 # Log which is used to output low-level information about what the build does.
@@ -181,6 +181,10 @@ class MoreThanOneFilterError(Exception):
         self.filters = filters
 
 
+class NoFilters(Exception):
+    pass
+
+
 class FilterTool(object):
     """Can apply filters to hunk objects, while using the cache.
 
@@ -283,7 +287,7 @@ class FilterTool(object):
         filters = [f for f in filters if getattr(f, type, None)]
         if not filters:  # Short-circuit
             log.debug('No filters have a "%s" method' % type)
-            return None
+            raise NoFilters()
 
         if len(filters) > 1:
             raise MoreThanOneFilterError(

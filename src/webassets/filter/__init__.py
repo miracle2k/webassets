@@ -285,7 +285,7 @@ class Filter(object):
 
        Will be called once between the input() and output()
        steps, and should concat all the source files (given as hunks)
-       together, and return a string.
+       together, writing the result to the ``out`` stream.
 
        Only one such filter is allowed.
        """

@@ -411,7 +411,7 @@ class TestFilterApplication(TempEnvironmentHelper):
         """
         class ConcatFilter(Filter):
             def concat(self, out, hunks, **kw):
-                out.write('%%%'.join([h.data() for h in hunks]))
+                out.write('%%%'.join([h.data() for h, info in hunks]))
         self.create_files({'a': '1', 'b': '2'})
         self.mkbundle('a', 'b', filters=ConcatFilter, output='out').build()
         assert self.get('out') == '1%%%2'

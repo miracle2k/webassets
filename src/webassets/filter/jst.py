@@ -11,10 +11,28 @@ class JSTemplateFilter(Filter):
     possibly other Javascript templating systems in the future.
     """
 
-    def setup(self):
-        super(JSTemplateFilter, self).setup()
-        # Reset template collection (same instance may run multiple times)
-        self.templates = []
+    def concat(self, out, hunks, **kwargs):
+        self.process_templates(out, hunks, **kwargs)
+
+    def process_templates(self, out, hunks, **kw):
+        raise NotImplementedError()
+
+    def iter_templates_with_base(self, hunks):
+        """Helper that for list of ``hunks``, as given to
+        ``concat()``, yields 2-tuples of (name, hunk), with name
+        being the name of the source file relative to the common
+        prefix of all source files.
+
+        In other words, each template gets the shortest possible
+        name to identify it.
+        """
+        base_path = self._find_base_path(
+            [info['source_path'] for _, info in hunks]) + os.path.sep
+        for hunk, info in hunks:
+            name = info['source_path']
+            name = name[len(base_path):]
+            name = os.path.splitext(name)[0]
+            yield name, hunk
 
     def _find_base_path(self, paths):
         """Hmmm.  There should aways be some common base path."""
@@ -118,31 +136,22 @@ class JST(JSTemplateFilter):
         self.include_jst_script = (self.template_function == 'template') \
                                   or not self.template_function
 
-    def input(self, _in, out, source_path, output_path, **kw):
-        data = _in.read()
-        self.templates.append((source_path, data))
-
-        # Write back or the cache would not detect changes
-        out.write(data)
-
-    def output(self, _in, out, **kwargs):
-        base_path = self._find_base_path() + os.path.sep
+    def process_templates(self, out, hunks, **kwargs):
         namespace = self.namespace or 'window.JST'
 
         if self.bare is False:
-            out.write("(function(){\n    ")
+            out.write("(function(){\n")
 
         out.write("%s = %s || {};\n" % (namespace, namespace))
 
         if self.include_jst_script:
             out.write("%s\n" % _jst_script)
 
-        for path, contents in self.templates:
+        for name, hunk in self.iter_templates_with_base(hunks):
             # Make it a valid Javascript string. Is this smart enough?
-            contents = contents.replace('\n', '\\n').replace("'", r"\'")
+            contents = hunk.data().replace('\n', '\\n').replace("'", r"\'")
 
-            out.write("%s['%s'] = " % (namespace,
-                os.path.splitext(path[len(base_path):])[0]))
+            out.write("%s['%s'] = " % (namespace, name))
             if self.template_function is False:
                 out.write("'%s';\n" % (contents))
             else:
@@ -151,11 +160,6 @@ class JST(JSTemplateFilter):
 
         if self.bare is False:
             out.write("})();")
-
-    def _find_base_path(self):
-        """Hmmm. There should aways be some common base path."""
-        paths = [path for path, content in self.templates]
-        return JSTemplateFilter._find_base_path(self, paths)
 
 
 _jst_script = 'var template = function(str){var fn = new Function(\'obj\', \'var \

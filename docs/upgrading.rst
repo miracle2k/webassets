@@ -135,6 +135,14 @@ In Development version
   output as raw strings. Before, ``False`` behaved like ``None`` and used
   the builtin compiler.
 
+- The API of the ``concat()`` filter method has changed. Instead of a
+  list of hunks, it is now given a list of 2-tuples of
+  ``(hunk, info_dict)``.
+
+- The internal ``JSTTemplateFilter`` base class has changed API.
+  - concat filter
+  - jst handlebar filters have changed, use concat, base class has changed
+
 
 In 0.7
 ~~~~~~

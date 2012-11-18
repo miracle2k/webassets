@@ -4,7 +4,7 @@ import urlparse
 
 from filter import get_filter
 from merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
-                   select_filters, MoreThanOneFilterError)
+                   select_filters, MoreThanOneFilterError, NoFilters)
 from updater import SKIP_CACHE
 from exceptions import BundleError, BuildError
 from utils import cmp_debug_levels
@@ -343,7 +343,7 @@ class Bundle(object):
 
         # We construct two lists of filters. The ones we want to use in this
         # iteration, and the ones we want to pass down to child bundles.
-        # Why? Say we are in merge mode. Assume an "input()" filter  which does
+        # Why? Say we are in merge mode. Assume an "input()" filter which does
         # not run in merge mode, and a child bundle that switches to
         # debug=False. The child bundle then DOES want to run those input
         # filters, so we do need to pass them.
@@ -378,11 +378,13 @@ class Bundle(object):
         hunks = []
         for item, cnt in resolved_contents:
             if isinstance(cnt, Bundle):
+                # Recursively process nested bundles.
                 hunk = cnt._merge_and_apply(
                     env, output, force, current_debug_level,
                     filters_to_pass_down, disable_cache=disable_cache)
                 if hunk is not None:
-                    hunks.append(hunk)
+                    hunks.append((hunk, {}))
+
             else:
                 # Give a filter the chance to open his file.
                 try:
@@ -403,19 +405,23 @@ class Bundle(object):
                         cache_key=[FileHunk(cnt)] if not is_url(cnt) else [])
                 except MoreThanOneFilterError, e:
                     raise BuildError(e)
-
-                if not hunk:
+                except NoFilters:
+                    # Open the file ourselves.
                     if is_url(cnt):
                         hunk = UrlHunk(cnt, env=env)
                     else:
                         hunk = FileHunk(cnt)
 
-                hunks.append(filtertool.apply(
-                    hunk, filters_to_run, 'input',
-                    # Pass along both the original relative path, as
-                    # specified by the user, and the one that has been
-                    # resolved to a filesystem location.
-                    kwargs={'source': item, 'source_path': cnt}))
+                # With the hunk, remember both the original relative
+                # path, as specified by the user, and the one that has
+                # been resolved to a filesystem location. We'll pass
+                # them along to various filter steps.
+                item_data = {'source': item, 'source_path': cnt}
+
+                # Run input filters, unless open() told us not to.
+                hunk = filtertool.apply(hunk, filters_to_run, 'input',
+                                            kwargs=item_data)
+                hunks.append((hunk, item_data))
 
         # If this bundle is empty (if it has nested bundles, they did
         # not yield any hunks either), return None to indicate so.
@@ -426,10 +432,10 @@ class Bundle(object):
         # a filter here, by implementing a concat() method.
         try:
             final = filtertool.apply_func(filters_to_run, 'concat', [hunks])
-            if final is None:
-                final = merge(hunks)
-        except (IOError, MoreThanOneFilterError), e:
+        except MoreThanOneFilterError, e:
             raise BuildError(e)
+        except NoFilters:
+            final = merge([h for h, _ in hunks])
 
         # Apply output filters.
         # TODO: So far, all the situations where bundle dependencies are
