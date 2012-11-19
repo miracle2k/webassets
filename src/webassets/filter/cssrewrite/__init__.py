@@ -89,7 +89,8 @@ class CSSRewrite(CSSUrlRewriter):
         # Default mode: auto correct relative urls
         else:
             # If path is an absolute one, keep it
-            if not url.startswith('/') and not (url.startswith('http://') or url.startswith('https://')):
+            parsed = urlparse.urlparse(url)
+            if not parsed.scheme and not parsed.path.startswith('/'):
                 # rewritten url: relative path from new location (output)
                 # to location of referenced file (source + current url)
                 url = urlpath.relpath(self.output_url,

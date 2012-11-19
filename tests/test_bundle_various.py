@@ -555,7 +555,7 @@ class TestUrlContents(TempEnvironmentHelper):
     def test_invalid_url(self):
         """If a bundle contains an invalid url, building will raise an error.
         """
-        assert_raises(IOError,
+        assert_raises(BuildError,
                       self.mkbundle('http://bar', output='out').build)
 
     def test_autorebuild_updaters(self):

@@ -431,11 +431,18 @@ class Bundle(object):
         # Merge the individual files together. There is an optional hook for
         # a filter here, by implementing a concat() method.
         try:
-            final = filtertool.apply_func(filters_to_run, 'concat', [hunks])
-        except MoreThanOneFilterError, e:
+            try:
+                final = filtertool.apply_func(filters_to_run, 'concat', [hunks])
+            except MoreThanOneFilterError, e:
+                raise BuildError(e)
+            except NoFilters:
+                final = merge([h for h, _ in hunks])
+        except IOError, e:
+            # IOErrors can be raised here if hunks are loaded for the
+            # first time. TODO: IOErrors can also be raised when
+            # a file is read during the filter-apply phase, but we don't
+            # convert it to a BuildError there...
             raise BuildError(e)
-        except NoFilters:
-            final = merge([h for h, _ in hunks])
 
         # Apply output filters.
         # TODO: So far, all the situations where bundle dependencies are
