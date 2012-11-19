@@ -17,8 +17,35 @@ class PyScss(Filter):
     This is an alternative to using the ``sass`` or ``scss`` filters,
     which are based on the original, external tools.
 
-    Note: The Sass syntax is not supported. You need to use the original
-    Ruby implementation instead.
+    .. note::
+        The Sass syntax is not supported by PyScss. You need to use
+        the ``sass`` filter based on the original Ruby implementation
+        instead.
+
+    *Supported configuration options:*
+
+    PYSCSS_DEBUG_INFO (debug_info)
+        Include debug information in the output for use with FireSass.
+
+        If unset, the default value will depend on your
+        :attr:`Environment.debug` setting.
+
+    PYSCSS_LOAD_PATHS (load_paths)
+        Additional load paths that PyScss should use.
+
+        .. warning::
+            The filter currently does not automatically use
+            :attr:`Environment.load_path` for this.
+
+    PYSCSS_ASSETS_ROOT (assets_root)
+        The directory PyScss should look in when searching for things
+        like images that you have referenced.. Will use
+        :attr:`Environment.directory` by default.
+
+    PYSCSS_ASSETS_URL (assets_url)
+        The url PyScss should use when generating urls to files in
+        ``PYSCSS_ASSETS_ROOT``. Will use :attr:`Environment.url` by
+        default.
     """
 
     name = 'pyscss'
