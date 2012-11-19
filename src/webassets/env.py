@@ -217,7 +217,12 @@ class Resolver(object):
         """
         # Build a list of dir -> url mappings
         mapping = self.env.url_mapping.items()
-        mapping.append((self.env.directory, self.env.url))
+        try:
+            mapping.append((self.env.directory, self.env.url))
+        except EnvironmentError:
+            # Rarely, directory/url may not be set. That's ok.
+            pass
+
         # Make sure paths are absolute, normalized, and sorted by length
         mapping = map(
             lambda (p,u): (path.normpath(path.abspath(p)), u),
