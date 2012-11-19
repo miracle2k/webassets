@@ -37,23 +37,39 @@ class PyScss(Filter):
             The filter currently does not automatically use
             :attr:`Environment.load_path` for this.
 
+    PYSCSS_STATIC_ROOT (static_root)
+        The directory PyScss should look in when searching for include
+        files that you have referenced. Will use
+        :attr:`Environment.directory` by default.
+
+    PYSCSS_STATIC_URL (static_url)
+        The url PyScss should use when generating urls to files in
+        ``PYSCSS_STATIC_ROOT``. Will use :attr:`Environment.url` by
+        default.
+
     PYSCSS_ASSETS_ROOT (assets_root)
         The directory PyScss should look in when searching for things
-        like images that you have referenced.. Will use
-        :attr:`Environment.directory` by default.
+        like images that you have referenced. Will use
+        ``PYSCSS_STATIC_ROOT`` by default.
 
     PYSCSS_ASSETS_URL (assets_url)
         The url PyScss should use when generating urls to files in
-        ``PYSCSS_ASSETS_ROOT``. Will use :attr:`Environment.url` by
+        ``PYSCSS_ASSETS_ROOT``. Will use ``PYSCSS_STATIC_URL`` by
         default.
     """
+
+    # TODO: PyScss now allows STATIC_ROOT to be a callable, though
+    # none of the other pertitent values are allowed to be, so this
+    # is probably not good enough for us.
 
     name = 'pyscss'
     options = {
         'debug_info': 'PYSCSS_DEBUG_INFO',
         'load_paths': 'PYSCSS_LOAD_PATHS',
-        'assets_url': 'PYSCSS_ASSETS_URL',
+        'static_root': 'PYSCSS_STATIC_ROOT',
+        'static_url': 'PYSCSS_STATIC_URL',
         'assets_root': 'PYSCSS_ASSETS_ROOT',
+        'assets_url': 'PYSCSS_ASSETS_URL',
     }
     max_debug_level = None
 
@@ -73,13 +89,19 @@ class PyScss(Filter):
         # These are needed for various helpers (working with images
         # etc.). Similar to the compass filter, we require the user
         # to specify such paths relative to the media directory.
-        scss.STATIC_URL = self.env.url
-        scss.STATIC_ROOT = self.env.directory
+        try:
+            scss.STATIC_ROOT = self.static_root or self.env.directory
+            scss.STATIC_URL = self.static_url or self.env.url
+        except EnvironmentError:
+            raise EnvironmentError('Because Environment.url and/or '
+                'Environment.directory are not set, you need to '
+                'provide values for the PYSCSS_STATIC_URL and/or '
+                'PYSCSS_STATIC_ROOT settings.')
 
         # This directory PyScss will use when generating new files,
         # like a spritemap. Maybe we should REQUIRE this to be set.
-        scss.ASSETS_ROOT = self.assets_root or self.env.url
-        scss.ASSETS_URL = self.assets_url or self.env.directory
+        scss.ASSETS_ROOT = self.assets_root or scss.STATIC_ROOT
+        scss.ASSETS_URL = self.assets_url or scss.STATIC_URL
 
     def input(self, _in, out, **kw):
         """Like the original sass filter, this also needs to work as
