@@ -8,10 +8,10 @@ except ImportError:
 from webassets.filter import Filter
 
 
-__all__ = ('RJSMinFilter',)
+__all__ = ('RJSMin',)
 
 
-class RJSMinFilter(Filter):
+class RJSMin(Filter):
     """Minifies Javascript by removing whitespace, comments, etc.
 
     Uses the `rJSmin library <http://opensource.perlig.de/rjsmin/>`_,

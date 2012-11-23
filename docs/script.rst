@@ -50,10 +50,10 @@ the commands as simple methods.
     log.setLevel(logging.DEBUG)
 
     cmdenv = CommandLineEnvironment(assets_env, log)
-    cmdenv.invoke('rebuild')
+    cmdenv.invoke('build')
 
     # This would also work
-    cmdenv.rebuild()
+    cmdenv.build()
 
 
 You are reponsible for parsing the command line in any way you see fit
@@ -61,9 +61,6 @@ You are reponsible for parsing the command line in any way you see fit
 or whatever your framework provides as a command line utility shell), and
 then invoking the corresponding methods on your instance of
 ``CommandLineEnvironment``.
-
-For an example, you could have a look at the ``werkzeug.script``
-integration in ``webassets.ext.werkzeug``.
 
 
 .. _script-commands:
@@ -75,22 +72,22 @@ Included Commands
 The following describes the commands that will be available to you through
 the *webassets* CLI interface.
 
-rebuild
+build
 -------
 
-Rebuilds all bundles, regardless of whether they are detected as having
-changed or not.
+Builds all bundles, regardless of whether they are detected as having changed
+or not.
 
 
 watch
 -----
 
-Start a daemon which monitors your bundle source files, and
-automatically rebuilds bundles when a change is detected:
+Start a daemon which monitors your bundle source files, and automatically
+rebuilds bundles when a change is detected.
 
-This can be useful during development, if building is not instantaneous,
-and you are loosing valuable time waiting for the build to finish while
-trying to access your site.
+This can be useful during development, if building is not instantaneous, and
+you are loosing valuable time waiting for the build to finish while trying to
+access your site.
 
 
 clean

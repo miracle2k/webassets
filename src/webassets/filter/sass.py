@@ -5,10 +5,10 @@ from webassets.exceptions import FilterError, ImminentDeprecationWarning
 from webassets.cache import FilesystemCache
 
 
-__all__ = ('SassFilter', 'SCSSFilter')
+__all__ = ('Sass', 'SCSS')
 
 
-class SassFilter(Filter):
+class Sass(Filter):
     """Converts `Sass <http://sass-lang.com/>`_ markup to real CSS.
 
     Requires the Sass executable to be available externally. To install
@@ -80,9 +80,10 @@ class SassFilter(Filter):
         'load_paths': 'SASS_LOAD_PATHS',
         'libs': 'SASS_LIBS',
     }
+    max_debug_level = None
 
     def _apply_sass(self, _in, out, cd=None):
-        # Switch to source file directory if asked, so that  this directory
+        # Switch to source file directory if asked, so that this directory
         # is by default on the load path. We could pass it via -I, but then
         # files in the (undefined) wd could shadow the correct files.
         if cd:
@@ -106,7 +107,11 @@ class SassFilter(Filter):
                     '--line-comments']
             if isinstance(self.env.cache, FilesystemCache):
                 args.extend(['--cache-location',
-                             os.path.join(self.env.cache.directory, 'sass')])
+                             os.path.join(old_dir, self.env.cache.directory, 'sass')])
+            elif not cd:
+                # Without a fixed working directory, the location of the cache
+                # is basically undefined, so prefer not to use one at all.
+                args.extend(['--no-cache'])
             if (self.env.debug if self.debug_info is None else self.debug_info):
                 args.append('--debug-info')
             if self.use_scss:
@@ -152,7 +157,7 @@ class SassFilter(Filter):
             self._apply_sass(_in, out)
 
 
-class SCSSFilter(SassFilter):
+class SCSS(Sass):
     """Version of the ``sass`` filter that uses the SCSS syntax.
     """
 
@@ -161,4 +166,4 @@ class SCSSFilter(SassFilter):
     def __init__(self, *a, **kw):
         assert not 'scss' in kw
         kw['scss'] = True
-        super(SCSSFilter, self).__init__(*a, **kw)
+        super(SCSS, self).__init__(*a, **kw)

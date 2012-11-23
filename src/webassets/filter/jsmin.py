@@ -2,13 +2,12 @@ from __future__ import absolute_import
 import warnings
 
 from webassets.filter import Filter
-from webassets.exceptions import ImminentDeprecationWarning
 
 
-__all__ = ('JSMinFilter',)
+__all__ = ('JSMin',)
 
 
-class JSMinFilter(Filter):
+class JSMin(Filter):
     """Minifies Javascript by removing whitespace, comments, etc.
 
     This filter uses a Python port of Douglas Crockford's `JSMin
@@ -26,20 +25,13 @@ class JSMinFilter(Filter):
     ``JavascriptMinify`` object with a ``minify`` method.
 
     If you want to avoid installing another dependency, use the
-    :class:`webassets.filter.rjsmin.RJSMinFilter` filter instead.
+    :class:`webassets.filter.rjsmin.RJSMin` filter instead.
     """
 
     name = 'jsmin'
 
     def setup(self):
-        try:
-            import jsmin
-        except ImportError:
-            from . import jsmin
-            warnings.warn('The jsmin implementation shipping with webassets will '+
-                          'be deprecated. Install your own jsmin implementation '+
-                          '(e.g. "pip install jsmin"), or switch to the rjsmin '+
-                          'filter.', ImminentDeprecationWarning)
+        import jsmin
         self.jsmin = jsmin
 
     def output(self, _in, out, **kw):

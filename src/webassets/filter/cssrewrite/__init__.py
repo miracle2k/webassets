@@ -12,10 +12,10 @@ except ImportError:
 from base import CSSUrlRewriter, addsep, path2url
 
 
-__all__ = ('CSSRewriteFilter',)
+__all__ = ('CSSRewrite',)
 
 
-class CSSRewriteFilter(CSSUrlRewriter):
+class CSSRewrite(CSSUrlRewriter):
     """Source filter that rewrites relative urls in CSS files.
 
     CSS allows you to specify urls relative to the location of the CSS file.
@@ -32,10 +32,15 @@ class CSSRewriteFilter(CSSUrlRewriter):
 
     The filter also supports a manual mode::
 
-        get_filter('cssrewrite', replace={'old_directory', '/custom/path/'})
+        get_filter('cssrewrite', replace={'old_directory':'/custom/path/'})
 
     This will rewrite all urls that point to files within ``old_directory`` to
     use ``/custom/path`` as a prefix instead.
+
+    You may plug in your own replace function::
+
+        get_filter('cssrewrite', replace=lambda url: re.sub(r'^/?images/', '/images/', url))
+        get_filter('cssrewrite', replace=lambda url: '/images/'+url[7:] if url.startswith('images/') else url)
     """
 
     # TODO: If we want to support inline assets, this needs to be
@@ -43,9 +48,10 @@ class CSSRewriteFilter(CSSUrlRewriter):
     # MEDIA_URL.
 
     name = 'cssrewrite'
+    max_debug_level = 'merge'
 
     def __init__(self, replace=False):
-        super(CSSRewriteFilter, self).__init__()
+        super(CSSRewrite, self).__init__()
         self.replace = replace
 
     def unique(self):
@@ -53,12 +59,12 @@ class CSSRewriteFilter(CSSUrlRewriter):
         return self.replace
 
     def input(self, _in, out, **kw):
-        # For replace mode, make sure we have all the directories to be
-        # rewritten in form of a url, so we can later easily match it
-        # against the urls encountered in the CSS.
-        replace_dict = False
-        root = addsep(self.env.directory)
-        if self.replace not in (False, None):
+        if self.replace not in (False, None) and not callable(self.replace):
+            # For replace mode, make sure we have all the directories to be
+            # rewritten in form of a url, so we can later easily match it
+            # against the urls encountered in the CSS.
+            replace_dict = False
+            root = addsep(self.env.directory)
             replace_dict = OrderedDict()
             for repldir, sub in self.replace.items():
                 repldir = addsep(os.path.normpath(join(root, repldir)))
@@ -66,11 +72,13 @@ class CSSRewriteFilter(CSSUrlRewriter):
                 replace_dict[replurl] = sub
             self.replace_dict = replace_dict
 
-        return super(CSSRewriteFilter, self).input(_in, out, **kw)
+        return super(CSSRewrite, self).input(_in, out, **kw)
 
     def replace_url(self, url):
         # Replace mode: manually adjust the location of files
-        if self.replace is not False:
+        if callable(self.replace):
+            return self.replace(url)
+        elif self.replace is not False:
             for to_replace, sub in self.replace_dict.items():
                 targeturl = urlparse.urljoin(self.source_url, url)
                 if targeturl.startswith(to_replace):
@@ -81,7 +89,8 @@ class CSSRewriteFilter(CSSUrlRewriter):
         # Default mode: auto correct relative urls
         else:
             # If path is an absolute one, keep it
-            if not url.startswith('/') and not (url.startswith('http://') or url.startswith('https://')):
+            parsed = urlparse.urlparse(url)
+            if not parsed.scheme and not parsed.path.startswith('/'):
                 # rewritten url: relative path from new location (output)
                 # to location of referenced file (source + current url)
                 url = urlpath.relpath(self.output_url,

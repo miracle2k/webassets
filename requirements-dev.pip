@@ -2,6 +2,7 @@
 Jinja2>=2.5
 Sphinx
 nose
+mock
 
 PyYaml
 glob2
@@ -14,15 +15,13 @@ cssmin
 yuicompressor
 closure
 pyScss
+slimmer
 
 # Default rsmin package is not installable via pip
 http://michael.elsdoerfer.name/rjsmin/rjsmin-1.0.1-webassets.tar.gz
 # Requiring manual installation:
 # cssprefixer
 #cssprefixer
-
-# Necessary for autodoc to build documentation regarding django-assets.
-Django
 
 # The following Ruby gems are required for some filter tests to run:
 # sudo gem install sass
@@ -32,4 +31,6 @@ Django
 # The following node libraries are required for some filter tests to run:
 # sudo npm install -g less
 # sudo npm install -g uglify-js
-# sudo npm install -g coffeescript
+# sudo npm install -g coffee-script
+# sudo npm install -g clean-css
+# sudo npm install -g stylus

@@ -6,7 +6,7 @@ Bundles
 
 A bundle is simply a collection of files that you would like to group
 together, with some properties attached to tell ``webassets``
-how to do it's job. Such properties include the filters which should
+how to do its job. Such properties include the filters which should
 be applied, or the location where the output file should be stored.
 
 Note that all filenames and paths considered to be relative to the
@@ -32,6 +32,12 @@ arguments:
   and the result stored at this location. A ``%(version)s`` placeholder is
   supported here, which will be replaced with the version of the file. See
   :doc:`/expiring`.
+
+* ``depends`` - Bundles will be refiltered (compiled, minified, etc) if
+  any of their files change. However, sometimes a bundle may depend on a
+  file which isn't directly included in the bundle - for example, in case
+  of a SCSS ``@import`` clause. Changes detected to one or multiple files
+  whose name are specified by this keyword will recreate the bundle.
 
 
 Nested bundles
@@ -88,9 +94,9 @@ Some things to consider when nesting bundles:
 
 * Duplicate filters are only applied once (the leaf filter is applied).
 * If a bundle that is supposed to be processed to a file does not define
-  an output target, it simply serves as a container of it's sub-bundles,
+  an output target, it simply serves as a container of its sub-bundles,
   which in turn will be processed into their respective output files.
-  In this case it must not have any files of it's own.
+  In this case it must not have any files of its own.
 
 
 Building bundles
@@ -137,9 +143,8 @@ Further, they usually allow you to define bundles on-the-fly, so you can
 reference your assets directly from within your templates, rather than
 predefining them in code.
 
-For example, there are template tags for both :doc:`Django </django/index>`
-and :doc:`Jinja2 </integration/jinja2>`, which allow you do something like
-this:
+For example, there is a template tag for :doc:`Jinja2 </integration/jinja2>`,
+which allows you do something like this:
 
 .. code-block:: jinja
 

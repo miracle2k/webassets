@@ -2,10 +2,10 @@ from __future__ import absolute_import
 from webassets.filter import Filter
 
 
-__all__ = ('CSSMinFilter',)
+__all__ = ('CSSMin',)
 
 
-class CSSMinFilter(Filter):
+class CSSMin(Filter):
     """Minifies CSS.
 
     Requires the ``cssmin`` package (http://github.com/zacharyvoase/cssmin),

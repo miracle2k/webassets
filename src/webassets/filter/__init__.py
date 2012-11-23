@@ -2,9 +2,12 @@
 contents (think minification, compression).
 """
 
+from __future__ import with_statement
+
 import os, subprocess
 import inspect
 import shlex
+import tempfile
 try:
     frozenset
 except NameError:
@@ -13,7 +16,8 @@ from webassets.exceptions import FilterError
 from webassets.importlib import import_module
 
 
-__all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',)
+__all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',
+           'ExternalTool', 'JavaTool')
 
 
 def freezedicts(obj):
@@ -110,6 +114,19 @@ class Filter(object):
     #        'plugins': option('COMPASS_PLUGINS', type=list),
     #    }
     options = {}
+
+    # The maximum debug level under which this filter should run.
+    # Most filters only run in production mode (debug=False), so this is the
+    # default value. However, a filter like ``cssrewrite`` needs to run in
+    # ``merge`` mode. Further, compiler-type filters (like less/sass) would
+    # say ``None``, indicating that they have to run **always**.
+    # There is an interesting and convenient twist here: If you use such a
+    # filter, the bundle will automatically be merged, even in debug mode.
+    # It couldn't work any other way of course, the output needs to be written
+    # somewhere. If you have other files that do not need compiling, and you
+    # don't want them pulled into the merge, you can use a nested bundle with
+    # it's own output target just for those files that need the compilation.
+    max_debug_level = False
 
     def __init__(self, **kwargs):
         self.env = None
@@ -268,7 +285,7 @@ class Filter(object):
 
        Will be called once between the input() and output()
        steps, and should concat all the source files (given as hunks)
-       together, and return a string.
+       together, writing the result to the ``out`` stream.
 
        Only one such filter is allowed.
        """
@@ -305,35 +322,209 @@ class CallableFilter(Filter):
         return self.callable(_in, out)
 
 
-class JavaMixin(object):
-    """Mixin for filters which use Java ARchives (JARs) to perform tasks.
+class ExternalTool(Filter):
+    """Subclass that helps creating filters that need to run an external
+    program.
+
+    You are encouraged to use this when possible, as it helps consistency.
+
+    In the simplest possible case, subclasses only have to define one or more
+    of the following attributes, without needing to write any code:
+
+    ``argv``
+       The command line that will be passed to subprocess.Popen. New-style
+       format strings can be used to access all kinds of data: The arguments
+       to the filter method, as well as the filter instance via ``self``:
+
+            argv = ['{self.binary}', '--input', '{source_path}', '--cwd',
+                    '{self.env.directory}']
+
+    ``method``
+        The filter method to implement. One of ``input``, ``output`` or
+        ``open``.
     """
 
-    def java_setup(self):
+    argv = []
+    method = None
+
+    class __metaclass__(type):
+        def __new__(cls, name, bases, attrs):
+            # First, determine the method defined for this very class. We
+            # need to pop the ``method`` attribute from ``attrs``, so that we
+            # create the class without the argument; allowing us then to look
+            # at a ``method`` attribute that parents may have defined.
+            #
+            # method defaults to 'output' if argv is set, to "implement
+            # no default method" without an argv.
+            if not 'method' in attrs and 'argv' in attrs:
+                chosen = 'output'
+            else:
+                chosen = attrs.pop('method', False)
+
+            # Create the class first, since this helps us look at any
+            # method attributes defined in the parent hierarchy.
+            klass = type.__new__(cls, name, bases, attrs)
+            parent_method = getattr(klass, 'method', None)
+
+            # Assign the method argument that we initially popped again.
+            klass.method = chosen
+
+            try:
+                # Don't do anything for this class itself
+                ExternalTool
+            except NameError:
+                return klass
+
+            # If the class already has a method attribute, this indicates
+            # that a parent class already dealt with it and enabled/disabled
+            # the methods, and we won't again.
+            if parent_method is not None:
+                return klass
+
+            methods = ('output', 'input', 'open')
+
+            if chosen is not None:
+                assert not chosen or chosen in methods, \
+                    '%s not a supported filter method' % chosen
+                # Disable those methods not chosen.
+                for m in methods:
+                    if m != chosen:
+                        # setdefault = Don't override actual methods the
+                        # class has in fact provided itself.
+                        if not m in klass.__dict__:
+                            setattr(klass, m, None)
+
+            return klass
+
+    def open(self, out, source_path, **kw):
+        self._evaluate([out, source_path], kw, out)
+
+    def input(self, _in, out, **kw):
+        self._evaluate([_in, out], kw, out, _in)
+
+    def output(self, _in, out, **kw):
+        self._evaluate([_in, out], kw, out, _in)
+
+    def _evaluate(self, args, kwargs, out, data=None):
+        # For now, still support Python 2.5, but the format strings in argv
+        # are not supported (making the feature mostly useless). For this
+        # reason none of the builtin filters is using argv currently.
+        if hasattr(str, 'format'):
+            # Add 'self' to the keywords available in format strings
+            kwargs = kwargs.copy()
+            kwargs.update({'self': self})
+
+            # Resolve all the format strings in argv
+            def replace(arg):
+                try:
+                    return arg.format(*args, **kwargs)
+                except KeyError, e:
+                    # Treat "output" and "input" variables special, they
+                    # are dealt with in :meth:`subprocess` instead.
+                    if e.args[0] not in ('input', 'output'):
+                        raise
+                    return arg
+            argv = map(replace, self.argv)
+        else:
+            argv = self.argv
+        self.subprocess(argv, out, data=data)
+
+    @classmethod
+    def subprocess(cls, argv, out, data=None):
+        """Execute the commandline given by the list in ``argv``.
+
+        If a byestring is given via ``data``, it is piped into data.
+
+        ``argv`` may contain two placeholders:
+
+        ``{input}``
+            If given, ``data`` will be written to a temporary file instead
+            of data. The placeholder is then replaced with that file.
+
+        ``{output}``
+            Will be replaced by a temporary filename. The return value then
+            will be the content of this file, rather than stdout.
+        """
+
+        class tempfile_on_demand(object):
+            def __repr__(self):
+                if not hasattr(self, 'filename'):
+                    self.fd, self.filename = tempfile.mkstemp()
+                return self.filename
+            @property
+            def created(self):
+                return hasattr(self, 'filename')
+
+        # Replace input and output placeholders
+        input_file = tempfile_on_demand()
+        output_file = tempfile_on_demand()
+        if hasattr(str, 'format'):   # Support Python 2.5 without the feature
+            argv = map(lambda item:
+                item.format(input=input_file, output=output_file), argv)
+
+        try:
+            if input_file.created:
+                if not data:
+                    raise ValueError(
+                        '{input} placeholder given, but no data passed')
+                with os.fdopen(input_file.fd, 'wb') as f:
+                    f.write(data.read() if hasattr(data, 'read') else data)
+                    # No longer pass to stdin
+                    data = None
+
+            proc = subprocess.Popen(
+                argv,
+                # we cannot use the in/out streams directly, as they might be
+                # StringIO objects (which are not supported by subprocess)
+                stdout=subprocess.PIPE,
+                stdin=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            stdout, stderr = proc.communicate(
+                data.read() if hasattr(data, 'read') else data)
+            if proc.returncode:
+                raise FilterError(
+                    '%s: subprocess returned a non-success result code: '
+                    '%s, stdout=%s, stderr=%s' % (
+                        cls.name or cls.__name__, proc.returncode, stdout, stderr))
+            else:
+                if output_file.created:
+                    with os.fdopen(output_file.fd, 'rb') as f:
+                        out.write(f.read())
+                else:
+                    out.write(stdout)
+        finally:
+            if output_file.created:
+                os.unlink(output_file.filename)
+            if input_file.created:
+                os.unlink(input_file.filename)
+
+
+class JavaTool(ExternalTool):
+    """Helper class for filters which are implemented as Java ARchives (JARs).
+
+    The subclass is expected to define a ``jar`` attribute in :meth:`setup`.
+
+    If the ``argv`` definition is used, it is expected to contain only the
+    arguments to be passed to the Java tool. The path to the java binary and
+    the jar file are added by the base class.
+    """
+
+    method = None
+
+    def setup(self):
+        super(JavaTool, self).setup()
+
         # We can reasonably expect that java is just on the path, so
         # don't require it, but hope for the best.
         path = self.get_config(env='JAVA_HOME', require=False)
         if path is not None:
-            self.java = os.path.join(path, 'bin/java')
+            self.java_bin = os.path.join(path, 'bin/java')
         else:
-            self.java = 'java'
+            self.java_bin = 'java'
 
-    def java_run(self, _in, out, args):
-        proc = subprocess.Popen(
-            [self.java, '-jar', self.jar] + args,
-            # we cannot use the in/out streams directly, as they might be
-            # StringIO objects (which are not supported by subprocess)
-            stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        stdout, stderr = proc.communicate(_in.read())
-        if proc.returncode:
-            raise FilterError('%s: subprocess returned a '
-                'non-success result code: %s, stdout=%s, stderr=%s' % (
-                     self.name, proc.returncode, stdout, stderr))
-            # stderr contains error messages
-        else:
-            out.write(stdout)
+    def subprocess(self, args, out, data=None):
+        ExternalTool.subprocess(
+            [self.java_bin, '-jar', self.jar] + args, out, data)
 
 
 _FILTERS = {}
@@ -345,8 +536,6 @@ def register_filter(f):
         raise ValueError("Must be a subclass of 'Filter'")
     if not f.name:
         raise ValueError('Must have a name')
-    if f.name in _FILTERS:
-        raise KeyError('Filter with name %s already registered' % f.name)
     _FILTERS[f.name] = f
 
 
@@ -408,3 +597,4 @@ def load_builtin_filters():
                         continue
                     register_filter(attr)
 load_builtin_filters()
+

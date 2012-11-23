@@ -3,8 +3,11 @@ import os
 import sys
 from itertools import takewhile
 
+from exceptions import BundleError
 
-__all__ = ('md5_constructor', 'common_path_prefix', 'working_directory')
+
+__all__ = ('md5_constructor', 'pickle', 'set', 'StringIO',
+           'common_path_prefix', 'working_directory')
 
 
 if sys.version_info >= (2, 5):
@@ -13,6 +16,25 @@ if sys.version_info >= (2, 5):
 else:
     import md5
     md5_constructor = md5.new
+
+
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
+
+try:
+    set
+except NameError:
+    from sets import Set as set
+else:
+    set = set
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 
 def common_path_prefix(paths, sep=os.path.sep):
@@ -30,14 +52,20 @@ def common_path_prefix(paths, sep=os.path.sep):
 
 
 @contextlib.contextmanager
-def working_directory(path):
+def working_directory(directory=None, filename=None):
     """A context manager which changes the working directory to the given
     path, and then changes it back to its previous value on exit.
 
     Filters will often find this helpful.
+
+    Instead of a ``directory``, you may also give a ``filename``, and the
+    working directory will be set to the directory that file is in.s
     """
+    assert bool(directory) != bool(filename)   # xor
+    if not directory:
+        directory = os.path.dirname(filename)
     prev_cwd = os.getcwd()
-    os.chdir(path)
+    os.chdir(directory)
     yield
     os.chdir(prev_cwd)
 
@@ -144,3 +172,14 @@ def RegistryMetaclass(clazz=None, attribute=None, allow_none=True, desc=None):
     return Metaclass
 
 
+def cmp_debug_levels(level1, level2):
+    """cmp() for debug levels, returns -1, 0 or +1 indicating which debug
+    level is higher than the other one."""
+    level_ints = { False: 0, 'merge': 1, True: 2 }
+    try:
+        return cmp(level_ints[level1], level_ints[level2])
+    except KeyError, e:
+        # Not sure if a dependency on BundleError is proper here. Validating
+        # debug values should probably be done on assign. But because this
+        # needs to happen in two places (Environment and Bundle) we do it here.
+        raise BundleError('Invalid debug value: %s' % e)

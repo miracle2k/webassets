@@ -5,10 +5,10 @@ import os, urlparse
 from webassets.filter.cssrewrite.base import CSSUrlRewriter
 
 
-__all__ = ('CSSDataUriFilter',)
+__all__ = ('CSSDataUri',)
 
 
-class CSSDataUriFilter(CSSUrlRewriter):
+class CSSDataUri(CSSUrlRewriter):
     """Will replace CSS url() references to external files with internal
     `data: URIs <http://en.wikipedia.org/wiki/Data_URI_scheme>`_.
 

@@ -9,7 +9,7 @@ from webassets.merge import MemoryHunk
 from helpers import TempEnvironmentHelper, TempDirHelper
 
 
-class TestCaches(object):
+class TestCacheClasses(object):
     """Test the individual cache classes directly.
     """
 
@@ -128,8 +128,36 @@ class TestCacheIsUsed(TempEnvironmentHelper):
 
         Both in the process of a standard build.
         """
-        bundle = self.mkbundle('in1', 'in2', output='out', filters="jsmin")
+        bundle = self.mkbundle('in1', 'in2', output='out', filters="rjsmin")
         self.env.cache = True   # use the filesystem cache
         self.env.updater = TimestampUpdater()
         bundle.build(force=True)
+
+
+class TestSpecialCases(TempEnvironmentHelper):
+    """Test cachy-things that don't have a place elsewhere.
+
+    I'm not sure if this should be here or in test_bundles. test_bundles
+    is getting large though.
+    """
+
+    def test_open_filter_and_cache(self):
+        """[Regression] The open() filter method used to only use the filename
+        as a cache key, leading to any changes being ignored.
+        """
+        self.env.cache = True   # use the filesystem cache
+        class OpenFilter(Filter):
+            content = 'foo'
+            def open(self, out, source_path, **kw):
+                with open(source_path) as f:
+                    out.write(f.read())
+        open_filter = OpenFilter()
+
+        self.create_files({'in1': 'foo'})
+        bundle = self.mkbundle('in1', output='out', filters=open_filter)
+        bundle.build(force=True)
+
+        self.create_files({'in1': 'bar'})
+        bundle.build(force=True)
+        assert self.get('out') == 'bar'
 
