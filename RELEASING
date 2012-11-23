@@ -1,0 +1,12 @@
+- Update CHANGES file
+- Update AUTHORS file
+- git flow release start {release}
+- Update version number in __init__.py
+- Update version number in latest "Upgrading" section in docs
+- git flow release finish {release}
+- git checkout {release}
+- ./setup.py sdist upload
+- scp sdist file to my own server
+- Run ``fab publish_docs`` to publish release documentation.
+- git checkout master
+- Increase version number, append 'dev'
