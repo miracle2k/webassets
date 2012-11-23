@@ -10,3 +10,5 @@
 - Run ``fab publish_docs`` to publish release documentation.
 - git checkout master
 - Increase version number, append 'dev'
+- Don't forget to push --all and push --tags.
+
