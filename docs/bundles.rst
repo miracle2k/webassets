@@ -33,6 +33,12 @@ arguments:
   supported here, which will be replaced with the version of the file. See
   :doc:`/expiring`.
 
+* ``depends`` - Bundles will be refiltered (compiled, minified, etc) if
+  any of their files change. However, sometimes a bundle may depend on a
+  file which isn't directly included in the bundle - for example, in case
+  of a SCSS ``@import`` clause. Changes detected to one or multiple files
+  whose name are specified by this keyword will recreate the bundle.
+
 
 Nested bundles
 --------------
