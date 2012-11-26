@@ -17,7 +17,6 @@ class CSSUtils(Filter):
     """
 
     name = 'cssutils'
-    max_debug_level = None
 
     def setup(self):
         import cssutils
