@@ -270,6 +270,17 @@ class Resolver(object):
 
         return self.search_for_source(item)
 
+    def resolve_source_to_path(self, file_name):
+        """Given ``item`` from a Bundle's contents, this has to
+        return the final value to use, usually an absolute
+        filesystem path. Unlike :meth:`search_for_source` this
+        will only return the first matching path it finds.
+        """
+        source = self.resolve_source(file_name)
+        if isinstance(source, list):
+            return source[0]
+        return source
+
     def resolve_output_to_path(self, target, bundle):
         """Given ``target``, this has to return the absolute
         filesystem path to which the output file of ``bundle``
