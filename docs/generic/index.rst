@@ -89,6 +89,7 @@ Further Reading
 
     /environment
     /bundles
+    /external_assets
     /script
     /builtin_filters
     /custom_filters
