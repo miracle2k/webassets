@@ -558,6 +558,9 @@ class BaseEnvironment(object):
           path is given, the manifest will be stored as
           ``.webassets-manifest`` in ``Environment.directory``.
 
+      ``"json:{path}"``
+         Same as "file:{path}", but uses JSON to store the information.
+
       ``False``, ``None``
           No manifest is used.
 
