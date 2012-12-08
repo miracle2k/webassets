@@ -123,7 +123,7 @@ class CSSRewrite(CSSUrlRewriter):
                             if self._is_abs_url(self.env.url):
                                 replacement = urlparse.urljoin(self.env.url, asset_path)
                             else:
-                                replacement = urlpath.relpathto(self.env.directory, self.output_path, self.env.resolver.resolve_source_to_path(asset_path))
+                                replacement = urlpath.relpathto(self.env.directory, self.output_path, asset_path)
                         else:
                             replacement = urlpath.relpathto(self.env.directory, self.output_path, asset_path)
 
