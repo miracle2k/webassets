@@ -79,8 +79,9 @@ class ExternalAssets(Container):
     def url(self, file_name):
         versioned = self.versioned_folder(file_name)
         url = self.env.resolver.resolve_output_to_url(versioned)
-        file_path = self.env.resolver.resolve_source(file_name)
-        if not path.exists(file_path):
+        file_path = self.env.resolver.resolve_source_to_path(file_name)
+        versioned_path = self.env.resolver.resolve_output_to_path(versioned, self)
+        if not path.exists(versioned_path):
             self.write_file(file_path)
         return url
 
