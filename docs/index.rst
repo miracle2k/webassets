@@ -23,6 +23,7 @@ of framework used:
 
    environment
    bundles
+   external_assets
    script
    builtin_filters
    expiring
