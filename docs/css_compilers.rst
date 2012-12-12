@@ -5,7 +5,7 @@ CSS compilers
 
 CSS compilers intend to improve upon the default CSS syntax, allow you
 to write your stylesheets in a syntax more powerful, or more easily
-readable. Since browsers do understand this new syntax, the CSS compiler
+readable. Since browsers do not understand this new syntax, the CSS compiler
 needs to translate its own syntax to original CSS.
 
 ``webassets`` includes :ref:`builtin filters for a number of popular
