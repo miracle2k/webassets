@@ -12,6 +12,7 @@ class Jinja2(Filter):
     """
 
     name = 'jinja2'
+    max_debug_level = None
     options = {
         'context': 'JINJA2_CONTEXT',
     }
