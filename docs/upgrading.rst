@@ -7,8 +7,8 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
-In Development version
-~~~~~~~~~~~~~~~~~~~~~~
+In 0.8
+~~~~~~
 
 - **django-assets is no longer included!**
   You need to install it's package separately. See the current
@@ -134,6 +134,14 @@ In Development version
   (as opposed to the default value, ``None``), the templates will now be
   output as raw strings. Before, ``False`` behaved like ``None`` and used
   the builtin compiler.
+
+- The API of the ``concat()`` filter method has changed. Instead of a
+  list of hunks, it is now given a list of 2-tuples of
+  ``(hunk, info_dict)``.
+
+- The internal ``JSTTemplateFilter`` base class has changed API.
+  - concat filter
+  - jst handlebar filters have changed, use concat, base class has changed
 
 
 In 0.7

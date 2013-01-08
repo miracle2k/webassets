@@ -1,3 +1,32 @@
+0.8 (2012-11-23)
+    A major change in this release is the removal of the ``django_assets``
+    module. The django integration has moved to a separate project:
+    https://github.com/miracle2k/django-assets
+    See the "Upgrading" section in the documentation for more
+    information; you'll also find other backwards-incomatible changes there.
+
+    - Support for a multi-directory load path. See the
+      ``Environment.append_path()`` method.
+    - Compiler-style filters will now automatically run in debug mode.
+    - New filters: cleancss, css_slimmer, stylus, spritemapper,
+      jinja2, typescript
+    - Various filters have received improvements, including: coffeescript,
+      less, compass, pyscss, jst
+    - The bundled copy of ``jsmin`` has been removed for licensing reasons.
+    - Various improvements to the documentation (much work still required).
+    - Improve standalone usage of the ``webassets`` command line script. For
+      example, the command line can now load YAML files.
+    - Added a new JSON manifest implementation (Krzysztof Tarnowski).
+    - Bundles now support an ``extra`` dict that is made available by the
+      template tags, usuable for arbitrary custom data.
+    - Various API finetuning (Bundle.build, inheritance of the ``debug=``
+      flag, ``auto_build`` behaviour). See the "Upgrading" section in the
+      documentation for more information on this.
+    - ExternalTool base class to make writing filters easier.
+    - Speed up loading of external URLs via 304 support.
+    - New "pull external" feature: allows bundles to include any absolute path.
+    - Official PyPy support.
+
 0.7.1 (2012-05-31)
     - Fixed: "watch" command was broken with single file in multiple bundles.
     - Fixed an issue with input()/open() filter application.

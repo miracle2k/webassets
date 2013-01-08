@@ -139,7 +139,8 @@ class Resolver(object):
         self.env = env
 
     def glob(self, basedir, expr):
-        """Runs when a glob expression needs to be resolved.
+        """Generator that runs when a glob expression needs to be
+        resolved. Yields a list of absolute filenames.
         """
         expr = path.join(basedir, expr)
         for filename in glob.iglob(expr):
@@ -148,9 +149,11 @@ class Resolver(object):
             yield filename
 
     def consider_single_directory(self, directory, item):
-        """Resolve ``item`` within ``directory``, glob or non-glob style
+        """Searches for ``item`` within ``directory``. Is able to
+        resolve glob instructions.
 
-        Primarily to be called from subclasses rather than overridden.
+        Subclasses can call this when they have narrowed done the
+        location of a bundle item to a single directory.
         """
         expr = path.join(directory, item)
         if has_magic(expr):
@@ -162,12 +165,17 @@ class Resolver(object):
             raise IOError("'%s' does not exist" % expr)
 
     def search_env_directory(self, item):
-        """Runs when :attr:`Environment.load_path` is not set.
+        """This is called by :meth:`search_for_source` when no
+        :attr:`Environment.load_path` is set.
         """
         return self.consider_single_directory(self.env.directory, item)
 
     def search_load_path(self, item):
-        """Runs when :attr:`Environment.load_path` is set.
+        """This is called by :meth:`search_for_source` when a
+        :attr:`Environment.load_path` is set.
+
+        If you want to change how the load path is processed,
+        overwrite this method.
         """
         if has_magic(item):
             # We glob all paths.
@@ -187,7 +195,12 @@ class Resolver(object):
                 item, self.env.load_path))
 
     def search_for_source(self, item):
-        """Runs when the item is a relative filesystem path.
+        """Called by :meth:`resolve_source` after determining that
+        ``item`` is a relative filesystem path.
+
+        You should always overwrite this method, and let
+        :meth:`resolve_source` deal with absolute paths, urls and
+        other types of items that a bundle may contain.
         """
         if self.env.load_path:
             return self.search_load_path(item)
@@ -195,9 +208,21 @@ class Resolver(object):
             return self.search_env_directory(item)
 
     def query_url_mapping(self, filepath):
+        """Searches the environment-wide url mapping (based on the
+        urls assigned to each directory in the load path). Returns
+        the correct url for ``filepath``.
+
+        Subclasses should be sure that they really want to call this
+        method, instead of simply falling back to ``super()``.
+        """
         # Build a list of dir -> url mappings
         mapping = self.env.url_mapping.items()
-        mapping.append((self.env.directory, self.env.url))
+        try:
+            mapping.append((self.env.directory, self.env.url))
+        except EnvironmentError:
+            # Rarely, directory/url may not be set. That's ok.
+            pass
+
         # Make sure paths are absolute, normalized, and sorted by length
         mapping = map(
             lambda (p,u): (path.normpath(path.abspath(p)), u),
@@ -213,20 +238,34 @@ class Resolver(object):
         raise ValueError('Cannot determine url for %s' % filepath)
 
     def resolve_source(self, item):
-        """Given ``item`` from a Bundle's contents, return an absolute
+        """Given ``item`` from a Bundle's contents, this has to
+        return the final value to use, usually an absolute
         filesystem path.
 
-        ``item`` may include glob syntax, in which a list of paths
-        should be returned.
+        .. note::
+            It is also allowed to return urls and bundle instances
+            (or generally anything else the calling :class:`Bundle`
+            instance may be able to handle). Indeed this is the
+            reason why the name of this method does not imply a
+            return type.
+
+        The incoming item is usually a relative path, but may also be
+        an absolute path, or a url. These you will commonly want to
+        return unmodified.
+
+        This method is also allowed to resolve ``item`` to multiple
+        values, in which case a list should be returned. This is
+        commonly used if ``item`` includes glob instructions
+        (wildcards).
 
         .. note::
-            This is also allowed to return urls and bundles (or in fact
-            anything else the calling :class:`Bundle` instance may be
-            able to handle.
+            Instead of this, subclasses should consider implementing
+            :meth:`search_for_source` instead.
         """
 
         # Pass through some things unscathed
         if not isinstance(item, basestring):
+            # Don't stand in the way of custom values.
             return item
         if is_url(item) or path.isabs(item):
             return item
@@ -234,34 +273,45 @@ class Resolver(object):
         return self.search_for_source(item)
 
     def resolve_output_to_path(self, target, bundle):
-        """Given ``target``, return the absolute path to which the
-        output file should be written.
+        """Given ``target``, this has to return the absolute
+        filesystem path to which the output file of ``bundle``
+        should be written.
 
-        If a version-placeholder is used, it is still unresolved at
-        this point.
+        ``target`` may be a relative or absolute path, and is
+        usually taking from the :attr:`Bundle.output` property.
+
+        If a version-placeholder is used (``%(version)s``, it is
+        still unresolved at this point.
         """
         return path.join(self.env.directory, target)
 
     def resolve_source_to_url(self, filepath, item):
-        """Given the absolute path in ``filepath``, return the url
-        through which it is to be referenced.
+        """Given the absolute filesystem path in ``filepath``, as
+        well as the original value from :attr:`Bundle.contents` which
+        resolved to this path, this must return the absolute url
+        through which the file is to be referenced.
 
-        The method is also passed the original ``item`` that resolved
-        to the given ``path``.
+        Depending on the use case, either the ``filepath`` or the
+        ``item`` argument will be more helpful in generating the url.
 
-        It should raise a ``ValueError`` if a proper url cannot be
-        determined.
+        This method should raise a ``ValueError`` if the url cannot
+        be determined.
         """
         return self.query_url_mapping(filepath)
 
     def resolve_output_to_url(self, target):
-        """Given the output ``target``, return the url through which
-        the output file can be referenced.
+        """Given ``target``, this has to return the url through
+        which the output file can be referenced.
 
-        This is different from :meth:`resolve_source_to_url` in that
-        the absolute filesystem path is not available, for this step
-        needs to happen without filesystem access, for optimal
-        performance.
+        ``target`` may be a relative or absolute path, and is
+        usually taking from the :attr:`Bundle.output` property.
+
+        This is different from :meth:`resolve_source_to_url` in
+        that you do not passed along the result of
+        :meth:`resolve_output_to_path`. This is because in many
+        use cases, the filesystem is not available at the point
+        where the output url is needed (the media server may on
+        a different machine).
         """
         if not path.isabs(target):
             # If relative, output files are written to env.directory,
@@ -507,6 +557,9 @@ class BaseEnvironment(object):
           Stores version information in a file at {path}. If not
           path is given, the manifest will be stored as
           ``.webassets-manifest`` in ``Environment.directory``.
+
+      ``"json:{path}"``
+         Same as "file:{path}", but uses JSON to store the information.
 
       ``False``, ``None``
           No manifest is used.

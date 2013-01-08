@@ -4,7 +4,7 @@ import urlparse
 
 from filter import get_filter
 from merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
-                   select_filters, MoreThanOneFilterError)
+                   select_filters, MoreThanOneFilterError, NoFilters)
 from updater import SKIP_CACHE
 from exceptions import BundleError, BuildError
 from utils import cmp_debug_levels
@@ -343,7 +343,7 @@ class Bundle(object):
 
         # We construct two lists of filters. The ones we want to use in this
         # iteration, and the ones we want to pass down to child bundles.
-        # Why? Say we are in merge mode. Assume an "input()" filter  which does
+        # Why? Say we are in merge mode. Assume an "input()" filter which does
         # not run in merge mode, and a child bundle that switches to
         # debug=False. The child bundle then DOES want to run those input
         # filters, so we do need to pass them.
@@ -353,8 +353,6 @@ class Bundle(object):
 
         # Prepare contents
         resolved_contents = self.resolve_contents(env, force=True)
-        if not resolved_contents:
-            raise BuildError('empty bundle cannot be built')
 
         # Unless we have been told by our caller to use or not use the cache
         # for this, try to decide for ourselves. The issue here is that when a
@@ -380,10 +378,13 @@ class Bundle(object):
         hunks = []
         for item, cnt in resolved_contents:
             if isinstance(cnt, Bundle):
+                # Recursively process nested bundles.
                 hunk = cnt._merge_and_apply(
                     env, output, force, current_debug_level,
                     filters_to_pass_down, disable_cache=disable_cache)
-                hunks.append(hunk)
+                if hunk is not None:
+                    hunks.append((hunk, {}))
+
             else:
                 # Give a filter the chance to open his file.
                 try:
@@ -404,27 +405,43 @@ class Bundle(object):
                         cache_key=[FileHunk(cnt)] if not is_url(cnt) else [])
                 except MoreThanOneFilterError, e:
                     raise BuildError(e)
-
-                if not hunk:
+                except NoFilters:
+                    # Open the file ourselves.
                     if is_url(cnt):
                         hunk = UrlHunk(cnt, env=env)
                     else:
                         hunk = FileHunk(cnt)
 
-                hunks.append(filtertool.apply(
-                    hunk, filters_to_run, 'input',
-                    # Pass along both the original relative path, as
-                    # specified by the user, and the one that has been
-                    # resolved to a filesystem location.
-                    kwargs={'source': item, 'source_path': cnt}))
+                # With the hunk, remember both the original relative
+                # path, as specified by the user, and the one that has
+                # been resolved to a filesystem location. We'll pass
+                # them along to various filter steps.
+                item_data = {'source': item, 'source_path': cnt}
+
+                # Run input filters, unless open() told us not to.
+                hunk = filtertool.apply(hunk, filters_to_run, 'input',
+                                            kwargs=item_data)
+                hunks.append((hunk, item_data))
+
+        # If this bundle is empty (if it has nested bundles, they did
+        # not yield any hunks either), return None to indicate so.
+        if len(hunks) == 0:
+            return None
 
         # Merge the individual files together. There is an optional hook for
         # a filter here, by implementing a concat() method.
         try:
-            final = filtertool.apply_func(filters_to_run, 'concat', [hunks])
-            if final is None:
-                final = merge(hunks)
-        except (IOError, MoreThanOneFilterError), e:
+            try:
+                final = filtertool.apply_func(filters_to_run, 'concat', [hunks])
+            except MoreThanOneFilterError, e:
+                raise BuildError(e)
+            except NoFilters:
+                final = merge([h for h, _ in hunks])
+        except IOError, e:
+            # IOErrors can be raised here if hunks are loaded for the
+            # first time. TODO: IOErrors can also be raised when
+            # a file is read during the filter-apply phase, but we don't
+            # convert it to a BuildError there...
             raise BuildError(e)
 
         # Apply output filters.
@@ -479,6 +496,8 @@ class Bundle(object):
         hunk = self._merge_and_apply(
             env, [self.output, self.resolve_output(env, version='?')],
             force, disable_cache=disable_cache, extra_filters=extra_filters)
+        if hunk is None:
+            raise BuildError('Nothing to build for %s, is empty' % self)
 
         if output:
             # If we are given a stream, just write to it.
@@ -681,7 +700,7 @@ def pull_external(env, filename):
     if path.isfile(full_path):
         gs = lambda p: os.stat(p).st_mtime
         if gs(full_path) > gs(filename):
-            return rel_path
+            return full_path
     directory = path.dirname(full_path)
     if not path.exists(directory):
         os.makedirs(directory)

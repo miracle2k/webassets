@@ -693,6 +693,18 @@ class TestCssRewrite(TempEnvironmentHelper):
         self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
         assert self.get('out.css') == '''h1 { background: url(/new/sub/icon.png) }'''
 
+    def test_not_touching_data_uri(self):
+        """Data uris are left alone."""
+        # For this bug to trigger, env.url needs to have a directory part
+        self.env.url = '/sub/dir'
+        self.create_files({'in.css': '''h1 {
+            background-image: url(data:image/png;base64,iVBORw0KGgoA);
+        }'''})
+        self.mkbundle('in.css', filters='cssrewrite', output='out.css').build()
+        assert self.get('out.css') == '''h1 {
+            background-image: url(data:image/png;base64,iVBORw0KGgoA);
+        }'''
+
 
 class TestDataUri(TempEnvironmentHelper):
 
@@ -1048,3 +1060,18 @@ class TestHandlebars(TempEnvironmentHelper):
         self.mkbundle('dir/bar.html', filters='handlebars', output='out.js').build()
         assert "'bar.html'" in self.get('out.js')
 
+
+class TestTypeScript(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.ts': """class X { z: number; }"""
+    }
+
+    def setup(self):
+        if not find_executable('tsc'):
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.mkbundle('foo.ts', filters='typescript', output='out.js').build()
+        assert self.get("out.js") == """var X = (function () {\r\n    function X() { }\r\n    return X;\r\n})();\r\n"""
