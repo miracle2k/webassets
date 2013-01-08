@@ -65,7 +65,7 @@ class YAMLLoader(object):
             depends=data.get('depends', None))
         return Bundle(*list(self._yield_bundle_contents(data)), **kwargs)
 
-    def _get_bundles(self, obj):
+    def _get_bundles(self, obj, known_bundles=None):
         """Return a dict that keys bundle names to bundles."""
         bundles = {}
         for key, data in obj.iteritems():
@@ -81,6 +81,8 @@ class YAMLLoader(object):
             for i, item in enumerate(bundle.contents):
                 if item in bundles:
                     contents[i] = bundles[item]
+                elif known_bundles and item in known_bundles:
+                    contents[i] = known_bundles[item]
             # cast back to a tuple
             contents = tuple(contents)
             if contents != bundle.contents:
@@ -98,7 +100,7 @@ class YAMLLoader(object):
         file = self.file_or_filename
         return file, getattr(file, 'name', False)
 
-    def load_bundles(self):
+    def load_bundles(self, environment=None):
         """Load a list of :class:`Bundle` instances defined in the YAML file.
 
         Expects the following format:
@@ -125,6 +127,10 @@ class YAMLLoader(object):
             jquery-ui:
                 contents: jqueryui/*.js
 
+        If an ``environment`` argument is given, it's bundles
+        may be referenced as well. Note that you may pass any
+        compatibly dict-like object.
+
         Finally, you may also use nesting:
 
         .. code-block:: yaml
@@ -142,7 +148,7 @@ class YAMLLoader(object):
         f, _ = self._open()
         try:
             obj = self.yaml.load(f) or {}
-            return self._get_bundles(obj)
+            return self._get_bundles(obj, environment)
         finally:
             f.close()
 
