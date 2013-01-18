@@ -64,7 +64,7 @@ class JST(JSTemplateFilter):
         JST.license({name : "Moe", birthplace : "Brooklyn"});
 
     The name of each template is derived from the filename. If your JST files
-    are spread over different directions, the path up to the common prefix
+    are spread over different directories, the path up to the common prefix
     will be included. For example::
 
         Bundle('templates/app1/license.jst', 'templates/app2/profile.jst',
