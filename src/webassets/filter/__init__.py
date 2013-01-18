@@ -597,4 +597,3 @@ def load_builtin_filters():
                         continue
                     register_filter(attr)
 load_builtin_filters()
-

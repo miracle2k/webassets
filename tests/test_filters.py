@@ -1061,6 +1061,44 @@ class TestHandlebars(TempEnvironmentHelper):
         assert "'bar.html'" in self.get('out.js')
 
 
+class TestJinja2JS(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.soy': (
+            "{namespace examples.simple}\n"
+            "\n"
+            "/**\n"
+            " * Says hello to the world.\n"
+            " */\n"
+            "{template .helloWorld}\n"
+            "  Hello world!\n"
+            "{/template}\n"
+        )
+    }
+
+    def setup(self):
+        try:
+            import closure_soy
+        except:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.mkbundle('foo.soy', filters='closure_tmpl', output='out.js').build()
+        assert self.get("out.js") == (
+            "// This file was automatically generated from foo.soy."
+            + "\n// Please don't edit this file by hand."
+            + "\n"
+            + "\nif (typeof examples == 'undefined') { var examples = {}; }"
+            + "\nif (typeof examples.simple == 'undefined') { examples.simple = {}; }"
+            + "\n"
+            + "\n"
+            + "\nexamples.simple.helloWorld = function(opt_data, opt_ignored) {"
+            + "\n  return 'Hello world!';"
+            + "\n};"
+            + "\n")
+
+
 class TestTypeScript(TempEnvironmentHelper):
 
     default_files = {
