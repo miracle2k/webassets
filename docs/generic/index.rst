@@ -52,7 +52,7 @@ you do this depends a bit on how your site is rendered.
 .. code-block:: python
 
     >>> my_env['js_all'].urls()
-    ('../static/media/gen/packed.js?9ae572c',)
+    ('/media/gen/packed.js?9ae572c',)
 
 This will always work. You can call your bundle's ``urls()`` method, which
 will  automatically merge and compress the source files, and return the
@@ -63,9 +63,9 @@ of each source file:
 
     >>> my_env.debug = True
     >>> my_env['js_all'].urls()
-    ('../static/media/common/jquery.js',
-     '../static/media/site/base.js',
-     '../static/media/site/widgets.js',)
+    ('/media/common/jquery.js',
+     '/media/site/base.js',
+     '/media/site/widgets.js',)
 
 Take these urls, pass them to your templates, or otherwise ensure they'll
 be used on your website when linking to your Javascript and CSS files.
