@@ -377,6 +377,9 @@ class BaseEnvironment(object):
     def __len__(self):
         return len(self._named_bundles) + len(self._anon_bundles)
 
+    def __nonzero__(self):
+        return True
+
     def register(self, name, *args, **kwargs):
         """Register a :class:`Bundle` with the given ``name``.
 
