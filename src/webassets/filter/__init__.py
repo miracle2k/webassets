@@ -567,19 +567,37 @@ def get_filter(f, *args, **kwargs):
 
     return klass(*args, **kwargs)
 
+CODE_FILES = ['.py','.pyc','.so']
+def is_code( name ):
+    """Is this a recognised code-type file?"""
+    for ext in CODE_FILES:
+        if name.endswith( ext ):
+            return name[:-len(ext)]
+def unique_modules( directory ):
+    found = {}
+    for entry in os.listdir( directory ):
+        if is_code( entry ):
+            entry = is_code( entry )
+            if entry in found:
+                continue 
+            else:
+                found[entry] = entry 
+                yield entry
+        else:
+            for ext in ['.py','.pyc']:
+                if os.path.exists( os.path.join( directory, entry, '__init__'+ext )):
+                    if entry in found:
+                        break
+                    else:
+                        found[entry] = entry 
+                        yield entry 
 
 def load_builtin_filters():
     from os import path
     import warnings
 
     current_dir = path.dirname(__file__)
-    for entry in os.listdir(current_dir):
-        if entry.endswith('.py'):
-            name = path.splitext(entry)[0]
-        elif path.exists(path.join(current_dir, entry, '__init__.py')):
-            name = entry
-        else:
-            continue
+    for name in unique_modules( current_dir):
 
         module_name = 'webassets.filter.%s' % name
         try:
