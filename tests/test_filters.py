@@ -546,7 +546,13 @@ class TestBuiltinFilters(TempEnvironmentHelper):
     def test_find_pyc_files( self ):
         self.create_files({'test.pyc':'testing', 'test.py':'blue', 'boo.pyc':'boo'})
         modules = list( unique_modules(self.tempdir))
-        assert modules == ['test','boo'],modules
+        assert modules == ['boo','test'],modules
+    
+    def test_find_packages( self ):
+        self.create_files({'moo/__init__.pyc':'testing','voo/__init__.py':'testing'})
+        modules = list( unique_modules(self.tempdir))
+        assert modules == ['moo','voo'],modules
+        
 
 class TestCSSPrefixer(TempEnvironmentHelper):
 

@@ -615,7 +615,7 @@ def unique_modules(directory):
     yields each entry as it is encountered
     """
     found = {}
-    for entry in os.listdir(directory):
+    for entry in sorted(os.listdir(directory)):
         if entry.startswith('_'):
             continue 
         module = is_module(entry)
