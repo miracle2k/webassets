@@ -11,7 +11,7 @@ import re
 from webassets import Environment
 from webassets.exceptions import FilterError
 from webassets.filter import (
-    Filter, ExternalTool, get_filter, register_filter)
+    Filter, ExternalTool, get_filter, register_filter,unique_modules)
 from helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
@@ -543,6 +543,10 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('in', filters='stylus', output='out.css').build()
         assert self.get('out.css') == """a {\n  width: 100px;\n  height: 50px;\n}\n\n"""
 
+    def test_find_pyc_files( self ):
+        self.create_files({'test.pyc':'testing', 'test.py':'blue', 'boo.pyc':'boo'})
+        modules = list( unique_modules(self.tempdir))
+        assert modules == ['test','boo'],modules
 
 class TestCSSPrefixer(TempEnvironmentHelper):
 
