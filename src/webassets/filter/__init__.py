@@ -4,7 +4,8 @@ contents (think minification, compression).
 
 from __future__ import with_statement
 
-import os, subprocess
+import os
+import subprocess
 import inspect
 import shlex
 import tempfile
@@ -65,7 +66,8 @@ class option(tuple):
     See ``parse_options()`` and ``Filter.options``.
     """
     def __new__(cls, initarg, configvar=None, type=None):
-        if configvar is None:  # If only one argument given, it is the configvar
+        # If only one argument given, it is the configvar
+        if configvar is None:  
             configvar = initarg
             initarg = None
         return tuple.__new__(cls, (initarg, configvar, type))
@@ -257,8 +259,8 @@ class Filter(object):
                 # No value specified for this filter instance ,
                 # specifically attempt to load it from the environment.
                 setattr(self, attribute,
-                    self.get_config(setting=configvar, require=False,
-                                    type=type))
+                        self.get_config(setting=configvar, require=False,
+                                        type=type))
 
     def input(self, _in, out, **kw):
         """Implement your actual filter here.
@@ -451,6 +453,7 @@ class ExternalTool(Filter):
                 if not hasattr(self, 'filename'):
                     self.fd, self.filename = tempfile.mkstemp()
                 return self.filename
+
             @property
             def created(self):
                 return hasattr(self, 'filename')
@@ -460,7 +463,7 @@ class ExternalTool(Filter):
         output_file = tempfile_on_demand()
         if hasattr(str, 'format'):   # Support Python 2.5 without the feature
             argv = map(lambda item:
-                item.format(input=input_file, output=output_file), argv)
+                       item.format(input=input_file, output=output_file), argv)
 
         try:
             if input_file.created:
@@ -485,7 +488,8 @@ class ExternalTool(Filter):
                 raise FilterError(
                     '%s: subprocess returned a non-success result code: '
                     '%s, stdout=%s, stderr=%s' % (
-                        cls.name or cls.__name__, proc.returncode, stdout, stderr))
+                        cls.name or cls.__name__, 
+                        proc.returncode, stdout, stderr))
             else:
                 if output_file.created:
                     with os.fdopen(output_file.fd, 'rb') as f:
@@ -529,6 +533,7 @@ class JavaTool(ExternalTool):
 
 _FILTERS = {}
 
+
 def register_filter(f):
     """Add the given filter to the list of know filters.
     """
@@ -567,7 +572,9 @@ def get_filter(f, *args, **kwargs):
 
     return klass(*args, **kwargs)
 
-CODE_FILES = ['.py','.pyc','.so']
+CODE_FILES = ['.py', '.pyc', '.so']
+
+
 def is_module(name):
     """Is this a recognized module type?
     
@@ -583,13 +590,15 @@ def is_module(name):
         if name.endswith(ext):
             return name[:-len(ext)]
 
-def is_package( directory ):
+
+def is_package(directory):
     """Is the (fully qualified) directory a python package?
     
     """
-    for ext in ['.py','.pyc']:
+    for ext in ['.py', '.pyc']:
         if os.path.exists(os.path.join(directory, '__init__'+ext)):
             return True 
+
 
 def unique_modules(directory):
     """Find all unique module names within a directory 
