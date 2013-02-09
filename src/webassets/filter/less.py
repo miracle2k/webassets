@@ -90,5 +90,4 @@ class Less(ExternalTool):
             cmd = [self.less or 'lessc', '-']
             if self.line_numbers:
                 cmd.insert(-1, '--line-numbers=%s' % self.line_numbers)
-            print cmd
             self.subprocess(cmd, out, in_)
