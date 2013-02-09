@@ -17,6 +17,12 @@ class Less(ExternalTool):
         Path to the less executable used to compile source files. By default,
         the filter will attempt to run ``lessc`` via the system path.
 
+    LESS_LINE_NUMBERS (line_numbers)
+        Outputs filename and line numbers. Can be either 'comments', which
+        will output the debug info within comments, 'mediaquery' that will
+        output the information within a fake media query which is compatible
+        with the SASSPath to the less executable used to compile source files.
+
     LESS_RUN_IN_DEBUG (run_in_debug)
         By default, the filter will compile in debug mode. Since the less
         compiler is written in Javascript and capable of running in the
@@ -68,6 +74,7 @@ class Less(ExternalTool):
     options = {
         'less': ('binary', 'LESS_BIN'),
         'run_in_debug': 'LESS_RUN_IN_DEBUG',
+        'line_numbers': 'LESS_LINE_NUMBERS',
     }
     max_debug_level = None
 
@@ -80,4 +87,8 @@ class Less(ExternalTool):
     def input(self, in_, out, source_path, **kw):
         # Set working directory to the source file so that includes are found
         with working_directory(filename=source_path):
-            self.subprocess([self.less or 'lessc', '-'], out, in_)
+            cmd = [self.less or 'lessc', '-']
+            if self.line_numbers:
+                cmd.insert(-1, '--line-numbers=%s' % self.line_numbers)
+            print cmd
+            self.subprocess(cmd, out, in_)
