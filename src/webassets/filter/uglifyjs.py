@@ -23,7 +23,7 @@ class UglifyJS(ExternalTool):
     }
 
     def output(self, _in, out, **kw):
-        args = [self.binary or 'uglifyjs']
+        args = [self.binary or 'uglifyjs', '{input}', '--output', '{output}']
         if self.extra_args:
             args.extend(self.extra_args)
         self.subprocess(args, out, _in)

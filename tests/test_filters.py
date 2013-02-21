@@ -472,7 +472,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         if not find_executable('uglifyjs'):
             raise SkipTest()
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
-        assert self.get('out.js') == 'function foo(a){var b;document.write(a)};'
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)}'
 
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
