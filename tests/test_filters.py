@@ -1123,3 +1123,29 @@ class TestTypeScript(TempEnvironmentHelper):
     def test(self):
         self.mkbundle('foo.ts', filters='typescript', output='out.js').build()
         assert self.get("out.js") == """var X = (function () {\r\n    function X() { }\r\n    return X;\r\n})();\r\n"""
+
+
+class TestClosureStylesheets(TempEnvironmentHelper):
+
+    default_files = {
+        'test.css': """
+        @def COLOR red;
+        p {
+            color: COLOR;
+        }
+        """
+    }
+
+    def setup(self):
+        if not 'CLOSURE_STYLESHEETS_PATH' in os.environ:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+        
+    def test_compiler(self):
+        self.mkbundle('test.css', filters = 'closure_stylesheets_compiler', output = 'output.css').build()
+        assert 'color: red' in self.get('output.css')
+        
+    def test_minifier(self):
+        self.mkbundle('test.css', filters = 'closure_stylesheets_minifier', output = 'output.css').build()
+        assert self.get('output.css') == 'p{color:red}'
+        
