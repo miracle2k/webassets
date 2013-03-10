@@ -39,6 +39,10 @@ arguments:
   of a SCSS ``@import`` clause. Changes detected to one or multiple files
   whose name are specified by this keyword will recreate the bundle.
 
+  .. warning::
+    Bundles that use ``depends`` are never cached. Using ``depends`` in
+    production without setting ``auto_build=False`` is probably a bad idea.
+
 
 Nested bundles
 --------------
