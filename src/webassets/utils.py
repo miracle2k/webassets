@@ -180,10 +180,11 @@ def RegistryMetaclass(clazz=None, attribute=None, allow_none=True, desc=None):
 
 
 def cmp_debug_levels(level1, level2):
-    """cmp() for debug levels, returns -1, 0 or +1 indicating which debug
-    level is higher than the other one."""
-    level_ints = { False: 0, 'merge': 1, True: 2 }
+    """cmp() for debug levels, returns True if ``level1`` is higher
+    than ``level2``."""
+    level_ints = {False: 0, 'merge': 1, True: 2}
     try:
+        cmp = lambda a, b: (a > b) - (a < b)  # 333
         return cmp(level_ints[level1], level_ints[level2])
     except KeyError as e:
         # Not sure if a dependency on BundleError is proper here. Validating
