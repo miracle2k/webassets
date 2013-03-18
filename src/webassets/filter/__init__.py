@@ -555,7 +555,7 @@ def get_filter(f, *args, **kwargs):
         # Don't need to do anything.
         assert not args and not kwargs
         return f
-    elif isinstance(f, basestring):
+    elif isinstance(f, six.string_types):
         if f in _FILTERS:
             klass = _FILTERS[f]
         else:

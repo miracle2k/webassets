@@ -1,5 +1,4 @@
 from os import path
-import urlparse
 from itertools import chain
 import warnings
 import six
@@ -17,6 +16,7 @@ from .cache import get_cache
 from .version import get_versioner, get_manifest
 from .updater import get_updater
 from .exceptions import ImminentDeprecationWarning
+from .utils import urlparse
 
 
 __all__ = ('Environment', 'RegisterError')
@@ -267,7 +267,7 @@ class Resolver(object):
         """
 
         # Pass through some things unscathed
-        if not isinstance(item, basestring):
+        if not isinstance(item, six.string_types):
             # Don't stand in the way of custom values.
             return item
         if is_url(item) or path.isabs(item):

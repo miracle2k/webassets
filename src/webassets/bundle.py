@@ -1,15 +1,15 @@
 import os
 from os import path
-import urlparse
+import six
+from six.moves import map
+from six.moves import zip
 
 from .filter import get_filter
 from .merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
                    select_filters, MoreThanOneFilterError, NoFilters)
 from .updater import SKIP_CACHE
 from .exceptions import BundleError, BuildError
-from .utils import cmp_debug_levels
-from six.moves import map
-from six.moves import zip
+from .utils import cmp_debug_levels, urlparse
 
 
 __all__ = ('Bundle', 'get_all_bundle_files',)
@@ -79,8 +79,12 @@ class Bundle(object):
             self._filters = ()
             return
 
-        if isinstance(value, basestring):
-            filters = map(unicode.strip, unicode(value).split(','))
+        if isinstance(value, six.string_types):
+            # 333: Simplify w/o condition?
+            if six.PY3:
+                filters = map(str.strip, value.split(','))
+            else:
+                filters = map(unicode.strip, unicode(value).split(','))
         elif isinstance(value, (list, tuple)):
             filters = value
         else:
@@ -171,7 +175,7 @@ class Bundle(object):
     def _get_depends(self):
         return self._depends
     def _set_depends(self, value):
-        self._depends = [value] if isinstance(value, basestring) else value
+        self._depends = [value] if isinstance(value, six.string_types) else value
         self._resolved_depends = None
     depends = property(_get_depends, _set_depends, doc=
     """Allows you to define an additional set of files (glob syntax

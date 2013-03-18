@@ -3,15 +3,17 @@
 from __future__ import with_statement
 import contextlib
 
-import urllib2
+try:
+    from urllib.request import Request as URLRequest, urlopen
+    from urllib.error import HTTPError
+except ImportError:
+    from urllib2 import Request as URLRequest, urlopen
+    from urllib2 import HTTPError
 import logging
 from six.moves import filter
-try:
-    import cStringIO as StringIO
-except:
-    import StringIO
 
-from .utils import cmp_debug_levels
+
+from .utils import cmp_debug_levels, StringIO
 
 
 __all__ = ('FileHunk', 'MemoryHunk', 'merge', 'FilterTool',
@@ -95,7 +97,7 @@ class UrlHunk(BaseHunk):
 
     def data(self):
         if not hasattr(self, '_data'):
-            request = urllib2.Request(self.url)
+            request = URLRequest(self.url)
 
             # Look in the cache for etag / last modified headers to use
             # TODO: "expires" header could be supported
@@ -109,8 +111,8 @@ class UrlHunk(BaseHunk):
 
             # Make a request
             try:
-                response = urllib2.urlopen(request)
-            except urllib2.HTTPError as e:
+                response = urlopen(request)
+            except HTTPError as e:
                 if e.code != 304:
                     raise
                     # Use the cached version of the url

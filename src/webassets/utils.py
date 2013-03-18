@@ -1,3 +1,4 @@
+import six
 import contextlib
 import os
 import sys
@@ -31,10 +32,16 @@ except NameError:
 else:
     set = set
 
+
+from six import StringIO
+
+
 try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+    from urllib import parse as urlparse
+except ImportError:     # Python 2
+    import urlparse
+    import urllib
+
 
 
 def common_path_prefix(paths, sep=os.path.sep):
@@ -120,7 +127,7 @@ def make_option_resolver(clazz=None, attribute=None, classes=None,
             return instantiate(option, env)
 
         # If it is a string
-        elif isinstance(option, basestring):
+        elif isinstance(option, six.string_types):
             parts = option.split(':', 1)
             key = parts[0]
             arg = parts[1] if len(parts) > 1 else None
