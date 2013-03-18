@@ -9,7 +9,7 @@ from webassets import Bundle
 from webassets.test import TempEnvironmentHelper
 from webassets.exceptions import ImminentDeprecationWarning
 
-from helpers import check_warnings
+from .helpers import check_warnings
 
 
 class TestEnvApi(object):

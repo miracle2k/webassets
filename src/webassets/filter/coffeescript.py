@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, subprocess
 
 from webassets.filter import Filter
@@ -49,6 +50,6 @@ class CoffeeScript(Filter):
                                'stdout=%s, returncode=%s') % (
                 stderr, stdout, proc.returncode))
         elif stderr:
-            print "coffeescript filter has warnings:", stderr
+            print("coffeescript filter has warnings:", stderr)
         out.write(stdout)
     

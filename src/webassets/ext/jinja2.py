@@ -216,7 +216,7 @@ class Jinja2Loader(GlobLoader):
         for i, env in enumerate(self.jinja2_envs):
             try:
                 t = env.parse(contents.decode(self.charset))
-            except jinja2.exceptions.TemplateSyntaxError, e:
+            except jinja2.exceptions.TemplateSyntaxError as e:
                 #print ('jinja parser (env %d) failed: %s'% (i, e))
                 pass
             else:

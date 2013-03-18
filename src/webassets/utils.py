@@ -3,7 +3,7 @@ import os
 import sys
 from itertools import takewhile
 
-from exceptions import BundleError
+from .exceptions import BundleError
 
 
 __all__ = ('md5_constructor', 'pickle', 'set', 'StringIO',
@@ -178,7 +178,7 @@ def cmp_debug_levels(level1, level2):
     level_ints = { False: 0, 'merge': 1, True: 2 }
     try:
         return cmp(level_ints[level1], level_ints[level2])
-    except KeyError, e:
+    except KeyError as e:
         # Not sure if a dependency on BundleError is proper here. Validating
         # debug values should probably be done on assign. But because this
         # needs to happen in two places (Environment and Bundle) we do it here.

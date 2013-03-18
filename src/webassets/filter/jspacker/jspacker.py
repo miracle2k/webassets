@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
 ##  ParseMaster, version 1.0 (pre-release) (2005/05/12) x6
 ##  Copyright 2005, Dean Edwards
 ##  Web: http://dean.edwards.name/
@@ -557,14 +563,14 @@ function _bar(_ocalvar) {
             _expected = open(expected).read()
         else:
             _expected = expected
-        print script[:20], encoding, fastDecode, specialChars, expected[:20]
-        print "="*40
+        print(script[:20], encoding, fastDecode, specialChars, expected[:20])
+        print("="*40)
         result = p.pack(_script, encoding, fastDecode, specialChars)
-        print len(result), len(_script)
+        print(len(result), len(_script))
         if (result != _expected):
-            print "ERROR!!!!!!!!!!!!!!!!"
-            print _expected
-            print result
+            print("ERROR!!!!!!!!!!!!!!!!")
+            print(_expected)
+            print(result)
             #print list(difflib.unified_diff(result, _expected))
 
 if __name__=='__main__':

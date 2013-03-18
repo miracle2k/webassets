@@ -3,6 +3,10 @@
 This is included in the webassets package because it is useful for testing
 external libraries that use webassets (like the flask-assets wrapper).
 """
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
 
 import tempfile
 import shutil
@@ -11,6 +15,8 @@ from os import path
 import time
 
 from webassets import Environment, Bundle
+from six.moves import map
+from six.moves import zip
 
 
 __all__ = ('TempDirHelper', 'TempEnvironmentHelper',)
@@ -114,11 +120,11 @@ class TempDirHelper(object):
             files = ['out']   # This is a often used output filename
         for f in files:
             content = self.get(f)
-            print f
-            print "-" * len(f)
-            print repr(content)
-            print content
-            print
+            print(f)
+            print("-" * len(f))
+            print(repr(content))
+            print(content)
+            print()
 
 
 class TempEnvironmentHelper(TempDirHelper):

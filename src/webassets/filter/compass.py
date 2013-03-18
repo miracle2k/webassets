@@ -45,7 +45,7 @@ class CompassConfig(dict):
     def to_string(self):
         def string_rep(val):
             """ Determine the correct string rep for the config file """
-            if type(val) == types.ListType:
+            if type(val) == list:
                 return str(val)
             else:
                 return '"%s"' % val

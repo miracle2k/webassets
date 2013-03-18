@@ -1,4 +1,4 @@
-from jspacker import JavaScriptPacker
+from .jspacker import JavaScriptPacker
 from webassets.filter import Filter
 
 

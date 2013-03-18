@@ -8,6 +8,9 @@ import os, subprocess
 import inspect
 import shlex
 import tempfile
+import six
+from six.moves import map
+from six.moves import zip
 try:
     frozenset
 except NameError:
@@ -28,7 +31,7 @@ def freezedicts(obj):
     if isinstance(obj, (list, tuple)):
         return type(obj)([freezedicts(sub) for sub in obj])
     if isinstance(obj, dict):
-        return frozenset(obj.iteritems())
+        return frozenset(six.iteritems(obj))
     return obj
 
 
@@ -418,7 +421,7 @@ class ExternalTool(Filter):
             def replace(arg):
                 try:
                     return arg.format(*args, **kwargs)
-                except KeyError, e:
+                except KeyError as e:
                     # Treat "output" and "input" variables special, they
                     # are dealt with in :meth:`subprocess` instead.
                     if e.args[0] not in ('input', 'output'):
@@ -584,7 +587,7 @@ def load_builtin_filters():
         module_name = 'webassets.filter.%s' % name
         try:
             module = import_module(module_name)
-        except Exception, e:
+        except Exception as e:
             warnings.warn('Error while loading builtin filter '
                           'module \'%s\': %s' % (module_name, e))
         else:

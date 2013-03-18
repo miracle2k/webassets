@@ -2,6 +2,9 @@ from os import path
 import urlparse
 from itertools import chain
 import warnings
+import six
+from six.moves import map
+from six.moves import zip
 try:
     import glob2 as glob
     from glob import has_magic
@@ -9,11 +12,11 @@ except ImportError:
     import glob
     from glob import has_magic
 
-from bundle import Bundle, is_url
-from cache import get_cache
-from version import get_versioner, get_manifest
-from updater import get_updater
-from exceptions import ImminentDeprecationWarning
+from .bundle import Bundle, is_url
+from .cache import get_cache
+from .version import get_versioner, get_manifest
+from .updater import get_updater
+from .exceptions import ImminentDeprecationWarning
 
 
 __all__ = ('Environment', 'RegisterError')
@@ -225,7 +228,7 @@ class Resolver(object):
 
         # Make sure paths are absolute, normalized, and sorted by length
         mapping = map(
-            lambda (p,u): (path.normpath(path.abspath(p)), u),
+            lambda p_u: (path.normpath(path.abspath(p_u[0])), p_u[1]),
             mapping)
         mapping.sort(cmp=lambda i, j: cmp(len(i[0]), len(j[0])), reverse=True)
 
@@ -366,7 +369,7 @@ class BaseEnvironment(object):
         self.config.update(config)
 
     def __iter__(self):
-        return chain(self._named_bundles.itervalues(), self._anon_bundles)
+        return chain(six.itervalues(self._named_bundles), self._anon_bundles)
 
     def __getitem__(self, name):
         return self._named_bundles[name]

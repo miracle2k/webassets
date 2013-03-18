@@ -5,12 +5,13 @@ import contextlib
 
 import urllib2
 import logging
+from six.moves import filter
 try:
     import cStringIO as StringIO
 except:
     import StringIO
 
-from utils import cmp_debug_levels
+from .utils import cmp_debug_levels
 
 
 __all__ = ('FileHunk', 'MemoryHunk', 'merge', 'FilterTool',
@@ -109,7 +110,7 @@ class UrlHunk(BaseHunk):
             # Make a request
             try:
                 response = urllib2.urlopen(request)
-            except urllib2.HTTPError, e:
+            except urllib2.HTTPError as e:
                 if e.code != 304:
                     raise
                     # Use the cached version of the url

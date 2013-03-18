@@ -7,7 +7,7 @@ from webassets.bundle import Bundle
 from webassets.loaders import PythonLoader, YAMLLoader, LoaderError
 from webassets.exceptions import ImminentDeprecationWarning
 from nose import SkipTest
-from helpers import check_warnings
+from .helpers import check_warnings
 
 
 class TestYAML(object):

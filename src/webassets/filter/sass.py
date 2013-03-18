@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, subprocess
 
 from webassets.filter import Filter
@@ -137,7 +138,7 @@ class Sass(Filter):
                                    'stdout=%s, returncode=%s') % (
                                                 stderr, stdout, proc.returncode))
             elif stderr:
-                print "sass filter has warnings:", stderr
+                print("sass filter has warnings:", stderr)
 
             out.write(stdout)
         finally:

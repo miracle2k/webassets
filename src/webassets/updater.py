@@ -28,6 +28,8 @@ increase as using the hash to reliably determine which bundles to skip.
 from webassets.exceptions import BundleError, BuildError
 
 from webassets.utils import RegistryMetaclass
+from six.moves import map
+from six.moves import zip
 
 
 __all__ = ('get_updater', 'SKIP_CACHE',
@@ -114,7 +116,7 @@ class TimestampUpdater(BundleDefUpdater):
     id = 'timestamp'
 
     def check_timestamps(self, bundle, env, o_modified=None):
-        from bundle import Bundle, is_url
+        from .bundle import Bundle, is_url
         from webassets.version import TimestampVersion
 
         if not o_modified:

@@ -8,6 +8,7 @@ import os, sys
 from os import path
 import glob, fnmatch
 import types
+import six
 try:
     import yaml
 except ImportError:
@@ -68,7 +69,7 @@ class YAMLLoader(object):
     def _get_bundles(self, obj, known_bundles=None):
         """Return a dict that keys bundle names to bundles."""
         bundles = {}
-        for key, data in obj.iteritems():
+        for key, data in six.iteritems(obj):
             if data is None:
                 data = {}
             bundles[key] = self._get_bundle(data)
@@ -209,7 +210,7 @@ class YAMLLoader(object):
 
             # Load bundles
             bundles = self._get_bundles(obj.get('bundles', {}))
-            for name, bundle in bundles.iteritems():
+            for name, bundle in six.iteritems(bundles):
                 env.register(name, bundle)
 
             return env
@@ -230,7 +231,7 @@ class PythonLoader(object):
             try:
                 try:
                     self.module = import_module(module_name)
-                except ImportError, e:
+                except ImportError as e:
                     raise LoaderError(e)
             finally:
                 sys.path.pop(0)
@@ -254,7 +255,7 @@ class PythonLoader(object):
         """
         try:
             return getattr(self.module, 'environment')
-        except AttributeError, e:
+        except AttributeError as e:
             raise LoaderError(e)
 
 

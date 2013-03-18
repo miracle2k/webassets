@@ -2,12 +2,14 @@ import os
 from os import path
 import urlparse
 
-from filter import get_filter
-from merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
+from .filter import get_filter
+from .merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
                    select_filters, MoreThanOneFilterError, NoFilters)
-from updater import SKIP_CACHE
-from exceptions import BundleError, BuildError
-from utils import cmp_debug_levels
+from .updater import SKIP_CACHE
+from .exceptions import BundleError, BuildError
+from .utils import cmp_debug_levels
+from six.moves import map
+from six.moves import zip
 
 
 __all__ = ('Bundle', 'get_all_bundle_files',)
@@ -144,7 +146,7 @@ class Bundle(object):
             for item in self.contents:
                 try:
                     result = env.resolver.resolve_source(item)
-                except IOError, e:
+                except IOError as e:
                     raise BundleError(e)
                 if not isinstance(result, list):
                     result = [result]
@@ -186,7 +188,7 @@ class Bundle(object):
             for item in self.depends:
                 try:
                     result = env.resolver.resolve_source(item)
-                except IOError, e:
+                except IOError as e:
                     raise BundleError(e)
                 if not isinstance(result, list):
                     result = [result]
@@ -211,12 +213,12 @@ class Bundle(object):
                 version = env.manifest.query(self, env)
             # Often the versioner is able to help.
             if not version:
-                from version import VersionIndeterminableError
+                from .version import VersionIndeterminableError
                 if env.versions:
                     try:
                         version = env.versions.determine_version(self, env)
                         assert version
-                    except VersionIndeterminableError, e:
+                    except VersionIndeterminableError as e:
                         reason = e
                 else:
                     reason = '"versions" option not set'
@@ -403,7 +405,7 @@ class Bundle(object):
                         # very often is better than running filters
                         # unnecessarily occasionally.
                         cache_key=[FileHunk(cnt)] if not is_url(cnt) else [])
-                except MoreThanOneFilterError, e:
+                except MoreThanOneFilterError as e:
                     raise BuildError(e)
                 except NoFilters:
                     # Open the file ourselves.
@@ -433,11 +435,11 @@ class Bundle(object):
         try:
             try:
                 final = filtertool.apply_func(filters_to_run, 'concat', [hunks])
-            except MoreThanOneFilterError, e:
+            except MoreThanOneFilterError as e:
                 raise BuildError(e)
             except NoFilters:
                 final = merge([h for h, _ in hunks])
-        except IOError, e:
+        except IOError as e:
             # IOErrors can be raised here if hunks are loaded for the
             # first time. TODO: IOErrors can also be raised when
             # a file is read during the filter-apply phase, but we don't

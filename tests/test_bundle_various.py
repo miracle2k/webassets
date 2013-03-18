@@ -22,8 +22,9 @@ from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, SKIP_CACHE
 from webassets.version import Manifest, Version, VersionIndeterminableError
 
-from helpers import (
+from .helpers import (
     TempEnvironmentHelper, assert_raises_regexp)
+from six.moves import filter
 
 
 class TestBundleConfig(TempEnvironmentHelper):
@@ -35,7 +36,7 @@ class TestBundleConfig(TempEnvironmentHelper):
         """
         try:
             Bundle(yaddayada=True)
-        except TypeError, e:
+        except TypeError as e:
             assert "unexpected keyword argument" in ("%s" % e)
         else:
             raise Exception('Expected TypeError not raised')

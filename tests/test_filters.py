@@ -1,3 +1,4 @@
+from __future__ import print_function
 from __future__ import with_statement
 
 import os
@@ -12,7 +13,7 @@ from webassets import Environment
 from webassets.exceptions import FilterError
 from webassets.filter import (
     Filter, ExternalTool, get_filter, register_filter)
-from helpers import TempEnvironmentHelper
+from .helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
 # unpredictable text like temp paths or timestamps. doctest has
@@ -184,7 +185,7 @@ class TestExternalToolClass(object):
                 # Special placeholders that are passed through
                 '{input}', '{output}']
         Filter().output(StringIO('content'), StringIO(), kwarg='value')
-        print Filter.result
+        print(Filter.result)
         assert Filter.result == (
             ["<class 'tests.test_filters.Filter'>", 'value', '7',
              '{input}', '{output}'],
