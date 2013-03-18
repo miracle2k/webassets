@@ -162,7 +162,7 @@ class HashVersion(Version):
                     'output target has a placeholder')
 
         hasher = self.hasher()
-        hasher.update(hunk.data())
+        hasher.update(hunk.data().encode('utf-8'))
         return hasher.hexdigest()[:self.length]
 
 
@@ -270,13 +270,13 @@ class JsonManifest(FileManifest):
 
     def _load_manifest(self):
         if os.path.exists(self.filename):
-            with open(self.filename, 'rb') as f:
+            with open(self.filename, 'r', encoding='utf-8') as f:
                 self.manifest = self.json.load(f)
         else:
             self.manifest = {}
 
     def _save_manifest(self):
-        with open(self.filename, 'wb') as f:
+        with open(self.filename, 'w', encoding='utf-8') as f:
             self.json.dump(self.manifest, f)
 
 

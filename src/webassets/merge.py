@@ -12,7 +12,6 @@ except ImportError:
 import logging
 from six.moves import filter
 
-
 from .utils import cmp_debug_levels, StringIO
 
 
@@ -74,7 +73,7 @@ class FileHunk(BaseHunk):
         pass
 
     def data(self):
-        f = open(self.filename, 'rb')
+        f = open(self.filename, 'r', encoding='utf-8')
         try:
             return f.read()
         finally:
@@ -159,7 +158,7 @@ class MemoryHunk(BaseHunk):
         return self._data
 
     def save(self, filename):
-        f = open(filename, 'wb')
+        f = open(filename, 'w', encoding='utf-8')
         try:
             f.write(self.data())
         finally:
