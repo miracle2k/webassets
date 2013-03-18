@@ -325,7 +325,57 @@ class CallableFilter(Filter):
         return self.callable(_in, out)
 
 
-class ExternalTool(Filter):
+class ExternalToolMetaclass(type):
+    def __new__(cls, name, bases, attrs):
+        # First, determine the method defined for this very class. We
+        # need to pop the ``method`` attribute from ``attrs``, so that we
+        # create the class without the argument; allowing us then to look
+        # at a ``method`` attribute that parents may have defined.
+        #
+        # method defaults to 'output' if argv is set, to "implement
+        # no default method" without an argv.
+        if not 'method' in attrs and 'argv' in attrs:
+            chosen = 'output'
+        else:
+            chosen = attrs.pop('method', False)
+
+        # Create the class first, since this helps us look at any
+        # method attributes defined in the parent hierarchy.
+        klass = type.__new__(cls, name, bases, attrs)
+        parent_method = getattr(klass, 'method', None)
+
+        # Assign the method argument that we initially popped again.
+        klass.method = chosen
+
+        try:
+            # Don't do anything for this class itself
+            ExternalTool
+        except NameError:
+            return klass
+
+        # If the class already has a method attribute, this indicates
+        # that a parent class already dealt with it and enabled/disabled
+        # the methods, and we won't again.
+        if parent_method is not None:
+            return klass
+
+        methods = ('output', 'input', 'open')
+
+        if chosen is not None:
+            assert not chosen or chosen in methods, \
+                '%s not a supported filter method' % chosen
+            # Disable those methods not chosen.
+            for m in methods:
+                if m != chosen:
+                    # setdefault = Don't override actual methods the
+                    # class has in fact provided itself.
+                    if not m in klass.__dict__:
+                        setattr(klass, m, None)
+
+        return klass
+
+
+class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
     """Subclass that helps creating filters that need to run an external
     program.
 
@@ -349,55 +399,6 @@ class ExternalTool(Filter):
 
     argv = []
     method = None
-
-    class __metaclass__(type):
-        def __new__(cls, name, bases, attrs):
-            # First, determine the method defined for this very class. We
-            # need to pop the ``method`` attribute from ``attrs``, so that we
-            # create the class without the argument; allowing us then to look
-            # at a ``method`` attribute that parents may have defined.
-            #
-            # method defaults to 'output' if argv is set, to "implement
-            # no default method" without an argv.
-            if not 'method' in attrs and 'argv' in attrs:
-                chosen = 'output'
-            else:
-                chosen = attrs.pop('method', False)
-
-            # Create the class first, since this helps us look at any
-            # method attributes defined in the parent hierarchy.
-            klass = type.__new__(cls, name, bases, attrs)
-            parent_method = getattr(klass, 'method', None)
-
-            # Assign the method argument that we initially popped again.
-            klass.method = chosen
-
-            try:
-                # Don't do anything for this class itself
-                ExternalTool
-            except NameError:
-                return klass
-
-            # If the class already has a method attribute, this indicates
-            # that a parent class already dealt with it and enabled/disabled
-            # the methods, and we won't again.
-            if parent_method is not None:
-                return klass
-
-            methods = ('output', 'input', 'open')
-
-            if chosen is not None:
-                assert not chosen or chosen in methods, \
-                    '%s not a supported filter method' % chosen
-                # Disable those methods not chosen.
-                for m in methods:
-                    if m != chosen:
-                        # setdefault = Don't override actual methods the
-                        # class has in fact provided itself.
-                        if not m in klass.__dict__:
-                            setattr(klass, m, None)
-
-            return klass
 
     def open(self, out, source_path, **kw):
         self._evaluate([out, source_path], kw, out)
