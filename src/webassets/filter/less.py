@@ -75,6 +75,7 @@ class Less(ExternalTool):
         'less': ('binary', 'LESS_BIN'),
         'run_in_debug': 'LESS_RUN_IN_DEBUG',
         'line_numbers': 'LESS_LINE_NUMBERS',
+        'extra_args': 'LESS_EXTRA_ARGS',
     }
     max_debug_level = None
 
@@ -86,8 +87,11 @@ class Less(ExternalTool):
 
     def input(self, in_, out, source_path, **kw):
         # Set working directory to the source file so that includes are found
+        args = [self.less or 'lessc']
+        if self.line_numbers:
+            args.append('--line-numbers=%s' % self.line_numbers)
+        if self.extra_args:
+            args.extend(self.extra_args)
+        args.append('-')
         with working_directory(filename=source_path):
-            cmd = [self.less or 'lessc', '-']
-            if self.line_numbers:
-                cmd.insert(-1, '--line-numbers=%s' % self.line_numbers)
-            self.subprocess(cmd, out, in_)
+            self.subprocess(args, out, in_)
