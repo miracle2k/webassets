@@ -3,12 +3,12 @@ from __future__ import with_statement
 
 import os
 from contextlib import contextmanager
-from StringIO import StringIO
 from nose.tools import assert_raises, assert_equals, assert_true
 from nose import SkipTest
 from mock import patch, Mock, DEFAULT
 from distutils.spawn import find_executable
 import re
+from webassets.utils import StringIO
 from webassets import Environment
 from webassets.exceptions import FilterError
 from webassets.filter import (
