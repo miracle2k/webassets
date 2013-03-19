@@ -68,6 +68,7 @@ class Less(ExternalTool):
     options = {
         'less': ('binary', 'LESS_BIN'),
         'run_in_debug': 'LESS_RUN_IN_DEBUG',
+        'extra_args': 'LESS_EXTRA_ARGS',
     }
     max_debug_level = None
 
@@ -79,5 +80,9 @@ class Less(ExternalTool):
 
     def input(self, in_, out, source_path, **kw):
         # Set working directory to the source file so that includes are found
+        args = [self.less or 'lessc']
+        if self.extra_args:
+            args.extend(self.extra_args)
+        args.append('-')
         with working_directory(filename=source_path):
-            self.subprocess([self.less or 'lessc', '-'], out, in_)
+            self.subprocess(args, out, in_)
