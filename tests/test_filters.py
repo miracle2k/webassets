@@ -12,6 +12,7 @@ from webassets import Environment
 from webassets.exceptions import FilterError
 from webassets.filter import (
     Filter, ExternalTool, get_filter, register_filter)
+from webassets.filter.compass import CompassConfig
 from helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
@@ -935,6 +936,44 @@ class TestCompass(TempEnvironmentHelper):
         self.mkbundle('imguri.scss', filters='compass', output='out.css').build()
         assert doctest_match("""/* ... */\nh1 {\n  background: url('http://assets.host.com/the-images/test.png');\n}\n""", self.get('out.css'))
 
+
+class TestCompassConfig(object):
+
+    config = {
+        'http_path': '/',
+        'relative_assets': True,
+        'output_style': ':nested',
+        'sprite_load_path': [
+            'static/img',
+        ],
+        'additional_import_paths': (
+            'static/sass',
+        ),
+        'sass_options': {
+            'k': 'v'
+        }
+    }
+
+    def setup(self):
+        self.compass_config = CompassConfig(self.config).to_string()
+
+    def test_string_value(self):
+        assert "http_path = '/'" in self.compass_config
+
+    def test_boolean_value(self):
+        assert "relative_assets = true" in self.compass_config
+
+    def test_symbol_value(self):
+        assert 'output_style = :nested' in self.compass_config
+
+    def test_list_value(self):
+        assert "sprite_load_path = ['static/img']" in self.compass_config
+
+    def test_tuple_value(self):
+        assert "additional_import_paths = ['static/sass']" in self.compass_config
+
+    def test_dict_value(self):
+        assert "sass_options = {'k' => 'v'}" in self.compass_config
 
 class TestJST(TempEnvironmentHelper):
 
