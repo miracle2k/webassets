@@ -249,7 +249,7 @@ class Bundle(object):
         return hash((tuple(self.contents),
                      self.output,
                      tuple(self.filters),
-                     self.debug))
+                     bool(self.debug)))
         # Note how self.depends is not included here. It could be, but we
         # really want this hash to only change for stuff that affects the
         # actual output bytes. Note that modifying depends will be effective
