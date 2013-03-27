@@ -54,6 +54,8 @@ class Bundle(object):
         self.depends = options.pop('depends', [])
         self.version = options.pop('version', [])
         self.extra = options.pop('extra', {})
+        self.spew_output = options.pop('spew_output', None)
+        self.spew_ext = options.pop('spew_ext', None)
         if options:
             raise TypeError("got unexpected keyword argument '%s'" %
                             options.keys()[0])
@@ -379,11 +381,11 @@ class Bundle(object):
         for item, cnt in resolved_contents:
             if isinstance(cnt, Bundle):
                 # Recursively process nested bundles.
-                hunk = cnt._merge_and_apply(
+                subhunks = cnt._merge_and_apply(
                     env, output, force, current_debug_level,
                     filters_to_pass_down, disable_cache=disable_cache)
-                if hunk is not None:
-                    hunks.append((hunk, {}))
+                if subhunks is not None:
+                    hunks.extend(subhunks)
 
             else:
                 # Give a filter the chance to open his file.
@@ -428,21 +430,27 @@ class Bundle(object):
         if len(hunks) == 0:
             return None
 
-        # Merge the individual files together. There is an optional hook for
-        # a filter here, by implementing a concat() method.
-        try:
+        should_spew = current_debug_level == 'spew'
+
+        if not should_spew: 
+            # Merge the individual files together. There is an optional hook for
+            # a filter here, by implementing a concat() method.
             try:
-                final = filtertool.apply_func(filters_to_run, 'concat', [hunks])
-            except MoreThanOneFilterError, e:
+                try:
+                    final = filtertool.apply_func(
+                        filters_to_run, 'concat', [hunks])
+                except MoreThanOneFilterError, e:
+                    raise BuildError(e)
+                except NoFilters:
+                    final = merge([h for h, _ in hunks])
+            except IOError, e:
+                # IOErrors can be raised here if hunks are loaded for the
+                # first time. TODO: IOErrors can also be raised when
+                # a file is read during the filter-apply phase, but we don't
+                # convert it to a BuildError there...
                 raise BuildError(e)
-            except NoFilters:
-                final = merge([h for h, _ in hunks])
-        except IOError, e:
-            # IOErrors can be raised here if hunks are loaded for the
-            # first time. TODO: IOErrors can also be raised when
-            # a file is read during the filter-apply phase, but we don't
-            # convert it to a BuildError there...
-            raise BuildError(e)
+
+            hunks = [(final, {})]
 
         # Apply output filters.
         # TODO: So far, all the situations where bundle dependencies are
@@ -450,7 +458,26 @@ class Bundle(object):
         # it even required to consider them here with respect to the cache? We
         # might be able to run this operation with the cache on (the FilterTool
         # being possibly configured with cache reads off).
-        return filtertool.apply(final, selected_filters, 'output')
+        return [(filtertool.apply(hunk, selected_filters, 'output'), item_data)
+            for hunk, item_data in hunks]
+
+    def _resolve_spew_output(self, env, source_path, spew_output=None,
+                             spew_ext=None):
+        spew_output = spew_output or self.spew_output
+        spew_ext = spew_ext or self.spew_ext
+
+        basename = None
+        if is_url(source_path):
+            parsed = urlparse.urlsplit(source_path)
+            basename = path.join(parsed.netloc, parsed.path[1:])
+        else:
+            basename = path.relpath(source_path, env.directory)
+
+        if spew_ext is not None:
+            basename, _ = path.splitext(basename)
+            basename += spew_ext
+
+        return path.join(spew_output, basename)
 
     def _build(self, env, extra_filters=[], force=None, output=None,
                disable_cache=None):
@@ -493,44 +520,58 @@ class Bundle(object):
             # We can simply return the existing output file
             return FileHunk(self.resolve_output(env, self.output))
 
-        hunk = self._merge_and_apply(
+        hunks = self._merge_and_apply(
             env, [self.output, self.resolve_output(env, version='?')],
             force, disable_cache=disable_cache, extra_filters=extra_filters)
-        if hunk is None:
+        if hunks is None:
             raise BuildError('Nothing to build for %s, is empty' % self)
 
-        if output:
-            # If we are given a stream, just write to it.
-            output.write(hunk.data())
-        else:
-            # If it doesn't exist yet, create the target directory.
-            output = path.join(env.directory, self.output)
-            output_dir = path.dirname(output)
-            if not path.exists(output_dir):
-                os.makedirs(output_dir)
+        debug_level = _effective_debug_level(env, self)
 
-            version = None
-            if env.versions:
-                version = env.versions.determine_version(self, env, hunk)
+        if debug_level == 'spew':
+            for hunk, item_data in hunks:
+                output = self._resolve_spew_output(
+                    env, item_data['source_path'])
+                output = env.resolver.resolve_output_to_path(output, self)
+                output_dir = path.dirname(output)
+                if not path.exists(output_dir):
+                    os.makedirs(output_dir)
 
-            if not has_placeholder(self.output):
-                hunk.save(self.resolve_output(env))
-            else:
-                if not env.versions:
-                    raise BuildError((
-                        'You have not set the "versions" option, but %s '
-                        'uses a version placeholder in the output target'
-                            % self))
-                output = self.resolve_output(env, version=version)
                 hunk.save(output)
-                self.version = version
+        else:
+            [(hunk, _)] = hunks
+            if output:
+                # If we are given a stream, just write to it.
+                output.write(hunk.data())
+            else:
+                # If it doesn't exist yet, create the target directory.
+                output = path.join(env.directory, self.output)
+                output_dir = path.dirname(output)
+                if not path.exists(output_dir):
+                    os.makedirs(output_dir)
 
-            if env.manifest:
-                env.manifest.remember(self, env, version)
-            if env.versions and version:
-                # Hook for the versioner (for example set the timestamp of
-                # the file) to the actual version.
-                env.versions.set_version(self, env, output, version)
+                version = None
+                if env.versions:
+                    version = env.versions.determine_version(self, env, hunk)
+
+                if not has_placeholder(self.output):
+                    hunk.save(self.resolve_output(env))
+                else:
+                    if not env.versions:
+                        raise BuildError((
+                            'You have not set the "versions" option, but %s '
+                            'uses a version placeholder in the output target'
+                                % self))
+                    output = self.resolve_output(env, version=version)
+                    hunk.save(output)
+                    self.version = version
+
+                if env.manifest:
+                    env.manifest.remember(self, env, version)
+                if env.versions and version:
+                    # Hook for the versioner (for example set the timestamp of
+                    # the file) to the actual version.
+                    env.versions.set_version(self, env, output, version)
 
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
@@ -538,7 +579,7 @@ class Bundle(object):
         if env.updater:
             env.updater.build_done(self, env)
 
-        return hunk
+        return [hunk for hunk, _ in hunks]
 
     def build(self, env=None, force=None, output=None, disable_cache=None):
         """Build this bundle, meaning create the file given by the ``output``
@@ -558,7 +599,7 @@ class Bundle(object):
         env = self._get_env(env)
         hunks = []
         for bundle, extra_filters in self.iterbuild(env):
-            hunks.append(bundle._build(
+            hunks.extend(bundle._build(
                 env, extra_filters, force=force, output=output,
                 disable_cache=disable_cache))
         return hunks
@@ -621,20 +662,13 @@ class Bundle(object):
         # are built as well of course, so at this point we leave the urls()
         # recursion and start a build() recursion.
         debug = _effective_debug_level(env, self, extra_filters)
-        if debug == 'merge':
-            supposed_to_merge = True
-        elif debug is True:
-            supposed_to_merge = False
-        elif debug is False:
-            supposed_to_merge = True
-        else:
-            raise BundleError('Invalid debug value: %s' % debug)
 
         # We will output a single url for this bundle unless a) the
         # configuration tells us to output the source urls
         # ("supposed_to_merge"), or b) this bundle isn't actually configured to
         # be built, that is, has no filters and no output target.
-        if supposed_to_merge and (self.filters or self.output):
+        if (debug == 'merge' or debug is False) and\
+                (self.filters or self.output):
             # With ``auto_build``, build the bundle to make sure the output is
             # up to date; otherwise, we just assume the file already exists.
             # (not wasting any IO ops)
@@ -642,6 +676,24 @@ class Bundle(object):
                 self._build(env, extra_filters=extra_filters, force=False,
                             *args, **kwargs)
             return [self._make_output_url(env)]
+        elif debug == 'spew':
+            spew_output = kwargs.pop('spew_output', self.spew_output)
+            spew_ext = kwargs.pop('spew_ext', self.spew_ext)
+
+            if self.filters and self.spew_output:
+                self._build(env, extra_filters=extra_filters, force=False,
+                            *args, **kwargs)
+
+            urls = []
+            for org, cnt in self.resolve_contents(env):
+                if isinstance(cnt, Bundle):
+                    urls.extend(org.urls(env, *args, spew_output=spew_output,
+                        spew_ext=spew_ext, **kwargs))
+                else:
+                    output = self._resolve_spew_output(env, cnt,
+                        spew_output=spew_output, spew_ext=spew_ext)
+                    urls.append(env.resolver.resolve_output_to_url(output))
+            return urls
         else:
             # We either have no files (nothing to build), or we are
             # in debug mode: Instead of building the bundle, we
@@ -756,7 +808,7 @@ def _effective_debug_level(env, bundle, extra_filters=None, default=None):
         # declare they should always run puts the bundle automatically in
         # merge mode.
         filters = merge_filters(bundle.filters, extra_filters)
-        level = 'merge' if select_filters(filters, True) else None
+        level = 'spew' if select_filters(filters, True) else None
 
     if level is not None:
         # The new level must be lower than the older one. We do not thrown an
