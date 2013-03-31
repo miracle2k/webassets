@@ -502,6 +502,32 @@ class ExternalTool(Filter):
             if input_file.created:
                 os.unlink(input_file.filename)
 
+    @classmethod
+    def parse_binary(cls, string):
+        r"""
+        Parse a string for a binary (executable). Allow multiple arguments
+        to indicate the binary (as parsed by shlex).
+
+        Return a list of arguments suitable for passing to subprocess
+        functions.
+
+        >>> ExternalTool.parse_binary('/usr/bin/lessc')
+        ['/usr/bin/lessc']
+
+        >>> ExternalTool.parse_binary('node node_modules/bin/lessc')
+        ['node', 'node_modules/bin/lessc']
+
+        >>> ExternalTool.parse_binary('"binary with spaces"')
+        ['binary with spaces']
+
+        >>> ExternalTool.parse_binary(r'binary\ with\ spaces')
+        ['binary with spaces']
+
+        >>> ExternalTool.parse_binary('')
+        []
+        """
+        return shlex.split(string)
+
 
 class JavaTool(ExternalTool):
     """Helper class for filters which are implemented as Java ARchives (JARs).
