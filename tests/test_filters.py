@@ -12,7 +12,8 @@ from webassets.utils import StringIO
 from webassets import Environment
 from webassets.exceptions import FilterError
 from webassets.filter import (
-    Filter, ExternalTool, get_filter, register_filter)
+    Filter, ExternalTool, get_filter, register_filter, unique_modules)
+from webassets.filter.compass import CompassConfig
 from .helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
@@ -473,7 +474,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         if not find_executable('uglifyjs'):
             raise SkipTest()
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
-        assert self.get('out.js') == 'function foo(a){var b;document.write(a)};'
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)}'
 
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
@@ -544,6 +545,16 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('in', filters='stylus', output='out.css').build()
         assert self.get('out.css') == """a {\n  width: 100px;\n  height: 50px;\n}\n\n"""
 
+    def test_find_pyc_files( self ):
+        self.create_files({'test.pyc':'testing', 'test.py':'blue', 'boo.pyc':'boo'})
+        modules = list( unique_modules(self.tempdir))
+        assert modules == ['boo','test'],modules
+    
+    def test_find_packages( self ):
+        self.create_files({'moo/__init__.pyc':'testing','voo/__init__.py':'testing'})
+        modules = list( unique_modules(self.tempdir))
+        assert modules == ['moo','voo'],modules
+        
 
 class TestCSSPrefixer(TempEnvironmentHelper):
 
@@ -937,6 +948,44 @@ class TestCompass(TempEnvironmentHelper):
         assert doctest_match("""/* ... */\nh1 {\n  background: url('http://assets.host.com/the-images/test.png');\n}\n""", self.get('out.css'))
 
 
+class TestCompassConfig(object):
+
+    config = {
+        'http_path': '/',
+        'relative_assets': True,
+        'output_style': ':nested',
+        'sprite_load_path': [
+            'static/img',
+        ],
+        'additional_import_paths': (
+            'static/sass',
+        ),
+        'sass_options': {
+            'k': 'v'
+        }
+    }
+
+    def setup(self):
+        self.compass_config = CompassConfig(self.config).to_string()
+
+    def test_string_value(self):
+        assert "http_path = '/'" in self.compass_config
+
+    def test_boolean_value(self):
+        assert "relative_assets = true" in self.compass_config
+
+    def test_symbol_value(self):
+        assert 'output_style = :nested' in self.compass_config
+
+    def test_list_value(self):
+        assert "sprite_load_path = ['static/img']" in self.compass_config
+
+    def test_tuple_value(self):
+        assert "additional_import_paths = ['static/sass']" in self.compass_config
+
+    def test_dict_value(self):
+        assert "sass_options = {'k' => 'v'}" in self.compass_config
+
 class TestJST(TempEnvironmentHelper):
 
     default_files = {
@@ -1060,6 +1109,44 @@ class TestHandlebars(TempEnvironmentHelper):
     def test_auto_root(self):
         self.mkbundle('dir/bar.html', filters='handlebars', output='out.js').build()
         assert "'bar.html'" in self.get('out.js')
+
+
+class TestJinja2JS(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.soy': (
+            "{namespace examples.simple}\n"
+            "\n"
+            "/**\n"
+            " * Says hello to the world.\n"
+            " */\n"
+            "{template .helloWorld}\n"
+            "  Hello world!\n"
+            "{/template}\n"
+        )
+    }
+
+    def setup(self):
+        try:
+            import closure_soy
+        except:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.mkbundle('foo.soy', filters='closure_tmpl', output='out.js').build()
+        assert self.get("out.js") == (
+            "// This file was automatically generated from foo.soy."
+            + "\n// Please don't edit this file by hand."
+            + "\n"
+            + "\nif (typeof examples == 'undefined') { var examples = {}; }"
+            + "\nif (typeof examples.simple == 'undefined') { examples.simple = {}; }"
+            + "\n"
+            + "\n"
+            + "\nexamples.simple.helloWorld = function(opt_data, opt_ignored) {"
+            + "\n  return 'Hello world!';"
+            + "\n};"
+            + "\n")
 
 
 class TestTypeScript(TempEnvironmentHelper):

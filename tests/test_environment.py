@@ -89,6 +89,12 @@ class TestEnvApi(object):
         assert 'foo' in self.m
         assert not 'bar' in self.m
 
+    def test_bool_evaluation(self):
+        """Test that environment evaluates to True in a boolean context.
+        """
+        env = Environment()
+        assert env
+
     def test_url_and_directory(self):
         """The url and directory options are a bit special, because they
         are so essential.

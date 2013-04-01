@@ -111,7 +111,7 @@ There are different approaches.
 In Code
 ~~~~~~~
 
-For starters, you can simply call the bundle's ``url()`` method:
+For starters, you can simply call the bundle's ``urls()`` method:
 
 .. code-block:: python
 
@@ -124,7 +124,7 @@ a list of all the bundle's source files, or the merged file pointed to
 by the bundle's ``output`` option - all relative to the
 ``environment.url`` setting.
 
-``url()`` will always ensure that the files behind the urls it returns
+``urls()`` will always ensure that the files behind the urls it returns
 actually exist. That is, it will merge and compress the source files in
 production mode when first called, and update the compressed assets when
 it detects changes. This behavior can be customized using various

@@ -4,7 +4,8 @@ contents (think minification, compression).
 
 from __future__ import with_statement
 
-import os, subprocess
+import os
+import subprocess
 import inspect
 import shlex
 import tempfile
@@ -68,7 +69,8 @@ class option(tuple):
     See ``parse_options()`` and ``Filter.options``.
     """
     def __new__(cls, initarg, configvar=None, type=None):
-        if configvar is None:  # If only one argument given, it is the configvar
+        # If only one argument given, it is the configvar
+        if configvar is None:  
             configvar = initarg
             initarg = None
         return tuple.__new__(cls, (initarg, configvar, type))
@@ -260,8 +262,8 @@ class Filter(object):
                 # No value specified for this filter instance ,
                 # specifically attempt to load it from the environment.
                 setattr(self, attribute,
-                    self.get_config(setting=configvar, require=False,
-                                    type=type))
+                        self.get_config(setting=configvar, require=False,
+                                        type=type))
 
     def input(self, _in, out, **kw):
         """Implement your actual filter here.
@@ -455,6 +457,7 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                 if not hasattr(self, 'filename'):
                     self.fd, self.filename = tempfile.mkstemp()
                 return self.filename
+
             @property
             def created(self):
                 return hasattr(self, 'filename')
@@ -533,6 +536,7 @@ class JavaTool(ExternalTool):
 
 _FILTERS = {}
 
+
 def register_filter(f):
     """Add the given filter to the list of know filters.
     """
@@ -571,19 +575,69 @@ def get_filter(f, *args, **kwargs):
 
     return klass(*args, **kwargs)
 
+CODE_FILES = ['.py', '.pyc', '.so']
+
+
+def is_module(name):
+    """Is this a recognized module type?
+    
+    Does this name end in one of the recognized CODE_FILES extensions?
+    
+    The file is assumed to exist, as unique_modules has found it using 
+    an os.listdir() call.
+    
+    returns the name with the extension stripped (the module name) or 
+        None if the name does not appear to be a module
+    """
+    for ext in CODE_FILES:
+        if name.endswith(ext):
+            return name[:-len(ext)]
+
+
+def is_package(directory):
+    """Is the (fully qualified) directory a python package?
+    
+    """
+    for ext in ['.py', '.pyc']:
+        if os.path.exists(os.path.join(directory, '__init__'+ext)):
+            return True 
+
+
+def unique_modules(directory):
+    """Find all unique module names within a directory 
+    
+    For each entry in the directory, check if it is a source 
+    code file-type (using is_code(entry)), or a directory with 
+    a source-code file-type at entry/__init__.py[c]?
+    
+    Filter the results to only produce a single entry for each 
+    module name.
+    
+    Filter the results to not include '_' prefixed names.
+    
+    yields each entry as it is encountered
+    """
+    found = {}
+    for entry in sorted(os.listdir(directory)):
+        if entry.startswith('_'):
+            continue 
+        module = is_module(entry)
+        if module:
+            if module not in found:
+                found[module] = entry
+                yield module
+        elif is_package(os.path.join(directory, entry)):
+            if entry not in found:
+                found[entry] = entry 
+                yield entry 
+
 
 def load_builtin_filters():
     from os import path
     import warnings
 
     current_dir = path.dirname(__file__)
-    for entry in os.listdir(current_dir):
-        if entry.endswith('.py'):
-            name = path.splitext(entry)[0]
-        elif path.exists(path.join(current_dir, entry, '__init__.py')):
-            name = entry
-        else:
-            continue
+    for name in unique_modules(current_dir):
 
         module_name = 'webassets.filter.%s' % name
         try:
@@ -601,4 +655,3 @@ def load_builtin_filters():
                         continue
                     register_filter(attr)
 load_builtin_filters()
-
