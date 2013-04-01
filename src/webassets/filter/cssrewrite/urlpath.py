@@ -1,9 +1,3 @@
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
 # urlpath.py
 
 # 0.1.0
@@ -24,9 +18,13 @@ from __future__ import print_function
 # Scripts maintained at http://www.voidspace.org.uk/python/index.shtml
 # E-mail fuzzyman@voidspace.org.uk
 
+from __future__ import print_function
 import posixpath
 import os
-from urllib import url2pathname, pathname2url
+try:
+    from urllib.request import url2pathname, pathname2url
+except ImportError:
+    from urllib import url2pathname, pathname2url
 
 __all__ = [
     'nativejoin',

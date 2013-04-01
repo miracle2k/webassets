@@ -1,9 +1,4 @@
 from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
 ##  ParseMaster, version 1.0 (pre-release) (2005/05/12) x6
 ##  Copyright 2005, Dean Edwards
 ##  Web: http://dean.edwards.name/
@@ -14,6 +9,11 @@ from __future__ import print_function
 ##  Ported to Python by Florian Schulze
 
 import os, re
+import sys
+if sys.version < '3':
+    integer_types = (int, long,)
+else:
+    integer_types = (int,)
 
 # a multi-pattern parser
 
@@ -111,7 +111,7 @@ class ParseMaster:
                 replacement = pattern.replacement
                 if callable(replacement):
                     return replacement(match, i)
-                elif isinstance(replacement, (int, long)):
+                elif isinstance(replacement, integer_types):
                     return match.group(replacement+i)
                 else:
                     return replacement

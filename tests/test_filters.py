@@ -281,7 +281,7 @@ class TestExternalToolClass(object):
 
         # Without stdin data
         self.popen.return_value.returncode = 0
-        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        self.popen.return_value.communicate.return_value = [b'stdout', b'stderr']
         out = StringIO()
         Filter.subprocess(['test'], out)
         assert out.getvalue() == 'stdout'
@@ -290,7 +290,7 @@ class TestExternalToolClass(object):
         # With stdin data
         self.popen.reset_mock()
         self.popen.return_value.returncode = 0
-        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        self.popen.return_value.communicate.return_value = [b'stdout', b'stderr']
         out = StringIO()
         Filter.subprocess(['test'], out, data='data')
         assert out.getvalue() == 'stdout'
@@ -298,14 +298,14 @@ class TestExternalToolClass(object):
 
         # With error
         self.popen.return_value.returncode = 1
-        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        self.popen.return_value.communicate.return_value = [b'stdout', b'stderr']
         assert_raises(FilterError, Filter.subprocess, ['test'], StringIO())
 
     def test_input_var(self):
         """Test {input} variable."""
         class Filter(ExternalTool): pass
         self.popen.return_value.returncode = 0
-        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        self.popen.return_value.communicate.return_value = [b'stdout', b'stderr']
 
         # {input} creates an input file
         intercepted = {}

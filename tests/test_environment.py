@@ -3,6 +3,7 @@ from __future__ import with_statement
 import os
 from nose.tools import assert_raises, with_setup
 
+import six
 from webassets import Environment
 from webassets.env import RegisterError
 from webassets import Bundle
@@ -168,7 +169,7 @@ class TestSpecialProperties(object):
 
         # Standard string values
         self.m.versions = 'timestamp'
-        assert isinstance(self.m.config['versions'], basestring)
+        assert isinstance(self.m.config['versions'], six.string_types)
         assert isinstance(self.m.versions, Version)
         assert self.m.versions == 'timestamp'   # __eq__
         assert self.m.versions != 'hash'

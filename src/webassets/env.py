@@ -219,7 +219,7 @@ class Resolver(object):
         method, instead of simply falling back to ``super()``.
         """
         # Build a list of dir -> url mappings
-        mapping = self.env.url_mapping.items()
+        mapping = list(self.env.url_mapping.items())
         try:
             mapping.append((self.env.directory, self.env.url))
         except EnvironmentError:
@@ -227,10 +227,10 @@ class Resolver(object):
             pass
 
         # Make sure paths are absolute, normalized, and sorted by length
-        mapping = map(
+        mapping = list(map(
             lambda p_u: (path.normpath(path.abspath(p_u[0])), p_u[1]),
-            mapping)
-        mapping.sort(cmp=lambda i, j: cmp(len(i[0]), len(j[0])), reverse=True)
+            mapping))
+        mapping.sort(key=lambda i: len(i[0]), reverse=True)
 
         needle = path.normpath(filepath)
         for candidate, url in mapping:
@@ -380,8 +380,9 @@ class BaseEnvironment(object):
     def __len__(self):
         return len(self._named_bundles) + len(self._anon_bundles)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return True
+    __nonzero__ = __bool__   # For Python 2
 
     def register(self, name, *args, **kwargs):
         """Register a :class:`Bundle` with the given ``name``.

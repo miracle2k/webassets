@@ -58,7 +58,7 @@ class Bundle(object):
         self.extra = options.pop('extra', {})
         if options:
             raise TypeError("got unexpected keyword argument '%s'" %
-                            options.keys()[0])
+                            list(options.keys())[0])
 
     def __repr__(self):
         return "<%s output=%s, filters=%s, contents=%s>" % (

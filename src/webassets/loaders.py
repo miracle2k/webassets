@@ -14,6 +14,7 @@ try:
 except ImportError:
     pass
 
+import six
 from webassets import Environment
 from webassets.bundle import Bundle
 from webassets.importlib import import_module
@@ -49,7 +50,7 @@ class YAMLLoader(object):
         Each item yielded will be either a string representing a file path
         or a bundle."""
         contents = data.get('contents', [])
-        if isinstance(contents, basestring):
+        if isinstance(contents, six.string_types):
             contents = contents,
         for content in contents:
             if isinstance(content, dict):
@@ -95,7 +96,7 @@ class YAMLLoader(object):
 
         The filename can be False if it is unknown.
         """
-        if isinstance(self.file_or_filename, basestring):
+        if isinstance(self.file_or_filename, six.string_types):
             return open(self.file_or_filename), self.file_or_filename
 
         file = self.file_or_filename

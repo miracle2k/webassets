@@ -248,7 +248,7 @@ class FilterTool(object):
             for filter in filters:
                 log.debug('Running method "%s" of  %s with kwargs=%s',
                     type, filter, kwargs_final)
-                out = StringIO()
+                out = StringIO(u'') # For 2.x, StringIO().getvalue() returns str
                 getattr(filter, type)(data, out, **kwargs_final)
                 data = out
                 data.seek(0)
@@ -299,7 +299,7 @@ class FilterTool(object):
 
         def func():
             filter = filters[0]
-            out = StringIO()
+            out = StringIO(u'')  # For 2.x, StringIO().getvalue() returns str
             kwargs_final = self.kwargs.copy()
             kwargs_final.update(kwargs or {})
             log.debug('Running method "%s" of %s with args=%s, kwargs=%s',

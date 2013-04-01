@@ -502,7 +502,7 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                     with os.fdopen(output_file.fd, 'r') as f:
                         out.write(f.read())
                 else:
-                    out.write(stdout)
+                    out.write(stdout.decode('utf-8'))
         finally:
             if output_file.created:
                 os.unlink(output_file.filename)

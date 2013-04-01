@@ -7,8 +7,13 @@ from __future__ import with_statement
 
 import copy
 from os import path
-import urllib2
-from StringIO import StringIO
+try:
+    from urllib.request import \
+        HTTPHandler, build_opener, install_opener, addinfourl
+except ImportError: # Py2
+    from urllib2 import HTTPHandler, build_opener, install_opener, addinfourl
+from six import StringIO
+from six.moves import filter
 
 from nose.tools import assert_raises, assert_equals
 from nose import SkipTest
@@ -24,7 +29,6 @@ from webassets.version import Manifest, Version, VersionIndeterminableError
 
 from .helpers import (
     TempEnvironmentHelper, assert_raises_regexp)
-from six.moves import filter
 
 
 class TestBundleConfig(TempEnvironmentHelper):
@@ -508,18 +512,18 @@ class TestGlobbing(TempEnvironmentHelper):
         """[Regression] Glob should be smart enough not to pick
         up directories."""
         self.create_directories('subdir')
-        assert not filter(lambda s: 'subdir' in s,
-                           get_all_bundle_files(self.mkbundle('*')))
+        assert not list(filter(lambda s: 'subdir' in s,
+                           get_all_bundle_files(self.mkbundle('*'))))
 
     def test_glob_exclude_output(self):
         """Never include the output file in the globbinb result.
         """
         self.create_files(['out.js'])
-        assert not filter(lambda s: 'out.js' in s,
-            get_all_bundle_files(self.mkbundle('*', output='out.js')))
+        assert not list(filter(lambda s: 'out.js' in s,
+            get_all_bundle_files(self.mkbundle('*', output='out.js'))))
 
 
-class MockHTTPHandler(urllib2.HTTPHandler):
+class MockHTTPHandler(HTTPHandler):
 
     def __init__(self, urls={}):
         self.urls = urls
@@ -529,11 +533,11 @@ class MockHTTPHandler(urllib2.HTTPHandler):
         try:
             content = self.urls[url]
         except KeyError:
-            resp = urllib2.addinfourl(StringIO(""), None, url)
+            resp = addinfourl(StringIO(""), None, url)
             resp.code = 404
             resp.msg = "OK"
         else:
-            resp = urllib2.addinfourl(StringIO(content), None, url)
+            resp = addinfourl(StringIO(content), None, url)
             resp.code = 200
             resp.msg = "OK"
         return resp
@@ -545,9 +549,9 @@ class TestUrlContents(TempEnvironmentHelper):
 
     def setup(self):
         TempEnvironmentHelper.setup(self)
-        mock_opener = urllib2.build_opener(MockHTTPHandler({
-            'http://foo': 'function() {}'}))
-        urllib2.install_opener(mock_opener)
+        mock_opener = build_opener(MockHTTPHandler({
+            'http://foo': u'function() {}'}))
+        install_opener(mock_opener)
 
     def test_valid_url(self):
         self.mkbundle('http://foo', output='out').build()

@@ -86,7 +86,7 @@ class TestCacheIsUsed(TempEnvironmentHelper):
             def get(self, key):
                 self.getops += 1
                 if self.enabled:
-                    return 'foo'
+                    return u'foo'
                 return False
             def set(self, key, data):
                 self.setops += 1
