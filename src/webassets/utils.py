@@ -73,8 +73,10 @@ def working_directory(directory=None, filename=None):
         directory = os.path.dirname(filename)
     prev_cwd = os.getcwd()
     os.chdir(directory)
-    yield
-    os.chdir(prev_cwd)
+    try:
+        yield
+    finally:
+        os.chdir(prev_cwd)
 
 
 def make_option_resolver(clazz=None, attribute=None, classes=None,
