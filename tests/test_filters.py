@@ -180,17 +180,14 @@ class TestExternalToolClass(object):
         class Filter(self.MockTool):
             argv = [
                 # The filter instance
-                '{self.__class__}',
+                '{self.__class__.__name__}',
                 # Keyword and positional args to filter method
-                '{kwarg}', '{0.len}',
+                '{kwarg}', '{0.closed}',
                 # Special placeholders that are passed through
                 '{input}', '{output}']
         Filter().output(StringIO('content'), StringIO(), kwarg='value')
-        print(Filter.result)
         assert Filter.result == (
-            ["<class 'tests.test_filters.Filter'>", 'value', '7',
-             '{input}', '{output}'],
-            'content')
+            ["Filter", 'value', 'False', '{input}', '{output}'], 'content')
 
     def test_method_input(self):
         """The method=input."""
@@ -297,7 +294,7 @@ class TestExternalToolClass(object):
         out = StringIO()
         Filter.subprocess(['test'], out, data='data')
         assert out.getvalue() == 'stdout'
-        self.popen.return_value.communicate.assert_called_with('data')
+        self.popen.return_value.communicate.assert_called_with(b'data')
 
         # With error
         self.popen.return_value.returncode = 1

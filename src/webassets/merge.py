@@ -10,6 +10,7 @@ except ImportError:
     from urllib2 import Request as URLRequest, urlopen
     from urllib2 import HTTPError
 import logging
+from io import open
 from six.moves import filter
 
 from .utils import cmp_debug_levels, StringIO

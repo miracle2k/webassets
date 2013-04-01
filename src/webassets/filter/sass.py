@@ -131,7 +131,7 @@ class Sass(Filter):
                                     # shell: necessary on windows to execute
                                     # ruby files, but doesn't work on linux.
                                     shell=(os.name == 'nt'))
-            stdout, stderr = proc.communicate(_in.read())
+            stdout, stderr = proc.communicate(_in.read().encode('utf-8'))
 
             if proc.returncode != 0:
                 raise FilterError(('sass: subprocess had error: stderr=%s, '+
@@ -140,7 +140,7 @@ class Sass(Filter):
             elif stderr:
                 print("sass filter has warnings:", stderr)
 
-            out.write(stdout)
+            out.write(stdout.decode('utf-8'))
         finally:
             if cd:
                 os.chdir(old_dir)

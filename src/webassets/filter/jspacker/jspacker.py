@@ -333,7 +333,7 @@ class JavaScriptPacker:
                     sorted[_protected[word]] = word[1:]
                     protected[_protected[word]] = True
                     count[word] = 0
-            unsorted.sort(lambda a,b: count[b]-count[a])
+            unsorted.sort(key=lambda a: count[a])
             j = 0
             for i in range(len(sorted)):
                 if sorted[i] is None:

@@ -48,15 +48,16 @@ def smartsplit(string, sep):
     be done.
     """
     assert string is not None   # or shlex will read from stdin
-    # shlex fails miserably with unicode input
-    is_unicode = isinstance(sep, unicode)
-    if is_unicode:
-        string = string.encode('utf8')
+    if not six.PY3:
+        # On 2.6, shlex fails miserably with unicode input
+        is_unicode = isinstance(sep, unicode)
+        if is_unicode:
+            string = string.encode('utf8')
     l = shlex.shlex(string, posix=True)
     l.whitespace += ','
     l.whitespace_split = True
     l.quotes = ''
-    if is_unicode:
+    if not six.PY3 and is_unicode:
         return map(lambda s: s.decode('utf8'), list(l))
     else:
         return list(l)
@@ -154,9 +155,9 @@ class Filter(object):
     def __hash__(self):
         return self.id()
 
-    def __cmp__(self, other):
+    def __eq__(self, other):
         if isinstance(other, Filter):
-            return cmp(self.id(), other.id())
+            return self.id() == other.id()
         return NotImplemented
 
     def set_environment(self, env):
@@ -430,7 +431,7 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                     if e.args[0] not in ('input', 'output'):
                         raise
                     return arg
-            argv = map(replace, self.argv)
+            argv = list(map(replace, self.argv))
         else:
             argv = self.argv
         self.subprocess(argv, out, data=data)
@@ -466,15 +467,15 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
         input_file = tempfile_on_demand()
         output_file = tempfile_on_demand()
         if hasattr(str, 'format'):   # Support Python 2.5 without the feature
-            argv = map(lambda item:
-                item.format(input=input_file, output=output_file), argv)
+            argv = list(map(lambda item:
+                       item.format(input=input_file, output=output_file), argv))
 
         try:
             if input_file.created:
                 if not data:
                     raise ValueError(
                         '{input} placeholder given, but no data passed')
-                with os.fdopen(input_file.fd, 'wb') as f:
+                with os.fdopen(input_file.fd, 'w') as f:
                     f.write(data.read() if hasattr(data, 'read') else data)
                     # No longer pass to stdin
                     data = None
@@ -486,16 +487,19 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                 stdout=subprocess.PIPE,
                 stdin=subprocess.PIPE,
                 stderr=subprocess.PIPE)
-            stdout, stderr = proc.communicate(
-                data.read() if hasattr(data, 'read') else data)
+            data = (data.read() if hasattr(data, 'read') else data)
+            if data is not None:
+                data = data.encode('utf-8')
+            stdout, stderr = proc.communicate(data)
             if proc.returncode:
                 raise FilterError(
                     '%s: subprocess returned a non-success result code: '
                     '%s, stdout=%s, stderr=%s' % (
-                        cls.name or cls.__name__, proc.returncode, stdout, stderr))
+                        cls.name or cls.__name__, 
+                        proc.returncode, stdout, stderr))
             else:
                 if output_file.created:
-                    with os.fdopen(output_file.fd, 'rb') as f:
+                    with os.fdopen(output_file.fd, 'r') as f:
                         out.write(f.read())
                 else:
                     out.write(stdout)
