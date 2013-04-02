@@ -15,7 +15,7 @@ except ImportError: # Py2
 from six import StringIO
 from six.moves import filter
 
-from nose.tools import assert_raises, assert_equals
+from nose.tools import assert_raises, assert_equal
 from nose import SkipTest
 
 from webassets import Bundle
@@ -28,7 +28,7 @@ from webassets.updater import TimestampUpdater, SKIP_CACHE
 from webassets.version import Manifest, Version, VersionIndeterminableError
 
 from .helpers import (
-    TempEnvironmentHelper, assert_raises_regexp)
+    TempEnvironmentHelper, assert_raises_regex)
 
 
 class TestBundleConfig(TempEnvironmentHelper):
@@ -238,9 +238,9 @@ class TestVersionFeatures(TempEnvironmentHelper):
         bundle = self.mkbundle('in', output='out-%(version)s')
         self.env.manifest.version = None
         self.env.versions.version = None
-        assert_raises_regexp(
+        assert_raises_regex(
             BundleError, 'dummy has no version', bundle.get_version)
-        assert_raises_regexp(
+        assert_raises_regex(
             BundleError, 'dummy has no version', bundle.resolve_output)
 
     def test_get_version_refresh(self):
@@ -477,7 +477,7 @@ class TestGlobbing(TempEnvironmentHelper):
         self.env.debug = True
         urls = self.mkbundle('*.js', output='out').urls()
         urls.sort()
-        assert_equals(urls, ['/file1.js', '/file2.js'])
+        assert_equal(urls, ['/file1.js', '/file2.js'])
 
     def test_empty_pattern(self):
         bundle = self.mkbundle('*.xyz', output='out')

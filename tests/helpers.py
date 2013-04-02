@@ -14,10 +14,10 @@ noop = lambda _in, out: out.write(_in.read())
 
 
 try:
-    from nose.tools import assert_raises_regexp
+    from nose.tools import assert_raises_regex
 except ImportError:
     # Python < 2.7
-    def assert_raises_regexp(expected, regexp, callable, *a, **kw):
+    def assert_raises_regex(expected, regexp, callable, *a, **kw):
         try:
             callable(*a, **kw)
         except expected as e:

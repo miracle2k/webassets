@@ -3,7 +3,7 @@ from __future__ import with_statement
 
 import os
 from contextlib import contextmanager
-from nose.tools import assert_raises, assert_equals, assert_true
+from nose.tools import assert_raises, assert_equal, assert_true
 from nose import SkipTest
 from mock import patch, Mock, DEFAULT
 from distutils.spawn import find_executable
@@ -98,7 +98,7 @@ class TestFilterBaseClass(object):
             # Set the value in the environment as well.
             m.config[NAME] = 'foo'
             # Ensure that settings take precedence.
-            assert_equals(get_config(NAME), 'foo')
+            assert_equal(get_config(NAME), 'foo')
             # Two different names can be supplied.
             assert get_config(setting=NAME2, env=NAME) == 'bar'
 
