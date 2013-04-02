@@ -27,9 +27,10 @@ class TypeScript(Filter):
 
     def output(self, _in, out, **kw):
         # The typescript compiler cannot read a file which does not have
-        # the .ts extension
+        # the .ts extension. The output file needs to have an extension,
+        # or the compiler will want to create a directory in its place.
         input_filename = tempfile.mktemp() + ".ts"
-        output_filename = tempfile.mktemp()
+        output_filename = tempfile.mktemp() + ".js"
 
         with open(input_filename, 'w') as f:
             f.write(_in.read())
