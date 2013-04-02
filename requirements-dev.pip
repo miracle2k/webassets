@@ -34,3 +34,5 @@ http://michael.elsdoerfer.name/rjsmin/rjsmin-1.0.1-webassets.tar.gz
 # sudo npm install -g coffee-script
 # sudo npm install -g clean-css
 # sudo npm install -g stylus
+# sudo npm install -g handlebars
+# sudo npm install -g typescript
