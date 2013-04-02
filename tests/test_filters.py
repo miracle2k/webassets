@@ -525,7 +525,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         if not find_executable('cleancss'):
             raise SkipTest()
         self.mkbundle('foo.css', filters='cleancss', output='out.css').build()
-        assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
+        assert self.get('out.css') == 'h1{font-family:Verdana;color:#FFF}'
 
     def test_cssslimmer(self):
         try:
