@@ -7,6 +7,14 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
+Development Version
+~~~~~~~~~~~~~~~~~~~
+
+- The API of the BaseCache.get() method has changed. It no longer receives
+  a ``python`` keyword argument. This only affects you if you have
+  implemented a custom cache class.
+
+
 In 0.8
 ~~~~~~
 

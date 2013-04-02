@@ -103,7 +103,7 @@ class UrlHunk(BaseHunk):
             # TODO: "expires" header could be supported
             if self.env and self.env.cache:
                 headers = self.env.cache.get(
-                    ('url', 'headers', self.url), python=True)
+                    ('url', 'headers', self.url))
                 if headers:
                     etag, lmod = headers
                     if etag: request.add_header('If-None-Match', etag)
