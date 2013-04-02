@@ -35,7 +35,7 @@ class AssetsExtension(Extension):
         )
 
     def parse(self, parser):
-        lineno = parser.stream.next().lineno
+        lineno = next(parser.stream).lineno
 
         files = []
         output = nodes.Const(None)
@@ -52,7 +52,7 @@ class AssetsExtension(Extension):
 
             # Lookahead to see if this is an assignment (an option)
             if parser.stream.current.test('name') and parser.stream.look().test('assign'):
-                name = parser.stream.next().value
+                name = next(parser.stream).value
                 parser.stream.skip()
                 value = parser.parse_expression()
                 if name == 'filters':
