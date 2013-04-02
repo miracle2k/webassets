@@ -204,8 +204,12 @@ class Filter(object):
 
         if value is None and not env is False:
             value = os.environ.get(env)
-            if value and type == list:
-                value = smartsplit(value, ',')
+            if value is not None:
+                if not six.PY3:
+                    # TODO: What charset should we use? What does Python 3 use?
+                    value = value.decode('utf8')
+                if type == list:
+                    value = smartsplit(value, ',')
 
         if value is None and require:
             err_msg = '%s was not found. Define a ' % what
