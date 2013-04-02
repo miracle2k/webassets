@@ -33,14 +33,18 @@ except ImportError:
 
 
 try:
-    from test.test_support import check_warnings
+    from test.support import check_warnings  # Python 3
 except ImportError:
-    # Python < 2.6
-    import contextlib
 
-    @contextlib.contextmanager
-    def check_warnings(*filters, **kwargs):
-        # We cannot reasonably support this, we'd have to copy to much code.
-        # (or write our own). Since this is only testing warnings output,
-        # we might slide by ignoring it.
-        yield
+    try:
+        from test.test_support import check_warnings   # Python 2
+    except ImportError:
+        # Python < 2.6
+        import contextlib
+
+        @contextlib.contextmanager
+        def check_warnings(*filters, **kwargs):
+            # We cannot reasonably support this, we'd have to copy to much code.
+            # (or write our own). Since this is only testing warnings output,
+            # we might slide by ignoring it.
+            yield
