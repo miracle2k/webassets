@@ -9,16 +9,11 @@ glob2
 
 # Filters
 PIL
-clevercss
 cssutils
 cssmin
 yuicompressor
 closure
-pyScss
-slimmer
 
-# Default rsmin package is not installable via pip
-http://michael.elsdoerfer.name/rjsmin/rjsmin-1.0.1-webassets.tar.gz
 # Requiring manual installation:
 # cssprefixer
 #cssprefixer
