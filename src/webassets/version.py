@@ -8,7 +8,6 @@ import os
 import pickle
 import six
 
-
 from webassets.bundle import has_placeholder, is_url, get_all_bundle_files
 from webassets.merge import FileHunk
 from webassets.utils import md5_constructor, RegistryMetaclass
@@ -270,13 +269,13 @@ class JsonManifest(FileManifest):
 
     def _load_manifest(self):
         if os.path.exists(self.filename):
-            with open(self.filename, 'r', encoding='utf-8') as f:
+            with open(self.filename, 'r') as f:
                 self.manifest = self.json.load(f)
         else:
             self.manifest = {}
 
     def _save_manifest(self):
-        with open(self.filename, 'w', encoding='utf-8') as f:
+        with open(self.filename, 'w') as f:
             self.json.dump(self.manifest, f)
 
 

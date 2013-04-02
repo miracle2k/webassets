@@ -85,7 +85,7 @@ class TestBuildCommand(TestCLI):
         """Test specifying a custom output filename.
         """
         a = MockBundle(output='a')
-        a.on_build = lambda *a, **kw: kw.get('output').write('FOO')
+        a.on_build = lambda *a, **kw: kw.get('output').write(u'FOO')
         b = MockBundle(output='b')
         self.assets_env.register('a', a)
         self.assets_env.register('b', b)
@@ -104,7 +104,7 @@ class TestBuildCommand(TestCLI):
         """
         a = MockBundle(output='common/branch1/a')
         b = MockBundle(output='common/branch2/b')
-        a.on_build = lambda *a, **kw: kw.get('output').write('FOO')
+        a.on_build = lambda *a, **kw: kw.get('output').write(u'FOO')
         b.on_build = a.on_build
         self.assets_env.register('a', a)
         self.assets_env.register('b', b)

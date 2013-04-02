@@ -286,7 +286,7 @@ class GlobLoader(object):
     def with_file(self, filename, then_run):
         """Call ``then_run`` with the file contents.
         """
-        file = open(filename, 'r')
+        file = open(filename, 'rb')
         try:
             contents = file.read()
             try:

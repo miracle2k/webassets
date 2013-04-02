@@ -56,7 +56,7 @@ class BaseHunk(object):
         raise NotImplementedError()
 
     def save(self, filename):
-        with open(filename, 'wb') as f:
+        with open(filename, 'w') as f:
             f.write(self.data())
 
 

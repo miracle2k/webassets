@@ -119,7 +119,7 @@ class TestUrlsVarious(BaseUrlsTester):
         media directory, to generate a url they are copied in.
         """
         try:
-            from nose.tools import assert_regexp_matches
+            from nose.tools import assert_regex
         except ImportError:
             raise SkipTest("Assertion method only present in 2.7+")
         self.env.debug = True
@@ -128,7 +128,7 @@ class TestUrlsVarious(BaseUrlsTester):
             bundle = self.mkbundle(h.path('foo.css'))
             urls = bundle.urls()
             assert len(urls) == 1
-            assert_regexp_matches(urls[0], r'.*/webassets-external/\d*_foo.css')
+            assert_regex(urls[0], r'.*/webassets-external/\d*_foo.css')
 
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):
