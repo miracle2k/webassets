@@ -33,11 +33,15 @@ arguments:
   supported here, which will be replaced with the version of the file. See
   :doc:`/expiring`.
 
-* ``depends`` - Bundles will be refiltered (compiled, minified, etc) if
-  any of their files change. However, sometimes a bundle may depend on a
-  file which isn't directly included in the bundle - for example, in case
-  of a SCSS ``@import`` clause. Changes detected to one or multiple files
-  whose name are specified by this keyword will recreate the bundle.
+* ``depends`` - Additional files that will be watched to determine if the 
+  bundle needs to be rebuilt. This is usually necessary if you are using
+  compilers thhat allow ``@import`` instructions. Commonly, one would use a
+  glob instruction here for simplicity::
+
+    Bundle(depends=('**/*.scss'))
+
+  .. warning::
+    Currently, using ``depends`` disables caching for a bundle.
 
 
 Nested bundles
