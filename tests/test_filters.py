@@ -13,7 +13,6 @@ from webassets.exceptions import FilterError
 from webassets.filter import (
     Filter, ExternalTool, get_filter, register_filter, unique_modules)
 from webassets.filter.compass import CompassConfig
->>>>>>> fabiomcosta/master
 from helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
