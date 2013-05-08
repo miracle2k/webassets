@@ -1,8 +1,10 @@
-# Dependencies that are only available on Python 2.
+# Some additonal dependencies that are currently not yet available on Python 3.
 
+PIL
 clevercss
 pyScss
 slimmer
+cssmin
 
 # Default rsmin package is not installable via pip
 http://michael.elsdoerfer.name/rjsmin/rjsmin-1.0.1-webassets.tar.gz

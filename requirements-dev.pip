@@ -1,33 +1,39 @@
-# Libs useful when developing webassets. Many required to run all the tests.
-Jinja2>=2.5
-Sphinx
+# webassets has no dependencies for it's base functionality.
+#
+# However, most filters are wrappers around external libraries and
+# tools, and some features also need additonal library support
+# (e.g. loading from YAML files).
+#
+# Libs required to run the tests
 nose
 mock
 
+# Libs helpful during development
+Sphinx
+
+# Libs that are needed for some features
 PyYaml
 glob2
 
-# Filters
-PIL
+# Libs that are needed by filters.
+Jinja2>=2.5
 cssutils
-cssmin
 yuicompressor
 closure
 
-# Requiring manual installation:
-# cssprefixer
+# Python libs that requiring manual installation
 #cssprefixer
 
-# The following Ruby gems are required for some filter tests to run:
+# Ruby gems required by filters
 # sudo gem install sass
 # sudo gem install compass
 # sudo gem install less --version 1.2.21
 
-# The following node libraries are required for some filter tests to run:
+# Node libraries required by filters
 # sudo npm install -g less
-# sudo npm install -g uglify-js
-# sudo npm install -g coffee-script
-# sudo npm install -g clean-css
+# sudo npm install -g uglify-js@2.3.1
+# sudo npm install -g coffee-script@1.6.2
+# sudo npm install -g clean-css@1.0.2
 # sudo npm install -g stylus
 # sudo npm install -g handlebars
 # sudo npm install -g typescript
