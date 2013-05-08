@@ -11,7 +11,7 @@ class Stylus(ExternalTool):
     Requires the Stylus executable to be available externally. You can install
     it using the `Node Package Manager <http://npmjs.org/>`_::
 
-        $ npm install stylus
+        $ npm install -g stylus
 
     Supported configuration options:
 

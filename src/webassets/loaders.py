@@ -192,7 +192,7 @@ class YAMLLoader(object):
 
             # Load environment settings
             for setting in ('debug', 'cache', 'versions', 'url_expire',
-                            'auto_build', 'url', 'directory',
+                            'auto_build', 'url', 'directory', 'manifest',
                             # TODO: The deprecated values; remove at some point
                             'expire', 'updater'):
                 if setting in obj:
