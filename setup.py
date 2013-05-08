@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 import os
 from setuptools import setup, find_packages
-from webassets.six.moves import map
-from webassets.six.moves import zip
+try:
+    from itertools import imap as map, izip as zip
+except ImportError:
+    # Python3 has those in builtins.
+    pass
+
 try:
     from sphinx.setup_command import BuildDoc
     cmdclass = {'build_sphinx': BuildDoc}
