@@ -50,7 +50,7 @@ def smartsplit(string, sep):
     assert string is not None   # or shlex will read from stdin
     if not six.PY3:
         # On 2.6, shlex fails miserably with unicode input
-        is_unicode = isinstance(sep, unicode)
+        is_unicode = isinstance(string, unicode)
         if is_unicode:
             string = string.encode('utf8')
     l = shlex.shlex(string, posix=True)

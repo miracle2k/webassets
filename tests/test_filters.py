@@ -118,7 +118,7 @@ class TestFilterBaseClass(object):
 
         with os_environ_sandbox():
             os.environ['foo'] = 'one,two\,three'
-            assert get_config(env='foo', type=list) == ['one', 'two,three']
+            assert list(get_config(env='foo', type=list)) == ['one', 'two,three']
 
             # Make sure the split is not applied to env config values
             m.config['foo'] = 'one,two\,three'
