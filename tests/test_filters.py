@@ -855,7 +855,7 @@ class TestSass(TempEnvironmentHelper):
         """Test a custom include_path.
         """
         sass_output = get_filter('sass', debug_info=False, as_output=True,
-                                 includes_dir=self.path('includes'))
+                                 load_paths=[self.path('includes')])
         self.create_files({
             'includes/vars.sass': '$a_color: #FFFFFF',
             'base.sass': '@import vars.sass\nh1\n  color: $a_color'})
