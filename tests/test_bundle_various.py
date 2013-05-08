@@ -12,8 +12,8 @@ try:
         HTTPHandler, build_opener, install_opener, addinfourl
 except ImportError: # Py2
     from urllib2 import HTTPHandler, build_opener, install_opener, addinfourl
-from six import StringIO
-from six.moves import filter
+from webassets.six import StringIO
+from webassets.six.moves import filter
 
 from nose.tools import assert_raises, assert_equal
 from nose import SkipTest

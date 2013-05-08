@@ -1,4 +1,4 @@
-import six
+from webassets import six
 import contextlib
 import os
 import sys
@@ -33,7 +33,7 @@ else:
     set = set
 
 
-from six import StringIO
+from webassets.six import StringIO
 
 
 try:

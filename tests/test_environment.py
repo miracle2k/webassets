@@ -3,7 +3,7 @@ from __future__ import with_statement
 import os
 from nose.tools import assert_raises, with_setup
 
-import six
+from webassets import six
 from webassets import Environment
 from webassets.env import RegisterError
 from webassets import Bundle

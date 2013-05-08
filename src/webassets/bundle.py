@@ -1,8 +1,8 @@
 import os
 from os import path
-import six
-from six.moves import map
-from six.moves import zip
+from webassets import six
+from webassets.six.moves import map
+from webassets.six.moves import zip
 
 from .filter import get_filter
 from .merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,

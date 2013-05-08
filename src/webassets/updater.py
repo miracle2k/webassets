@@ -26,9 +26,9 @@ the cache is a superior solution for getting essentially the same speed
 increase as using the hash to reliably determine which bundles to skip.
 """
 
-import six
-from six.moves import map
-from six.moves import zip
+from webassets import six
+from webassets.six.moves import map
+from webassets.six.moves import zip
 from webassets.exceptions import BundleError, BuildError
 from webassets.utils import RegistryMetaclass
 

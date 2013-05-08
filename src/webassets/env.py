@@ -1,9 +1,9 @@
 from os import path
 from itertools import chain
 import warnings
-import six
-from six.moves import map
-from six.moves import zip
+from webassets import six
+from webassets.six.moves import map
+from webassets.six.moves import zip
 try:
     import glob2 as glob
     from glob import has_magic

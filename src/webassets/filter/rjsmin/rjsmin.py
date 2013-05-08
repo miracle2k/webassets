@@ -57,8 +57,8 @@ __version__ = '1.0.1'
 __all__ = ['jsmin', 'jsmin_for_posers']
 
 import re as _re
-from six.moves import map
-from six.moves import zip
+from webassets.six.moves import map
+from webassets.six.moves import zip
 
 
 def _make_jsmin(extended=True, python_only=False):

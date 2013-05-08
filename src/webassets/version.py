@@ -6,7 +6,7 @@ from __future__ import with_statement
 
 import os
 import pickle
-import six
+from webassets import six
 
 from webassets.bundle import has_placeholder, is_url, get_all_bundle_files
 from webassets.merge import FileHunk

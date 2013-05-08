@@ -15,7 +15,7 @@ also serve in other places.
 
 import os
 from os import path
-import six
+from webassets import six
 from webassets.merge import BaseHunk
 from webassets.filter import Filter, freezedicts
 from webassets.utils import md5_constructor, pickle

@@ -31,7 +31,7 @@ from os import path
 import tempfile
 import shutil
 import subprocess
-import six
+from webassets import six
 
 from webassets.exceptions import FilterError
 from webassets.filter import Filter, option

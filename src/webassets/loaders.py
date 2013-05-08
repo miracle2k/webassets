@@ -8,13 +8,13 @@ import os, sys
 from os import path
 import glob, fnmatch
 import types
-import six
+from webassets import six
 try:
     import yaml
 except ImportError:
     pass
 
-import six
+from webassets import six
 from webassets import Environment
 from webassets.bundle import Bundle
 from webassets.importlib import import_module

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import os
 from setuptools import setup, find_packages
-from six.moves import map
-from six.moves import zip
+from webassets.six.moves import map
+from webassets.six.moves import zip
 try:
     from sphinx.setup_command import BuildDoc
     cmdclass = {'build_sphinx': BuildDoc}

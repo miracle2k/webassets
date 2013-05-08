@@ -9,9 +9,9 @@ import subprocess
 import inspect
 import shlex
 import tempfile
-import six
-from six.moves import map
-from six.moves import zip
+from webassets import six
+from webassets.six.moves import map
+from webassets.six.moves import zip
 try:
     frozenset
 except NameError:
