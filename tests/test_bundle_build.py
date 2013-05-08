@@ -289,7 +289,6 @@ class TestBuildWithDebugRequired(TempEnvironmentHelper):
         b = self.mkbundle('in1', inner, 'in3', output='out')
         b.build()
         assert self.get('out') == 'A\nC'
-        os.unlink(self.path('out'))
         # Let the env's debug level be ok
         b.env.debug = True
         b.build()
@@ -301,6 +300,23 @@ class TestBuildWithDebugRequired(TempEnvironmentHelper):
         b.build()
         assert self.get('out') == 'A\nB\nC'
 
+    def test_build_not_cached(self):
+        """The build may not be cached after changing the debug flag"""
+        inner = self.mkbundle('in2', require_production=False)
+        b = self.mkbundle('in1', inner, 'in3', output='out')
+        b.build()
+        first_urls = b.urls()
+        assert self.get('out') == 'A\nC'
+        # Now we enable debugging and want a rebuild to happen
+        b.env.debug = 'merge'
+        b.build()
+        assert first_urls != b.urls()
+        assert self.get('out') == 'A\nB\nC'
+        # After going back to a failed requirement we expect another rebuild
+        inner.require_production = True
+        b.build()
+        assert first_urls == b.urls()
+        assert self.get('out') == 'A\nC'
 
 class ReplaceFilter(Filter):
     """Filter that does a simple string replacement.

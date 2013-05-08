@@ -601,6 +601,15 @@ class Bundle(object):
         else:
             yield self, []
 
+    def iterbundles(self):
+        """Iterate over the bundles and all sub-bundles.
+        """
+        yield self
+        for item in self.contents:
+            if isinstance(item, Bundle):
+                for sub in item.iterbundles():
+                    yield sub
+
     def _make_output_url(self, env):
         """Return the output url, modified for expire header handling.
         """

@@ -72,7 +72,34 @@ class BaseUpdater(object):
 get_updater = BaseUpdater.resolve
 
 
-class BundleDefUpdater(BaseUpdater):
+class DebugRequirementUpdater(BaseUpdater):
+    """Causes bundles that have a debug requirement to be rebuilt if the
+    debug mode changed since the last build."""
+
+    def __init__(self):
+        self.__bundle_build_states = {}
+        super(DebugRequirementUpdater, self).__init__()
+
+    def check_debug_requirement(self, bundle, env):
+        for item in bundle.iterbundles():
+            if item.require_production is None:
+                continue
+            if (self.__bundle_build_states.get(item, None) is not
+                    item._should_build(env)):
+                return True
+        return False
+
+    def needs_rebuild(self, bundle, env):
+        return self.check_debug_requirement(bundle, env)
+
+    def build_done(self, bundle, env):
+        for item in bundle.iterbundles():
+            if item.require_production is None:
+                continue
+            self.__bundle_build_states[item] = item._should_build(env)
+
+
+class BundleDefUpdater(DebugRequirementUpdater):
     """Supports the bundle definition cache update check that child
     classes are usually going to want to use also.
     """
@@ -99,14 +126,18 @@ class BundleDefUpdater(BaseUpdater):
         return False
 
     def needs_rebuild(self, bundle, env):
-        return self.check_bundle_definition(bundle, env)
+        return \
+            super(BundleDefUpdater, self).needs_rebuild(bundle, env) or \
+            self.check_bundle_definition(bundle, env)
 
     def build_done(self, bundle, env):
         if not env.cache:
+            super(BundleDefUpdater, self).build_done(bundle, env)
             return False
         cache_key = ('bdef', bundle.output)
         cache_value = "%s" % hash(bundle)
         env.cache.set(cache_key, cache_value)
+        super(BundleDefUpdater, self).build_done(bundle, env)
 
 
 class TimestampUpdater(BundleDefUpdater):
@@ -142,7 +173,7 @@ class TimestampUpdater(BundleDefUpdater):
                 # If the output file does not exist, we'll have to rebuild
                 return True
 
-       # Recurse through the bundle hierarchy. Check the timestamp of all
+        # Recurse through the bundle hierarchy. Check the timestamp of all
         # the bundle source files, as well as any additional
         # dependencies that we are supposed to watch.
         for iterator, result in (
