@@ -22,7 +22,6 @@ except ImportError:
         from nose.tools import assert_raises_regexp as assert_raises_regex
     except:
         # Python < 2.7
-        from nose.tools import set_trace; set_trace()
         def assert_raises_regex(expected, regexp, callable, *a, **kw):
             try:
                 callable(*a, **kw)
