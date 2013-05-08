@@ -27,7 +27,7 @@ class TestYAML(object):
     def test_load_bundles(self):
         bundles = self.loader("""
         standard:
-            filters: cssmin,gzip
+            filters: cssmin,jsmin
             output: output.css
             contents:
                 - file1
@@ -67,14 +67,14 @@ class TestYAML(object):
     def test_load_recursive_bundles(self):
         bundles = self.loader("""
         standard:
-            filters: cssmin,gzip
+            filters: cssmin,jsmin
             output: output.css
             contents:
                 - file1
                 - file2
         recursive:
             output: recursive.css
-            filters: cssmin
+            filters: jsmin
             contents:
                 - cssfile1
                 - standard

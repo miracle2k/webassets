@@ -1,3 +1,10 @@
+from webassets import six
+if six.PY3:
+    # We do not support Python 3 right now, because the webassets pipeline
+    # no longer supports operating on byte streams.
+    raise ImportError("The gzip filter is not available on Python 3")
+
+
 from __future__ import absolute_import
 
 import gzip

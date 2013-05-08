@@ -434,6 +434,11 @@ class TestBuiltinFilters(TempEnvironmentHelper):
     }
 
     def test_gzip(self):
+        try:
+            get_filter('gzip')
+        except ValueError:
+            # Not available on Python 3
+            raise SkipTest()
         self.create_files({'in': 'a'*100})
         self.mkbundle('in', filters='gzip', output='out.css').build()
         # GZip contains a timestamp (which additionally Python only
