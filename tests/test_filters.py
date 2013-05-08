@@ -575,7 +575,6 @@ class TestCSSPrefixer(TempEnvironmentHelper):
     def test_encoding(self):
         self.create_files({'in': u"""a { content: '\xe4'; }""".encode('utf8')})
         self.mkbundle('in', filters='cssprefixer', output='out.css').build()
-        self.p('out.css')
         assert self.get('out.css') == 'a {\n    content: "\xc3\xa4"\n    }'
 
 
@@ -1164,5 +1163,4 @@ class TestTypeScript(TempEnvironmentHelper):
 
     def test(self):
         self.mkbundle('foo.ts', filters='typescript', output='out.js').build()
-        self.p('out.js')
         assert self.get("out.js") == """var X = (function () {\n    function X() { }\n    return X;\n})();\n"""
