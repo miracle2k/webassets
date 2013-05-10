@@ -1,5 +1,6 @@
 # coding=utf-8
 
+from __future__ import print_function
 import os, subprocess
 from webassets.filter import Filter, register_filter
 from webassets.exceptions import FilterError
@@ -97,7 +98,7 @@ class Jade(Filter):
                 'result code: %s, stdout=%s, stderr=%s')
                  % (proc.returncode, stdout, stderr))
         elif stderr:
-            print 'jade filter has warnings:', stderr
+            print('jade filter has warnings:', stderr)
 
         # Add a bit of JavaScript that will place our compiled Jade function
         # into an object on the `window` object. Jade files are keyed by their
