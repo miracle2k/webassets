@@ -266,18 +266,20 @@ class Bundle(object):
 
     def resolve_depends(self, ctx):
         # TODO: Caching is as problematic here as it is in resolve_contents().
-        if not self.depends:
-            return []
         if getattr(self, '_resolved_depends', None) is None:
             resolved = []
-            for item in self.depends:
-                try:
-                    result = ctx.resolver.resolve_source(ctx, item)
-                except IOError as e:
-                    raise BundleError(e)
-                if not isinstance(result, list):
-                    result = [result]
-                resolved.extend(result)
+            for filter_ in self.filters:
+                if hasattr(filter_, "depends"):
+                    resolved.extend(filter_.depends)
+            if self.depends:
+                for item in self.depends:
+                    try:
+                        result = ctx.resolver.resolve_source(item)
+                    except IOError as e:
+                        raise BundleError(e)
+                    if not isinstance(result, list):
+                        result = [result]
+                    resolved.extend(result)
             self._resolved_depends = resolved
         return self._resolved_depends
 
