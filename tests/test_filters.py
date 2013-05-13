@@ -871,7 +871,11 @@ class TestPyScss(TempEnvironmentHelper):
     def test_assets(self):
         try:
             import PIL
-        except ImportError:
+            # Travis does not support PNG files, see
+            # https://github.com/travis-ci/travis-ci/issues/746
+            from PIL import Image
+            Image.new('RGB', (10,10)).save(StringIO(), 'png')
+        except (ImportError, IOError):
             pass
         self.create_files({'noise.scss': 'h1 {background: background-noise()}'})
         self.mkbundle('noise.scss', filters='pyscss', output='out.css').build()
