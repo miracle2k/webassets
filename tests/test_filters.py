@@ -866,9 +866,7 @@ class TestPyScss(TempEnvironmentHelper):
 
     def test(self):
         self.mkbundle('foo.scss', filters='pyscss', output='out.css').build()
-        assert doctest_match(
-            '/* ... */\nh1 {\n  color: #ff0000;\n}\na {\n  color: #ff8000;\n}\n\n',
-            self.get('out.css'),)
+        assert self.get('out.css') == 'h1 {\n  color: #ff0000;\n}\na {\n  color: #ff8000;\n}\n'
 
     def test_assets(self):
         try:
@@ -879,7 +877,7 @@ class TestPyScss(TempEnvironmentHelper):
         self.mkbundle('noise.scss', filters='pyscss', output='out.css').build()
 
         assert doctest_match(
-            '/* ... */\nh1 {\n  background: url("...png");\n}\n\n',
+            'h1 {\n  background: url("...png");\n}\n',
             self.get('out.css'),)
 
 
