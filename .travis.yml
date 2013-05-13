@@ -3,7 +3,7 @@ python:
   - 2.6
 install: pip install tox
 before_install:
-   - sudo apt-get install zlib1g-dev
+   - sudo apt-get install libjpeg8 libjpeg8-dev libfreetype6 libfreetype6-dev zlib1g-dev
 script: tox
 notifications:
   email:
