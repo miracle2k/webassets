@@ -22,6 +22,10 @@ from .helpers import TempEnvironmentHelper
 from doctest import _ellipsis_match as doctest_match
 
 
+import platform
+PYPY = platform.python_implementation() == 'PyPy'
+
+
 @contextmanager
 def os_environ_sandbox():
     backup = os.environ.copy()
@@ -186,8 +190,12 @@ class TestExternalToolClass(object):
                 # Special placeholders that are passed through
                 '{input}', '{output}']
         Filter().output(StringIO('content'), StringIO(), kwarg='value')
-        assert Filter.result == (
-            ["Filter", 'value', 'False', '{input}', '{output}'], 'content')
+        if PYPY:
+            assert Filter.result == (
+                ["Filter", 'value', '0', '{input}', '{output}'], 'content')
+        else:
+            assert Filter.result == (
+                ["Filter", 'value', 'False', '{input}', '{output}'], 'content')
 
     def test_method_input(self):
         """The method=input."""
