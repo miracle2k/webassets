@@ -264,13 +264,22 @@ class Bundle(object):
     rebuild is required.
     """)
 
-    def resolve_depends(self, ctx):
+    def resolve_depends(self, ctx, refresh=False):
         # TODO: Caching is as problematic here as it is in resolve_contents().
-        if getattr(self, '_resolved_depends', None) is None:
+        if getattr(self, '_resolved_depends', None) is None or refresh:
             resolved = []
             for filter_ in self.filters:
-                if hasattr(filter_, "depends"):
-                    resolved.extend(filter_.depends)
+                # get dependencies from filter
+                if hasattr(filter_, "find_dependencies"):
+                    filter_deps = filter_.find_dependencies()
+                    filter_hash = (filter_,"deps")
+                    if filter_deps is None:
+                        # if not yet resolved, load from cache
+                        filter_deps = env.cache.get(filter_hash)
+                    else:
+                        env.cache.set(filter_hash, filter_deps)
+                    if filter_deps:
+                        resolved.extend(filter_deps)
             if self.depends:
                 for item in self.depends:
                     try:
@@ -553,7 +562,13 @@ class Bundle(object):
         # it even required to consider them here with respect to the cache? We
         # might be able to run this operation with the cache on (the FilterTool
         # being possibly configured with cache reads off).
-        return filtertool.apply(final, selected_filters, 'output')
+        ret = filtertool.apply(final, selected_filters, 'output')
+        
+        # Resolve deps second time and after building - in case filter
+        # didn't know them before.
+        self.resolve_depends(env, True)
+        
+        return ret
 
     def _build(self, ctx, extra_filters=None, force=None, output=None,
                disable_cache=None):
