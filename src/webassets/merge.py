@@ -13,7 +13,7 @@ import logging
 from io import open
 from webassets.six.moves import filter
 
-from .utils import cmp_debug_levels, StringIO
+from .utils import cmp_debug_levels, StringIO, hash_func
 
 
 __all__ = ('FileHunk', 'MemoryHunk', 'merge', 'FilterTool',
@@ -43,13 +43,13 @@ class BaseHunk(object):
     def mtime(self):
         raise NotImplementedError()
 
-    def __hash__(self):
-        return hash(self.data())
+    def id(self):
+        return hash_func(self.data())
 
     def __eq__(self, other):
         if isinstance(other, BaseHunk):
             # Allow class to be used as a unique dict key.
-            return hash(self) == hash(other)
+            return hash_func(self) == hash_func(other)
         return False
 
     def data(self):
@@ -148,7 +148,7 @@ class MemoryHunk(BaseHunk):
         # when logging is disabled, this won't be called, i.e.: don't
         # %s-format yourself, let logging do it as needed.
         # TODO: Add a test to ensure this isn't called.
-        return '<%s %s>' % (self.__class__.__name__, hash(self.data))
+        return '<%s %s>' % (self.__class__.__name__, hash_func(self.data))
 
     def mtime(self):
         pass

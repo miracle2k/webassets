@@ -30,7 +30,7 @@ from webassets import six
 from webassets.six.moves import map
 from webassets.six.moves import zip
 from webassets.exceptions import BundleError, BuildError
-from webassets.utils import RegistryMetaclass
+from webassets.utils import RegistryMetaclass, hash_func
 
 
 __all__ = ('get_updater', 'SKIP_CACHE',
@@ -89,7 +89,7 @@ class BundleDefUpdater(BaseUpdater):
             return False
 
         cache_key = ('bdef', bundle.output)
-        current_hash = "%s" % hash(bundle)
+        current_hash = "%s" % hash_func(bundle)
         cached_hash = env.cache.get(cache_key)
         # This may seem counter-intuitive, but if no cache entry is found
         # then we actually return "no update needed". This is because
@@ -106,7 +106,7 @@ class BundleDefUpdater(BaseUpdater):
         if not env.cache:
             return False
         cache_key = ('bdef', bundle.output)
-        cache_value = "%s" % hash(bundle)
+        cache_value = "%s" % hash_func(bundle)
         env.cache.set(cache_key, cache_value)
 
 

@@ -42,6 +42,9 @@ except ImportError:     # Python 2
     import urlparse
     import urllib
 
+def hash_func(data):
+    from .cache import make_md5
+    return make_md5(data)
 
 
 def common_path_prefix(paths, sep=os.path.sep):

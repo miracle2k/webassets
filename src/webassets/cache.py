@@ -19,6 +19,7 @@ from webassets import six
 from webassets.merge import BaseHunk
 from webassets.filter import Filter, freezedicts
 from webassets.utils import md5_constructor, pickle
+import types
 
 
 __all__ = ('FilesystemCache', 'MemoryCache', 'get_cache',)
@@ -52,23 +53,28 @@ def make_md5(*data):
     We care enough however not to use hash().
     """
     def walk(obj):
-        if isinstance(obj, (tuple, list)):
+        if isinstance(obj, (tuple, list, frozenset)):
             for item in obj:
                 for d in walk(item): yield d
-        elif isinstance(obj, dict):
+        elif isinstance(obj, (dict)):
             for k in sorted(obj.keys()):
                 for d in walk(k): yield d
                 for d in walk(obj[k]): yield d
         elif isinstance(obj, BaseHunk):
             yield obj.data().encode('utf-8')
-        elif isinstance(obj, Filter):
-            yield str(hash(obj)).encode('utf-8')
         elif isinstance(obj, int):
             yield str(obj).encode('utf-8')
         elif isinstance(obj, six.text_type):
             yield obj.encode('utf-8')
         elif isinstance(obj, six.binary_type):
             yield obj
+        elif hasattr(obj, "id"):
+            for i in walk(obj.id()):
+                yield i
+        elif obj is None:
+            yield "None".encode('utf-8')
+        elif isinstance(obj, types.FunctionType):
+            yield str(hash(obj))
         else:
             raise ValueError('Cannot MD5 type %s' % type(obj))
     md5 = md5_constructor()
@@ -133,11 +139,11 @@ class MemoryCache(BaseCache):
                id(self) == id(other)
 
     def get(self, key):
-        key = make_hashable(key)
+        key = make_md5(make_hashable(key))
         return self.cache.get(key, None)
 
     def set(self, key, value):
-        key = make_hashable(key)
+        key = make_md5(make_hashable(key))
         self.cache[key] = value
         try:
             self.keys.remove(key)
