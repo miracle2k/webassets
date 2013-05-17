@@ -74,7 +74,7 @@ def make_md5(*data):
         elif obj is None:
             yield "None".encode('utf-8')
         elif isinstance(obj, types.FunctionType):
-            yield str(hash(obj))
+            yield str(hash(obj)).encode('utf-8')
         else:
             raise ValueError('Cannot MD5 type %s' % type(obj))
     md5 = md5_constructor()
