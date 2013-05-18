@@ -236,7 +236,7 @@ class Resolver(object):
         for candidate, url in mapping:
             if needle.startswith(candidate):
                 # Found it!
-                rel_path = filepath[len(candidate)+1:]
+                rel_path = needle[len(candidate)+1:]
                 return url_prefix_join(url, rel_path)
         raise ValueError('Cannot determine url for %s' % filepath)
 
