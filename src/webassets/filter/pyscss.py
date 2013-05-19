@@ -88,7 +88,7 @@ class PyScss(Filter):
 
         # Only the dev version appears to support a list
         if self.load_paths:
-            scss.LOAD_PATHS = ','.join(self.load_paths)
+            scss.config.LOAD_PATHS = ','.join(self.load_paths)
 
         # These are needed for various helpers (working with images
         # etc.). Similar to the compass filter, we require the user
