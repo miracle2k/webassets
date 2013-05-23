@@ -494,12 +494,25 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('in', filters='clevercss', output='out.css').build()
         assert self.get('out.css') == """a {\n  color: #7f7f7f;\n}"""
 
-    def test_uglifyjs(self):
+    def test_uglifyjs_ascii(self):
+        if not find_executable('uglifyjs'):
+            raise SkipTest()
+        self.mkbundle('foo2.js', filters='uglifyjs', output='out.js').build()
+        print(self.get('out.js'))
+        assert self.get('out.js') == 'more();'
+
+    def test_uglifyjs_unicode(self):
         if not find_executable('uglifyjs'):
             raise SkipTest()
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)}'
 
+    def test_uglifyjs_ascii_and_unicode(self):
+        if not find_executable('uglifyjs'):
+            raise SkipTest()
+        self.mkbundle('foo.js', 'foo2.js', filters='uglifyjs', output='out.js').build()
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)}more();'
+        
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
         # JS one. Maybe the solution is just to remove the old ruby filter.
