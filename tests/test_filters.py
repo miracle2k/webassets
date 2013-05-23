@@ -201,8 +201,8 @@ class TestExternalToolClass(object):
             method = 'input'
         assert getattr(Filter, 'output') is None
         assert getattr(Filter, 'open') is None
-        Filter().input(StringIO('bla'), StringIO())
-        assert Filter.result == ([], 'bla')
+        Filter().input(StringIO(u'błä'), StringIO())
+        assert Filter.result == ([], u'błä')
 
     def test_method_output(self):
         """The method=output."""
@@ -210,8 +210,8 @@ class TestExternalToolClass(object):
             method = 'output'
         assert getattr(Filter, 'input') is None
         assert getattr(Filter, 'open') is None
-        Filter().output(StringIO('bla'), StringIO())
-        assert Filter.result == ([], 'bla')
+        Filter().output(StringIO(u'błä'), StringIO())
+        assert Filter.result == ([], u'błä')
 
     def test_method_open(self):
         """The method=open."""
@@ -447,18 +447,24 @@ def test_callable_filter():
 class TestBuiltinFilters(TempEnvironmentHelper):
 
     default_files = {
-        'foo.css': """
+        'foo.css': u"""
+        /* Cômment wíth sóme Ünicòde */
             h1  {
                 font-family: "Verdana"  ;
                 color: #FFFFFF;
             }
         """,
-        'foo.js': """
+        'foo.js': u"""
+        // Cômment wíth sóme Ünicòde
         function foo(bar) {
             var dummy;
             document.write ( bar ); /* Write */
+            var a = "Ünícôdè";
         }
         """,
+        'foo2.js': """
+        more();
+        """
     }
 
     def test_cssmin(self):
@@ -486,12 +492,24 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('in', filters='clevercss', output='out.css').build()
         assert self.get('out.css') == """a {\n  color: #7f7f7f;\n}"""
 
-    def test_uglifyjs(self):
+    def test_uglifyjs_ascii(self):
+        if not find_executable('uglifyjs'):
+            raise SkipTest()
+        self.mkbundle('foo2.js', filters='uglifyjs', output='out.js').build()
+        assert self.get('out.js') == 'more();'
+
+    def test_uglifyjs_unicode(self):
         if not find_executable('uglifyjs'):
             raise SkipTest()
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
-        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)}'
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}'
 
+    def test_uglifyjs_ascii_and_unicode(self):
+        if not find_executable('uglifyjs'):
+            raise SkipTest()
+        self.mkbundle('foo.js', 'foo2.js', filters='uglifyjs', output='out.js').build()
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}more();'
+        
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
         # JS one. Maybe the solution is just to remove the old ruby filter.
@@ -507,9 +525,9 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('foo.js', filters='jsmin', output='out.js').build()
         assert self.get('out.js') in (
             # Builtin jsmin
-            "\nfunction foo(bar){var dummy;document.write(bar);}",
+            "\nfunction foo(bar){var dummy;document.write(bar);var a=\"Ünícôdè\"}",
             # jsmin from PyPI
-            "function foo(bar){var dummy;document.write(bar);}",
+            "function foo(bar){var dummy;document.write(bar);var a=\"Ünícôdè\"}",
         )
 
     def test_rjsmin(self):
@@ -518,7 +536,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         except ImportError:
             raise SkipTest()
         self.mkbundle('foo.js', filters='rjsmin', output='out.js').build()
-        assert self.get('out.js') == "function foo(bar){var dummy;document.write(bar);}"
+        assert self.get('out.js') == "function foo(bar){var dummy;document.write(bar);var a=\"Ünícôdè\"}"
 
     def test_jspacker(self):
         self.mkbundle('foo.js', filters='jspacker', output='out.js').build()
@@ -640,7 +658,8 @@ class TestJinja2(TempEnvironmentHelper):
 class TestClosure(TempEnvironmentHelper):
 
     default_files = {
-        'foo.js': """
+        'foo.js': u"""
+        // Cômment wíth sóme Ünicòde
         function foo(bar) {
             var dummy;
             document.write ( bar ); /* Write */
