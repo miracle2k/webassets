@@ -1,3 +1,4 @@
+# coding: utf-8
 from __future__ import print_function
 from __future__ import with_statement
 
@@ -203,8 +204,8 @@ class TestExternalToolClass(object):
             method = 'input'
         assert getattr(Filter, 'output') is None
         assert getattr(Filter, 'open') is None
-        Filter().input(StringIO('bla'), StringIO())
-        assert Filter.result == ([], 'bla')
+        Filter().input(StringIO(u'błä'), StringIO())
+        assert Filter.result == ([], u'błä')
 
     def test_method_output(self):
         """The method=output."""
@@ -212,8 +213,8 @@ class TestExternalToolClass(object):
             method = 'output'
         assert getattr(Filter, 'input') is None
         assert getattr(Filter, 'open') is None
-        Filter().output(StringIO('bla'), StringIO())
-        assert Filter.result == ([], 'bla')
+        Filter().output(StringIO(u'błä'), StringIO())
+        assert Filter.result == ([], u'błä')
 
     def test_method_open(self):
         """The method=open."""
@@ -449,18 +450,23 @@ def test_callable_filter():
 class TestBuiltinFilters(TempEnvironmentHelper):
 
     default_files = {
-        'foo.css': """
+        'foo.css': u"""
+        /* Cômment wíth sóme Ünicòde */
             h1  {
                 font-family: "Verdana"  ;
                 color: #FFFFFF;
             }
         """,
-        'foo.js': """
+        'foo.js': u"""
+        // Cômment wíth sóme Ünicòde
         function foo(bar) {
             var dummy;
             document.write ( bar ); /* Write */
         }
         """,
+        'foo2.js': """
+        more();
+        """
     }
 
     def test_cssmin(self):
@@ -642,7 +648,8 @@ class TestJinja2(TempEnvironmentHelper):
 class TestClosure(TempEnvironmentHelper):
 
     default_files = {
-        'foo.js': """
+        'foo.js': u"""
+        // Cômment wíth sóme Ünicòde
         function foo(bar) {
             var dummy;
             document.write ( bar ); /* Write */
