@@ -28,9 +28,9 @@ except ImportError:
             except expected as e:
                 if isinstance(regexp, basestring):
                     regexp = re.compile(regexp)
-                if not regexp.search(str(e.message)):
-                    raise self.failureException('"%s" does not match "%s"' %
-                             (regexp.pattern, str(e.message)))
+                if not regexp.search(str(e)):
+                    raise Exception('"%s" does not match "%s"' %
+                             (regexp.pattern, str(e)))
             else:
                 if hasattr(expected,'__name__'): excName = expected.__name__
                 else: excName = str(expected)
