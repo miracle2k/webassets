@@ -146,13 +146,14 @@ class TimestampUpdater(BundleDefUpdater):
        # Recurse through the bundle hierarchy. Check the timestamp of all
         # the bundle source files, as well as any additional
         # dependencies that we are supposed to watch.
+        from webassets.bundle import wrap
         for iterator, result in (
             (lambda e: map(lambda s: s[1], bundle.resolve_contents(e)), True),
             (bundle.resolve_depends, SKIP_CACHE)
         ):
             for item in iterator(ctx):
                 if isinstance(item, Bundle):
-                    nested_result = self.check_timestamps(item, ctx, o_modified)
+                    nested_result = self.check_timestamps(item, wrap(ctx, item), o_modified)
                     if nested_result:
                         return nested_result
                 elif not is_url(item):

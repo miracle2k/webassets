@@ -749,7 +749,10 @@ class Bundle(object):
             urls = []
             for org, cnt in self.resolve_contents(ctx):
                 if isinstance(cnt, Bundle):
-                    urls.extend(org.urls(ctx, *args, **kwargs))
+                    urls.extend(org._urls(
+                        wrap(ctx, cnt),
+                        merge_filters(extra_filters, self.filters),
+                        *args, **kwargs))
                 elif is_url(cnt):
                     urls.append(cnt)
                 else:
