@@ -107,9 +107,6 @@ class Resolver(object):
     The class is designed for maximum extensibility.
     """
 
-    def __init__(self, env):
-        self.env = env
-
     def glob(self, basedir, expr):
         """Generator that runs when a glob expression needs to be
         resolved. Yields a list of absolute filenames.
@@ -136,13 +133,13 @@ class Resolver(object):
                 return expr
             raise IOError("'%s' does not exist" % expr)
 
-    def search_env_directory(self, item):
+    def search_env_directory(self, ctx, item):
         """This is called by :meth:`search_for_source` when no
         :attr:`Environment.load_path` is set.
         """
-        return self.consider_single_directory(self.env.directory, item)
+        return self.consider_single_directory(ctx.directory, item)
 
-    def search_load_path(self, item):
+    def search_load_path(self, ctx, item):
         """This is called by :meth:`search_for_source` when a
         :attr:`Environment.load_path` is set.
 
@@ -152,21 +149,21 @@ class Resolver(object):
         if has_magic(item):
             # We glob all paths.
             result = []
-            for path in self.env.load_path:
+            for path in ctx.load_path:
                 result.extend(list(self.glob(path, item)))
             return result
         else:
             # Single file, stop when we find the first match, or error
             # out otherwise. We still use glob() because then the load_path
             # itself can contain globs. Neat!
-            for path in self.env.load_path:
+            for path in ctx.load_path:
                 result = list(self.glob(path, item))
                 if result:
                     return result
             raise IOError("'%s' not found in load path: %s" % (
-                item, self.env.load_path))
+                item, ctx.load_path))
 
-    def search_for_source(self, item):
+    def search_for_source(self, ctx, item):
         """Called by :meth:`resolve_source` after determining that
         ``item`` is a relative filesystem path.
 
@@ -174,12 +171,12 @@ class Resolver(object):
         :meth:`resolve_source` deal with absolute paths, urls and
         other types of items that a bundle may contain.
         """
-        if self.env.load_path:
-            return self.search_load_path(item)
+        if ctx.load_path:
+            return self.search_load_path(ctx, item)
         else:
-            return self.search_env_directory(item)
+            return self.search_env_directory(ctx, item)
 
-    def query_url_mapping(self, filepath):
+    def query_url_mapping(self, ctx, filepath):
         """Searches the environment-wide url mapping (based on the
         urls assigned to each directory in the load path). Returns
         the correct url for ``filepath``.
@@ -188,9 +185,9 @@ class Resolver(object):
         method, instead of simply falling back to ``super()``.
         """
         # Build a list of dir -> url mappings
-        mapping = list(self.env.url_mapping.items())
+        mapping = list(ctx.url_mapping.items())
         try:
-            mapping.append((self.env.directory, self.env.url))
+            mapping.append((ctx.directory, ctx.url))
         except EnvironmentError:
             # Rarely, directory/url may not be set. That's ok.
             pass
@@ -209,7 +206,7 @@ class Resolver(object):
                 return url_prefix_join(url, rel_path)
         raise ValueError('Cannot determine url for %s' % filepath)
 
-    def resolve_source(self, item):
+    def resolve_source(self, ctx, item):
         """Given ``item`` from a Bundle's contents, this has to
         return the final value to use, usually an absolute
         filesystem path.
@@ -242,9 +239,9 @@ class Resolver(object):
         if is_url(item) or path.isabs(item):
             return item
 
-        return self.search_for_source(item)
+        return self.search_for_source(ctx, item)
 
-    def resolve_output_to_path(self, target, bundle):
+    def resolve_output_to_path(self, ctx, target, bundle):
         """Given ``target``, this has to return the absolute
         filesystem path to which the output file of ``bundle``
         should be written.
@@ -255,9 +252,9 @@ class Resolver(object):
         If a version-placeholder is used (``%(version)s``, it is
         still unresolved at this point.
         """
-        return path.join(self.env.directory, target)
+        return path.join(ctx.directory, target)
 
-    def resolve_source_to_url(self, filepath, item):
+    def resolve_source_to_url(self, ctx, filepath, item):
         """Given the absolute filesystem path in ``filepath``, as
         well as the original value from :attr:`Bundle.contents` which
         resolved to this path, this must return the absolute url
@@ -269,9 +266,9 @@ class Resolver(object):
         This method should raise a ``ValueError`` if the url cannot
         be determined.
         """
-        return self.query_url_mapping(filepath)
+        return self.query_url_mapping(ctx, filepath)
 
-    def resolve_output_to_url(self, target):
+    def resolve_output_to_url(self, ctx, target):
         """Given ``target``, this has to return the url through
         which the output file can be referenced.
 
@@ -288,11 +285,11 @@ class Resolver(object):
         if not path.isabs(target):
             # If relative, output files are written to env.directory,
             # thus we can simply base all values off of env.url.
-            return url_prefix_join(self.env.url, target)
+            return url_prefix_join(ctx.url, target)
         else:
             # If an absolute output path was specified, then search
             # the url mappings.
-            return self.query_url_mapping(target)
+            return self.query_url_mapping(ctx, target)
 
 
 class BundleRegistry(object):
@@ -685,7 +682,7 @@ class BaseEnvironment(BundleRegistry, ConfigurationContext):
         BundleRegistry.__init__(self)
         self._config = self.config_storage_class(self)
         ConfigurationContext.__init__(self, self._config)
-        self.resolver = self.resolver_class(self)
+        self.resolver = self.resolver_class()
 
         # directory, url currently do not have default values
         #

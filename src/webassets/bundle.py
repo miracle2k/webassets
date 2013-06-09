@@ -205,7 +205,7 @@ class Bundle(object):
             resolved = []
             for item in self.contents:
                 try:
-                    result = ctx.resolver.resolve_source(item)
+                    result = ctx.resolver.resolve_source(ctx, item)
                 except IOError as e:
                     raise BundleError(e)
                 if not isinstance(result, list):
@@ -247,7 +247,7 @@ class Bundle(object):
             resolved = []
             for item in self.depends:
                 try:
-                    result = ctx.resolver.resolve_source(item)
+                    result = ctx.resolver.resolve_source(ctx, item)
                 except IOError as e:
                     raise BundleError(e)
                 if not isinstance(result, list):
@@ -298,7 +298,7 @@ class Bundle(object):
         """
         if not ctx:
             ctx = wrap(self.env, self)
-        output = ctx.resolver.resolve_output_to_path(self.output, self)
+        output = ctx.resolver.resolve_output_to_path(ctx, self.output, self)
         if has_placeholder(output):
             output = output % {'version': version or self.get_version(ctx)}
         return output
@@ -680,7 +680,7 @@ class Bundle(object):
         url = self.output
         if has_placeholder(url):
             url = url % {'version': version}
-        url = ctx.resolver.resolve_output_to_url(url)
+        url = ctx.resolver.resolve_output_to_url(ctx, url)
 
         if ctx.url_expire or (
                 ctx.url_expire is None and not has_placeholder(self.output)):
@@ -731,13 +731,13 @@ class Bundle(object):
                     urls.append(cnt)
                 else:
                     try:
-                        url = ctx.resolver.resolve_source_to_url(cnt, org)
+                        url = ctx.resolver.resolve_source_to_url(ctx, cnt, org)
                     except ValueError:
                         # If we cannot generate a url to a path outside the
                         # media directory. So if that happens, we copy the
                         # file into the media directory.
                         external = pull_external(ctx, cnt)
-                        url = ctx.resolver.resolve_source_to_url(external, org)
+                        url = ctx.resolver.resolve_source_to_url(ctx, external, org)
 
                     urls.append(url)
             return urls
@@ -792,6 +792,8 @@ def get_all_bundle_files(bundle, ctx=None):
     Making this a helper function rather than a part of the official
     Bundle feels right.
     """
+    if not ctx:
+        ctx = wrap(bundle.env, bundle)
     files = []
     for _, c in bundle.resolve_contents(ctx):
         if isinstance(c, Bundle):

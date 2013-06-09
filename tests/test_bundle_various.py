@@ -592,9 +592,9 @@ class TestResolverAPI(TempEnvironmentHelper):
         """Test the method is properly used in the build process.
         """
         class MyResolver(self.env.resolver_class):
-            def resolve_source(self, item):
-                return path.join(self.env.directory, 'foo')
-        self.env.resolver = MyResolver(self.env)
+            def resolve_source(self, ctx, item):
+                return path.join(ctx.directory, 'foo')
+        self.env.resolver = MyResolver()
 
         self.create_files({'foo': 'foo'})
         self.mkbundle('bar', output='out').build()
@@ -604,9 +604,9 @@ class TestResolverAPI(TempEnvironmentHelper):
         """The bundle dependencies also go through normalization.
         """
         class MyResolver(self.env.resolver_class):
-            def resolve_source(self, item):
-                return path.join(self.env.directory, item[::-1])
-        self.env.resolver = MyResolver(self.env)
+            def resolve_source(self, ctx, item):
+                return path.join(ctx.directory, item[::-1])
+        self.env.resolver = MyResolver()
 
         self.create_files(['foo', 'dep', 'out'])
         b = self.mkbundle('oof', depends=('ped',), output='out')
@@ -626,9 +626,9 @@ class TestResolverAPI(TempEnvironmentHelper):
         See https://github.com/miracle2k/webassets/issues/71
         """
         class MyResolver(self.env.resolver_class):
-            def resolve_source(self, item):
-                return path.join(self.env.directory, (".".join(item)))
-        self.env.resolver = MyResolver(self.env)
+            def resolve_source(self, ctx, item):
+                return path.join(ctx.directory, (".".join(item)))
+        self.env.resolver = MyResolver()
 
         self.create_files({'foo.css': 'foo'})
         bundle = self.mkbundle(('foo', 'css'), output='out')
@@ -654,7 +654,7 @@ class TestResolverAPI(TempEnvironmentHelper):
         This is so that implementations can apply url encoding without
         worrying.
         """
-        def dummy(url):
+        def dummy(ctx, url):
             return url % {'version': 'not the correct version'}
         self.env.resolver.resolve_output_to_url = dummy
         bundle = self.mkbundle('in', output='out-%(version)s')

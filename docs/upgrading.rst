@@ -22,7 +22,13 @@ Development Version
           bundle.build()
 
 - Filters can no longer access a ``self.env`` attribute. It has been renamed
-  to ``self.ctx``.
+  to ``self.ctx``, which provides a compatible object.
+
+- The :class:`Resolver` API has changed. Rather than being bound to an
+  environment via the constructor, the individual methods now receive
+  a ``ctx` object, which allows access to the environment's settings.
+
+  See :ref:`the page on implementing resolvers <custom_resolver>`.
 
 
 In 0.8
