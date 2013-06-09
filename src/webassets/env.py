@@ -294,47 +294,11 @@ class Resolver(object):
             return self.query_url_mapping(target)
 
 
-# Those are config keys used by the environment. Framework-wrappers may
-# find this list useful if they desire to prefix those settings. For example,
-# in Django, it would be ASSETS_DEBUG. Other config keys are encouraged to use
-# their own namespacing, so they don't need to be prefixed. For example, a
-# filter setting might be CSSMIN_BIN.
-env_options = [
-    'directory', 'url', 'debug', 'cache', 'updater', 'auto_build',
-    'url_expire', 'versions', 'manifest', 'load_path', 'url_mapping']
+class BundleRegistry(object):
 
-
-class BaseEnvironment(object):
-    """Abstract base class for :class:`Environment` with slightly more generic
-    assumptions, to ease subclassing.
-    """
-
-    config_storage_class = None
-    resolver_class = Resolver
-
-    def __init__(self, **config):
+    def __init__(self):
         self._named_bundles = {}
         self._anon_bundles = []
-        self._config = self.config_storage_class(self)
-        self.resolver = self.resolver_class(self)
-
-        # directory, url currently do not have default values
-        #
-        # some thought went into these defaults:
-        #   - enable url_expire, because we want to encourage the right thing
-        #   - default to hash versions, for the same reason: they're better
-        #   - manifest=cache because hash versions are slow
-        self.config.setdefault('debug', False)
-        self.config.setdefault('cache', True)
-        self.config.setdefault('url_expire', None)
-        self.config.setdefault('auto_build', True)
-        self.config.setdefault('manifest', 'cache')
-        self.config.setdefault('versions', 'hash')
-        self.config.setdefault('updater', 'timestamp')
-        self.config.setdefault('load_path', [])
-        self.config.setdefault('url_mapping', {})
-
-        self.config.update(config)
 
     def __iter__(self):
         return chain(six.itervalues(self._named_bundles), self._anon_bundles)
@@ -414,6 +378,48 @@ class BaseEnvironment(object):
         for bundle in bundles:
             self._anon_bundles.append(bundle)
             bundle.env = self    # take ownership
+
+
+# Those are config keys used by the environment. Framework-wrappers may
+# find this list useful if they desire to prefix those settings. For example,
+# in Django, it would be ASSETS_DEBUG. Other config keys are encouraged to use
+# their own namespacing, so they don't need to be prefixed. For example, a
+# filter setting might be CSSMIN_BIN.
+env_options = [
+    'directory', 'url', 'debug', 'cache', 'updater', 'auto_build',
+    'url_expire', 'versions', 'manifest', 'load_path', 'url_mapping']
+
+
+class BaseEnvironment(BundleRegistry):
+    """Abstract base class for :class:`Environment` with slightly more generic
+    assumptions, to ease subclassing.
+    """
+
+    config_storage_class = None
+    resolver_class = Resolver
+
+    def __init__(self, **config):
+        BundleRegistry.__init__(self)
+        self._config = self.config_storage_class(self)
+        self.resolver = self.resolver_class(self)
+
+        # directory, url currently do not have default values
+        #
+        # some thought went into these defaults:
+        #   - enable url_expire, because we want to encourage the right thing
+        #   - default to hash versions, for the same reason: they're better
+        #   - manifest=cache because hash versions are slow
+        self.config.setdefault('debug', False)
+        self.config.setdefault('cache', True)
+        self.config.setdefault('url_expire', None)
+        self.config.setdefault('auto_build', True)
+        self.config.setdefault('manifest', 'cache')
+        self.config.setdefault('versions', 'hash')
+        self.config.setdefault('updater', 'timestamp')
+        self.config.setdefault('load_path', [])
+        self.config.setdefault('url_mapping', {})
+
+        self.config.update(config)
 
     def append_path(self, path, url=None):
         """Appends ``path`` to :attr:`load_path`, and adds a
