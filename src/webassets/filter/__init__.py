@@ -200,7 +200,7 @@ class Filter(object):
 
         value = None
         if not setting is False:
-            value = self.ctx.config.get(setting, None)
+            value = self.ctx.get(setting, None)
 
         if value is None and not env is False:
             value = os.environ.get(env)
