@@ -23,6 +23,15 @@ def has_placeholder(s):
 
 
 class ContextWrapper(object):
+    """Implements a hierarchy-aware configuration context.
+
+    Since each bundle can provide settings that augment the values of
+    the parent bundle, and ultimately the environment, as the bundle
+    hierarchy is processed, this class is used to provide an interface
+    that searches through the hierarchy of settings. It's what you get
+    when you are given a ``ctx`` value.
+    """
+
     def __init__(self, parent, overwrites):
         self._parent, self._overwrites = parent, overwrites
 
@@ -39,6 +48,8 @@ class ContextWrapper(object):
             return self.getattr(self._parent, item)
 
     def getattr(self, object, item):
+        # Helper because Bundles are special in that the config attributes
+        # are in bundle.config (bundle.config.url vs env.url or ctx.url).
         if isinstance(object, Bundle):
             return getattr(object.config, item)
         else:
@@ -53,10 +64,16 @@ class ContextWrapper(object):
 
 
 def wrap(parent, overwrites):
+    """Return a context object where the values from ``overwrites``
+    augment the ``parent`` configuration. See :class:`ContextWrapper`.
+    """
     return ContextWrapper(parent, overwrites)
 
 
 class BundleConfig(DictConfigStorage, ConfigurationContext):
+    """A configuration dict that also supports Environment-like attribute
+    access, i.e. ``config['resolver']`` and ``config.resolver``.
+    """
     def __init__(self, bundle):
         DictConfigStorage.__init__(self, bundle)
         ConfigurationContext.__init__(self, self)
