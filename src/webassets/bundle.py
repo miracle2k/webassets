@@ -11,7 +11,7 @@ from .merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
 from .updater import SKIP_CACHE
 from .exceptions import BundleError, BuildError
 from .utils import cmp_debug_levels
-from .env import ConfigurationContext, DictConfigStorage, Environment
+from .env import ConfigurationContext, DictConfigStorage, BaseEnvironment
 from .utils import is_url
 
 
@@ -55,10 +55,16 @@ class ContextWrapper(object):
         else:
             return getattr(object, item)
 
+    def get(self, key, default=None):
+        try:
+            return self.__getitem__(key)
+        except KeyError:
+            return default
+
     @property
     def environment(self):
         """Find the root environment context."""
-        if isinstance(self._parent, Environment):
+        if isinstance(self._parent, BaseEnvironment):
             return self._parent
         return self._parent.environment
 
