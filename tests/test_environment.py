@@ -8,9 +8,7 @@ from webassets import Environment
 from webassets.env import RegisterError
 from webassets import Bundle
 from webassets.test import TempEnvironmentHelper
-from webassets.exceptions import ImminentDeprecationWarning
 
-from .helpers import check_warnings
 
 
 class TestEnvApi(object):
@@ -218,46 +216,3 @@ class TestSpecialProperties(object):
         # Class assign
         self.m.cache = instance = BaseCache
         assert isinstance(self.m.cache, BaseCache)
-
-
-class TestVersionSystemDeprecations(TempEnvironmentHelper):
-    """With the introduction of the ``Environment.version`` system,
-    some functionality has been deprecated.
-    """
-
-    def test_expire_option(self):
-        # Assigning to the expire option raises a deprecation warning
-        with check_warnings(("", ImminentDeprecationWarning)) as w:
-            self.env.expire = True
-        with check_warnings(("", ImminentDeprecationWarning)):
-            self.env.config['expire'] = True
-            # Reading the expire option raises a warning also.
-        with check_warnings(("", ImminentDeprecationWarning)):
-            x = self.env.expire
-        with check_warnings(("", ImminentDeprecationWarning)):
-            x = self.env.config['expire']
-
-    def test_expire_option_passthrough(self):
-        """While "expire" no longer exists, we attempt to provide an
-        emulation."""
-        with check_warnings(("", ImminentDeprecationWarning)):
-            # Read
-            self.env.url_expire = False
-            assert self.env.expire == False
-            self.env.url_expire = True
-            assert self.env.expire == 'querystring'
-            # Write
-            self.env.expire = False
-            assert self.env.url_expire == False
-            self.env.expire = 'querystring'
-            assert self.env.url_expire == True
-            # "filename" needs to be migrated manually
-            assert_raises(DeprecationWarning, setattr, self.env, 'expire', 'filename')
-
-    def test_updater_option_passthrough(self):
-        """Certain values of the "updater" option have been replaced with
-        auto_build."""
-        with check_warnings(("", ImminentDeprecationWarning)):
-            self.env.auto_build = True
-            self.env.updater = 'never'
-            assert self.env.auto_build == False

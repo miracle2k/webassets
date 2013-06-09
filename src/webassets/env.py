@@ -1,6 +1,5 @@
 from os import path
 from itertools import chain
-import warnings
 from webassets import six
 from webassets.six.moves import map
 from webassets.six.moves import zip
@@ -15,7 +14,6 @@ from .bundle import Bundle, is_url
 from .cache import get_cache
 from .version import get_versioner, get_manifest
 from .updater import get_updater
-from .exceptions import ImminentDeprecationWarning
 from .utils import urlparse
 
 
@@ -80,41 +78,11 @@ class ConfigStorage(object):
     def _get_deprecated(self, key):
         """For deprecated keys, fake the values as good as we can.
         Subclasses need to call this in __getitem__."""
-        self._warn_key_deprecation(key)
-        if key == 'expire':
-            return 'querystring' if self['url_expire'] else False
+        pass
 
     def _set_deprecated(self, key, value):
-        self._warn_key_deprecation(key)
-        if key == 'expire':
-            if value == 'filename':
-                raise DeprecationWarning(
-                    ('The "expire" option has been deprecated. Instead '
-                     'of the "filesystem" expiry mode, use the %(version)s '
-                     'placeholder in your bundle\'s output filename.'))
-            self['url_expire'] = bool(value)
-            return True
-        if key == 'updater':
-            if value == 'never':
-                self['auto_build'] = False
-                warnings.warn((
-                    'The "updater" option no longer can be set to False '
-                    'or "never" to disable automatic building. Instead, '
-                    'use the new "auto_build" boolean option.'),
-                        ImminentDeprecationWarning)
-                return True
-
-    def _warn_key_deprecation(self, key):
-        """Subclasses should override this to provide custom
-        warnings with their mapped keys in the error message."""
-        import warnings
-        if  key == 'expire':
-            warnings.warn((
-                'The "expire" option has been deprecated in 0.7, and '
-                'replaced with a boolean option "url_expire". If you '
-                'want to append something other than a timestamp to '
-                'your URLs, check out the "versions" option.'),
-                    ImminentDeprecationWarning)
+        """Same for __setitem__."""
+        pass
 
 
 def url_prefix_join(prefix, fragment):
@@ -720,14 +688,6 @@ class BaseEnvironment(object):
     load path along with their respective url spaces, instead of
     modifying this setting directly.
     """)
-
-    # Deprecated attributes, remove in 0.8?; warnings are raised by
-    # the config backend.
-    def _set_expire(self, expire):
-        self.config['expire'] = expire
-    def _get_expire(self):
-        return self.config['expire']
-    expire = property(_get_expire, _set_expire)
 
 
 class DictConfigStorage(ConfigStorage):

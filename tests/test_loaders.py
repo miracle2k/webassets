@@ -5,9 +5,7 @@ import textwrap
 from webassets.utils import StringIO
 from webassets.bundle import Bundle
 from webassets.loaders import PythonLoader, YAMLLoader, LoaderError
-from webassets.exceptions import ImminentDeprecationWarning
 from nose import SkipTest
-from .helpers import check_warnings
 
 
 class TestYAML(object):
@@ -122,15 +120,6 @@ class TestYAML(object):
         """Check that "url" and "directory" are not required.
         """
         self.loader("""foo: bar""").load_environment()
-
-    def test_load_deprecated_attrs(self):
-        with check_warnings(("", ImminentDeprecationWarning)) as w:
-            environment = self.loader("""
-            url: /foo
-            directory: something
-            expire: false
-            """).load_environment()
-            assert environment.url_expire == False
 
     def test_load_environment_directory_base(self):
         environment = self.loader("""
