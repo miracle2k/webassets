@@ -148,10 +148,10 @@ class Compass(Filter):
             # information about the urls under which media files will be
             # available. This is hard for two reasons: First, the options in
             # question aren't supported on the command line, so we need to write
-            # a temporary config file. Secondly, the assume a defined and
+            # a temporary config file. Secondly, they assume defined and
             # separate directories for "images", "stylesheets" etc., something
             # webassets knows nothing of: we don't support the user defining
-            # something such directories. Because we traditionally had this
+            # such directories. Because we traditionally had this
             # filter point all type-specific directories to the root media
             # directory, we will define the paths to match this. In other
             # words, in Compass, both inline-image("img/test.png) and
@@ -163,10 +163,10 @@ class Compass(Filter):
             # the configuration file via the COMPASS_CONFIG setting (see
             # tickets #36 and #125).
             #
-            # Note that is also the --relative-assets option, which we can't
-            # use because it calculates an actual relative path between the
-            # image and the css output file, the latter being in a temporary
-            # directory in our case.
+            # Note that there is also the --relative-assets option, which we
+            # can't use because it calculates an actual relative path between
+            # the image and the css output file, the latter being in a
+            # temporary directory in our case.
             config = CompassConfig(
                 project_path=self.ctx.directory,
                 http_path=self.ctx.url,
