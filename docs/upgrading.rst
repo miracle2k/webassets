@@ -14,6 +14,16 @@ Development Version
   a ``python`` keyword argument. This only affects you if you have
   implemented a custom cache class.
 
+- The :meth:`Bundle.build` and :meth:`Bundle.url` methods no longer accept
+  an environment argument. To work with a Bundle that is not attached to
+  an environment already, use the following syntax instead::
+
+      with bundle.bind(env):
+          bundle.build()
+
+- Filters can no longer access a ``self.env`` attribute. It has been renamed
+  to ``self.ctx``.
+
 
 In 0.8
 ~~~~~~

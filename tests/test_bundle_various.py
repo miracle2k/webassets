@@ -143,7 +143,7 @@ class TestBundleConfig(TempEnvironmentHelper):
 class DummyVersion(Version):
     def __init__(self, version=None):
         self.version = version
-    def determine_version(self, bundle, env, hunk=None):
+    def determine_version(self, bundle, ctx, hunk=None):
         if not self.version:
             raise VersionIndeterminableError('dummy has no version')
         return self.version
@@ -152,7 +152,7 @@ class DummyManifest(Manifest):
     def __init__(self, version=None):
         self.log = []
         self.version = version
-    def query(self, bundle, env):
+    def query(self, bundle, ctx):
         return self.version
     def remember(self, *a, **kw):
         self.log.append((a, kw))

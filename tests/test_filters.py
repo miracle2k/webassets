@@ -69,7 +69,7 @@ class TestFilterBaseClass(object):
         env = Environment(None, None)
         env.config['attr1'] = 'bar'
         env.config['attr4'] = 'bar'
-        f = TestFilter(); f.env = env; f.setup()
+        f = TestFilter(); f.ctx = env; f.setup()
         assert f.attr1 == 'bar'
         assert f.attr4 is None    # Was configured to not support env
 
@@ -78,7 +78,7 @@ class TestFilterBaseClass(object):
         """
         m = Environment(None, None)
         f = Filter()
-        f.set_environment(m)
+        f.set_context(m)
         get_config = f.get_config
 
         # For the purposes of the following tests, we use two test
@@ -117,7 +117,7 @@ class TestFilterBaseClass(object):
         """
         m = Environment(None, None)
         f = Filter()
-        f.set_environment(m)
+        f.set_context(m)
         get_config = f.get_config
 
         with os_environ_sandbox():
@@ -824,13 +824,15 @@ class TestSass(TempEnvironmentHelper):
         assert '-sass-debug-info' in self.get('out.css')
 
         # If the value is None (the default), then the filter will look
-        # at the debug setting to determine whether to include debug info.
+        # at the global debug setting to determine whether to include debug
+        # info. Note: It looks at environment.debug! The local bundle.debug
+        # is likely to be always False for Sass, so is of little help.
         self.env.config['SASS_DEBUG_INFO'] = None
-        self.env.debug  = True
+        self.env.debug = True
         self.mkbundle('foo.sass', filters=get_filter('sass'),
                       output='out.css', debug=False).build(force=True)
         assert '-sass-debug-info' in self.get('out.css')
-        self.env.debug  = False
+        self.env.debug = False
         self.mkbundle('foo.sass', filters=get_filter('sass'),
                       output='out.css').build(force=True)
         assert not '-sass-debug-info' in self.get('out.css')

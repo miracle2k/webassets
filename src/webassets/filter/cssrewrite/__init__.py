@@ -65,7 +65,7 @@ class CSSRewrite(CSSUrlRewriter):
             # rewritten in form of a url, so we can later easily match it
             # against the urls encountered in the CSS.
             replace_dict = False
-            root = addsep(self.env.directory)
+            root = addsep(self.ctx.directory)
             replace_dict = OrderedDict()
             for repldir, sub in self.replace.items():
                 repldir = addsep(os.path.normpath(join(root, repldir)))

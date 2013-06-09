@@ -168,8 +168,8 @@ class BuildCommand(Command):
 
             try:
                 if not overwrite_filename:
-                    bundle.build(force=True, env=self.environment,
-                        disable_cache=no_cache)
+                    with bundle.bind(self.environment):
+                        bundle.build(force=True, disable_cache=no_cache)
                 else:
                     # TODO: Rethink how we deal with container bundles here.
                     # As it currently stands, we write all child bundles
@@ -178,8 +178,9 @@ class BuildCommand(Command):
                     # using the ``Hunk`` objects that build() would return
                     # anyway.
                     output = StringIO()
-                    bundle.build(force=True, env=self.environment, output=output,
-                        disable_cache=no_cache)
+                    with bundle.bind(self.environment):
+                        bundle.build(force=True, output=output,
+                            disable_cache=no_cache)
                     if directory:
                         # Only auto-create directories in this mode.
                         output_dir = os.path.dirname(overwrite_filename)
