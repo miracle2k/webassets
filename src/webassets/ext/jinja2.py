@@ -178,7 +178,8 @@ class AssetsExtension(Extension):
             *self.resolve_contents(files, env), **bundle_kwargs)
 
         # Retrieve urls (this may or may not cause a build)
-        urls = bundle.urls(env=env)
+        with bundle.bind(env):
+            urls = bundle.urls()
 
         # For each url, execute the content of this template tag (represented
         # by the macro ```caller`` given to use by Jinja2).
