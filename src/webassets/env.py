@@ -669,6 +669,12 @@ class ConfigurationContext(object):
     modifying this setting directly.
     """)
 
+    def _set_resolver(self, resolver):
+        self._storage['resolver'] = resolver
+    def _get_resolver(self):
+        return self._storage['resolver']
+    resolver = property(_get_resolver, _set_resolver)
+
 
 class BaseEnvironment(BundleRegistry, ConfigurationContext):
     """Abstract base class for :class:`Environment` with slightly more
@@ -682,7 +688,6 @@ class BaseEnvironment(BundleRegistry, ConfigurationContext):
         BundleRegistry.__init__(self)
         self._config = self.config_storage_class(self)
         ConfigurationContext.__init__(self, self._config)
-        self.resolver = self.resolver_class()
 
         # directory, url currently do not have default values
         #
@@ -699,6 +704,7 @@ class BaseEnvironment(BundleRegistry, ConfigurationContext):
         self.config.setdefault('updater', 'timestamp')
         self.config.setdefault('load_path', [])
         self.config.setdefault('url_mapping', {})
+        self.config.setdefault('resolver', self.resolver_class())
 
         self.config.update(config)
 
