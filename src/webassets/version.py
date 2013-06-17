@@ -276,7 +276,7 @@ class JsonManifest(FileManifest):
 
     def _save_manifest(self):
         with open(self.filename, 'w') as f:
-            self.json.dump(self.manifest, f)
+            self.json.dump(self.manifest, f, indent=4, sort_keys=True)
 
 
 class CacheManifest(Manifest):
