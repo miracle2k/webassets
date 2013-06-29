@@ -509,34 +509,32 @@ class Bundle(object):
             # If we are given a stream, just write to it.
             output.write(hunk.data())
         else:
-            # If it doesn't exist yet, create the target directory.
-            output = path.join(env.directory, self.output)
-            output_dir = path.dirname(output)
-            if not path.exists(output_dir):
-                os.makedirs(output_dir)
+            if has_placeholder(self.output) and not env.versions:
+                raise BuildError((
+                    'You have not set the "versions" option, but %s '
+                    'uses a version placeholder in the output target'
+                        % self))
 
             version = None
             if env.versions:
                 version = env.versions.determine_version(self, env, hunk)
 
-            if not has_placeholder(self.output):
-                hunk.save(self.resolve_output(env))
-            else:
-                if not env.versions:
-                    raise BuildError((
-                        'You have not set the "versions" option, but %s '
-                        'uses a version placeholder in the output target'
-                            % self))
-                output = self.resolve_output(env, version=version)
-                hunk.save(output)
-                self.version = version
+            output_filename = self.resolve_output(env, version=version)
+
+            # If it doesn't exist yet, create the target directory.
+            output_dir = path.dirname(output_filename)
+            if not path.exists(output_dir):
+                os.makedirs(output_dir)
+
+            hunk.save(output_filename)
+            self.version = version
 
             if env.manifest:
                 env.manifest.remember(self, env, version)
             if env.versions and version:
                 # Hook for the versioner (for example set the timestamp of
                 # the file) to the actual version.
-                env.versions.set_version(self, env, output, version)
+                env.versions.set_version(self, env, output_filename, version)
 
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
