@@ -16,12 +16,16 @@ class Jinja2(Filter):
     .. code-block:: python
 
         Bundle('input.css', filters=Jinja2(context={'foo': 'bar'}))
+    
+    Additionally to enable template loading mechanics from your project you can provide
+    `JINJA2_ENV` or `jinja2_env` arg to make use of already created environment.
     """
 
     name = 'jinja2'
     max_debug_level = None
     options = {
         'context': 'JINJA2_CONTEXT',
+        'jinja2_env': 'JINJA2_ENV'
     }
 
     def setup(self):
@@ -34,4 +38,5 @@ class Jinja2(Filter):
         super(Jinja2, self).setup()
 
     def input(self, _in, out, **kw):
-        out.write(self.jinja2.Template(_in.read()).render(self.context or {}))
+        tpl_factory = self.jinja2_env.from_string if self.jinja2_env else self.jinja2.Template
+        out.write(tpl_factory(_in.read()).render(self.context or {}))
