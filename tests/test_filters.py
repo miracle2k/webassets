@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 from __future__ import with_statement
 
@@ -321,10 +322,10 @@ class TestExternalToolClass(object):
             intercepted['filename'] = argv[0]
             with open(argv[0], 'r') as f:
                 # File has been generated with input data
-                assert f.read() == 'foo'
+                assert f.read().decode('utf-8') == u'fooñ'
             return DEFAULT
         self.popen.side_effect = check_input_file
-        Filter.subprocess(['{input}'], StringIO(), data='foo')
+        Filter.subprocess(['{input}'], StringIO(), data=u'fooñ')
         # No stdin was passed
         self.popen.return_value.communicate.assert_called_with(None)
         # File has been deleted
@@ -343,13 +344,13 @@ class TestExternalToolClass(object):
         def fake_output_file(argv,  **kw):
             intercepted['filename'] = argv[0]
             with open(argv[0], 'w') as f:
-                f.write('bat')
+                f.write(u'batñ'.encode('utf-8'))
             return DEFAULT
         self.popen.side_effect = fake_output_file
         # We get the result we generated in the hook above
-        out = StringIO()
+        out = StringIO(u'')
         Filter.subprocess(['{output}'], out)
-        assert out.getvalue() == 'bat'
+        assert out.getvalue() == u'batñ'
         # File has been deleted
         assert not os.path.exists(intercepted['filename'])
 
