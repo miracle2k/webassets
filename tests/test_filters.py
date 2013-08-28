@@ -589,7 +589,10 @@ class TestCoffeeScript(TempEnvironmentHelper):
         self.env.config['COFFEE_NO_BARE'] = True
         self.create_files({'in': "@a = 1"})
         self.mkbundle('in', filters='coffeescript', output='out.js').build()
-        assert self.get('out.js') == '(function() {\n\n  this.a = 1;\n\n}).call(this);\n'
+        expected = '(function() {\n\n  this.a = 1;\n\n}).call(this);\n'
+        expected = expected.replace('\n', '')
+        result = self.get('out.js').replace('\n', '')
+        assert expected == result
 
         self.env.config['COFFEE_NO_BARE'] = False
         self.create_files({'in': "@a = 1"})
@@ -1160,4 +1163,7 @@ class TestTypeScript(TempEnvironmentHelper):
 
     def test(self):
         self.mkbundle('foo.ts', filters='typescript', output='out.js').build()
-        assert self.get("out.js") == """var X = (function () {\n    function X() { }\n    return X;\n})();\n"""
+        expected = 'var X = (function () {    function X() {    }    return X;})();'
+        expected = expected.replace('\n', '')
+        res = self.get('out.js').replace('\n', '')
+        assert expected == res
