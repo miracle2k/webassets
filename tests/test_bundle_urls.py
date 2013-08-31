@@ -10,6 +10,7 @@ from nose.tools import assert_raises, assert_equal
 from nose import SkipTest
 
 from webassets import Bundle
+from webassets.env import Resolver
 from webassets.exceptions import BundleError
 from webassets.test import TempEnvironmentHelper, TempDirHelper
 
@@ -45,6 +46,14 @@ class BaseUrlsTester(TempEnvironmentHelper):
                 return Bundle._make_url(self, *a, **kw)
         self.MockBundle = MockBundle
 
+        """
+        class MockResolver(Resolver):
+            def resolve_source(self, item):
+                return item
+
+        self.env.resolver = MockResolver(self.env)
+        """
+
 
 class TestUrlsVarious(BaseUrlsTester):
     """Other, general tests for the urls() method.
@@ -79,6 +88,16 @@ class TestUrlsVarious(BaseUrlsTester):
         root.env = self.env
         # Does no longer raise an "unconnected env" exception
         assert root.urls() == ['/1', '/2']
+
+    def test_sorting(self):
+        """Specifying a sorting function should sort the resolved list of files
+        """
+        def sortFunc(files):
+            return sorted(files, key=(lambda f: f[1]))
+
+        self.env.debug = True
+        bundle = self.MockBundle('c', 'a', '1', 'b', sort=sortFunc, output='out')
+        assert bundle.urls() == ['/1', '/a', '/b', '/c']
 
     def test_invalid_source_file(self):
         """If a source file is missing, an error is raised even when rendering

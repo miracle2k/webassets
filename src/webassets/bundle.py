@@ -52,6 +52,7 @@ class Bundle(object):
         self.contents = contents
         self.output = options.pop('output', None)
         self.filters = options.pop('filters', None)
+        self.sort = options.pop('sort', None)
         self.debug = options.pop('debug', None)
         self.depends = options.pop('depends', [])
         self.version = options.pop('version', [])
@@ -169,7 +170,13 @@ class Bundle(object):
 
                 resolved.extend(map(lambda r: (item, r), result))
 
+            # A hook for sorting the bundle contents in a certain order
+            if self.sort:
+                resolved = self.sort(resolved)
+
             self._resolved_contents = resolved
+
+
         return self._resolved_contents
 
     def _get_depends(self):
