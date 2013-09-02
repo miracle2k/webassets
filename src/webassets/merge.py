@@ -161,7 +161,7 @@ class MemoryHunk(BaseHunk):
     def save(self, filename):
         f = open(filename, 'w', encoding='utf-8')
         try:
-            f.write(self.data())
+            f.write(self.data().encode('utf8'))
         finally:
             f.close()
 
