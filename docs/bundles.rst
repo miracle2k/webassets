@@ -35,7 +35,7 @@ arguments:
 
 * ``depends`` - Additional files that will be watched to determine if the 
   bundle needs to be rebuilt. This is usually necessary if you are using
-  compilers thhat allow ``@import`` instructions. Commonly, one would use a
+  compilers that allow ``@import`` instructions. Commonly, one would use a
   glob instruction here for simplicity::
 
     Bundle(depends=('**/*.scss'))
