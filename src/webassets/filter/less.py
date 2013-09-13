@@ -35,6 +35,7 @@ class Less(ExternalTool):
 
     LESS_PATHS (paths)
         Add include paths for less command line.
+        It should be a list of paths relatives to Environment.directory or absolute paths.
         Order matters as less will pick the first file found in path order.
 
     .. admonition:: Compiling less in the browser
