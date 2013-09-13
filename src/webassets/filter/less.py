@@ -101,9 +101,7 @@ class Less(ExternalTool):
         if self.line_numbers:
             args.append('--line-numbers=%s' % self.line_numbers)
         if self.paths:
-            paths = [path if isabs(path)
-                else abspath(join(self.env.directory, path))
-                for path in self.paths]
+            paths = [path if isabs(path) else self.env.resolver.resolve_source(path) for path in self.paths]
             args.append('--include-path={0}'.format(os.pathsep.join(paths)))
         if self.extra_args:
             args.extend(self.extra_args)
