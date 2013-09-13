@@ -545,12 +545,12 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.create_files({'test.pyc':'testing', 'test.py':'blue', 'boo.pyc':'boo'})
         modules = list( unique_modules(self.tempdir))
         assert modules == ['boo','test'],modules
-    
+
     def test_find_packages( self ):
         self.create_files({'moo/__init__.pyc':'testing','voo/__init__.py':'testing'})
         modules = list( unique_modules(self.tempdir))
         assert modules == ['moo','voo'],modules
-        
+
 
 class TestCSSPrefixer(TempEnvironmentHelper):
 
@@ -770,6 +770,32 @@ class TestLess(TempEnvironmentHelper):
         self.env.config['less_run_in_debug'] = False
         self.mkbundle('foo.less', filters='less', output='out.css').build()
         assert self.get('out.css') == self.default_files['foo.less']
+
+    def test_include_path(self):
+        '''It should allow specifying extra include paths'''
+        self.create_files({
+            'import.less': '''
+               @import "extra.less";
+               span { color: @c }
+               ''',
+            'extra/path/extra.less': '@c: red;'})
+        self.env.config['less_paths'] = ['extra/path']
+        self.mkbundle('import.less', filters='less', output='out.css').build()
+        assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
+
+    def test_include_path_order(self):
+        '''It should preserve extra include paths order'''
+        self.create_files({
+            'import.less': '''
+               @import "extra.less";
+               span { color: @c }
+               ''',
+            'extra/path/extra.less': '@c: red;',
+            'other/path/extra.less': '@c: blue;'})
+        self.env.config['less_paths'] = ['extra/path', 'other/path']
+        self.mkbundle('import.less', filters='less', output='out.css').build()
+        assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
+
 
 
 
