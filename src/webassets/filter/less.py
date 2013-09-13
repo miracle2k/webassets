@@ -2,7 +2,7 @@ from __future__ import with_statement
 
 import os
 
-from os.path import abspath, join, dirname, isabs
+from os.path import abspath, join, isabs
 
 from webassets.filter import ExternalTool
 from webassets.utils import working_directory
@@ -101,7 +101,7 @@ class Less(ExternalTool):
             args.append('--line-numbers=%s' % self.line_numbers)
         if self.paths:
             paths = [path if isabs(path)
-                else abspath(join(dirname(source_path), path))
+                else abspath(join(self.env.directory, path))
                 for path in self.paths]
             args.append('--include-path={0}'.format(os.pathsep.join(paths)))
         if self.extra_args:
