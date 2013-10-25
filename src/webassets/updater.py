@@ -25,8 +25,11 @@ First, for a live system, it isn't fast enough. Second, for prebuilding assets,
 the cache is a superior solution for getting essentially the same speed
 increase as using the hash to reliably determine which bundles to skip.
 """
-from webassets.exceptions import BundleError, BuildError
 
+from webassets import six
+from webassets.six.moves import map
+from webassets.six.moves import zip
+from webassets.exceptions import BundleError, BuildError
 from webassets.utils import RegistryMetaclass
 
 
@@ -45,7 +48,9 @@ enough to make this decision by itself.
 """
 
 
-class BaseUpdater(object):
+class BaseUpdater(six.with_metaclass(RegistryMetaclass(
+    clazz=lambda: BaseUpdater, attribute='needs_rebuild',
+    desc='an updater implementation'))):
     """Base updater class.
 
     Child classes that define an ``id`` attribute are accessible via their
@@ -53,10 +58,6 @@ class BaseUpdater(object):
 
     A single instance can be used with different environments.
     """
-
-    __metaclass__ = RegistryMetaclass(
-        clazz=lambda: BaseUpdater, attribute='needs_rebuild',
-        desc='an updater implementation')
 
     def needs_rebuild(self, bundle, env):
         """Returns ``True`` if the given bundle needs to be rebuilt,
@@ -114,7 +115,7 @@ class TimestampUpdater(BundleDefUpdater):
     id = 'timestamp'
 
     def check_timestamps(self, bundle, env, o_modified=None):
-        from bundle import Bundle, is_url
+        from .bundle import Bundle, is_url
         from webassets.version import TimestampVersion
 
         if not o_modified:

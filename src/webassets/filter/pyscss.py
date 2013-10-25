@@ -12,7 +12,8 @@ class PyScss(Filter):
 
     This uses `PyScss <https://github.com/Kronuz/pyScss>`_, a native
     Python implementation of the Scss language. The PyScss module needs
-    to be installed.
+    to be installed. It's API has been changing; currently, version
+    1.1.5 is known to be supported.
 
     This is an alternative to using the ``sass`` or ``scss`` filters,
     which are based on the original, external tools.
@@ -81,17 +82,20 @@ class PyScss(Filter):
 
         # Initialize various settings:
         # Why are these module-level, not instance-level ?!
+        # TODO: It appears that in the current dev version, the
+        # settings can finally passed to a constructor. We'll need
+        # to support this.
 
         # Only the dev version appears to support a list
         if self.load_paths:
-            scss.LOAD_PATHS = ','.join(self.load_paths)
+            scss.config.LOAD_PATHS = ','.join(self.load_paths)
 
         # These are needed for various helpers (working with images
         # etc.). Similar to the compass filter, we require the user
         # to specify such paths relative to the media directory.
         try:
-            scss.STATIC_ROOT = self.static_root or self.env.directory
-            scss.STATIC_URL = self.static_url or self.env.url
+            scss.config.STATIC_ROOT = self.static_root or self.env.directory
+            scss.config.STATIC_URL = self.static_url or self.env.url
         except EnvironmentError:
             raise EnvironmentError('Because Environment.url and/or '
                 'Environment.directory are not set, you need to '
@@ -100,8 +104,8 @@ class PyScss(Filter):
 
         # This directory PyScss will use when generating new files,
         # like a spritemap. Maybe we should REQUIRE this to be set.
-        scss.ASSETS_ROOT = self.assets_root or scss.STATIC_ROOT
-        scss.ASSETS_URL = self.assets_url or scss.STATIC_URL
+        scss.config.ASSETS_ROOT = self.assets_root or scss.config.STATIC_ROOT
+        scss.config.ASSETS_URL = self.assets_url or scss.config.STATIC_URL
 
     def input(self, _in, out, **kw):
         """Like the original sass filter, this also needs to work as

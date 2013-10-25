@@ -70,4 +70,4 @@ class Handlebars(JSTemplateFilter):
             raise FilterError(('handlebars: subprocess had error: stderr=%s, '+
                                'stdout=%s, returncode=%s') % (
                                     stderr, stdout, proc.returncode))
-        out.write(stdout.strip() + ';')
+        out.write(stdout.decode('utf-8').strip() + ';')

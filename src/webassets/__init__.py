@@ -1,6 +1,6 @@
-__version__ = (0, 8)
+__version__ = (0, 9)
 
 
 # Make a couple frequently used things available right here.
-from bundle import Bundle
-from env import Environment
+from .bundle import Bundle
+from .env import Environment

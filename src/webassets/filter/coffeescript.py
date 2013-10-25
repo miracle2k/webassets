@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, subprocess
 
 from webassets.filter import Filter
@@ -17,8 +18,9 @@ class CoffeeScript(Filter):
     Supported configuration options:
 
     COFFEE_NO_BARE
-        Set to ``True`` to compile without the top-level function
-        wrapper (corresponds to the --bare option to ``coffee``).
+        Set to ``True`` to compile with the top-level function
+        wrapper (suppresses the --bare option to ``coffee``, which
+        is used by default).
     """
 
     name = 'coffeescript'
@@ -43,12 +45,12 @@ class CoffeeScript(Filter):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
-        stdout, stderr = proc.communicate(_in.read())
+        stdout, stderr = proc.communicate(_in.read().encode('utf-8'))
         if proc.returncode != 0:
             raise FilterError(('coffeescript: subprocess had error: stderr=%s, '+
                                'stdout=%s, returncode=%s') % (
                 stderr, stdout, proc.returncode))
         elif stderr:
-            print "coffeescript filter has warnings:", stderr
-        out.write(stdout)
+            print("coffeescript filter has warnings:", stderr)
+        out.write(stdout.decode('utf-8'))
     

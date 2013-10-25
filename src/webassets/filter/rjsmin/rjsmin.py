@@ -57,6 +57,8 @@ __version__ = '1.0.1'
 __all__ = ['jsmin', 'jsmin_for_posers']
 
 import re as _re
+from webassets.six.moves import map
+from webassets.six.moves import zip
 
 
 def _make_jsmin(extended=True, python_only=False):
@@ -159,7 +161,7 @@ def _make_jsmin(extended=True, python_only=False):
         """ Make id_literal like char class """
         match = _re.compile(what).match
         result = ''.join([
-            chr(c) for c in xrange(127) if not match(chr(c))
+            chr(c) for c in range(127) if not match(chr(c))
         ])
         return '[^%s]' % fix_charclass(result)
 
@@ -167,7 +169,7 @@ def _make_jsmin(extended=True, python_only=False):
         """ Make negated id_literal like char class """
         match = _re.compile(id_literal_(keep)).match
         result = ''.join([
-            chr(c) for c in xrange(127) if not match(chr(c))
+            chr(c) for c in range(127) if not match(chr(c))
         ])
         return r'[%s]' % fix_charclass(result)
 

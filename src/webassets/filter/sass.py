@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, subprocess
 
 from webassets.filter import Filter
@@ -76,7 +77,6 @@ class Sass(Filter):
         'use_compass': ('use_compass', 'SASS_COMPASS'),
         'debug_info': 'SASS_DEBUG_INFO',
         'as_output': 'SASS_AS_OUTPUT',
-        'includes_dir': 'SASS_INCLUDES_DIR',  # deprecated!
         'load_paths': 'SASS_LOAD_PATHS',
         'libs': 'SASS_LIBS',
     }
@@ -89,16 +89,6 @@ class Sass(Filter):
         if cd:
             old_dir = os.getcwd()
             os.chdir(cd)
-
-        # Put together the load path.
-        load_paths = self.load_paths or []
-        if self.includes_dir:
-            load_paths.append(self.includes_dir)
-            import warnings
-            warnings.warn(
-                'The INCLUDES_DIR option of the "sass" filter has '
-                'been deprecated and will be removed. Use LOAD_PATHS'
-                'instead.', ImminentDeprecationWarning)
 
         try:
             args = [self.binary or 'sass',
@@ -118,7 +108,7 @@ class Sass(Filter):
                 args.append('--scss')
             if self.use_compass:
                 args.append('--compass')
-            for path in load_paths:
+            for path in self.load_paths or []:
                 args.extend(['-I', path])
             for lib in self.libs or []:
                 args.extend(['-r', lib])
@@ -130,16 +120,16 @@ class Sass(Filter):
                                     # shell: necessary on windows to execute
                                     # ruby files, but doesn't work on linux.
                                     shell=(os.name == 'nt'))
-            stdout, stderr = proc.communicate(_in.read())
+            stdout, stderr = proc.communicate(_in.read().encode('utf-8'))
 
             if proc.returncode != 0:
                 raise FilterError(('sass: subprocess had error: stderr=%s, '+
                                    'stdout=%s, returncode=%s') % (
                                                 stderr, stdout, proc.returncode))
             elif stderr:
-                print "sass filter has warnings:", stderr
+                print("sass filter has warnings:", stderr)
 
-            out.write(stdout)
+            out.write(stdout.decode('utf-8'))
         finally:
             if cd:
                 os.chdir(old_dir)

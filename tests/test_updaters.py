@@ -5,7 +5,7 @@ from webassets.exceptions import BundleError, BuildError
 from webassets.updater import TimestampUpdater, BundleDefUpdater, SKIP_CACHE
 from webassets.cache import MemoryCache
 from webassets.version import VersionIndeterminableError
-from helpers import TempEnvironmentHelper
+from .helpers import TempEnvironmentHelper
 
 
 class TestBundleDefBaseUpdater(object):
@@ -223,7 +223,7 @@ class TestTimestampUpdater(TempEnvironmentHelper):
 
     def test_placeholder_output(self):
         """Test behaviour if the output contains a placeholder."""
-        from test_bundle_various import DummyVersion
+        from .test_bundle_various import DummyVersion
         self.env.versions = DummyVersion('init')
         self.env.manifest = None
         b = self.mkbundle('in', output='out-%(version)s')
@@ -257,7 +257,7 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         If it isn't, then the updater refuses to work, not being able to
         do its job.
         """
-        from test_bundle_various import DummyVersion, DummyManifest
+        from .test_bundle_various import DummyVersion, DummyManifest
 
         # Placeholder output, and versioner will not help
         self.env.versions = DummyVersion(None)

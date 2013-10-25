@@ -1,23 +1,29 @@
+from __future__ import print_function
 from __future__ import with_statement
 
 import os
 from contextlib import contextmanager
-from StringIO import StringIO
-from nose.tools import assert_raises, assert_equals, assert_true
+from nose.tools import assert_raises, assert_equal, assert_true
 from nose import SkipTest
 from mock import patch, Mock, DEFAULT
 from distutils.spawn import find_executable
 import re
+from webassets.utils import StringIO
 from webassets import Environment
 from webassets.exceptions import FilterError
 from webassets.filter import (
-    Filter, ExternalTool, get_filter, register_filter)
-from helpers import TempEnvironmentHelper
+    Filter, ExternalTool, get_filter, register_filter, unique_modules)
+from webassets.filter.compass import CompassConfig
+from .helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
 # unpredictable text like temp paths or timestamps. doctest has
 # the same problem, so we just steal its solution.
 from doctest import _ellipsis_match as doctest_match
+
+
+import platform
+PYPY = platform.python_implementation() == 'PyPy'
 
 
 @contextmanager
@@ -96,7 +102,7 @@ class TestFilterBaseClass(object):
             # Set the value in the environment as well.
             m.config[NAME] = 'foo'
             # Ensure that settings take precedence.
-            assert_equals(get_config(NAME), 'foo')
+            assert_equal(get_config(NAME), 'foo')
             # Two different names can be supplied.
             assert get_config(setting=NAME2, env=NAME) == 'bar'
 
@@ -116,7 +122,7 @@ class TestFilterBaseClass(object):
 
         with os_environ_sandbox():
             os.environ['foo'] = 'one,two\,three'
-            assert get_config(env='foo', type=list) == ['one', 'two,three']
+            assert list(get_config(env='foo', type=list)) == ['one', 'two,three']
 
             # Make sure the split is not applied to env config values
             m.config['foo'] = 'one,two\,three'
@@ -178,17 +184,18 @@ class TestExternalToolClass(object):
         class Filter(self.MockTool):
             argv = [
                 # The filter instance
-                '{self.__class__}',
+                '{self.__class__.__name__}',
                 # Keyword and positional args to filter method
-                '{kwarg}', '{0.len}',
+                '{kwarg}', '{0.closed}',
                 # Special placeholders that are passed through
                 '{input}', '{output}']
         Filter().output(StringIO('content'), StringIO(), kwarg='value')
-        print Filter.result
-        assert Filter.result == (
-            ["<class 'tests.test_filters.Filter'>", 'value', '7',
-             '{input}', '{output}'],
-            'content')
+        if PYPY:
+            assert Filter.result == (
+                ["Filter", 'value', '0', '{input}', '{output}'], 'content')
+        else:
+            assert Filter.result == (
+                ["Filter", 'value', 'False', '{input}', '{output}'], 'content')
 
     def test_method_input(self):
         """The method=input."""
@@ -282,7 +289,7 @@ class TestExternalToolClass(object):
 
         # Without stdin data
         self.popen.return_value.returncode = 0
-        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        self.popen.return_value.communicate.return_value = [b'stdout', b'stderr']
         out = StringIO()
         Filter.subprocess(['test'], out)
         assert out.getvalue() == 'stdout'
@@ -291,22 +298,22 @@ class TestExternalToolClass(object):
         # With stdin data
         self.popen.reset_mock()
         self.popen.return_value.returncode = 0
-        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        self.popen.return_value.communicate.return_value = [b'stdout', b'stderr']
         out = StringIO()
         Filter.subprocess(['test'], out, data='data')
         assert out.getvalue() == 'stdout'
-        self.popen.return_value.communicate.assert_called_with('data')
+        self.popen.return_value.communicate.assert_called_with(b'data')
 
         # With error
         self.popen.return_value.returncode = 1
-        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        self.popen.return_value.communicate.return_value = [b'stdout', b'stderr']
         assert_raises(FilterError, Filter.subprocess, ['test'], StringIO())
 
     def test_input_var(self):
         """Test {input} variable."""
         class Filter(ExternalTool): pass
         self.popen.return_value.returncode = 0
-        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+        self.popen.return_value.communicate.return_value = [b'stdout', b'stderr']
 
         # {input} creates an input file
         intercepted = {}
@@ -434,15 +441,6 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         """,
     }
 
-    def test_gzip(self):
-        self.create_files({'in': 'a'*100})
-        self.mkbundle('in', filters='gzip', output='out.css').build()
-        # GZip contains a timestamp (which additionally Python only
-        # supports changing beginning with 2.7), so we can't compare
-        # the full string.
-        assert self.get('out.css')[:3] == '\x1f\x8b\x08'
-        assert len(self.get('out.css')) == 24
-
     def test_cssmin(self):
         try:
             self.mkbundle('foo.css', filters='cssmin', output='out.css').build()
@@ -472,7 +470,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         if not find_executable('uglifyjs'):
             raise SkipTest()
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
-        assert self.get('out.js') == 'function foo(a){var b;document.write(a)};'
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)}'
 
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
@@ -526,7 +524,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         if not find_executable('cleancss'):
             raise SkipTest()
         self.mkbundle('foo.css', filters='cleancss', output='out.css').build()
-        assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
+        assert self.get('out.css') == 'h1{font-family:Verdana;color:#FFF}'
 
     def test_cssslimmer(self):
         try:
@@ -543,6 +541,16 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('in', filters='stylus', output='out.css').build()
         assert self.get('out.css') == """a {\n  width: 100px;\n  height: 50px;\n}\n\n"""
 
+    def test_find_pyc_files( self ):
+        self.create_files({'test.pyc':'testing', 'test.py':'blue', 'boo.pyc':'boo'})
+        modules = list( unique_modules(self.tempdir))
+        assert modules == ['boo','test'],modules
+    
+    def test_find_packages( self ):
+        self.create_files({'moo/__init__.pyc':'testing','voo/__init__.py':'testing'})
+        modules = list( unique_modules(self.tempdir))
+        assert modules == ['moo','voo'],modules
+        
 
 class TestCSSPrefixer(TempEnvironmentHelper):
 
@@ -561,7 +569,6 @@ class TestCSSPrefixer(TempEnvironmentHelper):
     def test_encoding(self):
         self.create_files({'in': u"""a { content: '\xe4'; }""".encode('utf8')})
         self.mkbundle('in', filters='cssprefixer', output='out.css').build()
-        self.p('out.css')
         assert self.get('out.css') == 'a {\n    content: "\xc3\xa4"\n    }'
 
 
@@ -842,7 +849,7 @@ class TestSass(TempEnvironmentHelper):
         """Test a custom include_path.
         """
         sass_output = get_filter('sass', debug_info=False, as_output=True,
-                                 includes_dir=self.path('includes'))
+                                 load_paths=[self.path('includes')])
         self.create_files({
             'includes/vars.sass': '$a_color: #FFFFFF',
             'base.sass': '@import vars.sass\nh1\n  color: $a_color'})
@@ -867,20 +874,22 @@ class TestPyScss(TempEnvironmentHelper):
 
     def test(self):
         self.mkbundle('foo.scss', filters='pyscss', output='out.css').build()
-        assert doctest_match(
-            '/* ... */\nh1 {\n  color: #ff0000;\n}\na {\n  color: #ff8000;\n}\n\n',
-            self.get('out.css'),)
+        assert self.get('out.css') == 'h1 {\n  color: #ff0000;\n}\na {\n  color: #ff8000;\n}\n'
 
     def test_assets(self):
         try:
             import PIL
-        except ImportError:
-            pass
+            # Travis does not support PNG files, see
+            # https://github.com/travis-ci/travis-ci/issues/746
+            from PIL import Image
+            Image.new('RGB', (10,10)).save(StringIO(), 'png')
+        except (ImportError, IOError):
+            raise SkipTest()
         self.create_files({'noise.scss': 'h1 {background: background-noise()}'})
         self.mkbundle('noise.scss', filters='pyscss', output='out.css').build()
 
         assert doctest_match(
-            '/* ... */\nh1 {\n  background: url("...png");\n}\n\n',
+            'h1 {\n  background: url("...png");\n}\n',
             self.get('out.css'),)
 
 
@@ -935,6 +944,44 @@ class TestCompass(TempEnvironmentHelper):
         self.mkbundle('imguri.scss', filters='compass', output='out.css').build()
         assert doctest_match("""/* ... */\nh1 {\n  background: url('http://assets.host.com/the-images/test.png');\n}\n""", self.get('out.css'))
 
+
+class TestCompassConfig(object):
+
+    config = {
+        'http_path': '/',
+        'relative_assets': True,
+        'output_style': ':nested',
+        'sprite_load_path': [
+            'static/img',
+        ],
+        'additional_import_paths': (
+            'static/sass',
+        ),
+        'sass_options': {
+            'k': 'v'
+        }
+    }
+
+    def setup(self):
+        self.compass_config = CompassConfig(self.config).to_string()
+
+    def test_string_value(self):
+        assert "http_path = '/'" in self.compass_config
+
+    def test_boolean_value(self):
+        assert "relative_assets = true" in self.compass_config
+
+    def test_symbol_value(self):
+        assert 'output_style = :nested' in self.compass_config
+
+    def test_list_value(self):
+        assert "sprite_load_path = ['static/img']" in self.compass_config
+
+    def test_tuple_value(self):
+        assert "additional_import_paths = ['static/sass']" in self.compass_config
+
+    def test_dict_value(self):
+        assert "sass_options = {'k' => 'v'}" in self.compass_config
 
 class TestJST(TempEnvironmentHelper):
 
@@ -1061,6 +1108,44 @@ class TestHandlebars(TempEnvironmentHelper):
         assert "'bar.html'" in self.get('out.js')
 
 
+class TestJinja2JS(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.soy': (
+            "{namespace examples.simple}\n"
+            "\n"
+            "/**\n"
+            " * Says hello to the world.\n"
+            " */\n"
+            "{template .helloWorld}\n"
+            "  Hello world!\n"
+            "{/template}\n"
+        )
+    }
+
+    def setup(self):
+        try:
+            import closure_soy
+        except:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.mkbundle('foo.soy', filters='closure_tmpl', output='out.js').build()
+        assert self.get("out.js") == (
+            "// This file was automatically generated from foo.soy."
+            + "\n// Please don't edit this file by hand."
+            + "\n"
+            + "\nif (typeof examples == 'undefined') { var examples = {}; }"
+            + "\nif (typeof examples.simple == 'undefined') { examples.simple = {}; }"
+            + "\n"
+            + "\n"
+            + "\nexamples.simple.helloWorld = function(opt_data, opt_ignored) {"
+            + "\n  return 'Hello world!';"
+            + "\n};"
+            + "\n")
+
+
 class TestTypeScript(TempEnvironmentHelper):
 
     default_files = {
@@ -1074,4 +1159,4 @@ class TestTypeScript(TempEnvironmentHelper):
 
     def test(self):
         self.mkbundle('foo.ts', filters='typescript', output='out.js').build()
-        assert self.get("out.js") == """var X = (function () {\r\n    function X() { }\r\n    return X;\r\n})();\r\n"""
+        assert self.get("out.js") == """var X = (function () {\n    function X() { }\n    return X;\n})();\n"""

@@ -1,7 +1,8 @@
-import os, urlparse
+import os
 from os.path import join
 from webassets.utils import common_path_prefix
-import urlpath
+from webassets.utils import urlparse
+from . import urlpath
 try:
     from collections import OrderedDict
 except ImportError:
@@ -9,7 +10,7 @@ except ImportError:
     # support ordering - it's just a nice bonus.
     OrderedDict = dict
 
-from base import CSSUrlRewriter, addsep, path2url
+from .base import CSSUrlRewriter, addsep, path2url
 
 
 __all__ = ('CSSRewrite',)

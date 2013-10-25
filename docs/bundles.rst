@@ -33,11 +33,15 @@ arguments:
   supported here, which will be replaced with the version of the file. See
   :doc:`/expiring`.
 
-* ``depends`` - Bundles will be refiltered (compiled, minified, etc) if
-  any of their files change. However, sometimes a bundle may depend on a
-  file which isn't directly included in the bundle - for example, in case
-  of a SCSS ``@import`` clause. Changes detected to one or multiple files
-  whose name are specified by this keyword will recreate the bundle.
+* ``depends`` - Additional files that will be watched to determine if the 
+  bundle needs to be rebuilt. This is usually necessary if you are using
+  compilers thhat allow ``@import`` instructions. Commonly, one would use a
+  glob instruction here for simplicity::
+
+    Bundle(depends=('**/*.scss'))
+
+  .. warning::
+    Currently, using ``depends`` disables caching for a bundle.
 
 
 Nested bundles
@@ -111,7 +115,7 @@ There are different approaches.
 In Code
 ~~~~~~~
 
-For starters, you can simply call the bundle's ``url()`` method:
+For starters, you can simply call the bundle's ``urls()`` method:
 
 .. code-block:: python
 
@@ -124,7 +128,7 @@ a list of all the bundle's source files, or the merged file pointed to
 by the bundle's ``output`` option - all relative to the
 ``environment.url`` setting.
 
-``url()`` will always ensure that the files behind the urls it returns
+``urls()`` will always ensure that the files behind the urls it returns
 actually exist. That is, it will merge and compress the source files in
 production mode when first called, and update the compressed assets when
 it detects changes. This behavior can be customized using various
@@ -148,7 +152,7 @@ which allows you do something like this:
 
 .. code-block:: jinja
 
-    {% assets filters="jsmin,gzip", output="gen/packed.js", "common/jquery.js", "site/base.js", "site/widgets.js" %}
+    {% assets filters="cssmin,datauri", output="gen/packed.css", "common/jquery.css", "site/base.css", "site/widgets.css" %}
     ...
 
 

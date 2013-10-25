@@ -17,7 +17,6 @@ class CSSUtils(Filter):
     """
 
     name = 'cssutils'
-    max_debug_level = None
 
     def setup(self):
         import cssutils
@@ -45,4 +44,4 @@ class CSSUtils(Filter):
     def output(self, _in, out, **kw):
         sheet = self.cssutils.parseString(_in.read())
         self.cssutils.ser.prefs.useMinified()
-        out.write(sheet.cssText)
+        out.write(sheet.cssText.decode('utf-8'))

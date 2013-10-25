@@ -2,12 +2,10 @@ from __future__ import with_statement
 import sys
 from nose.tools import assert_raises
 import textwrap
-from StringIO import StringIO
+from webassets.utils import StringIO
 from webassets.bundle import Bundle
 from webassets.loaders import PythonLoader, YAMLLoader, LoaderError
-from webassets.exceptions import ImminentDeprecationWarning
 from nose import SkipTest
-from helpers import check_warnings
 
 
 class TestYAML(object):
@@ -27,7 +25,7 @@ class TestYAML(object):
     def test_load_bundles(self):
         bundles = self.loader("""
         standard:
-            filters: cssmin,gzip
+            filters: cssmin,jsmin
             output: output.css
             contents:
                 - file1
@@ -67,14 +65,14 @@ class TestYAML(object):
     def test_load_recursive_bundles(self):
         bundles = self.loader("""
         standard:
-            filters: cssmin,gzip
+            filters: cssmin,jsmin
             output: output.css
             contents:
                 - file1
                 - file2
         recursive:
             output: recursive.css
-            filters: cssmin
+            filters: jsmin
             contents:
                 - cssfile1
                 - standard
@@ -123,15 +121,6 @@ class TestYAML(object):
         """
         self.loader("""foo: bar""").load_environment()
 
-    def test_load_deprecated_attrs(self):
-        with check_warnings(("", ImminentDeprecationWarning)) as w:
-            environment = self.loader("""
-            url: /foo
-            directory: something
-            expire: false
-            """).load_environment()
-            assert environment.url_expire == False
-
     def test_load_environment_directory_base(self):
         environment = self.loader("""
         url: /foo
@@ -169,5 +158,5 @@ class TestPython(object):
         loader = PythonLoader(module)
         bundles = loader.load_bundles()
         assert len(bundles) == 1
-        assert bundles.values()[0].contents[0] == 'bar'
+        assert list(bundles.values())[0].contents[0] == 'bar'
 

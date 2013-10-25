@@ -6,7 +6,7 @@ more likely` found in `test_bundle_various.py``.
 
 from __future__ import with_statement
 
-from nose.tools import assert_raises, assert_equals
+from nose.tools import assert_raises, assert_equal
 from nose import SkipTest
 
 from webassets import Bundle
@@ -119,7 +119,7 @@ class TestUrlsVarious(BaseUrlsTester):
         media directory, to generate a url they are copied in.
         """
         try:
-            from nose.tools import assert_regexp_matches
+            from nose.tools import assert_regex
         except ImportError:
             raise SkipTest("Assertion method only present in 2.7+")
         self.env.debug = True
@@ -128,7 +128,7 @@ class TestUrlsVarious(BaseUrlsTester):
             bundle = self.mkbundle(h.path('foo.css'))
             urls = bundle.urls()
             assert len(urls) == 1
-            assert_regexp_matches(urls[0], r'.*/webassets-external/\d*_foo.css')
+            assert_regex(urls[0], r'.*/webassets-external/\d*_foo.css')
 
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):
@@ -171,7 +171,7 @@ class TestUrlsWithDebugFalse(BaseUrlsTester):
         does not affect url generation).
         """
         bundle = self.MockBundle('1', '2', output='childout', debug='merge')
-        assert_equals(bundle.urls(), ['/childout'])
+        assert_equal(bundle.urls(), ['/childout'])
         assert len(self.build_called) == 1
 
     def test_root_bundle_switching_to_debug_true(self):
@@ -180,7 +180,7 @@ class TestUrlsWithDebugFalse(BaseUrlsTester):
         ineffectual.
         """
         bundle = self.MockBundle('1', '2', output='childout', debug=True)
-        assert_equals(bundle.urls(), ['/childout'])
+        assert_equal(bundle.urls(), ['/childout'])
         assert len(self.build_called) == 1
 
     def test_root_debug_true_and_child_debug_false(self):
@@ -194,7 +194,7 @@ class TestUrlsWithDebugFalse(BaseUrlsTester):
                 '1', '2',
                 self.MockBundle('a', output='child1', debug=False),
                 output='rootout', debug=True)
-        assert_equals(bundle.urls(), ['/rootout'])
+        assert_equal(bundle.urls(), ['/rootout'])
 
 
 class TestUrlsWithDebugTrue(BaseUrlsTester):
@@ -207,8 +207,8 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
 
     def test_simple_bundle(self):
         bundle = self.MockBundle('a', 'b', 'c', output='out')
-        assert_equals(bundle.urls(), ['/a', '/b', '/c'])
-        assert_equals(len(self.build_called), 0)
+        assert_equal(bundle.urls(), ['/a', '/b', '/c'])
+        assert_equal(len(self.build_called), 0)
 
     def test_nested_bundle(self):
         bundle = self.MockBundle(
@@ -230,8 +230,8 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
         """[Regression] Test a Bundle that contains a source URL.
         """
         bundle = self.MockBundle('http://test.de', output='out')
-        assert_equals(bundle.urls(), ['http://test.de'])
-        assert_equals(len(self.build_called), 0)
+        assert_equal(bundle.urls(), ['http://test.de'])
+        assert_equal(len(self.build_called), 0)
 
         # This is the important test. It proves that the url source
         # was handled separately, and not processed like any other
@@ -240,14 +240,14 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
         # converts a bundle content into an url operates just fine
         # on a url source, so there is no easy other way to determine
         # whether the url source was treated special.
-        assert_equals(len(self.makeurl_called), 0)
+        assert_equal(len(self.makeurl_called), 0)
 
     def test_root_bundle_switching_to_debug_false(self):
         """A bundle explicitly says it wants to be processed with
         debug=False, overriding the global "debug=True" setting.
         """
         bundle = self.MockBundle('1', '2', output='childout', debug=False)
-        assert_equals(bundle.urls(), ['/childout'])
+        assert_equal(bundle.urls(), ['/childout'])
         assert len(self.build_called) == 1
 
     def test_root_bundle_switching_to_merge(self):
@@ -255,7 +255,7 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
         the global "debug=True" setting.
         """
         bundle = self.MockBundle('1', '2', output='childout', debug='merge')
-        assert_equals(bundle.urls(), ['/childout'])
+        assert_equal(bundle.urls(), ['/childout'])
         assert len(self.build_called) == 1
 
     def test_child_bundle_switching(self):
@@ -266,7 +266,7 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
         bundle = self.MockBundle(
             'a', self.MockBundle('1', '2', output='childout', debug='merge'),
             'c', output='out')
-        assert_equals(bundle.urls(), ['/a', '/childout', '/c'])
+        assert_equal(bundle.urls(), ['/a', '/childout', '/c'])
         assert len(self.build_called) == 1
 
 
@@ -295,7 +295,7 @@ class TestUrlsWithDebugMerge(BaseUrlsTester):
         bundle = self.MockBundle(
             'a', self.MockBundle('1', '2', output='childout', debug=False),
             'c', output='out')
-        assert_equals(bundle.urls(), ['/out'])
+        assert_equal(bundle.urls(), ['/out'])
         assert len(self.build_called) == 1
 
     def test_root_bundle_switching_to_debug_true(self):
@@ -305,5 +305,5 @@ class TestUrlsWithDebugMerge(BaseUrlsTester):
         bundle = self.MockBundle(
             'a', self.MockBundle('1', '2', output='childout', debug=True),
             'c', output='out')
-        assert_equals(bundle.urls(), ['/out'])
+        assert_equal(bundle.urls(), ['/out'])
         assert len(self.build_called) == 1

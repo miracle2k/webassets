@@ -6,7 +6,7 @@ from __future__ import with_statement
 
 import os
 import pickle
-
+from webassets import six
 
 from webassets.bundle import has_placeholder, is_url, get_all_bundle_files
 from webassets.merge import FileHunk
@@ -22,7 +22,9 @@ class VersionIndeterminableError(Exception):
     pass
 
 
-class Version(object):
+class Version(six.with_metaclass(RegistryMetaclass(
+    clazz=lambda: Version, attribute='determine_version',
+    desc='a version implementation'))):
     """A Version class that can be assigned to the ``Environment.versioner``
     attribute.
 
@@ -37,10 +39,6 @@ class Version(object):
 
     A single instance can be used with different environments.
     """
-
-    __metaclass__ = RegistryMetaclass(
-        clazz=lambda: Version, attribute='determine_version',
-        desc='a version implementation')
 
     def determine_version(self, bundle, hunk=None, env=None):
         """Return a string that represents the current version of the given
@@ -163,11 +161,12 @@ class HashVersion(Version):
                     'output target has a placeholder')
 
         hasher = self.hasher()
-        hasher.update(hunk.data())
+        hasher.update(hunk.data().encode('utf-8'))
         return hasher.hexdigest()[:self.length]
 
 
-class Manifest(object):
+class Manifest(six.with_metaclass(RegistryMetaclass(
+    clazz=lambda: Manifest, desc='a manifest implementation'))):
     """Persists information about the versions bundles are at.
 
     The Manifest plays a role only if you insert the bundle version in your
@@ -199,9 +198,6 @@ class Manifest(object):
     A manifest instance is currently not guaranteed to function correctly
     with multiple Environment instances.
     """
-
-    __metaclass__ = RegistryMetaclass(
-        clazz=lambda: Manifest, desc='a manifest implementation')
 
     def remember(self, bundle, env, version):
         raise NotImplementedError()
@@ -273,14 +269,14 @@ class JsonManifest(FileManifest):
 
     def _load_manifest(self):
         if os.path.exists(self.filename):
-            with open(self.filename, 'rb') as f:
+            with open(self.filename, 'r') as f:
                 self.manifest = self.json.load(f)
         else:
             self.manifest = {}
 
     def _save_manifest(self):
-        with open(self.filename, 'wb') as f:
-            self.json.dump(self.manifest, f)
+        with open(self.filename, 'w') as f:
+            self.json.dump(self.manifest, f, indent=4, sort_keys=True)
 
 
 class CacheManifest(Manifest):

@@ -145,7 +145,7 @@ class TestBuildVarious(TempEnvironmentHelper):
 
     def test_with_custom_output(self):
         """build() method can write to a custom file object."""
-        from StringIO import StringIO
+        from webassets.six import StringIO
         buffer = StringIO()
         self.mkbundle('in1', 'in2', output='out').build(output=buffer)
         assert buffer.getvalue() == 'A\nB'
@@ -462,13 +462,13 @@ class TestFilterApplication(TempEnvironmentHelper):
                               output='out', debug='merge').build()
                 assert self.get('out') == 'foo:in_upgr:out_upgr'
 
-        yield MaxDebugLevelFilters.test_with_level, 'merge'
+        yield MaxDebugLevelFilters().test_with_level, 'merge'
         # With max_debug_level=True causes merge mode
-        yield MaxDebugLevelFilters.test_with_level, True
+        yield MaxDebugLevelFilters().test_with_level, True
         # With max_debug_level=None is same as =True
-        yield MaxDebugLevelFilters.test_with_level, None
+        yield MaxDebugLevelFilters().test_with_level, None
 
-        yield MaxDebugLevelFilters.test_upgrading_affect_on_normal_filters
+        yield MaxDebugLevelFilters().test_upgrading_affect_on_normal_filters
 
 
 class TestAutoBuild(TempEnvironmentHelper):

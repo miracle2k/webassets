@@ -1,5 +1,6 @@
+from __future__ import print_function
 from __future__ import absolute_import
-import StringIO
+from webassets.six import StringIO
 from contextlib import contextmanager
 from webassets.filter import Filter
 
@@ -107,11 +108,11 @@ class Spritemapper(Filter):
         sm_plcs = []
         for smap in smaps:
             with open_sprites(smap, pad=conf.padding) as sprites:
-                print("Packing sprites in mapping %s" % (smap.fname,))
+                print(("Packing sprites in mapping %s" % (smap.fname,)))
                 packed = PackedBoxes(sprites, anneal_steps=conf.anneal_steps)
                 print_packed_size(packed)
                 sm_plcs.append((smap, packed.placements))
-                print("Writing spritemap image at %s" % (smap.fname,))
+                print(("Writing spritemap image at %s" % (smap.fname,)))
                 im = stitch(packed)
                 with open(smap.fname, "wb") as fp:
                     im.save(fp)

@@ -1,7 +1,8 @@
 from os import path
-import urlparse
 from itertools import chain
-import warnings
+from webassets import six
+from webassets.six.moves import map
+from webassets.six.moves import zip
 try:
     import glob2 as glob
     from glob import has_magic
@@ -9,11 +10,11 @@ except ImportError:
     import glob
     from glob import has_magic
 
-from bundle import Bundle, is_url
-from cache import get_cache
-from version import get_versioner, get_manifest
-from updater import get_updater
-from exceptions import ImminentDeprecationWarning
+from .bundle import Bundle, is_url
+from .cache import get_cache
+from .version import get_versioner, get_manifest
+from .updater import get_updater
+from .utils import urlparse
 
 
 __all__ = ('Environment', 'RegisterError')
@@ -77,41 +78,11 @@ class ConfigStorage(object):
     def _get_deprecated(self, key):
         """For deprecated keys, fake the values as good as we can.
         Subclasses need to call this in __getitem__."""
-        self._warn_key_deprecation(key)
-        if key == 'expire':
-            return 'querystring' if self['url_expire'] else False
+        pass
 
     def _set_deprecated(self, key, value):
-        self._warn_key_deprecation(key)
-        if key == 'expire':
-            if value == 'filename':
-                raise DeprecationWarning(
-                    ('The "expire" option has been deprecated. Instead '
-                     'of the "filesystem" expiry mode, use the %(version)s '
-                     'placeholder in your bundle\'s output filename.'))
-            self['url_expire'] = bool(value)
-            return True
-        if key == 'updater':
-            if value == 'never':
-                self['auto_build'] = False
-                warnings.warn((
-                    'The "updater" option no longer can be set to False '
-                    'or "never" to disable automatic building. Instead, '
-                    'use the new "auto_build" boolean option.'),
-                        ImminentDeprecationWarning)
-                return True
-
-    def _warn_key_deprecation(self, key):
-        """Subclasses should override this to provide custom
-        warnings with their mapped keys in the error message."""
-        import warnings
-        if  key == 'expire':
-            warnings.warn((
-                'The "expire" option has been deprecated in 0.7, and '
-                'replaced with a boolean option "url_expire". If you '
-                'want to append something other than a timestamp to '
-                'your URLs, check out the "versions" option.'),
-                    ImminentDeprecationWarning)
+        """Same for __setitem__."""
+        pass
 
 
 def url_prefix_join(prefix, fragment):
@@ -216,7 +187,7 @@ class Resolver(object):
         method, instead of simply falling back to ``super()``.
         """
         # Build a list of dir -> url mappings
-        mapping = self.env.url_mapping.items()
+        mapping = list(self.env.url_mapping.items())
         try:
             mapping.append((self.env.directory, self.env.url))
         except EnvironmentError:
@@ -224,16 +195,16 @@ class Resolver(object):
             pass
 
         # Make sure paths are absolute, normalized, and sorted by length
-        mapping = map(
-            lambda (p,u): (path.normpath(path.abspath(p)), u),
-            mapping)
-        mapping.sort(cmp=lambda i, j: cmp(len(i[0]), len(j[0])), reverse=True)
+        mapping = list(map(
+            lambda p_u: (path.normpath(path.abspath(p_u[0])), p_u[1]),
+            mapping))
+        mapping.sort(key=lambda i: len(i[0]), reverse=True)
 
         needle = path.normpath(filepath)
         for candidate, url in mapping:
             if needle.startswith(candidate):
                 # Found it!
-                rel_path = filepath[len(candidate)+1:]
+                rel_path = needle[len(candidate)+1:]
                 return url_prefix_join(url, rel_path)
         raise ValueError('Cannot determine url for %s' % filepath)
 
@@ -264,7 +235,7 @@ class Resolver(object):
         """
 
         # Pass through some things unscathed
-        if not isinstance(item, basestring):
+        if not isinstance(item, six.string_types):
             # Don't stand in the way of custom values.
             return item
         if is_url(item) or path.isabs(item):
@@ -323,50 +294,14 @@ class Resolver(object):
             return self.query_url_mapping(target)
 
 
-# Those are config keys used by the environment. Framework-wrappers may
-# find this list useful if they desire to prefix those settings. For example,
-# in Django, it would be ASSETS_DEBUG. Other config keys are encouraged to use
-# their own namespacing, so they don't need to be prefixed. For example, a
-# filter setting might be CSSMIN_BIN.
-env_options = [
-    'directory', 'url', 'debug', 'cache', 'updater', 'auto_build',
-    'url_expire', 'versions', 'manifest', 'load_path', 'url_mapping']
+class BundleRegistry(object):
 
-
-class BaseEnvironment(object):
-    """Abstract base class for :class:`Environment` with slightly more generic
-    assumptions, to ease subclassing.
-    """
-
-    config_storage_class = None
-    resolver_class = Resolver
-
-    def __init__(self, **config):
+    def __init__(self):
         self._named_bundles = {}
         self._anon_bundles = []
-        self._config = self.config_storage_class(self)
-        self.resolver = self.resolver_class(self)
-
-        # directory, url currently do not have default values
-        #
-        # some thought went into these defaults:
-        #   - enable url_expire, because we want to encourage the right thing
-        #   - default to hash versions, for the same reason: they're better
-        #   - manifest=cache because hash versions are slow
-        self.config.setdefault('debug', False)
-        self.config.setdefault('cache', True)
-        self.config.setdefault('url_expire', None)
-        self.config.setdefault('auto_build', True)
-        self.config.setdefault('manifest', 'cache')
-        self.config.setdefault('versions', 'hash')
-        self.config.setdefault('updater', 'timestamp')
-        self.config.setdefault('load_path', [])
-        self.config.setdefault('url_mapping', {})
-
-        self.config.update(config)
 
     def __iter__(self):
-        return chain(self._named_bundles.itervalues(), self._anon_bundles)
+        return chain(six.itervalues(self._named_bundles), self._anon_bundles)
 
     def __getitem__(self, name):
         return self._named_bundles[name]
@@ -376,6 +311,10 @@ class BaseEnvironment(object):
 
     def __len__(self):
         return len(self._named_bundles) + len(self._anon_bundles)
+
+    def __bool__(self):
+        return True
+    __nonzero__ = __bool__   # For Python 2
 
     def register(self, name, *args, **kwargs):
         """Register a :class:`Bundle` with the given ``name``.
@@ -439,6 +378,48 @@ class BaseEnvironment(object):
         for bundle in bundles:
             self._anon_bundles.append(bundle)
             bundle.env = self    # take ownership
+
+
+# Those are config keys used by the environment. Framework-wrappers may
+# find this list useful if they desire to prefix those settings. For example,
+# in Django, it would be ASSETS_DEBUG. Other config keys are encouraged to use
+# their own namespacing, so they don't need to be prefixed. For example, a
+# filter setting might be CSSMIN_BIN.
+env_options = [
+    'directory', 'url', 'debug', 'cache', 'updater', 'auto_build',
+    'url_expire', 'versions', 'manifest', 'load_path', 'url_mapping']
+
+
+class BaseEnvironment(BundleRegistry):
+    """Abstract base class for :class:`Environment` with slightly more generic
+    assumptions, to ease subclassing.
+    """
+
+    config_storage_class = None
+    resolver_class = Resolver
+
+    def __init__(self, **config):
+        BundleRegistry.__init__(self)
+        self._config = self.config_storage_class(self)
+        self.resolver = self.resolver_class(self)
+
+        # directory, url currently do not have default values
+        #
+        # some thought went into these defaults:
+        #   - enable url_expire, because we want to encourage the right thing
+        #   - default to hash versions, for the same reason: they're better
+        #   - manifest=cache because hash versions are slow
+        self.config.setdefault('debug', False)
+        self.config.setdefault('cache', True)
+        self.config.setdefault('url_expire', None)
+        self.config.setdefault('auto_build', True)
+        self.config.setdefault('manifest', 'cache')
+        self.config.setdefault('versions', 'hash')
+        self.config.setdefault('updater', 'timestamp')
+        self.config.setdefault('load_path', [])
+        self.config.setdefault('url_mapping', {})
+
+        self.config.update(config)
 
     def append_path(self, path, url=None):
         """Appends ``path`` to :attr:`load_path`, and adds a
@@ -557,6 +538,9 @@ class BaseEnvironment(object):
           Stores version information in a file at {path}. If not
           path is given, the manifest will be stored as
           ``.webassets-manifest`` in ``Environment.directory``.
+
+      ``"json:{path}"``
+         Same as "file:{path}", but uses JSON to store the information.
 
       ``False``, ``None``
           No manifest is used.
@@ -710,14 +694,6 @@ class BaseEnvironment(object):
     load path along with their respective url spaces, instead of
     modifying this setting directly.
     """)
-
-    # Deprecated attributes, remove in 0.8?; warnings are raised by
-    # the config backend.
-    def _set_expire(self, expire):
-        self.config['expire'] = expire
-    def _get_expire(self):
-        return self.config['expire']
-    expire = property(_get_expire, _set_expire)
 
 
 class DictConfigStorage(ConfigStorage):
