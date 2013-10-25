@@ -1,3 +1,13 @@
+0.9 (2013-10-25)
+    webassets now support Python 3, and drops support for Python 2.5.
+
+    - Filter for Closure Soy templates (Michael Su).
+    - less filter can output source maps (Riccardo Forina).
+    - Support .pyc only deployments (Mike C. Fletcher).
+    - Jade template filter (Roshambo).
+    - YAMLLoader improvements (incl. Cédric Reginster).
+    - The gzip filter was removed.
+
 0.8 (2012-11-23)
     A major change in this release is the removal of the ``django_assets``
     module. The django integration has moved to a separate project:
