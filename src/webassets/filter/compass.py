@@ -171,8 +171,8 @@ class Compass(Filter):
             # image and the css output file, the latter being in a temporary
             # directory in our case.
             config = CompassConfig(
-                project_path=self.env.directory,
-                http_path=self.env.url,
+                project_path=str(self.env.directory),
+                http_path=str(self.env.url),
                 http_images_dir='',
                 http_stylesheets_dir='',
                 http_fonts_dir='',
