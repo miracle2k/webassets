@@ -682,6 +682,19 @@ class TestCssRewrite(TempEnvironmentHelper):
         self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
         assert self.get('out.css') == '''h1 { background: url(/new/sub/icon.png) }'''
 
+    def test_hostnames(self):
+        """[Regression] Properly deal with full urls.
+        """
+        self.env.append_path(self.path('g'), 'http://input.com/')
+        self.env.url = 'http://output.com/'
+
+        self.create_directories('g')
+        self.create_files({'g/in.css': '''h1 { background: url(sub/icon.png) }'''})
+
+        self.mkbundle('in.css', filters='cssrewrite', output='out.css').build()
+        self.p('out.css')
+        assert self.get('out.css') == '''h1 { background: url(http://input.com/sub/icon.png) }'''
+
     def test_replace_with_cache(self):
         """[Regression] Test replace mode while cache is active.
 
