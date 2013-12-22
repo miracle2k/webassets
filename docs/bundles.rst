@@ -160,12 +160,12 @@ which allows you do something like this:
     {% assets filters="cssmin,datauri", output="gen/packed.css", "common/jquery.css", "site/base.css", "site/widgets.css" %}
     ...
 
-You can also delegate contextual rendering of assets to webassets
-(using Mako and pyramid-webassets environment):
+You can also delegate contextual rendering of assets references to
+webassets (here, using Mako):
 
 .. code-block:: mako
 
-    % for asset in request.webassets_env['assets'].renderers():
+    % for asset in my_webassets_env['assets'].renderers():
       ${asset.render()|n}
     % endfor
 

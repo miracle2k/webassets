@@ -56,7 +56,7 @@ Then, in a Mako template:
 
     <html>
       <head>
-        % for asset in request.webassets_env['app'].renderers():
+        % for asset in my_webassets_env['app'].renderers():
           ${asset.render()|n}
         % endfor
       </head>
