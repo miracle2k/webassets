@@ -697,7 +697,7 @@ class Bundle(object):
 
         If `inline` is specified (i.e. not ``None``), then this will
         be specified as the default inlining mode of each
-        renderer. Note, however, that this can be overriden then on a
+        renderer. Note, however, that this can be overridden then on a
         per-renderer basis.
         '''
         env = self._get_env(env)
