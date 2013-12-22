@@ -10,6 +10,7 @@ from .merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
 from .updater import SKIP_CACHE
 from .exceptions import BundleError, BuildError
 from .utils import cmp_debug_levels, urlparse
+from .renderer import BundleRenderer
 
 
 __all__ = ('Bundle', 'get_all_bundle_files',)
@@ -56,6 +57,7 @@ class Bundle(object):
         self.depends = options.pop('depends', [])
         self.version = options.pop('version', [])
         self.extra = options.pop('extra', {})
+        self.renderer = options.pop('renderer', None)
         if options:
             raise TypeError("got unexpected keyword argument '%s'" %
                             list(options.keys())[0])
@@ -684,6 +686,24 @@ class Bundle(object):
         for bundle, extra_filters in self.iterbuild(env):
             urls.extend(bundle._urls(env, extra_filters, *args, **kwargs))
         return urls
+
+    def renderers(self, env=None, inline=None, *args, **kwargs):
+        '''
+        Returns a generator of renderers for this bundle.
+
+        This operates almost identically to :meth:`.urls()`, so this
+        may return one BundleRenderer (usually in production) or
+        multiple BundleRenderers (usually in debug mode).
+
+        If `inline` is specified (i.e. not ``None``), then this will
+        be specified as the default inlining mode of each
+        renderer. Note, however, that this can be overriden then on a
+        per-renderer basis.
+        '''
+        env = self._get_env(env)
+        for bundle, extra_filters in self.iterbuild(env):
+            for url in bundle._urls(env, extra_filters, *args, **kwargs):
+                yield BundleRenderer(env, bundle, url, inline)
 
 
 def pull_external(env, filename):
