@@ -49,6 +49,11 @@ def register_global_renderer(name, renderer, inline_renderer=None):
 def make_template_renderer(template):
     '''
     Returns a callable renderer from the provided string `template`.
+    The template is assumed to be in `str.format syntax
+    <http://docs.python.org/2/library/string.html#formatstrings>`_,
+    which has access to all parameters specified in
+    :func:`.register_global_renderer` (of which `url` and `content`
+    are most interesting).
     '''
     return str(template).format
 
