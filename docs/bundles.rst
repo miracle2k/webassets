@@ -160,7 +160,7 @@ which allows you do something like this:
     {% assets filters="cssmin,datauri", output="gen/packed.css", "common/jquery.css", "site/base.css", "site/widgets.css" %}
     ...
 
-You can also delegate contextual rendering of assets references to
+You can also delegate contextual rendering of asset references to
 webassets (here, using Mako):
 
 .. code-block:: mako
