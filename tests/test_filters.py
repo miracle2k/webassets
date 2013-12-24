@@ -1047,7 +1047,7 @@ class TestJST(TempEnvironmentHelper):
         """Output strings directly if template_function == False."""
         self.env.config['JST_COMPILER'] = False
         self.mkbundle('templates/*.jst', filters='jst', output='out.js').build()
-        assert "JST['foo'] = '" in self.get('out.js')
+        assert "JST['foo'] = \"" in self.get('out.js')
 
     def test_namespace_config(self):
         self.env.config['JST_NAMESPACE'] = 'window.Templates'
@@ -1112,6 +1112,13 @@ class TestJST(TempEnvironmentHelper):
         bundle.build(force=True)
 
         assert 'new value' in self.get('out.js')
+
+    def test_backslashes_escaped(self):
+        """Test that JavaScript string literals are correctly escaped.
+        """
+        self.create_files({'backslashes.jst': """<input type="text" pattern="\S*"/>"""})
+        self.mkbundle('*.jst', filters='jst', output='out.js').build()
+        assert r"""template("<input type=\"text\" pattern=\"\\S*\"/>")""" in self.get('out.js')
 
 
 class TestHandlebars(TempEnvironmentHelper):
