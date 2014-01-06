@@ -37,7 +37,7 @@ class AutoprefixerFilter(ExternalTool):
     """
     name = 'autoprefixer'
     options = {
-        'autoprefixer': ('binary', 'AUTOPREFIXER_BIN'),
+        'autoprefixer': 'AUTOPREFIXER_BIN',
         'browsers': 'AUTOPREFIXER_BROWSERS',
         'extra_args': 'AUTOPREFIXER_EXTRA_ARGS',
     }
