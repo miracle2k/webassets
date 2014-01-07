@@ -64,7 +64,9 @@ class YAMLLoader(object):
             output=data.get('output', None),
             debug=data.get('debug', None),
             extra=data.get('extra', {}),
-            depends=data.get('depends', None))
+            depends=data.get('depends', None),
+            renderer=data.get('renderer', None),
+        )
         return Bundle(*list(self._yield_bundle_contents(data)), **kwargs)
 
     def _get_bundles(self, obj, known_bundles=None):
