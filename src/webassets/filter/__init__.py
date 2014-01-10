@@ -479,7 +479,7 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                 if not data:
                     raise ValueError(
                         '{input} placeholder given, but no data passed')
-                with os.fdopen(input_file.fd, 'w') as f:
+                with os.fdopen(input_file.fd, 'wb') as f:
                     f.write(data.read() if hasattr(data, 'read') else data)
                     # No longer pass to stdin
                     data = None
@@ -503,7 +503,7 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                         proc.returncode, stdout, stderr))
             else:
                 if output_file.created:
-                    with os.fdopen(output_file.fd, 'r') as f:
+                    with open(output_file.filename, 'rb') as f:
                         out.write(f.read())
                 else:
                     out.write(stdout.decode('utf-8'))
