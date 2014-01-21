@@ -262,7 +262,6 @@ class PythonLoader(object):
         constructor.
         """
         try:
-            print "load", self.module, self.environment
             return getattr(self.module, self.environment)
         except AttributeError as e:
             raise LoaderError(e)
