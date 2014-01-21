@@ -182,10 +182,4 @@ class TestPython(object):
         loader3 = PythonLoader("testing2:assets")
         assert loader3.environment == "assets"
         env3 = loader3.load_environment()
-        print module2.assets, loader3.environment, env3, env
         assert env3 == module2.assets
-
-
-
-
-
