@@ -234,12 +234,9 @@ class PythonLoader(object):
             try:
                 try:
                     if ":" in module_name:
-                        module, env = module_name.split(":")
-                        self.module = import_module(module)
+                        module_name, env = module_name.split(":")
                         self.environment = env
-                        print "!!!", module, env, self.environment
-                    else:
-                        self.module = import_module(module_name)
+                    self.module = import_module(module_name)
                 except ImportError as e:
                     raise LoaderError(e)
             finally:
