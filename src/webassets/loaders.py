@@ -224,6 +224,8 @@ class PythonLoader(object):
     retrieve the bundles defined there.
     """
 
+    environment = "environment"
+
     def __init__(self, module_name):
         if isinstance(module_name, types.ModuleType):
             self.module = module_name
@@ -231,7 +233,13 @@ class PythonLoader(object):
             sys.path.insert(0, '')  # Ensure the current directory is on the path
             try:
                 try:
-                    self.module = import_module(module_name)
+                    if ":" in module_name:
+                        module, env = module_name.split(":")
+                        self.module = import_module(module)
+                        self.environment = env
+                        print "!!!", module, env, self.environment
+                    else:
+                        self.module = import_module(module_name)
                 except ImportError as e:
                     raise LoaderError(e)
             finally:
@@ -252,10 +260,13 @@ class PythonLoader(object):
     def load_environment(self):
         """Load an ``Environment`` defined in the Python module.
 
-        Expects a global name ``environment`` to be defined.
+        Expects as default a global name ``environment`` to be defined,
+        or overriden by passing a string ``module:environent`` to the
+        constructor.
         """
         try:
-            return getattr(self.module, 'environment')
+            print "load", self.module, self.environment
+            return getattr(self.module, self.environment)
         except AttributeError as e:
             raise LoaderError(e)
 

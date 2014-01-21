@@ -2,6 +2,7 @@ from __future__ import with_statement
 import sys
 from nose.tools import assert_raises
 import textwrap
+from webassets.env import Environment
 from webassets.utils import StringIO
 from webassets.bundle import Bundle
 from webassets.loaders import PythonLoader, YAMLLoader, LoaderError
@@ -159,4 +160,32 @@ class TestPython(object):
         bundles = loader.load_bundles()
         assert len(bundles) == 1
         assert list(bundles.values())[0].contents[0] == 'bar'
+
+    def test_load_environment_with_prefix(self):
+        import types
+        module = types.ModuleType("testing")
+        module2 = types.ModuleType("testing2")
+        module.environment = Environment() # default name
+        module2.assets = Environment()
+        sys.modules["testing"] = module
+        sys.modules["testing2"] = module2
+
+        loader = PythonLoader("testing")
+        env = loader.load_environment()
+        assert env == module.environment
+
+        loader2 = PythonLoader("testing:environment")
+        assert loader2.environment == "environment"
+        env2 = loader2.load_environment()
+        assert env2 == module.environment
+
+        loader3 = PythonLoader("testing2:assets")
+        assert loader3.environment == "assets"
+        env3 = loader3.load_environment()
+        print module2.assets, loader3.environment, env3, env
+        assert env3 == module2.assets
+
+
+
+
 
