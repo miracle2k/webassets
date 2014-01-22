@@ -338,7 +338,7 @@ class TestExternalToolClass(object):
         self.popen.return_value.returncode = 0
         self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
 
-        # {input} creates an input file
+        # {output} creates an output file
         intercepted = {}
         def fake_output_file(argv,  **kw):
             intercepted['filename'] = argv[0]
@@ -353,7 +353,29 @@ class TestExternalToolClass(object):
         # File has been deleted
         assert not os.path.exists(intercepted['filename'])
 
+    def test_output_moved(self):
+        class Filter(ExternalTool): pass
+        self.popen.return_value.returncode = 0
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
 
+        # {output} creates an output
+        # this test *moves* the file into the target location, and
+        # tests the fix to issue #286
+        intercepted = {}
+        def fake_output_file(argv,  **kw):
+            intercepted['filename'] = argv[0]
+            with open(argv[0] + '.tmp', 'w') as f:
+                f.write('bat')
+            import shutil
+            shutil.move(argv[0] + '.tmp', argv[0])
+            return DEFAULT
+        self.popen.side_effect = fake_output_file
+        # We get the result we generated in the hook above
+        out = StringIO()
+        Filter.subprocess(['{output}'], out)
+        assert out.getvalue() == 'bat'
+        # File has been deleted
+        assert not os.path.exists(intercepted['filename'])
 
 
 def test_register_filter():
