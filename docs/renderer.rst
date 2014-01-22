@@ -93,6 +93,7 @@ or a callable that receives the following keyword arguments:
 * `bundle`: the Bundle object being rendered.
 * `url`: the currently being rendered asset URL.
 * `content`: the asset content (for inline renderings only).
+* `env`: the environment currently in effect for the rendering.
 
 An example custom ``less`` renderer that can handle less being
 compiled either client-side or server-side (the environment will
