@@ -28,8 +28,8 @@ class RequireJSFilter(ExternalTool):
 
     config (env: REQUIREJS_CONFIG)
 
-        [required] The RequireJS options file. The path is taken to be
-        relative to the current working directory.
+        The RequireJS options file. The path is taken to be relative
+        to the current working directory.
 
     baseUrl (env: REQUIREJS_BASEURL)
 
@@ -112,12 +112,10 @@ class RequireJSFilter(ExternalTool):
         if self.run_in_debug is False:
             # Disable running in debug mode for this instance.
             self.max_debug_level = False
-        if not self.config:
-            raise EnvironmentError('the REQUIREJS_CONFIG option is required')
         self.argv = filter(None, [
             self.executable or 'r.js',
             '-o',
-            self.config,
+            self.config if self.config else None,
             'name={modname}',
             'out={{output}}',
             'baseUrl=' + self.baseUrl if self.baseUrl else None,
