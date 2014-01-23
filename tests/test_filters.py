@@ -1221,3 +1221,66 @@ class TestTypeScript(TempEnvironmentHelper):
     def test(self):
         self.mkbundle('foo.ts', filters='typescript', output='out.js').build()
         assert self.get("out.js") == """var X = (function () {\n    function X() { }\n    return X;\n})();\n"""
+
+
+class TestRequireJS(TempEnvironmentHelper):
+
+    default_files = {
+        'requirejs.json': '{baseUrl: "/static/"}',
+        'script/app.js': '''\
+define(['./utils'], function(util) {
+  util.debug('APP');
+});
+''',
+        'script/utils.js': '''\
+define(function() {
+  return {debug: console.log};
+});
+''',
+    }
+
+    compiled_output = '''\
+define("script/utils",[],function(){return{debug:console.log}}),\
+define("script/app",["./utils"],function(e){e.debug("APP")});\
+'''
+
+    def setup(self):
+        if not find_executable('r.js'):
+            raise SkipTest('"r.js" executable not found')
+        TempEnvironmentHelper.setup(self)
+        self.env.config['requirejs_config'] = self.path('requirejs.json')
+        self.env.config['requirejs_baseUrl'] = self.path('')
+
+    def test_build(self):
+        self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
+        assert self.get('out.js') == self.compiled_output
+
+    def test_build_nooptimize(self):
+        self.env.config['requirejs_optimize'] = 'none'
+        self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
+        assert self.get('out.js') == '''\
+
+define('script/utils',[],function() {
+  return {debug: console.log};
+});
+
+define('script/app',['./utils'], function(util) {
+  util.debug('APP');
+});
+'''
+
+    def test_build_debug_rid(self):
+        self.env.debug = True
+        self.env.config['requirejs_run_in_debug'] = True
+        self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
+        assert self.get('out.js') == self.compiled_output
+
+    def test_build_debug_norid(self):
+        self.env.debug = True
+        self.env.config['requirejs_run_in_debug'] = False
+        self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
+        assert self.get('out.js') == '''\
+define(['./utils'], function(util) {
+  util.debug('APP');
+});
+'''
