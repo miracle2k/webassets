@@ -462,6 +462,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         function foo(bar) {
             var dummy;
             document.write ( bar ); /* Write */
+            var a = "Ünícôdè";
         }
         """,
         'foo2.js': """
@@ -505,13 +506,13 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         if not find_executable('uglifyjs'):
             raise SkipTest()
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
-        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)}'
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}'
 
     def test_uglifyjs_ascii_and_unicode(self):
         if not find_executable('uglifyjs'):
             raise SkipTest()
         self.mkbundle('foo.js', 'foo2.js', filters='uglifyjs', output='out.js').build()
-        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)}more();'
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}more();'
         
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
@@ -528,9 +529,9 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('foo.js', filters='jsmin', output='out.js').build()
         assert self.get('out.js') in (
             # Builtin jsmin
-            "\nfunction foo(bar){var dummy;document.write(bar);}",
+            "\nfunction foo(bar){var dummy;document.write(bar);var a=\"Ünícôdè\"}",
             # jsmin from PyPI
-            "function foo(bar){var dummy;document.write(bar);}",
+            "function foo(bar){var dummy;document.write(bar);var a=\"Ünícôdè\"}",
         )
 
     def test_rjsmin(self):
@@ -539,7 +540,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         except ImportError:
             raise SkipTest()
         self.mkbundle('foo.js', filters='rjsmin', output='out.js').build()
-        assert self.get('out.js') == "function foo(bar){var dummy;document.write(bar);}"
+        assert self.get('out.js') == "function foo(bar){var dummy;document.write(bar);var a=\"Ünícôdè\"}"
 
     def test_jspacker(self):
         self.mkbundle('foo.js', filters='jspacker', output='out.js').build()
