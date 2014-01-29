@@ -178,6 +178,7 @@ class Compass(Filter):
                 http_fonts_dir='',
                 http_javascripts_dir='',
                 images_dir='',
+                output_style=':expanded',
             )
             # Update with the custom config dictionary, if any.
             if self.config:
@@ -198,7 +199,6 @@ class Compass(Filter):
                             '--config', config_file,
                             '--quiet',
                             '--boring',
-                            '--output-style', 'expanded',
                             source_path])
 
             proc = subprocess.Popen(command,
