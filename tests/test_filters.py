@@ -338,7 +338,7 @@ class TestExternalToolClass(object):
         self.popen.return_value.returncode = 0
         self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
 
-        # {input} creates an input file
+        # {output} creates an output file
         intercepted = {}
         def fake_output_file(argv,  **kw):
             intercepted['filename'] = argv[0]
@@ -353,7 +353,29 @@ class TestExternalToolClass(object):
         # File has been deleted
         assert not os.path.exists(intercepted['filename'])
 
+    def test_output_moved(self):
+        class Filter(ExternalTool): pass
+        self.popen.return_value.returncode = 0
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
 
+        # {output} creates an output
+        # this test *moves* the file into the target location, and
+        # tests the fix to issue #286
+        intercepted = {}
+        def fake_output_file(argv,  **kw):
+            intercepted['filename'] = argv[0]
+            with open(argv[0] + '.tmp', 'w') as f:
+                f.write('bat')
+            import shutil
+            shutil.move(argv[0] + '.tmp', argv[0])
+            return DEFAULT
+        self.popen.side_effect = fake_output_file
+        # We get the result we generated in the hook above
+        out = StringIO()
+        Filter.subprocess(['{output}'], out)
+        assert out.getvalue() == 'bat'
+        # File has been deleted
+        assert not os.path.exists(intercepted['filename'])
 
 
 def test_register_filter():
@@ -1047,7 +1069,7 @@ class TestJST(TempEnvironmentHelper):
         """Output strings directly if template_function == False."""
         self.env.config['JST_COMPILER'] = False
         self.mkbundle('templates/*.jst', filters='jst', output='out.js').build()
-        assert "JST['foo'] = '" in self.get('out.js')
+        assert "JST['foo'] = \"" in self.get('out.js')
 
     def test_namespace_config(self):
         self.env.config['JST_NAMESPACE'] = 'window.Templates'
@@ -1112,6 +1134,13 @@ class TestJST(TempEnvironmentHelper):
         bundle.build(force=True)
 
         assert 'new value' in self.get('out.js')
+
+    def test_backslashes_escaped(self):
+        """Test that JavaScript string literals are correctly escaped.
+        """
+        self.create_files({'backslashes.jst': """<input type="text" pattern="\S*"/>"""})
+        self.mkbundle('*.jst', filters='jst', output='out.js').build()
+        assert r"""template("<input type=\"text\" pattern=\"\\S*\"/>")""" in self.get('out.js')
 
 
 class TestHandlebars(TempEnvironmentHelper):
@@ -1199,3 +1228,66 @@ class TestTypeScript(TempEnvironmentHelper):
     def test(self):
         self.mkbundle('foo.ts', filters='typescript', output='out.js').build()
         assert self.get("out.js") == """var X = (function () {\n    function X() { }\n    return X;\n})();\n"""
+
+
+class TestRequireJS(TempEnvironmentHelper):
+
+    default_files = {
+        'requirejs.json': '{baseUrl: "/static/"}',
+        'script/app.js': '''\
+define(['./utils'], function(util) {
+  util.debug('APP');
+});
+''',
+        'script/utils.js': '''\
+define(function() {
+  return {debug: console.log};
+});
+''',
+    }
+
+    compiled_output = '''\
+define("script/utils",[],function(){return{debug:console.log}}),\
+define("script/app",["./utils"],function(e){e.debug("APP")});\
+'''
+
+    def setup(self):
+        if not find_executable('r.js'):
+            raise SkipTest('"r.js" executable not found')
+        TempEnvironmentHelper.setup(self)
+        self.env.config['requirejs_config'] = self.path('requirejs.json')
+        self.env.config['requirejs_baseUrl'] = self.path('')
+
+    def test_build(self):
+        self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
+        assert self.get('out.js') == self.compiled_output
+
+    def test_build_nooptimize(self):
+        self.env.config['requirejs_optimize'] = 'none'
+        self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
+        assert self.get('out.js') == '''\
+
+define('script/utils',[],function() {
+  return {debug: console.log};
+});
+
+define('script/app',['./utils'], function(util) {
+  util.debug('APP');
+});
+'''
+
+    def test_build_debug_rid(self):
+        self.env.debug = True
+        self.env.config['requirejs_run_in_debug'] = True
+        self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
+        assert self.get('out.js') == self.compiled_output
+
+    def test_build_debug_norid(self):
+        self.env.debug = True
+        self.env.config['requirejs_run_in_debug'] = False
+        self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
+        assert self.get('out.js') == '''\
+define(['./utils'], function(util) {
+  util.debug('APP');
+});
+'''

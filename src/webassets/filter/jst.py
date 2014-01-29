@@ -1,4 +1,8 @@
 import os
+try:
+    import json
+except ImportError:
+    import simplejson as json
 from webassets.filter import Filter
 from webassets.utils import common_path_prefix
 
@@ -148,14 +152,14 @@ class JST(JSTemplateFilter):
             out.write("%s\n" % _jst_script)
 
         for name, hunk in self.iter_templates_with_base(hunks):
-            # Make it a valid Javascript string. Is this smart enough?
-            contents = hunk.data().replace('\n', '\\n').replace("'", r"\'")
+            # Make it a valid Javascript string.
+            contents = json.dumps(hunk.data())
 
             out.write("%s['%s'] = " % (namespace, name))
             if self.template_function is False:
-                out.write("'%s';\n" % (contents))
+                out.write("%s;\n" % (contents))
             else:
-                out.write("%s('%s');\n" % (
+                out.write("%s(%s);\n" % (
                     self.template_function or 'template', contents))
 
         if self.bare is False:

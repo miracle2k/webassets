@@ -75,7 +75,11 @@ class AssetsExtension(Extension):
             # Otherwise assume a source file is given, which may be any
             # expression, except note that strings are handled separately above.
             else:
-                files.append(parser.parse_expression())
+                expression = parser.parse_expression()
+                if isinstance(expression, (nodes.List, nodes.Tuple)):
+                    files.extend(expression.iter_child_nodes())
+                else:
+                    files.append(expression)
 
         # Parse the contents of this tag
         body = parser.parse_statements(['name:endassets'], drop_needle=True)
