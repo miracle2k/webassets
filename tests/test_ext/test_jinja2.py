@@ -63,6 +63,18 @@ class TestTemplateTag(object):
         self.render_template('"file1", "file2", "file3"')
         assert self.the_bundle.contents == ('file1', 'file2', 'file3',)
 
+    def test_reference_files_list(self):
+        self.render_template('["file1", "file2", "file3"]')
+        assert self.the_bundle.contents == ('file1', 'file2', 'file3',)
+
+    def test_reference_files_tuple(self):
+        self.render_template('("file1", "file2", "file3")')
+        assert self.the_bundle.contents == ('file1', 'file2', 'file3',)
+
+    def test_reference_files_mixed(self):
+        self.render_template('"file1", ("file2", "file3")')
+        assert self.the_bundle.contents == ('file1', 'file2', 'file3',)
+
     def test_reference_mixed(self):
         self.render_template('"foo_bundle", "file2", "file3"')
         assert self.the_bundle.contents == (self.foo_bundle, 'file2', 'file3',)
