@@ -20,3 +20,8 @@ class CleanCSS(ExternalTool):
 
     def output(self, _in, out, **kw):
         self.subprocess([self.binary or 'cleancss'], out, _in)
+
+    def input(self, _in, out, **kw):
+        args = [self.binary or 'cleancss', '--root', os.path.dirname(kw['source_path'])]
+        self.subprocess(args, out, _in)
+
