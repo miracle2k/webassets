@@ -92,9 +92,14 @@ class CSSRewrite(CSSUrlRewriter):
             # If path is an absolute one, keep it
             parsed = urlparse.urlparse(url)
             if not parsed.scheme and not parsed.path.startswith('/'):
+                abs_source_url = urlparse.urljoin(self.source_url, url)
+
+                # relpath() will not detect this case
+                if urlparse.urlparse(abs_source_url).scheme:
+                    return abs_source_url
+
                 # rewritten url: relative path from new location (output)
                 # to location of referenced file (source + current url)
-                url = urlpath.relpath(self.output_url,
-                    urlparse.urljoin(self.source_url, url))
+                url = urlpath.relpath(self.output_url, abs_source_url)
 
         return url

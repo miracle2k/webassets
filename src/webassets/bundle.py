@@ -600,27 +600,25 @@ class Bundle(object):
             # If we are given a stream, just write to it.
             output.write(hunk.data())
         else:
-            # If it doesn't exist yet, create the target directory.
-            output = path.join(ctx.directory, self.output)
-            output_dir = path.dirname(output)
-            if not path.exists(output_dir):
-                os.makedirs(output_dir)
+            if has_placeholder(self.output) and not ctx.versions:
+                raise BuildError((
+                    'You have not set the "versions" option, but %s '
+                    'uses a version placeholder in the output target'
+                        % self))
 
             version = None
             if ctx.versions:
                 version = ctx.versions.determine_version(self, ctx, hunk)
 
-            if not has_placeholder(self.output):
-                hunk.save(self.resolve_output(ctx))
-            else:
-                if not ctx.versions:
-                    raise BuildError((
-                        'You have not set the "versions" option, but %s '
-                        'uses a version placeholder in the output target'
-                            % self))
-                output = self.resolve_output(ctx, version=version)
-                hunk.save(output)
-                self.version = version
+            output_filename = self.resolve_output(ctx, version=version)
+
+            # If it doesn't exist yet, create the target directory.
+            output_dir = path.dirname(output_filename)
+            if not path.exists(output_dir):
+                os.makedirs(output_dir)
+
+            hunk.save(output_filename)
+            self.version = version
 
             if ctx.manifest:
                 ctx.manifest.remember(self, ctx, version)

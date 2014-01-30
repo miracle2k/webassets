@@ -7,8 +7,10 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
-Development Version
-~~~~~~~~~~~~~~~~~~~
+In 0.9
+~~~~~~
+
+- Python 2.5 is no longer supported.
 
 - The API of the BaseCache.get() method has changed. It no longer receives
   a ``python`` keyword argument. This only affects you if you have
@@ -29,6 +31,7 @@ Development Version
   a ``ctx` object, which allows access to the environment's settings.
 
   See :ref:`the page on implementing resolvers <custom_resolver>`.
+
 
 
 In 0.8

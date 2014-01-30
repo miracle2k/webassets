@@ -57,6 +57,9 @@ class CompassConfig(dict):
                 return '{%s}' % ', '.join("'%s' => '%s'" % i for i in val.items())
             elif isinstance(val, tuple):
                 val = list(val)
+            elif isinstance(val, six.text_type) and not six.PY3:
+                # remove unicode indicator in python2 unicode string
+                return repr(val.encode('utf-8'))
             # works fine with strings and lists
             return repr(val)
         return '\n'.join(['%s = %s' % (k, string_rep(v)) for k, v in self.items()])
@@ -175,6 +178,7 @@ class Compass(Filter):
                 http_fonts_dir='',
                 http_javascripts_dir='',
                 images_dir='',
+                output_style=':expanded',
             )
             # Update with the custom config dictionary, if any.
             if self.config:
@@ -195,7 +199,6 @@ class Compass(Filter):
                             '--config', config_file,
                             '--quiet',
                             '--boring',
-                            '--output-style', 'expanded',
                             source_path])
 
             proc = subprocess.Popen(command,
