@@ -130,7 +130,7 @@ class BuildCommand(Command):
         # Determine common prefix for use with ``directory`` option.
         if directory:
             prefix = os.path.commonprefix(
-                [os.path.normpath(b.resolve_output(self.environment))
+                [os.path.normpath(b.resolve_output())
                  for _, b in bundles if b.output])
             # dirname() gives the right value for a single file.
             prefix = os.path.dirname(prefix)
@@ -151,7 +151,7 @@ class BuildCommand(Command):
                 overwrite_filename = output[name]
             elif directory:
                 offset = os.path.normpath(
-                    bundle.resolve_output(self.environment))[len(prefix)+1:]
+                    bundle.resolve_output())[len(prefix)+1:]
                 overwrite_filename = os.path.join(directory, offset)
             to_build.append((bundle, overwrite_filename, name,))
 
