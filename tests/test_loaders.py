@@ -83,11 +83,37 @@ class TestYAML(object):
         assert bundles['recursive'].contents[1].contents == bundles['standard'].contents
         assert isinstance(bundles['recursive'].contents[1], Bundle)
 
+    def test_load_conditional(self):
+        yaml = '''
+          standard:
+              contents:
+                  - file1
+                  - if: config.debug and config.less_run_in_debug
+                    contents: file2
+                  - file3
+        '''
+        # no environment
+        bundles = self.loader(yaml).load_bundles()
+        assert len(bundles) == 1
+        assert len(bundles['standard'].contents) == 2
+        # non-debug environment
+        env = Environment()
+        env.config['debug'] = False
+        bundles = self.loader(yaml).load_bundles(env)
+        assert len(bundles) == 1
+        assert len(bundles['standard'].contents) == 2
+        # debug & less run-in-debug environment
+        env.config['debug'] = True
+        env.config['less_run_in_debug'] = True
+        bundles = self.loader(yaml).load_bundles(env)
+        assert len(bundles) == 1
+        assert len(bundles['standard'].contents) == 3
+
     def test_empty_files(self):
         """YAML loader can deal with empty files.
         """
-        self.loader("""""").load_bundles()
-        self.loader("""""").load_environment()
+        self.loader('').load_bundles()
+        self.loader('').load_environment()
 
     def test_load_environment(self):
         environment = self.loader("""
