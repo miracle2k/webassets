@@ -1,5 +1,7 @@
 # Some additonal dependencies that are currently not yet available on Python 3.
 
+--allow-unverified PIL
+
 PIL
 clevercss
 pyScss==1.1.5
