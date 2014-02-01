@@ -38,8 +38,8 @@ If not renderer is defined or inherited, then the default renderer is
 used, which simply renders the asset URL (when referenced) or the
 asset contents (when inlined).
 
-For example, to render a CSS link or inline stylesheet, you can do the
-following:
+For example, to render a CSS link reference or inline stylesheet, you
+can do the following:
 
 .. code-block:: python
 
@@ -102,10 +102,10 @@ Would generate something like the following output:
 Renderer Registration
 =====================
 
-Webassets provides default renderers for CSS (named ``"css"``) and for
-JavaScript (named ``"js"``). If you need to add more renderers, or
-change the default rendering, this can be done via renderer
-registration.
+Webassets provides default renderers for CSS (named ``"css"``),
+JavaScript (named ``"js"``), and LESS CSS (named ``"less"``). If you
+need to add more renderers, or change the default rendering, this can
+be done via renderer registration.
 
 A renderer is either a string in `str.format syntax
 <http://docs.python.org/2/library/string.html#formatstrings>`_,
@@ -117,21 +117,21 @@ or a callable that receives the following keyword arguments:
 * `content`: the asset content (for inline renderings only).
 * `env`: the environment currently in effect for the rendering.
 
-An example custom ``less`` renderer that can handle less being
-compiled either client-side or server-side (the environment will
-indicate this via the `debug` flag):
+An example custom ``svg`` renderer that can handle SVG being
+rasterized either client-side or server-side (note that this assumes
+that there is a filter that rasterizes SVGs to PNGs running that is
+sensitive to the `debug` and `svg_run_in_debug` flags):
 
 .. code-block:: python
 
-    def my_less_renderer(type, bundle, url):
-        dolessc = not bundle.env.debug or bundle.env.config.get('less_run_in_debug')
-        rel = 'stylesheet' if dolessc else 'stylesheet/less'
-        return '<link rel="{rel}" type="text/css" href="{url}"/>'.format(rel=rel, url=url)
+    def my_svg_renderer(type, bundle, url):
+        return '<img src="{url}"/>'
 
-    def my_less_inline_renderer(type, bundle, url, content):
-        dolessc = not bundle.env.debug or bundle.env.config.get('less_run_in_debug')
-        type = 'text/css' if dolessc else 'text/less'
-        return '<style type="{type}">{content}</style>'.format(type=type, content=content)
+    def my_svg_inline_renderer(type, bundle, url, content):
+        from base64 import b64encode
+        dosvgc = not bundle.env.debug or bundle.env.config.get('svg_run_in_debug')
+        type = 'image/png' if dosvgc else 'image/svg'
+        return '<img src="data:{type};base64,{content}"/>'.format(type=type, content=content)
 
 
 You can register renderers in particular ``Environment`` objects
@@ -142,7 +142,7 @@ To register the renderer in an environment:
 
 .. code-block:: python
 
-    env.register_renderer('less', my_less_renderer, my_less_inline_renderer)
+    env.register_renderer('svg', my_svg_renderer, my_svg_inline_renderer)
 
 
 And to register the renderer globally (usually not recommended):
@@ -150,25 +150,26 @@ And to register the renderer globally (usually not recommended):
 .. code-block:: python
 
     from webassets.renderer import register_global_renderer
-    register_global_renderer('less', my_less_renderer, my_less_inline_renderer)
+    register_global_renderer('svg', my_svg_renderer, my_svg_inline_renderer)
 
 Note that in the above examples, we registered both a referencing
 renderer as well as an inline renderer. If we had specified only the
 former, then the inline renderer would default to that one as well.
 
-And here an example of registering a simpler string-based renderer:
+And here an example of registering a simpler string-based renderer
+(but which will always render a reference to the image even when
+inlining is requested):
 
 .. code-block:: python
 
     env.register_renderer(
 
       # the name of the renderer:
-      'less',
+      'svg',
 
       # the "by reference" rendering:
-      '<link rel="stylesheet/less" type="text/css" href="{url}"/>',
+      '<img src="{url}"/>'
 
-      # and optionally the "inline" rendering (which defaults
-      # to using the "by reference" renderer):
-      '<style type="text/less">{content}</style>'
+      # an "inline" renderer is not specified, so it will
+      # default to the above "by reference" renderer
     )

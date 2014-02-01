@@ -82,20 +82,26 @@ register_global_renderer(
     '<script type="text/javascript" src="{url}"></script>',
     '<script type="text/javascript"><!--//--><![CDATA[//><!--\n{content}\n//--><!]]></script>')
 
-# todo: register renderers for less. the complication with that, is
-# that it is sensitive to whether or not the less is compiled
-# client-side or server-side...
+# register a less renderer
+# todo: perhaps this should be registered by the 'less' filter?...
 
-# # in server-side compiled mode
-# register_global_renderer(
-#     'less',
-#     '<link rel="stylesheet" type="text/css" href="{url}"/>',
-#     '<style type="text/css"><!--/*--><![CDATA[/*><!--*/\n{content}\n/*]]>*/--></style>')
-# # in client-side compiled mode
-# register_global_renderer(
-#     'less',
-#     '<link rel="stylesheet/less" type="text/css" href="{url}"/>',
-#     '<style type="text/less"><!--/*--><![CDATA[/*><!--*/\n{content}\n/*]]>*/--></style>')
+LESS_REFERENCE_FMT = '<link rel="{rel}" type="text/css" href="{url}"/>'
+LESS_INLINE_FMT = '''\
+<style type="{type}"><!--/*--><![CDATA[/*><!--*/
+{content}
+/*]]>*/--></style>'''
+
+def less_renderer(type, bundle, url, env, **kw):
+  runlessc = not env.debug or env.config.get('less_run_in_debug', True)
+  rel = 'stylesheet' if runlessc else 'stylesheet/less'
+  return LESS_REFERENCE_FMT.format(rel=rel, url=url)
+
+def less_inline_renderer(type, bundle, url, content, env, **kw):
+  runlessc = not env.debug or env.config.get('less_run_in_debug', True)
+  type = 'text/css' if runlessc else 'text/less'
+  return LESS_INLINE_FMT.format(type=type, content=content)
+
+register_global_renderer('less', less_renderer, less_inline_renderer)
 
 
 def same_renderer(bundle, renderer):
