@@ -15,9 +15,31 @@ method, which returns a `BundleRenderer` and the `Environment` class'
 Bundle Rendering
 ================
 
-Bundles have a method ``renderers()`` that returns a generator of one
-or more BundleRenderers that actually do the rendering. For example,
-to render a CSS link or inline stylesheet, you can do the following:
+Bundles have a method ``.renderers()`` that returns a generator of one
+or more BundleRenderers that manage the rendering. The primary method
+of a BundleRenderer is the ``.render()`` method, which actually
+returns the rendered result.
+
+Renderers are inherited by child bundles from parent bundles if their
+renderer is set to ``None``. Note that renderers do not propagate from
+child bundles to parent (container) bundles.
+
+Both the ``Bundle.renderers()`` and ``BundleRenderer.render()`` methods
+take the following optional parameters:
+
+* `inline`: whether or not to render a reference to the asset as or to
+  to inline the asset directly. Note that some renderers can only do
+  one or the other.
+
+* `default`: specify a default renderer that is inherited down the
+  bundle container stack.
+
+If not renderer is defined or inherited, then the default renderer is
+used, which simply renders the asset URL (when referenced) or the
+asset contents (when inlined).
+
+For example, to render a CSS link or inline stylesheet, you can do the
+following:
 
 .. code-block:: python
 
@@ -130,7 +152,23 @@ And to register the renderer globally (usually not recommended):
     from webassets.renderer import register_global_renderer
     register_global_renderer('less', my_less_renderer, my_less_inline_renderer)
 
-
 Note that in the above examples, we registered both a referencing
 renderer as well as an inline renderer. If we had specified only the
 former, then the inline renderer would default to that one as well.
+
+And here an example of registering a simpler string-based renderer:
+
+.. code-block:: python
+
+    env.register_renderer(
+
+      # the name of the renderer:
+      'less',
+
+      # the "by reference" rendering:
+      '<link rel="stylesheet/less" type="text/css" href="{url}"/>',
+
+      # and optionally the "inline" rendering (which defaults
+      # to using the "by reference" renderer):
+      '<style type="text/less">{content}</style>'
+    )
