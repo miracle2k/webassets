@@ -35,6 +35,20 @@ class TestRenderer(BaseUrlsTester, unittest.TestCase):
             [r.render() for r in b.renderers()],
             ['<link rel="stylesheet" type="text/css" href="/out.css"/>'])
 
+    def test_reference_less(self):
+        b = self.MockBundle('a', output='out.css', renderer='less')
+        self.assertEqual(
+            [r.render() for r in b.renderers()],
+            ['<link rel="stylesheet" type="text/css" href="/out.css"/>'])
+
+    def test_reference_less_debug(self):
+        self.env.debug = True
+        self.env.config['less_run_in_debug'] = False
+        b = self.MockBundle('a', output='out.css', renderer='less')
+        self.assertEqual(
+            [r.render() for r in b.renderers()],
+            ['<link rel="stylesheet/less" type="text/css" href="/a"/>'])
+
     def test_reference_js(self):
         b = self.MockBundle('a', output='out.js', renderer='js')
         self.assertEqual(
@@ -56,6 +70,30 @@ class TestRenderer(BaseUrlsTester, unittest.TestCase):
 <style type="text/css"><!--/*--><![CDATA[/*><!--*/
 some-css
 /*]]>*/--></style>'''])
+
+    def test_inline_less(self):
+        b = self.MockBundle('a', output='out.css', renderer='less',
+                            extra=dict(data='some-less'))
+        self.assertEqual(
+            [r.render(inline=True) for r in b.renderers()],
+            ['''\
+<style type="text/css"><!--/*--><![CDATA[/*><!--*/
+some-less
+/*]]>*/--></style>'''])
+
+
+    def test_inline_less_debug(self):
+        self.env.debug = True
+        self.env.config['less_run_in_debug'] = False
+        b = self.MockBundle('a', output='out.css', renderer='less',
+                            extra=dict(data='some-less'))
+        self.assertEqual(
+            [r.render(inline=True) for r in b.renderers()],
+            ['''\
+<style type="text/less"><!--/*--><![CDATA[/*><!--*/
+some-less
+/*]]>*/--></style>'''])
+
 
     def test_inline_js(self):
         b = self.MockBundle('a', output='out.js', renderer='js',
