@@ -1,6 +1,8 @@
 from webassets import six
 
-__all__ = 'register_global_renderer', 'BundleRenderer'
+from .bundle import Bundle
+
+__all__ = 'register_global_renderer'
 
 global_renderers = dict()
 
@@ -96,37 +98,83 @@ register_global_renderer(
 #     '<style type="text/less"><!--/*--><![CDATA[/*><!--*/\n{content}\n/*]]>*/--></style>')
 
 
+def same_renderer(bundle, renderer):
+    if bundle.renderer is not None and bundle.renderer != renderer:
+        return False
+    for sub in bundle.contents:
+        if isinstance(sub, Bundle):
+            if not same_renderer(sub, renderer):
+                return False
+    return True
+
+
+def bundle_renderer_iter(bundle, env, inline, default, *args, **kwargs):
+    default = bundle.renderer or default
+    # first, check for mixed-renderer bundles
+    if same_renderer(bundle, default):
+        for bundle, extra_filters in bundle.iterbuild(env):
+            for url in bundle._urls(env, extra_filters, *args, **kwargs):
+                yield BundleRenderer(env, bundle, url, inline, default)
+        return
+    def copy(bundle, renderer, index=0):
+        ret = Bundle(renderer=renderer)
+        # copying all attributes except 'contents' and 'renderer'...
+        for attr in ('env', 'output', 'filters', 'debug', \
+                     'depends', 'version', 'extra'):
+            setattr(ret, attr, getattr(bundle, attr))
+        if index != 0:
+            ret.output += '.part-%d' % (index,)
+        return (ret, index + 1)
+    cur, idx = copy(bundle, default)
+    for sub in bundle.contents:
+        if not isinstance(sub, Bundle) or same_renderer(sub, default):
+            if cur is None:
+                cur, idx = copy(bundle, default, idx)
+            cur.contents += (sub,)
+            continue
+        if cur and cur.contents:
+            for br in bundle_renderer_iter(cur, env, inline, default, *args, **kwargs):
+                yield br
+        cur = None
+        for br in bundle_renderer_iter(sub, env, inline, default, *args, **kwargs):
+            yield br
+    if cur and cur.contents:
+        for br in bundle_renderer_iter(cur, env, inline, default, *args, **kwargs):
+            yield br
+
+
 class BundleRenderer(object):
 
-    def __init__(self, env, bundle, url, inline):
-        self.env    = env
-        self.bundle = bundle
-        self.url    = url
-        self.inline = inline
+    def __init__(self, env, bundle, url, inline=None, default=None):
+        self.env     = env
+        self.bundle  = bundle
+        self.url     = url
+        self.inline  = inline
+        self.default = default
 
     def _get_renderer(self, name):
         rend = None
         if hasattr(self.env, 'renderers'):
-          rend = self.env.renderers.get(name, None)
+            rend = self.env.renderers.get(name, None)
         if rend is None:
             rend = global_renderers.get(name, None)
         if rend is None:
             raise ValueError('Cannot find renderer "%s"' % (str(name),))
         return rend
 
-    def render(self, inline=None):
+    def render(self, inline=None, default=None):
         if inline or ( inline is None and self.inline ):
-            return self._render_inline()
-        return self._render_ref()
+            return self._render_inline(default=default or self.default)
+        return self._render_ref(default=default or self.default)
 
-    def _render_ref(self):
-        typ  = self.bundle.renderer
+    def _render_ref(self, default=None):
+        typ  = self.bundle.renderer or default
         rend = self._get_renderer(typ)[0]
         return rend(
             type=typ, bundle=self.bundle, url=self.url, env=self.env)
 
-    def _render_inline(self):
-        typ  = self.bundle.renderer
+    def _render_inline(self, default=None):
+        typ  = self.bundle.renderer or default
         rend = self._get_renderer(typ)[1]
         buf  = six.StringIO()
         self.bundle.build(force=True, output=buf, env=self.env)
