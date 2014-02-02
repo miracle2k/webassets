@@ -184,10 +184,10 @@ some-js
         d = self.MockBundle(a, b, c, output='d.out', renderer='custom')
         self.assertEqual(
             [r.render() for r in d.renderers(inline=False)],
-            ['</d.out>', '<</b.out>>', '</d.out.part-1>'])
+            ['</d.out>', '<</b.out>>', '</d.out:1>'])
         self.assertEqual(
             [r.render() for r in d.renderers(inline=True)],
-            ['[/d.out]', '[[/b.out]]', '[/d.out.part-1]'])
+            ['[/d.out]', '[[/b.out]]', '[/d.out:1]'])
 
     def test_mixed_interleaved_debug(self):
         self.env.debug = True
