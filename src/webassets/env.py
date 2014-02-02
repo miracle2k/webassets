@@ -697,7 +697,8 @@ class BaseEnvironment(BundleRegistry):
     modifying this setting directly.
     """)
 
-    def register_renderer(self, name, renderer, inline_renderer=None):
+    def register_renderer(self, name, renderer,
+                          inline_renderer=None, merge_checker=None):
         '''
         Registers renderers to be used only for renderings done
         within the context of this environment.
@@ -706,7 +707,7 @@ class BaseEnvironment(BundleRegistry):
         :func:`webassets.renderer.register_global_renderer()`.
         '''
         self.renderers[name] = prepare_renderer(
-            name, renderer, inline_renderer)
+            name, renderer, inline_renderer, merge_checker)
 
 class DictConfigStorage(ConfigStorage):
     """Using a lower-case dict for configuration values.
