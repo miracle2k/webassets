@@ -202,3 +202,24 @@ some-js
         self.assertEqual(
             [r.render() for r in d.renderers(inline=True)],
             ['[/a]', '[[/b]]', '[/c]'])
+
+    def test_selection(self):
+        self.env.register_renderer('ra', '<a:{url}>', '[a:{url}]')
+        self.env.register_renderer('rb', '<b:{url}>', '[b:{url}]')
+        self.env.register_renderer('rc', '<c:{url}>', '[c:{url}]')
+        a = self.MockBundle('a', output='a.out', renderer='ra')
+        b = self.MockBundle('b', output='b.out', renderer='rb')
+        c = self.MockBundle('c', output='c.out', renderer='rc')
+        d = self.MockBundle(a, b, c, output='d.out')
+        self.assertEqual(
+            [r.render() for r in d.renderers('ra')],
+            ['<a:/a.out>'])
+        self.assertEqual(
+            [r.render() for r in d.renderers('ra,rb')],
+            ['<a:/a.out>', '<b:/b.out>'])
+        self.assertEqual(
+            [r.render() for r in d.renderers('!rc')],
+            ['<a:/a.out>', '<b:/b.out>'])
+        self.assertEqual(
+            [r.render() for r in d.renderers('!ra,!rc')],
+            ['<b:/b.out>'])
