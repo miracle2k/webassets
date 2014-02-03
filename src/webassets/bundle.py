@@ -686,7 +686,8 @@ class Bundle(object):
             urls.extend(bundle._urls(env, extra_filters, *args, **kwargs))
         return urls
 
-    def renderers(self, env=None, inline=None, default=None, *args, **kwargs):
+    def renderers(self, types=None, inline=None, default=None, env=None,
+                  *args, **kwargs):
         '''
         Returns a generator of renderers for this bundle.
 
@@ -696,6 +697,21 @@ class Bundle(object):
         bundles uses multiple renderer types).
 
         :Parameters:
+
+        * `types` : {str, list(str)}, optional, default: null
+
+          If specified, restricts the returned renderers to the
+          selected set. If the selection is a string-type, it is
+          converted into a list by splitting at commas (","). Then,
+          each potential renderer is matched against the set, and if
+          any match, the renderer is included. If the match starts
+          with a bang ("!"), it is a negative match, and the entire
+          set becomes an exclusive set instead of inclusive. It is a
+          syntax error to mix both positive and negative matches.
+          Examples:
+
+          * ``"less,css"``: selects any "less" or "css" renderers
+          * ``"!js"``: selects any renderers that are not "js"
 
         * `inline` : bool, optional, default: null
 
@@ -709,10 +725,16 @@ class Bundle(object):
           value to the `default` parameter to each `render()` call.
           Note, however, that this can be overridden then on a
           per-renderer basis.
+
+        * `env` : object, optional, default: null
+
+          Override the default bundle rendering environment with the
+          specified `env`.
         '''
         from .renderer import bundle_renderer_iter
         return bundle_renderer_iter(
-            self, self._get_env(env), inline, default, *args, **kwargs)
+            self, types, inline, default, self._get_env(env),
+            *args, **kwargs)
 
 
 def pull_external(env, filename):

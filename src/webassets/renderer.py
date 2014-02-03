@@ -163,14 +163,29 @@ def mergeable_renderer(env, bundle, renderer):
                 return False
     return True
 
+def matches_types(types, type):
+    if types is None:
+        return True
+    default = False
+    for typ in types:
+        if typ.startswith('!'):
+            default = True
+            typ = typ[1:]
+        if typ == type:
+            return not default
+    return default
 
-def bundle_renderer_iter(bundle, env, inline, default, *args, **kwargs):
+def bundle_renderer_iter(bundle, types, inline, default, env, *args, **kwargs):
+    if types is not None and isinstance(types, six.string_types):
+        types = [typ.strip() for typ in types.split(',')]
     default = bundle.renderer or default
     # first, check for mixed-renderer bundles
     if mergeable_renderer(env, bundle, default):
-        for bundle, extra_filters in bundle.iterbuild(env):
-            for url in bundle._urls(env, extra_filters, *args, **kwargs):
-                yield BundleRenderer(env, bundle, url, inline, default)
+        for sub, extra_filters in bundle.iterbuild(env):
+            for url in sub._urls(env, extra_filters, *args, **kwargs):
+                if not matches_types(types, sub.renderer or default):
+                    continue
+                yield BundleRenderer(env, sub, url, inline, default)
         return
     def copy(bundle, renderer, index=0):
         ret = Bundle(renderer=renderer)
@@ -195,13 +210,13 @@ def bundle_renderer_iter(bundle, env, inline, default, *args, **kwargs):
             cur.contents += (sub,)
             continue
         if cur and cur.contents:
-            for br in bundle_renderer_iter(cur, env, inline, default, *args, **kwargs):
+            for br in bundle_renderer_iter(cur, types, inline, default, env, *args, **kwargs):
                 yield br
         cur = None
-        for br in bundle_renderer_iter(sub, env, inline, default, *args, **kwargs):
+        for br in bundle_renderer_iter(sub, types, inline, default, env, *args, **kwargs):
             yield br
     if cur and cur.contents:
-        for br in bundle_renderer_iter(cur, env, inline, default, *args, **kwargs):
+        for br in bundle_renderer_iter(cur, types, inline, default, env, *args, **kwargs):
             yield br
 
 
