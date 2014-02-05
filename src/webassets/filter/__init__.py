@@ -490,7 +490,8 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                 # StringIO objects (which are not supported by subprocess)
                 stdout=subprocess.PIPE,
                 stdin=subprocess.PIPE,
-                stderr=subprocess.PIPE)
+                stderr=subprocess.PIPE,
+                shell=os.name == 'nt')
             data = (data.read() if hasattr(data, 'read') else data)
             if data is not None:
                 data = data.encode('utf-8')
