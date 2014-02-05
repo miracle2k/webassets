@@ -52,6 +52,7 @@ class TempDirHelper(object):
         """Helper that allows to quickly create a bunch of files in
         the media directory of the current test run.
         """
+        import codecs
         # Allow passing a list of filenames to create empty files
         if not hasattr(files, 'items'):
             files = dict(map(lambda n: (n, ''), files))
@@ -59,7 +60,7 @@ class TempDirHelper(object):
             dirs = path.dirname(self.path(name))
             if not path.exists(dirs):
                 os.makedirs(dirs)
-            f = open(self.path(name), 'w')
+            f = codecs.open(self.path(name), 'w', 'utf-8')
             f.write(data)
             f.close()
 
