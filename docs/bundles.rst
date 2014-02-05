@@ -43,6 +43,12 @@ arguments:
   .. warning::
     Currently, using ``depends`` disables caching for a bundle.
 
+* ``require_production`` - When set to ``True`` or ``False`` the bundle will be
+  skipped if the Environment's debug level does not match the inverse of this
+  settings: When set to ``True``, the debug level must be ``False``, when set to
+  ``False`` the debug level must not be ``False`` (both ``"merge"`` and ``True``
+  are fine).
+
 
 Nested bundles
 --------------

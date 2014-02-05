@@ -56,6 +56,7 @@ class Bundle(object):
         self.depends = options.pop('depends', [])
         self.version = options.pop('version', [])
         self.extra = options.pop('extra', {})
+        self.require_production = options.pop('require_production', None)
         if options:
             raise TypeError("got unexpected keyword argument '%s'" %
                             list(options.keys())[0])
@@ -245,6 +246,13 @@ class Bundle(object):
             output = output % {'version': version or self.get_version(env)}
         return output
 
+    def _should_build(self, env):
+        """Check if the bundle should be built in the current debug level.
+        """
+        if self.require_production is None:
+            return True
+        return self.require_production == (not env.debug)
+
     def __hash__(self):
         """This is used to determine when a bundle definition has changed so
         that a rebuild is required.
@@ -384,6 +392,8 @@ class Bundle(object):
         hunks = []
         for item, cnt in resolved_contents:
             if isinstance(cnt, Bundle):
+                if not cnt._should_build(env):
+                    continue
                 # Recursively process nested bundles.
                 hunk = cnt._merge_and_apply(
                     env, output, force, current_debug_level,
@@ -562,6 +572,8 @@ class Bundle(object):
         env = self._get_env(env)
         hunks = []
         for bundle, extra_filters in self.iterbuild(env):
+            if not bundle._should_build(env):
+                continue
             hunks.append(bundle._build(
                 env, extra_filters, force=force, output=output,
                 disable_cache=disable_cache))
@@ -592,6 +604,15 @@ class Bundle(object):
                     yield bundle, self.filters
         else:
             yield self, []
+
+    def iterbundles(self):
+        """Iterate over the bundles and all sub-bundles.
+        """
+        yield self
+        for item in self.contents:
+            if isinstance(item, Bundle):
+                for sub in item.iterbundles():
+                    yield sub
 
     def _make_output_url(self, env):
         """Return the output url, modified for expire header handling.

@@ -243,6 +243,81 @@ class TestBuildWithVariousDebugOptions(TempEnvironmentHelper):
         assert self.get('out') == 'Afoo\nBfoo'
 
 
+class TestBuildWithDebugRequired(TempEnvironmentHelper):
+    """Test build behavior with respect to the required debug level of bundles.
+    """
+
+    def test_no_debug_mode_required(self):
+        """When no debug level is required the bundle should be built no
+        matter which debug level is set"""
+        # No debug level set
+        self.mkbundle('in1', 'in2', output='out').build()
+        assert self.get('out') == 'A\nB'
+        os.unlink(self.path('out'))
+        # Debug level 'merge'
+        self.env.debug = 'merge'
+        self.mkbundle('in1', 'in2', output='out').build()
+        assert self.get('out') == 'A\nB'
+        os.unlink(self.path('out'))
+        # Debug level True
+        self.env.debug = True
+        self.mkbundle('in1', 'in2', output='out').build()
+        assert self.get('out') == 'A\nB'
+
+    def test_requiring_debug_mode(self):
+        """When a debug level is required the bundle should only be built if
+        the levels match."""
+        self.env.debug = 'merge'
+        # Wrong level
+        self.mkbundle('in1', 'in2', output='out',
+                      require_production=True).build()
+        assert not self.exists('out')
+        # Matching level. Merge/True are handled in the same way.
+        self.mkbundle('in1', 'in2', output='out',
+                      require_production=False).build()
+        assert self.get('out') == 'A\nB'
+        os.unlink(self.path('out'))
+        self.env.debug = True
+        self.mkbundle('in1', 'in2', output='out',
+                      require_production=False).build()
+        assert self.get('out') == 'A\nB'
+
+    def test_nested_bundle_with_requirement(self):
+        """When a requirement is specified for a nested bundle it may not affect
+        any files/bundles in the outer bundle."""
+        inner = self.mkbundle('in2', require_production=False)
+        b = self.mkbundle('in1', inner, 'in3', output='out')
+        b.build()
+        assert self.get('out') == 'A\nC'
+        # Let the env's debug level be ok
+        b.env.debug = True
+        b.build()
+        assert self.get('out') == 'A\nB\nC'
+        os.unlink(self.path('out'))
+        # Remove the requirement
+        b.env.debug = False
+        inner.require_production = None
+        b.build()
+        assert self.get('out') == 'A\nB\nC'
+
+    def test_build_not_cached(self):
+        """The build may not be cached after changing the debug flag"""
+        inner = self.mkbundle('in2', require_production=False)
+        b = self.mkbundle('in1', inner, 'in3', output='out')
+        b.build()
+        first_urls = b.urls()
+        assert self.get('out') == 'A\nC'
+        # Now we enable debugging and want a rebuild to happen
+        b.env.debug = 'merge'
+        b.build()
+        assert first_urls != b.urls()
+        assert self.get('out') == 'A\nB\nC'
+        # After going back to a failed requirement we expect another rebuild
+        inner.require_production = True
+        b.build()
+        assert first_urls == b.urls()
+        assert self.get('out') == 'A\nC'
+
 class ReplaceFilter(Filter):
     """Filter that does a simple string replacement.
     """
