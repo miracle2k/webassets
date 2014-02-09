@@ -540,10 +540,10 @@ class GenericArgparseImplementation(object):
     def run_with_argv(self, argv):
         try:
             ns = self.parser.parse_args(argv)
-        except SystemExit:
+        except SystemExit as e:
             # We do not want the main() function to exit the program.
             # See run() instead.
-            return 1
+            return e.args[0]
 
         return self.run_with_ns(ns)
 
