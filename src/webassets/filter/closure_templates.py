@@ -27,7 +27,7 @@ CLOSURE_EXTRA_ARGS
 """
 
 import subprocess
-from os import path
+import os
 import tempfile
 
 from webassets.exceptions import FilterError
