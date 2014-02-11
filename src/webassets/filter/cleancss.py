@@ -1,3 +1,5 @@
+import os
+
 from webassets.filter import ExternalTool
 
 
