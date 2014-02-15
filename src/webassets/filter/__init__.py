@@ -475,12 +475,16 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                        item.format(input=input_file, output=output_file), argv))
 
         try:
+            data = (data.read() if hasattr(data, 'read') else data)
+            if data is not None:
+                data = data.encode('utf-8')
+
             if input_file.created:
                 if not data:
                     raise ValueError(
                         '{input} placeholder given, but no data passed')
                 with os.fdopen(input_file.fd, 'wb') as f:
-                    f.write(data.read() if hasattr(data, 'read') else data)
+                    f.write(data)
                     # No longer pass to stdin
                     data = None
 
@@ -491,9 +495,6 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                 stdout=subprocess.PIPE,
                 stdin=subprocess.PIPE,
                 stderr=subprocess.PIPE)
-            data = (data.read() if hasattr(data, 'read') else data)
-            if data is not None:
-                data = data.encode('utf-8')
             stdout, stderr = proc.communicate(data)
             if proc.returncode:
                 raise FilterError(
@@ -504,7 +505,7 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
             else:
                 if output_file.created:
                     with open(output_file.filename, 'rb') as f:
-                        out.write(f.read())
+                        out.write(f.read().decode('utf-8'))
                 else:
                     out.write(stdout.decode('utf-8'))
         finally:
