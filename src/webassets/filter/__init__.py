@@ -494,7 +494,8 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                 # StringIO objects (which are not supported by subprocess)
                 stdout=subprocess.PIPE,
                 stdin=subprocess.PIPE,
-                stderr=subprocess.PIPE)
+                stderr=subprocess.PIPE,
+                shell=os.name == 'nt')
             stdout, stderr = proc.communicate(data)
             if proc.returncode:
                 raise FilterError(
