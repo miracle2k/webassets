@@ -15,6 +15,7 @@ from .cache import get_cache
 from .version import get_versioner, get_manifest
 from .updater import get_updater
 from .utils import urlparse
+from .renderer import prepare_renderer
 
 
 __all__ = ('Environment', 'RegisterError')
@@ -402,6 +403,7 @@ class BaseEnvironment(BundleRegistry):
         BundleRegistry.__init__(self)
         self._config = self.config_storage_class(self)
         self.resolver = self.resolver_class(self)
+        self.renderers = dict()
 
         # directory, url currently do not have default values
         #
@@ -695,6 +697,17 @@ class BaseEnvironment(BundleRegistry):
     modifying this setting directly.
     """)
 
+    def register_renderer(self, name, renderer,
+                          inline_renderer=None, merge_checker=None):
+        '''
+        Registers renderers to be used only for renderings done
+        within the context of this environment.
+
+        For details, and how to register renderers globally, see
+        :func:`webassets.renderer.register_global_renderer()`.
+        '''
+        self.renderers[name] = prepare_renderer(
+            name, renderer, inline_renderer, merge_checker)
 
 class DictConfigStorage(ConfigStorage):
     """Using a lower-case dict for configuration values.

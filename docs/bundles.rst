@@ -43,6 +43,11 @@ arguments:
   .. warning::
     Currently, using ``depends`` disables caching for a bundle.
 
+* ``renderer`` - Name of the renderer used to render this bundle's
+  assets in context. Note that the renderer must be either one of the
+  webassets-provided renderers (currently ``"css"`` and ``"js"``) or a
+  renderer registered via ``Environment.register_renderer()`` or
+  ``register_global_renderer()`` (see :doc:`/renderer` for more info).
 
 Nested bundles
 --------------
@@ -154,6 +159,22 @@ which allows you do something like this:
 
     {% assets filters="cssmin,datauri", output="gen/packed.css", "common/jquery.css", "site/base.css", "site/widgets.css" %}
     ...
+
+You can also delegate contextual rendering of asset references to
+webassets (here, using Mako):
+
+.. code-block:: mako
+
+    % for asset in my_webassets_env['assets'].renderers():
+      ${asset.render()|n}
+    % endfor
+
+which will correctly render references to the assets via CSS "<link>"
+and JavaScript "<script src=...>" HTML elements. You can also inline
+the CSS/JS by passing ``inline=True`` to the render call, which will
+output self-contained and properly escaped "<style>" and "<script>"
+HTML elements. Details of controlling the rendering can be found in
+:doc:`/renderer`.
 
 
 Management command
