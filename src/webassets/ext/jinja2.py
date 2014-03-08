@@ -203,16 +203,17 @@ class Jinja2Loader(GlobLoader):
     succeed.
     """
 
-    def __init__(self, assets_env, directories, jinja2_envs, charset='utf8'):
+    def __init__(self, assets_env, directories, jinja2_envs, charset='utf8', jinja_ext='*.html'):
         self.asset_env = assets_env
         self.directories = directories
         self.jinja2_envs = jinja2_envs
         self.charset = charset
+        self.jinja_ext = jinja_ext
 
     def load_bundles(self):
         bundles = []
         for template_dir in self.directories:
-            for filename in self.glob_files((template_dir, '*.html')):
+            for filename in self.glob_files((template_dir, self.jinja_ext)):
                 bundles.extend(self.with_file(filename, self._parse) or [])
         return bundles
 
