@@ -49,7 +49,7 @@ class TestBundleDefBaseUpdater(object):
     def test_depends_changed(self):
         # Changing the depends attribute of a bundle will NOT cause
         # a rebuild. This is a close call, and might just as well work
-        # differently. I decided that the purity of the Bundle.__hash__
+        # differently. I decided that the purity of the Bundle.id
         # implementation in not including anything that isn't affecting
         # to the final output bytes was more important. If the user
         # is changing depends than after the next rebuild that change

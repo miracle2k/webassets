@@ -128,7 +128,7 @@ class TestUrlsVarious(BaseUrlsTester):
             bundle = self.mkbundle(h.path('foo.css'))
             urls = bundle.urls()
             assert len(urls) == 1
-            assert_regex(urls[0], r'.*/webassets-external/\d*_foo.css')
+            assert_regex(urls[0], r'.*/webassets-external/[\da-z]*_foo.css')
 
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):
