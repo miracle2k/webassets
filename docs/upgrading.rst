@@ -7,6 +7,16 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
+In development version
+~~~~~~~~~~~~~~~~~~
+
+- The :class:`Resolver` API has changed. Rather than being bound to an
+  environment via the constructor, the individual methods now receive
+  a ``ctx` object, which allows access to the environment's settings.
+
+  See :ref:`the page on implementing resolvers <custom_resolver>`.
+
+
 In 0.9
 ~~~~~~
 
@@ -25,13 +35,6 @@ In 0.9
 
 - Filters can no longer access a ``self.env`` attribute. It has been renamed
   to ``self.ctx``, which provides a compatible object.
-
-- The :class:`Resolver` API has changed. Rather than being bound to an
-  environment via the constructor, the individual methods now receive
-  a ``ctx` object, which allows access to the environment's settings.
-
-  See :ref:`the page on implementing resolvers <custom_resolver>`.
-
 
 
 In 0.8
@@ -176,7 +179,7 @@ In 0.7
 
 There are some significant backwards incompatible changes in this release.
 
-- The ``Environment.updater`` property (corresponds to the 
+- The ``Environment.updater`` property (corresponds to the
   ``ASSETS_UPDATER`` setting) can no longer be set to ``False`` or
   ``"never"`` in order to disable the automatic rebuilding. Instead, this
   now needs to be done using ``Environment.auto_build``, or the corresponding
