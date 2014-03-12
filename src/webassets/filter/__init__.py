@@ -135,7 +135,7 @@ class Filter(object):
     max_debug_level = False
 
     def __init__(self, **kwargs):
-        self.env = None
+        self.ctx = None
         self._options = parse_options(self.__class__.options)
 
         # Resolve options given directly to the filter. This
@@ -160,9 +160,9 @@ class Filter(object):
             return self.id() == other.id()
         return NotImplemented
 
-    def set_environment(self, env):
+    def set_context(self, ctx):
         """This is called before the filter is used."""
-        self.env = env
+        self.ctx = ctx
 
     def get_config(self, setting=False, env=None, require=True,
                    what='dependency', type=None):
@@ -200,7 +200,7 @@ class Filter(object):
 
         value = None
         if not setting is False:
-            value = self.env.config.get(setting, None)
+            value = self.ctx.get(setting, None)
 
         if value is None and not env is False:
             value = os.environ.get(env)

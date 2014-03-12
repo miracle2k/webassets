@@ -143,7 +143,7 @@ class TestBundleConfig(TempEnvironmentHelper):
 class DummyVersion(Version):
     def __init__(self, version=None):
         self.version = version
-    def determine_version(self, bundle, env, hunk=None):
+    def determine_version(self, bundle, ctx, hunk=None):
         if not self.version:
             raise VersionIndeterminableError('dummy has no version')
         return self.version
@@ -152,7 +152,7 @@ class DummyManifest(Manifest):
     def __init__(self, version=None):
         self.log = []
         self.version = version
-    def query(self, bundle, env):
+    def query(self, bundle, ctx):
         return self.version
     def remember(self, *a, **kw):
         self.log.append((a, kw))
@@ -592,9 +592,9 @@ class TestResolverAPI(TempEnvironmentHelper):
         """Test the method is properly used in the build process.
         """
         class MyResolver(self.env.resolver_class):
-            def resolve_source(self, item):
-                return path.join(self.env.directory, 'foo')
-        self.env.resolver = MyResolver(self.env)
+            def resolve_source(self, ctx, item):
+                return path.join(ctx.directory, 'foo')
+        self.env.resolver = MyResolver()
 
         self.create_files({'foo': 'foo'})
         self.mkbundle('bar', output='out').build()
@@ -604,9 +604,9 @@ class TestResolverAPI(TempEnvironmentHelper):
         """The bundle dependencies also go through normalization.
         """
         class MyResolver(self.env.resolver_class):
-            def resolve_source(self, item):
-                return path.join(self.env.directory, item[::-1])
-        self.env.resolver = MyResolver(self.env)
+            def resolve_source(self, ctx, item):
+                return path.join(ctx.directory, item[::-1])
+        self.env.resolver = MyResolver()
 
         self.create_files(['foo', 'dep', 'out'])
         b = self.mkbundle('oof', depends=('ped',), output='out')
@@ -626,9 +626,9 @@ class TestResolverAPI(TempEnvironmentHelper):
         See https://github.com/miracle2k/webassets/issues/71
         """
         class MyResolver(self.env.resolver_class):
-            def resolve_source(self, item):
-                return path.join(self.env.directory, (".".join(item)))
-        self.env.resolver = MyResolver(self.env)
+            def resolve_source(self, ctx, item):
+                return path.join(ctx.directory, (".".join(item)))
+        self.env.resolver = MyResolver()
 
         self.create_files({'foo.css': 'foo'})
         bundle = self.mkbundle(('foo', 'css'), output='out')
@@ -654,7 +654,7 @@ class TestResolverAPI(TempEnvironmentHelper):
         This is so that implementations can apply url encoding without
         worrying.
         """
-        def dummy(url):
+        def dummy(ctx, url):
             return url % {'version': 'not the correct version'}
         self.env.resolver.resolve_output_to_url = dummy
         bundle = self.mkbundle('in', output='out-%(version)s')

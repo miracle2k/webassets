@@ -8,9 +8,8 @@ import os
 import pickle
 from webassets import six
 
-from webassets.bundle import has_placeholder, is_url, get_all_bundle_files
 from webassets.merge import FileHunk
-from webassets.utils import md5_constructor, RegistryMetaclass
+from webassets.utils import md5_constructor, RegistryMetaclass, is_url
 
 
 __all__ = ('get_versioner', 'VersionIndeterminableError',
@@ -40,7 +39,7 @@ class Version(six.with_metaclass(RegistryMetaclass(
     A single instance can be used with different environments.
     """
 
-    def determine_version(self, bundle, hunk=None, env=None):
+    def determine_version(self, bundle, ctx, hunk=None):
         """Return a string that represents the current version of the given
         bundle.
 
@@ -66,7 +65,7 @@ class Version(six.with_metaclass(RegistryMetaclass(
         """
         raise NotImplementedError()
 
-    def set_version(self, bundle, env, filename, version):
+    def set_version(self, bundle, ctx, filename, version):
         """Hook called after a bundle has been built. Some version classes
         may need this.
         """
@@ -84,20 +83,21 @@ class TimestampVersion(Version):
 
     id = 'timestamp'
 
-    def determine_version(self, bundle, env, hunk=None):
+    def determine_version(self, bundle, ctx, hunk=None):
         # Only look at an existing output file if we are not about to
         # overwrite it with a new version. But if we can, simply using the
         # timestamp of the final file is the fastest way to do this.
         # Note that this works because of our ``save_done`` hook.
         if not hunk:
+            from webassets.bundle import has_placeholder
             if not has_placeholder(bundle.output):
-                return self.get_timestamp(bundle.resolve_output(env))
+                return self.get_timestamp(bundle.resolve_output(ctx))
 
         # If we need the timestamp for the file we just built (hunk!=None),
         # or if we need the timestamp for a bundle with a placeholder,
         # the way to get it is by looking at the source files.
         try:
-            return self.find_recent_most_timestamp(bundle, env)
+            return self.find_recent_most_timestamp(bundle, ctx)
         except OSError:
             # Source files are missing. Under these circumstances, we cannot
             # return a proper version.
@@ -106,7 +106,7 @@ class TimestampVersion(Version):
                 'source files are missing and output target has a '
                 'placeholder')
 
-    def set_version(self, bundle, env, filename, version):
+    def set_version(self, bundle, ctx, filename, version):
         # Update the mtime of the newly created file with the version
         os.utime(filename, (-1, version))
 
@@ -115,12 +115,13 @@ class TimestampVersion(Version):
         return int(os.stat(filename).st_mtime)    # Let OSError pass
 
     @classmethod
-    def find_recent_most_timestamp(cls, bundle, env):
+    def find_recent_most_timestamp(cls, bundle, ctx):
+        from webassets.bundle import get_all_bundle_files
         # Recurse through the bundle hierarchy. Check the timestamp of all
         # the bundle source files, as well as any additional
         # dependencies that we are supposed to watch.
         most_recent = None
-        for filename in get_all_bundle_files(bundle, env):
+        for filename in get_all_bundle_files(bundle, ctx):
             if is_url(filename):
                 continue
             timestamp = cls.get_timestamp(filename)
@@ -151,10 +152,11 @@ class HashVersion(Version):
         self.length = length
         self.hasher = hash
 
-    def determine_version(self, bundle, env, hunk=None):
+    def determine_version(self, bundle, ctx, hunk=None):
         if not hunk:
+            from webassets.bundle import has_placeholder
             if not has_placeholder(bundle.output):
-                hunk = FileHunk(bundle.resolve_output(env))
+                hunk = FileHunk(bundle.resolve_output(ctx))
             else:
                 # Can cannot determine the version of placeholder files.
                 raise VersionIndeterminableError(
@@ -199,10 +201,10 @@ class Manifest(six.with_metaclass(RegistryMetaclass(
     with multiple Environment instances.
     """
 
-    def remember(self, bundle, env, version):
+    def remember(self, bundle, ctx, version):
         raise NotImplementedError()
 
-    def query(self, bundle, env):
+    def query(self, bundle, ctx):
         raise NotImplementedError()
 
 
@@ -224,21 +226,21 @@ class FileManifest(Manifest):
     id = 'file'
 
     @classmethod
-    def make(cls, env, filename=None):
+    def make(cls, ctx, filename=None):
         if not filename:
             filename = '.webassets-manifest'
-        return cls(os.path.join(env.directory, filename))
+        return cls(os.path.join(ctx.directory, filename))
 
     def __init__(self, filename):
         self.filename = filename
         self._load_manifest()
 
-    def remember(self, bundle, env, version):
+    def remember(self, bundle, ctx, version):
         self.manifest[bundle.output] = version
         self._save_manifest()
 
-    def query(self, bundle, env):
-        if env.auto_build:
+    def query(self, bundle, ctx):
+        if ctx.auto_build:
             self._load_manifest()
         return self.manifest.get(bundle.output, None)
 
@@ -292,19 +294,19 @@ class CacheManifest(Manifest):
 
     id = 'cache'
 
-    def _check(self, env):
-        if not env.cache:
+    def _check(self, ctx):
+        if not ctx.cache:
             raise EnvironmentError(
                 'You are using the cache manifest, but have not '
                 'enabled the cache.')
 
-    def remember(self, bundle, env, version):
-        self._check(env)
-        env.cache.set(('manifest', bundle.output), version)
+    def remember(self, bundle, ctx, version):
+        self._check(ctx)
+        ctx.cache.set(('manifest', bundle.output), version)
 
-    def query(self, bundle, env):
-        self._check(env)
-        return env.cache.get(('manifest', bundle.output))
+    def query(self, bundle, ctx):
+        self._check(ctx)
+        return ctx.cache.get(('manifest', bundle.output))
 
 
 class SymlinkManifest(Manifest):

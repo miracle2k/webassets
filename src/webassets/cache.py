@@ -190,7 +190,7 @@ class FilesystemCache(BaseCache):
             f.close()
 
 
-def get_cache(option, env):
+def get_cache(option, ctx):
     """Return a cache instance based on ``option``.
     """
     if not option:
@@ -202,7 +202,7 @@ def get_cache(option, env):
         return option()
 
     if option is True:
-        directory = path.join(env.directory, '.webassets-cache')
+        directory = path.join(ctx.directory, '.webassets-cache')
         # Auto-create the default directory
         if not path.exists(directory):
             os.makedirs(directory)

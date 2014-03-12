@@ -94,8 +94,8 @@ class PyScss(Filter):
         # etc.). Similar to the compass filter, we require the user
         # to specify such paths relative to the media directory.
         try:
-            scss.config.STATIC_ROOT = self.static_root or self.env.directory
-            scss.config.STATIC_URL = self.static_url or self.env.url
+            scss.config.STATIC_ROOT = self.static_root or self.ctx.directory
+            scss.config.STATIC_URL = self.static_url or self.ctx.url
         except EnvironmentError:
             raise EnvironmentError('Because Environment.url and/or '
                 'Environment.directory are not set, you need to '
@@ -124,7 +124,7 @@ class PyScss(Filter):
                 scss_opts={
                     'compress': False,
                     'debug_info': (
-                        self.env.debug if self.debug_info is None else self.debug_info),
+                        self.ctx.environment.debug if self.debug_info is None else self.debug_info),
                 },
                 # This is rather nice. We can pass along the filename,
                 # but also give it already preprocessed content.

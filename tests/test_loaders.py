@@ -45,6 +45,8 @@ class TestYAML(object):
                     - lessfile2
                     - contents:
                         reallynested.css
+                      config:
+                        closure_bin: /tmp/closure
                     - lessfile3
                 
         """).load_bundles()
@@ -62,6 +64,7 @@ class TestYAML(object):
         assert len(nested_bundle.filters) == 1
         assert len(nested_bundle.contents) == 4
         assert isinstance(nested_bundle.contents[2], Bundle)
+        assert nested_bundle.contents[2].config['closure_bin'] == '/tmp/closure'
 
     def test_load_recursive_bundles(self):
         bundles = self.loader("""

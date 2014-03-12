@@ -8,7 +8,7 @@ from .exceptions import BundleError
 
 
 __all__ = ('md5_constructor', 'pickle', 'set', 'StringIO',
-           'common_path_prefix', 'working_directory')
+           'common_path_prefix', 'working_directory', 'is_url')
 
 
 if sys.version_info >= (2, 5):
@@ -193,3 +193,10 @@ def cmp_debug_levels(level1, level2):
         # debug values should probably be done on assign. But because this
         # needs to happen in two places (Environment and Bundle) we do it here.
         raise BundleError('Invalid debug value: %s' % e)
+
+
+def is_url(s):
+    if not isinstance(s, str):
+        return False
+    parsed = urlparse.urlsplit(s)
+    return bool(parsed.scheme and parsed.netloc) and len(parsed.scheme) > 1
