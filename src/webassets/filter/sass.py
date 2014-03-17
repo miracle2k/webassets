@@ -53,6 +53,10 @@ class Sass(Filter):
         The path to the Sass binary. If not set, the filter will
         try to run ``sass`` as if it's in the system path.
 
+    SASS_STYLE
+        The style for the output CSS. Can be one of ``expanded`` (default),
+        ``nested``, ``compact`` or ``compressed``.
+
     SASS_DEBUG_INFO
         If set to ``True``, will cause Sass to output debug information
         to be used by the FireSass Firebug plugin. Corresponds to the
@@ -79,6 +83,7 @@ class Sass(Filter):
         'as_output': 'SASS_AS_OUTPUT',
         'load_paths': 'SASS_LOAD_PATHS',
         'libs': 'SASS_LIBS',
+        'style': 'SASS_STYLE',
     }
     max_debug_level = None
 
@@ -93,7 +98,7 @@ class Sass(Filter):
         try:
             args = [self.binary or 'sass',
                     '--stdin',
-                    '--style', 'expanded',
+                    '--style', self.style or 'expanded',
                     '--line-comments']
             if isinstance(self.ctx.cache, FilesystemCache):
                 args.extend(['--cache-location',
