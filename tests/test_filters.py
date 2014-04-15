@@ -771,6 +771,22 @@ class TestLess(TempEnvironmentHelper):
         self.mkbundle('foo.less', filters='less', output='out.css').build()
         assert self.get('out.css') == self.default_files['foo.less']
 
+    def test_as_output_filter(self):
+        """The less filter can be configured to work as on output filter,
+        first merging the sources together, then applying less.
+        """
+        # To test this, split a sass rules into two files.
+        less_output = get_filter('less', as_output=True)
+        self.create_files({'p1': '@base: #123456;', 'p2': 'P { color: @base }'})
+        self.mkbundle('p1', 'p2', filters=less_output, output='out.css').build()
+        assert self.get('out.css') == """P {\n  color: #123456;\n}\n"""
+
+        less_output = get_filter('less', as_output=False)
+        self.create_files({'p1': '@base: #123456;', 'p2': 'P { color: @base }'})
+        def mkbundle():
+            self.mkbundle('p1', 'p2', filters=less_output, output='out2.css').build()
+
+        assert_raises(FilterError, mkbundle)
 
 
 class TestSass(TempEnvironmentHelper):

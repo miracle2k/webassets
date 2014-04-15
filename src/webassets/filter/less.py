@@ -1,5 +1,7 @@
 from __future__ import with_statement
 
+import os
+
 from webassets.filter import ExternalTool
 from webassets.utils import working_directory
 
@@ -28,6 +30,17 @@ class Less(ExternalTool):
         compiler is written in Javascript and capable of running in the
         browser, you can set this to ``False`` to have your original less
         source files served (see below).
+
+    LESS_AS_OUTPUT (boolean)
+        By default, this works as an "input filter", meaning ``less`` is
+        called for each source file in the bundle. This is because the
+        path of the source file is required so that @import directives
+        within the Less file can be correctly resolved.
+
+        However, it is possible to use this filter as an "output filter",
+        meaning the source files will first be concatenated, and then the
+        Less filter is applied in one go. This can provide a speedup for
+        bigger projects.
 
     .. admonition:: Compiling less in the browser
 
@@ -76,6 +89,7 @@ class Less(ExternalTool):
         'run_in_debug': 'LESS_RUN_IN_DEBUG',
         'line_numbers': 'LESS_LINE_NUMBERS',
         'extra_args': 'LESS_EXTRA_ARGS',
+        'as_output': 'LESS_AS_OUTPUT'
     }
     max_debug_level = None
 
@@ -85,7 +99,7 @@ class Less(ExternalTool):
             # Disable running in debug mode for this instance.
             self.max_debug_level = False
 
-    def input(self, in_, out, source_path, **kw):
+    def _apply_less(self, in_, out, source_path=None, **kw):
         # Set working directory to the source file so that includes are found
         args = [self.less or 'lessc']
         if self.line_numbers:
@@ -93,5 +107,20 @@ class Less(ExternalTool):
         if self.extra_args:
             args.extend(self.extra_args)
         args.append('-')
-        with working_directory(filename=source_path):
+        if source_path:
+            with working_directory(filename=source_path):
+                self.subprocess(args, out, in_)
+        else:
             self.subprocess(args, out, in_)
+
+    def input(self, _in, out, source_path, output_path, **kw):
+        if self.as_output:
+            out.write(_in.read())
+        else:
+            self._apply_less(_in, out, os.path.dirname(source_path))
+
+    def output(self, _in, out, **kwargs):
+        if not self.as_output:
+            out.write(_in.read())
+        else:
+            self._apply_less(_in, out)
