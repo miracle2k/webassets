@@ -109,7 +109,7 @@ class Bundle(object):
     """
 
     def __init__(self, *contents, **options):
-        self._env = None
+        self._env = options.pop('env', None)
         self.contents = contents
         self.output = options.pop('output', None)
         self.filters = options.pop('filters', None)
@@ -820,6 +820,8 @@ def get_all_bundle_files(bundle, ctx=None):
     """
     if not ctx:
         ctx = wrap(bundle.env, bundle)
+    if not isinstance(ctx, ContextWrapper):
+        ctx = ContextWrapper(ctx)
     files = []
     for _, c in bundle.resolve_contents(ctx):
         if isinstance(c, Bundle):
