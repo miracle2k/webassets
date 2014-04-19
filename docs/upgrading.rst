@@ -16,16 +16,6 @@ In development version
 
   See :ref:`the page on implementing resolvers <custom_resolver>`.
 
-
-In 0.9
-~~~~~~
-
-- Python 2.5 is no longer supported.
-
-- The API of the BaseCache.get() method has changed. It no longer receives
-  a ``python`` keyword argument. This only affects you if you have
-  implemented a custom cache class.
-
 - The :meth:`Bundle.build` and :meth:`Bundle.url` methods no longer accept
   an environment argument. To work with a Bundle that is not attached to
   an environment already, use the following syntax instead::
@@ -35,6 +25,16 @@ In 0.9
 
 - Filters can no longer access a ``self.env`` attribute. It has been renamed
   to ``self.ctx``, which provides a compatible object.
+
+
+In 0.9
+~~~~~~
+
+- Python 2.5 is no longer supported.
+
+- The API of the BaseCache.get() method has changed. It no longer receives
+  a ``python`` keyword argument. This only affects you if you have
+  implemented a custom cache class.
 
 
 In 0.8
