@@ -18,6 +18,7 @@ except NameError:
     from sets import ImmutableSet as frozenset
 from webassets.exceptions import FilterError
 from webassets.importlib import import_module
+from webassets.utils import hash_func
 
 
 __all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',
@@ -152,9 +153,6 @@ class Filter(object):
             raise TypeError('got an unexpected keyword argument: %s' %
                             kwargs.keys()[0])
 
-    def __hash__(self):
-        return self.id()
-
     def __eq__(self, other):
         if isinstance(other, Filter):
             return self.id() == other.id()
@@ -243,7 +241,7 @@ class Filter(object):
         """
         # freezedicts() allows filters to return dict objects as part
         # of unique(), which are not per-se supported by hash().
-        return hash((self.name, freezedicts(self.unique()),))
+        return hash_func((self.name, freezedicts(self.unique()),))
 
     def setup(self):
         """Overwrite this to have the filter do initial setup work,

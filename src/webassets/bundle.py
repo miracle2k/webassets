@@ -10,7 +10,7 @@ from .merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
                     select_filters, MoreThanOneFilterError, NoFilters)
 from .updater import SKIP_CACHE
 from .exceptions import BundleError, BuildError
-from .utils import cmp_debug_levels
+from .utils import cmp_debug_levels, hash_func
 from .env import ConfigurationContext, DictConfigStorage, BaseEnvironment
 from .utils import is_url
 
@@ -326,14 +326,14 @@ class Bundle(object):
             output = output % {'version': version or self.get_version(ctx)}
         return output
 
-    def __hash__(self):
+    def id(self):
         """This is used to determine when a bundle definition has changed so
         that a rebuild is required.
 
         The hash therefore should be built upon data that actually affect the
         final build result.
         """
-        return hash((tuple(self.contents),
+        return hash_func((tuple(self.contents),
                      self.output,
                      tuple(self.filters),
                      bool(self.debug)))
@@ -792,7 +792,7 @@ def pull_external(ctx, filename):
     # Generate the target filename. Use a hash to keep it unique and short,
     # but attach the base filename for readability.
     # The bit-shifting rids us of ugly leading - characters.
-    hashed_filename = hash(filename) & ((1<<64)-1)
+    hashed_filename = hash_func(filename)
     rel_path = path.join('webassets-external',
         "%s_%s" % (hashed_filename, path.basename(filename)))
     full_path = path.join(ctx.directory, rel_path)
