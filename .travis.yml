@@ -1,7 +1,11 @@
 language: python
 python:
   - 2.6
-install: pip install tox
+install: 
+  # Supposed to help get PIL to install on PyPi
+  # https://github.com/python-imaging/Pillow/issues/570
+  - sudo apt-get install python-tk
+  - pip install tox
 script: tox
 notifications:
   email:
@@ -10,3 +14,7 @@ branches:
   only:
     - master
 
+matrix:
+  allow_failures:
+    # Can't get PyPy to build so far.
+    - python: "pypy"
