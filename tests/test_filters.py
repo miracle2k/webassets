@@ -15,6 +15,7 @@ from webassets.exceptions import FilterError
 from webassets.filter import (
     Filter, ExternalTool, get_filter, register_filter, unique_modules)
 from webassets.filter.compass import CompassConfig
+from webassets.bundle import ContextWrapper
 from .helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
@@ -70,7 +71,7 @@ class TestFilterBaseClass(object):
         env = Environment(None, None)
         env.config['attr1'] = 'bar'
         env.config['attr4'] = 'bar'
-        f = TestFilter(); f.ctx = env; f.setup()
+        f = TestFilter(); f.ctx = ContextWrapper(env); f.setup()
         assert f.attr1 == 'bar'
         assert f.attr4 is None    # Was configured to not support env
 
@@ -79,7 +80,7 @@ class TestFilterBaseClass(object):
         """
         m = Environment(None, None)
         f = Filter()
-        f.set_context(m)
+        f.set_context(ContextWrapper(m))
         get_config = f.get_config
 
         # For the purposes of the following tests, we use two test
@@ -118,7 +119,7 @@ class TestFilterBaseClass(object):
         """
         m = Environment(None, None)
         f = Filter()
-        f.set_context(m)
+        f.set_context(ContextWrapper(m))
         get_config = f.get_config
 
         with os_environ_sandbox():

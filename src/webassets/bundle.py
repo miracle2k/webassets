@@ -32,11 +32,13 @@ class ContextWrapper(object):
     when you are given a ``ctx`` value.
     """
 
-    def __init__(self, parent, overwrites):
+    def __init__(self, parent, overwrites=None):
         self._parent, self._overwrites = parent, overwrites
 
     def __getitem__(self, key):
         try:
+            if self._overwrites is None:
+                raise KeyError()
             return self._overwrites.config[key]
         except KeyError:
             return self._parent.config.get(key)
@@ -625,7 +627,7 @@ class Bundle(object):
             if ctx.versions and version:
                 # Hook for the versioner (for example set the timestamp of
                 # the file) to the actual version.
-                ctx.versions.set_version(self, ctx, output, version)
+                ctx.versions.set_version(self, ctx, output_filename, version)
 
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
