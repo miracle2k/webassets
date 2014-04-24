@@ -109,7 +109,7 @@ class RequireJSFilter(ExternalTool):
     def setup(self):
         super(RequireJSFilter, self).setup()
         # todo: detect if `r.js` is installed...
-        if self.run_in_debug is False:
+        if not self.run_in_debug:
             # Disable running in debug mode for this instance.
             self.max_debug_level = False
         self.argv = filter(None, [
@@ -125,7 +125,7 @@ class RequireJSFilter(ExternalTool):
             self.argv.extend(shlex.split(self.extras))
 
     def open(self, out, source_path, **kw):
-        if self.env.debug and not self.run_in_debug:
+        if self.ctx.debug and not self.run_in_debug:
             with open(source_path, 'rb') as fp:
                 out.write(fp.read())
             return
