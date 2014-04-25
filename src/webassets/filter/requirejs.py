@@ -112,15 +112,23 @@ class RequireJSFilter(ExternalTool):
         if not self.run_in_debug:
             # Disable running in debug mode for this instance.
             self.max_debug_level = False
-        self.argv = filter(None, [
-            self.executable or 'r.js',
-            '-o',
-            self.config if self.config else None,
-            'name={modname}',
-            'out={{output}}',
-            'baseUrl=' + self.baseUrl if self.baseUrl else None,
-            'optimize=' + self.optimize if self.optimize else None,
-        ])
+
+        if self.executable:
+            self.argv = shlex.split(self.executable)
+        else:
+            self.argv = ['r.js']
+
+        self.argv.extend(
+            filter(
+                None,
+                ['-o',
+                 self.config if self.config else None,
+                 'name={modname}',
+                 'out={{output}}',
+                 'baseUrl=' + self.baseUrl if self.baseUrl else None,
+                 'optimize=' + self.optimize if self.optimize else None,
+             ])
+        )
         if self.extras:
             self.argv.extend(shlex.split(self.extras))
 
