@@ -95,6 +95,15 @@ class Compass(Filter):
         The values are emitted as strings, and paths are relative to the
         Environment's ``directory`` by default; include a ``project_path``
         entry to override this.
+
+        The ``sourcemap`` option has a caveat. A file called _.css.map is
+        created by Compass in the tempdir (where _.scss is the original asset),
+        which is then moved into the output_path directory. Since the tempdir
+        is created one level down from the output path, the relative links in
+        the sourcemap should correctly map. This file, however, will not be
+        versioned, and thus this option should ideally only be used locally
+        for development and not in production with a caching service as the
+        _.css.map file will not be invalidated.
     """
 
     name = 'compass'
@@ -135,7 +144,14 @@ class Compass(Filter):
            directory, so that the cache folder will be deleted at the end.
         """
 
-        tempout = tempfile.mkdtemp()
+        # Create temp folder one dir below output_path so sources in
+        # sourcemap are correct. This will be in the project folder,
+        # and as such, while exteremly unlikely, this could interfere
+        # with existing files and directories.
+        tempout_dir = path.normpath(
+            path.join(path.dirname(kw['output_path']), '../')
+        )
+        tempout = tempfile.mkdtemp(dir=tempout_dir)
         # Temporarily move to "tempout", so .sass-cache will be created there
         old_wd = os.getcwd()
         os.chdir(tempout)
@@ -200,7 +216,6 @@ class Compass(Filter):
                             '--quiet',
                             '--boring',
                             source_path])
-
             proc = subprocess.Popen(command,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,
@@ -216,14 +231,21 @@ class Compass(Filter):
                                    'stdout=%s, returncode=%s') % (
                                                 stderr, stdout, proc.returncode))
 
-
-            guessed_outputfile = \
-                path.join(tempout, path.splitext(path.basename(source_path))[0])
-            f = open("%s.css" % guessed_outputfile)
+            guessed_outputfilename = path.splitext(path.basename(source_path))[0]
+            guessed_outputfilepath = path.join(tempout, guessed_outputfilename)
+            output_file = open("%s.css" % guessed_outputfilepath)
+            if self.config.get('sourcemap', None):
+                sourcemap_file = open("%s.css.map" % guessed_outputfilepath)
+                sourcemap_output_filepath = path.join(
+                    path.dirname(kw['output_path']),
+                    path.basename(sourcemap_file.name)
+                )
+                sourcemap_output_file = open(sourcemap_output_filepath, 'w')
+                sourcemap_output_file.write(sourcemap_file.read())
             try:
-                out.write(f.read())
+                out.write(output_file.read())
             finally:
-                f.close()
+                output_file.close()
         finally:
             # Restore previous working dir
             os.chdir(old_wd)
