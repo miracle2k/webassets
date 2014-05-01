@@ -29,7 +29,8 @@ class RequireJSFilter(ExternalTool):
     config (env: REQUIREJS_CONFIG)
 
         The RequireJS options file. The path is taken to be relative
-        to the current working directory.
+        to the Enviroment.directory (by defualt is /static).
+
 
     baseUrl (env: REQUIREJS_BASEURL)
 
@@ -120,6 +121,14 @@ class RequireJSFilter(ExternalTool):
         else:
             self.argv = ['r.js']
 
+        if self.config:
+            self.config = path.join(
+                path.relpath(
+                    self.ctx.directory,
+                    getcwd()
+                ),
+                self.config
+            )
         if not self.baseUrl:
             self.baseUrl = path.relpath(
                 self.ctx.directory,
