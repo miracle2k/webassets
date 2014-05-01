@@ -1,7 +1,7 @@
 from __future__ import with_statement
 
 import shlex
-from os.path import abspath, splitext
+from os import path, getcwd
 
 from webassets.filter import ExternalTool
 
@@ -34,7 +34,9 @@ class RequireJSFilter(ExternalTool):
     baseUrl (env: REQUIREJS_BASEURL)
 
         The ``baseUrl`` parameter to r.js; this is the directory that
-        AMD modules will be loaded from. Typically, this is used in
+        AMD modules will be loaded from. The path is taken relative
+        to the Enviroment.directory (by defualt is /static).
+        Typically, this is used in
         conjunction with a ``baseUrl`` parameter set in the `config`
         options file, where the baseUrl value in the config file is
         used for client-side processing, and the value here is for
@@ -118,6 +120,12 @@ class RequireJSFilter(ExternalTool):
         else:
             self.argv = ['r.js']
 
+        if not self.baseUrl:
+            self.baseUrl = path.relpath(
+                self.ctx.directory,
+                getcwd()
+            )
+
         self.argv.extend(
             filter(
                 None,
@@ -140,12 +148,12 @@ class RequireJSFilter(ExternalTool):
         # extract the AMD module name
         name = kw.get('source')
         if not name:
-            base = abspath(self.baseUrl)
-            name = abspath(source_path)
+            base = path.abspath(self.baseUrl)
+            name = path.abspath(source_path)
             if not name.startswith(base):
                 raise ValueError(
                     'requested AMD script "%s" does not exist in baseUrl "%s"'
                     % (source_path, self.baseUrl))
             name = name[len(base) + 1:]
-        kw['modname'] = splitext(name)[0]
+        kw['modname'] = path.splitext(name)[0]
         return super(RequireJSFilter, self).open(out, source_path, **kw)
