@@ -122,7 +122,7 @@ class RequireJSFilter(ExternalTool):
             self.argv = ['r.js']
 
         if self.config:
-            self.config = path.join(
+            rel_config = path.join(
                 path.relpath(
                     self.ctx.directory,
                     getcwd()
@@ -139,7 +139,7 @@ class RequireJSFilter(ExternalTool):
             filter(
                 None,
                 ['-o',
-                 self.config if self.config else None,
+                 rel_config if self.config else None,
                  'name={modname}',
                  'out={{output}}',
                  'baseUrl=' + self.baseUrl if self.baseUrl else None,
