@@ -240,6 +240,8 @@ class Compass(Filter):
                     path.dirname(kw['output_path']),
                     path.basename(sourcemap_file.name)
                 )
+                if not path.exists(path.dirname(sourcemap_output_filepath)):
+                    os.mkdir(path.dirname(sourcemap_output_filepath))
                 sourcemap_output_file = open(sourcemap_output_filepath, 'w')
                 sourcemap_output_file.write(sourcemap_file.read())
             try:
