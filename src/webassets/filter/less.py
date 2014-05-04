@@ -95,13 +95,17 @@ class Less(ExternalTool):
             # Disable running in debug mode for this instance.
             self.max_debug_level = False
 
+    def resolve_source(self, path):
+        return self.ctx.resolver.resolve_source(self.ctx, path)
+
     def input(self, in_, out, source_path, **kw):
         # Set working directory to the source file so that includes are found
         args = [self.less or 'lessc']
         if self.line_numbers:
             args.append('--line-numbers=%s' % self.line_numbers)
+
         if self.paths:
-            paths = [path if isabs(path) else self.env.resolver.resolve_source(path) for path in self.paths]
+            paths = [path if isabs(path) else self.resolve_source(path) for path in self.paths]
             args.append('--include-path={0}'.format(os.pathsep.join(paths)))
         if self.extra_args:
             args.extend(self.extra_args)
