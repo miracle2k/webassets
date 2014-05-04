@@ -1269,8 +1269,7 @@ define("script/app",["./utils"],function(e){e.debug("APP")});\
     def test_build_nooptimize(self):
         self.env.config['requirejs_optimize'] = 'none'
         self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
-        assert self.get('out.js') == '''\
-
+        assert self.get('out.js').strip() == '''
 define('script/utils',[],function() {
   return {debug: console.log};
 });
@@ -1278,7 +1277,7 @@ define('script/utils',[],function() {
 define('script/app',['./utils'], function(util) {
   util.debug('APP');
 });
-'''
+'''.strip()
 
     def test_build_debug_rid(self):
         self.env.debug = True
