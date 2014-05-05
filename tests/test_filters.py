@@ -192,12 +192,8 @@ class TestExternalToolClass(object):
                 # Special placeholders that are passed through
                 '{input}', '{output}']
         Filter().output(StringIO('content'), StringIO(), kwarg='value')
-        if PYPY:
-            assert Filter.result == (
-                ["Filter", 'value', '0', '{input}', '{output}'], 'content')
-        else:
-            assert Filter.result == (
-                ["Filter", 'value', 'False', '{input}', '{output}'], 'content')
+        assert Filter.result == (
+            ["Filter", 'value', 'False', '{input}', '{output}'], 'content')
 
     def test_method_input(self):
         """The method=input."""
