@@ -16,6 +16,7 @@ also serve in other places.
 import os
 from os import path
 import errno
+import tempfile
 from webassets import six
 from webassets.merge import BaseHunk
 from webassets.filter import Filter, freezedicts
@@ -192,12 +193,18 @@ class FilesystemCache(BaseCache):
         return safe_unpickle(result)
 
     def set(self, key, data):
-        filename = path.join(self.directory, '%s' % make_md5(self.V, key))
-        f = open(filename, 'wb')
+        md5 = '%s' % make_md5(self.V, key)
+        filename = path.join(self.directory, md5)
+        fd, temp_filename = tempfile.mkstemp(prefix='.' + md5,
+                dir=self.directory)
         try:
-            f.write(pickle.dumps(data))
-        finally:
-            f.close()
+            with os.fdopen(fd, 'wb') as f:
+                pickle.dump(data, f)
+                f.flush()
+                os.rename(temp_filename, filename)
+        except:
+            os.unlink(temp_filename)
+            raise
 
 
 def get_cache(option, ctx):
