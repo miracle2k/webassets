@@ -15,6 +15,7 @@ also serve in other places.
 
 import os
 from os import path
+import errno
 from webassets import six
 from webassets.merge import BaseHunk
 from webassets.filter import Filter, freezedicts
@@ -177,9 +178,12 @@ class FilesystemCache(BaseCache):
 
     def get(self, key):
         filename = path.join(self.directory, '%s' % make_md5(self.V, key))
-        if not path.exists(filename):
+        try:
+            f = open(filename, 'rb')
+        except IOError as e:
+            if e.errno != errno.ENOENT:
+                raise
             return None
-        f = open(filename, 'rb')
         try:
             result = f.read()
         finally:
