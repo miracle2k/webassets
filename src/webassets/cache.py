@@ -17,6 +17,7 @@ import os
 from os import path
 import errno
 import tempfile
+import warnings
 from webassets import six
 from webassets.merge import BaseHunk
 from webassets.filter import Filter, freezedicts
@@ -190,7 +191,10 @@ class FilesystemCache(BaseCache):
         finally:
             f.close()
 
-        return safe_unpickle(result)
+        unpickled = safe_unpickle(result)
+        if unpickled is None:
+            warnings.warn('Ignoring corrupted cache file %s' % filename)
+        return unpickled
 
     def set(self, key, data):
         md5 = '%s' % make_md5(self.V, key)
