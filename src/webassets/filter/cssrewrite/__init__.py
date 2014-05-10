@@ -103,3 +103,8 @@ class CSSRewrite(CSSUrlRewriter):
                 url = urlpath.relpath(self.output_url, abs_source_url)
 
         return url
+
+    def get_additional_cache_keys(self, **kw):
+        if kw.has_key('output_path'):
+            return [os.path.dirname(kw['output_path'])]
+        return []
