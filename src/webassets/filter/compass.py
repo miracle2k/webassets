@@ -234,7 +234,7 @@ class Compass(Filter):
             guessed_outputfilename = path.splitext(path.basename(source_path))[0]
             guessed_outputfilepath = path.join(tempout, guessed_outputfilename)
             output_file = open("%s.css" % guessed_outputfilepath)
-            if self.config.get('sourcemap', None):
+            if config.get('sourcemap'):
                 sourcemap_file = open("%s.css.map" % guessed_outputfilepath)
                 sourcemap_output_filepath = path.join(
                     path.dirname(kw['output_path']),
