@@ -298,6 +298,23 @@ class Filter(object):
        Only one such filter is allowed.
        """
 
+    def get_additional_cache_keys(self, **kw):
+        """Additional cache keys dependent on keyword arguments.
+
+        If your filter's output is dependent on some or all of the
+        keyword arguments, you can return these arguments here as a list.
+        This will make sure the caching behavior is correct.
+
+        For example, the CSSRewrite filter depends not only on the
+        contents of the file it applies to, but also the output path
+        of the final file. If the CSSRewrite filter doesn't correctly
+        override this method, a certain output file with a certain base
+        directory might potentially get a CSSRewriten file from cache
+        that is meant for an output file in a different base directory.
+        """
+
+        return []
+
     # We just declared those for demonstration purposes
     del input
     del output
