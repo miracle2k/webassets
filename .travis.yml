@@ -5,6 +5,9 @@ install:
   # Supposed to help get PIL to install on PyPi
   # https://github.com/python-imaging/Pillow/issues/570
   - sudo apt-get install python-tk
+  # Install external filter binaries
+  - sudo apt-get install npm rubygems
+  - sh requirements-dev.sh
   - pip install tox
 script: tox
 notifications:
