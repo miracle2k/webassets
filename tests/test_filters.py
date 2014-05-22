@@ -192,12 +192,8 @@ class TestExternalToolClass(object):
                 # Special placeholders that are passed through
                 '{input}', '{output}']
         Filter().output(StringIO('content'), StringIO(), kwarg='value')
-        if PYPY:
-            assert Filter.result == (
-                ["Filter", 'value', '0', '{input}', '{output}'], 'content')
-        else:
-            assert Filter.result == (
-                ["Filter", 'value', 'False', '{input}', '{output}'], 'content')
+        assert Filter.result == (
+            ["Filter", 'value', 'False', '{input}', '{output}'], 'content')
 
     def test_method_input(self):
         """The method=input."""
@@ -1269,8 +1265,7 @@ define("script/app",["./utils"],function(e){e.debug("APP")});\
     def test_build_nooptimize(self):
         self.env.config['requirejs_optimize'] = 'none'
         self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
-        assert self.get('out.js') == '''\
-
+        assert self.get('out.js').strip() == '''
 define('script/utils',[],function() {
   return {debug: console.log};
 });
@@ -1278,7 +1273,7 @@ define('script/utils',[],function() {
 define('script/app',['./utils'], function(util) {
   util.debug('APP');
 });
-'''
+'''.strip()
 
     def test_build_debug_rid(self):
         self.env.debug = True

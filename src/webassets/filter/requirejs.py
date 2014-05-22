@@ -125,7 +125,7 @@ class RequireJSFilter(ExternalTool):
             self.argv.extend(shlex.split(self.extras))
 
     def open(self, out, source_path, **kw):
-        if self.env.debug and not self.run_in_debug:
+        if self.ctx.debug and not self.run_in_debug:
             with open(source_path, 'rb') as fp:
                 out.write(fp.read())
             return
