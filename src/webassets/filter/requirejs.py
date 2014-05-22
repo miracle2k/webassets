@@ -1,7 +1,7 @@
 from __future__ import with_statement
 
 import shlex
-from os.path import abspath, splitext
+from os import path, getcwd
 
 from webassets.filter import ExternalTool
 
@@ -29,12 +29,15 @@ class RequireJSFilter(ExternalTool):
     config (env: REQUIREJS_CONFIG)
 
         The RequireJS options file. The path is taken to be relative
-        to the current working directory.
+        to the Enviroment.directory (by defualt is /static).
+
 
     baseUrl (env: REQUIREJS_BASEURL)
 
         The ``baseUrl`` parameter to r.js; this is the directory that
-        AMD modules will be loaded from. Typically, this is used in
+        AMD modules will be loaded from. The path is taken relative
+        to the Enviroment.directory (by defualt is /static).
+        Typically, this is used in
         conjunction with a ``baseUrl`` parameter set in the `config`
         options file, where the baseUrl value in the config file is
         used for client-side processing, and the value here is for
@@ -109,18 +112,40 @@ class RequireJSFilter(ExternalTool):
     def setup(self):
         super(RequireJSFilter, self).setup()
         # todo: detect if `r.js` is installed...
-        if self.run_in_debug is False:
+        if not self.run_in_debug:
             # Disable running in debug mode for this instance.
             self.max_debug_level = False
-        self.argv = filter(None, [
-            self.executable or 'r.js',
-            '-o',
-            self.config if self.config else None,
-            'name={modname}',
-            'out={{output}}',
-            'baseUrl=' + self.baseUrl if self.baseUrl else None,
-            'optimize=' + self.optimize if self.optimize else None,
-        ])
+
+        if self.executable:
+            self.argv = shlex.split(self.executable)
+        else:
+            self.argv = ['r.js']
+
+        if self.config:
+            rel_config = path.join(
+                path.relpath(
+                    self.ctx.directory,
+                    getcwd()
+                ),
+                self.config
+            )
+        if not self.baseUrl:
+            self.baseUrl = path.relpath(
+                self.ctx.directory,
+                getcwd()
+            )
+
+        self.argv.extend(
+            filter(
+                None,
+                ['-o',
+                 rel_config if self.config else None,
+                 'name={modname}',
+                 'out={{output}}',
+                 'baseUrl=' + self.baseUrl if self.baseUrl else None,
+                 'optimize=' + self.optimize if self.optimize else None,
+             ])
+        )
         if self.extras:
             self.argv.extend(shlex.split(self.extras))
 
@@ -132,12 +157,12 @@ class RequireJSFilter(ExternalTool):
         # extract the AMD module name
         name = kw.get('source')
         if not name:
-            base = abspath(self.baseUrl)
-            name = abspath(source_path)
+            base = path.abspath(self.baseUrl)
+            name = path.abspath(source_path)
             if not name.startswith(base):
                 raise ValueError(
                     'requested AMD script "%s" does not exist in baseUrl "%s"'
                     % (source_path, self.baseUrl))
             name = name[len(base) + 1:]
-        kw['modname'] = splitext(name)[0]
+        kw['modname'] = path.splitext(name)[0]
         return super(RequireJSFilter, self).open(out, source_path, **kw)
