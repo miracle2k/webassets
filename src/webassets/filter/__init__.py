@@ -151,7 +151,7 @@ class Filter(object):
                 setattr(self, attribute, None)
         if kwargs:
             raise TypeError('got an unexpected keyword argument: %s' %
-                            kwargs.keys()[0])
+                            list(kwargs.keys())[0])
 
     def __eq__(self, other):
         if isinstance(other, Filter):
