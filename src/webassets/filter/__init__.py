@@ -502,15 +502,17 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                     f.write(data)
                     # No longer pass to stdin
                     data = None
-
-            proc = subprocess.Popen(
-                argv,
-                # we cannot use the in/out streams directly, as they might be
-                # StringIO objects (which are not supported by subprocess)
-                stdout=subprocess.PIPE,
-                stdin=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                shell=os.name == 'nt')
+            try:
+                proc = subprocess.Popen(
+                    argv,
+                    # we cannot use the in/out streams directly, as they might be
+                    # StringIO objects (which are not supported by subprocess)
+                    stdout=subprocess.PIPE,
+                    stdin=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    shell=os.name == 'nt')
+            except OSError:
+                raise FilterError('Program file not found: %s.' % argv[0])
             stdout, stderr = proc.communicate(data)
             if proc.returncode:
                 raise FilterError(
