@@ -1,5 +1,4 @@
 - Update CHANGES file
-- Update AUTHORS file
 - git flow release start {release}
 - Update version number in __init__.py
 - Update version number in latest "Upgrading" section in docs
