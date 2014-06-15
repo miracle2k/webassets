@@ -13,7 +13,7 @@ import logging
 from io import open
 from webassets.six.moves import filter
 
-from .utils import cmp_debug_levels, StringIO
+from .utils import cmp_debug_levels, StringIO, hash_func
 
 
 __all__ = ('FileHunk', 'MemoryHunk', 'merge', 'FilterTool',
@@ -43,13 +43,13 @@ class BaseHunk(object):
     def mtime(self):
         raise NotImplementedError()
 
-    def __hash__(self):
-        return hash(self.data())
+    def id(self):
+        return hash_func(self.data())
 
     def __eq__(self, other):
         if isinstance(other, BaseHunk):
             # Allow class to be used as a unique dict key.
-            return hash(self) == hash(other)
+            return hash_func(self) == hash_func(other)
         return False
 
     def data(self):
@@ -148,7 +148,7 @@ class MemoryHunk(BaseHunk):
         # when logging is disabled, this won't be called, i.e.: don't
         # %s-format yourself, let logging do it as needed.
         # TODO: Add a test to ensure this isn't called.
-        return '<%s %s>' % (self.__class__.__name__, hash(self.data))
+        return '<%s %s>' % (self.__class__.__name__, hash_func(self.data))
 
     def mtime(self):
         pass
@@ -240,10 +240,10 @@ class FilterTool(object):
                       'unchanged' % (type,))
             return hunk
 
-        def func():
-            kwargs_final = self.kwargs.copy()
-            kwargs_final.update(kwargs or {})
+        kwargs_final = self.kwargs.copy()
+        kwargs_final.update(kwargs or {})
 
+        def func():
             data = StringIO(hunk.data())
             for filter in filters:
                 log.debug('Running method "%s" of  %s with kwargs=%s',
@@ -254,6 +254,11 @@ class FilterTool(object):
                 data.seek(0)
 
             return data
+
+        additional_cache_keys = []
+        if kwargs_final:
+            for filter in filters:
+                additional_cache_keys += filter.get_additional_cache_keys(**kwargs_final)
 
         # Note that the key used to cache this hunk is different from the key
         # the hunk will expose to subsequent merges, i.e. hunk.key() is always
@@ -268,7 +273,7 @@ class FilterTool(object):
         # key, such a change would invalidate the caches for all subsequent
         # operations on this hunk as well, even though it didn't actually
         # change after all.
-        key = ("hunk", hunk, tuple(filters), type)
+        key = ("hunk", hunk, tuple(filters), type, additional_cache_keys)
         return self._wrap_cache(key, func)
 
     def apply_func(self, filters, type, args, kwargs=None, cache_key=None):
@@ -297,17 +302,23 @@ class FilterTool(object):
                 'These filters cannot be combined: %s' % (
                     ', '.join([f.name for f in filters])), filters)
 
+        kwargs_final = self.kwargs.copy()
+        kwargs_final.update(kwargs or {})
+
         def func():
             filter = filters[0]
             out = StringIO(u'')  # For 2.x, StringIO().getvalue() returns str
-            kwargs_final = self.kwargs.copy()
-            kwargs_final.update(kwargs or {})
             log.debug('Running method "%s" of %s with args=%s, kwargs=%s',
                 type, filter, args, kwargs)
             getattr(filter, type)(out, *args, **kwargs_final)
             return out
 
-        key = ("hunk", args, tuple(filters), type, cache_key or [])
+        additional_cache_keys = []
+        if kwargs_final:
+            for filter in filters:
+                additional_cache_keys += filter.get_additional_cache_keys(**kwargs_final)
+
+        key = ("hunk", args, tuple(filters), type, cache_key or [], additional_cache_keys)
         return self._wrap_cache(key, func)
 
 

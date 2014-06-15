@@ -7,6 +7,26 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
+In 0.10
+~~~~~~~
+
+- The :class:`Resolver` API has changed. Rather than being bound to an
+  environment via the constructor, the individual methods now receive
+  a ``ctx` object, which allows access to the environment's settings.
+
+  See :ref:`the page on implementing resolvers <custom_resolver>`.
+
+- The :meth:`Bundle.build` and :meth:`Bundle.url` methods no longer accept
+  an environment argument. To work with a Bundle that is not attached to
+  an environment already, use the following syntax instead::
+
+      with bundle.bind(env):
+          bundle.build()
+
+- Filters can no longer access a ``self.env`` attribute. It has been renamed
+  to ``self.ctx``, which provides a compatible object.
+
+
 In 0.9
 ~~~~~~
 
@@ -15,7 +35,6 @@ In 0.9
 - The API of the BaseCache.get() method has changed. It no longer receives
   a ``python`` keyword argument. This only affects you if you have
   implemented a custom cache class.
-
 
 
 In 0.8
@@ -160,7 +179,7 @@ In 0.7
 
 There are some significant backwards incompatible changes in this release.
 
-- The ``Environment.updater`` property (corresponds to the 
+- The ``Environment.updater`` property (corresponds to the
   ``ASSETS_UPDATER`` setting) can no longer be set to ``False`` or
   ``"never"`` in order to disable the automatic rebuilding. Instead, this
   now needs to be done using ``Environment.auto_build``, or the corresponding

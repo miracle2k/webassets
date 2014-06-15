@@ -3,6 +3,8 @@ from itertools import chain
 from webassets import six
 from webassets.six.moves import map
 from webassets.six.moves import zip
+from webassets.utils import is_url
+
 try:
     import glob2 as glob
     from glob import has_magic
@@ -10,7 +12,6 @@ except ImportError:
     import glob
     from glob import has_magic
 
-from .bundle import Bundle, is_url
 from .cache import get_cache
 from .version import get_versioner, get_manifest
 from .updater import get_updater
@@ -106,9 +107,6 @@ class Resolver(object):
     The class is designed for maximum extensibility.
     """
 
-    def __init__(self, env):
-        self.env = env
-
     def glob(self, basedir, expr):
         """Generator that runs when a glob expression needs to be
         resolved. Yields a list of absolute filenames.
@@ -135,13 +133,13 @@ class Resolver(object):
                 return expr
             raise IOError("'%s' does not exist" % expr)
 
-    def search_env_directory(self, item):
+    def search_env_directory(self, ctx, item):
         """This is called by :meth:`search_for_source` when no
         :attr:`Environment.load_path` is set.
         """
-        return self.consider_single_directory(self.env.directory, item)
+        return self.consider_single_directory(ctx.directory, item)
 
-    def search_load_path(self, item):
+    def search_load_path(self, ctx, item):
         """This is called by :meth:`search_for_source` when a
         :attr:`Environment.load_path` is set.
 
@@ -151,21 +149,21 @@ class Resolver(object):
         if has_magic(item):
             # We glob all paths.
             result = []
-            for path in self.env.load_path:
+            for path in ctx.load_path:
                 result.extend(list(self.glob(path, item)))
             return result
         else:
             # Single file, stop when we find the first match, or error
             # out otherwise. We still use glob() because then the load_path
             # itself can contain globs. Neat!
-            for path in self.env.load_path:
+            for path in ctx.load_path:
                 result = list(self.glob(path, item))
                 if result:
                     return result
             raise IOError("'%s' not found in load path: %s" % (
-                item, self.env.load_path))
+                item, ctx.load_path))
 
-    def search_for_source(self, item):
+    def search_for_source(self, ctx, item):
         """Called by :meth:`resolve_source` after determining that
         ``item`` is a relative filesystem path.
 
@@ -173,12 +171,12 @@ class Resolver(object):
         :meth:`resolve_source` deal with absolute paths, urls and
         other types of items that a bundle may contain.
         """
-        if self.env.load_path:
-            return self.search_load_path(item)
+        if ctx.load_path:
+            return self.search_load_path(ctx, item)
         else:
-            return self.search_env_directory(item)
+            return self.search_env_directory(ctx, item)
 
-    def query_url_mapping(self, filepath):
+    def query_url_mapping(self, ctx, filepath):
         """Searches the environment-wide url mapping (based on the
         urls assigned to each directory in the load path). Returns
         the correct url for ``filepath``.
@@ -187,9 +185,9 @@ class Resolver(object):
         method, instead of simply falling back to ``super()``.
         """
         # Build a list of dir -> url mappings
-        mapping = list(self.env.url_mapping.items())
+        mapping = list(ctx.url_mapping.items())
         try:
-            mapping.append((self.env.directory, self.env.url))
+            mapping.append((ctx.directory, ctx.url))
         except EnvironmentError:
             # Rarely, directory/url may not be set. That's ok.
             pass
@@ -208,7 +206,7 @@ class Resolver(object):
                 return url_prefix_join(url, rel_path)
         raise ValueError('Cannot determine url for %s' % filepath)
 
-    def resolve_source(self, item):
+    def resolve_source(self, ctx, item):
         """Given ``item`` from a Bundle's contents, this has to
         return the final value to use, usually an absolute
         filesystem path.
@@ -241,9 +239,9 @@ class Resolver(object):
         if is_url(item) or path.isabs(item):
             return item
 
-        return self.search_for_source(item)
+        return self.search_for_source(ctx, item)
 
-    def resolve_output_to_path(self, target, bundle):
+    def resolve_output_to_path(self, ctx, target, bundle):
         """Given ``target``, this has to return the absolute
         filesystem path to which the output file of ``bundle``
         should be written.
@@ -254,9 +252,9 @@ class Resolver(object):
         If a version-placeholder is used (``%(version)s``, it is
         still unresolved at this point.
         """
-        return path.join(self.env.directory, target)
+        return path.join(ctx.directory, target)
 
-    def resolve_source_to_url(self, filepath, item):
+    def resolve_source_to_url(self, ctx, filepath, item):
         """Given the absolute filesystem path in ``filepath``, as
         well as the original value from :attr:`Bundle.contents` which
         resolved to this path, this must return the absolute url
@@ -268,9 +266,9 @@ class Resolver(object):
         This method should raise a ``ValueError`` if the url cannot
         be determined.
         """
-        return self.query_url_mapping(filepath)
+        return self.query_url_mapping(ctx, filepath)
 
-    def resolve_output_to_url(self, target):
+    def resolve_output_to_url(self, ctx, target):
         """Given ``target``, this has to return the url through
         which the output file can be referenced.
 
@@ -287,11 +285,11 @@ class Resolver(object):
         if not path.isabs(target):
             # If relative, output files are written to env.directory,
             # thus we can simply base all values off of env.url.
-            return url_prefix_join(self.env.url, target)
+            return url_prefix_join(ctx.url, target)
         else:
             # If an absolute output path was specified, then search
             # the url mappings.
-            return self.query_url_mapping(target)
+            return self.query_url_mapping(ctx, target)
 
 
 class BundleRegistry(object):
@@ -340,6 +338,8 @@ class BundleRegistry(object):
               env.register('all_js', jquery_bundle, 'common.js',
                            filters='rjsmin', output='packed.js')
         """
+
+        from .bundle import Bundle
 
         # Register a dict
         if isinstance(name, dict) and not args and not kwargs:
@@ -390,36 +390,18 @@ env_options = [
     'url_expire', 'versions', 'manifest', 'load_path', 'url_mapping']
 
 
-class BaseEnvironment(BundleRegistry):
-    """Abstract base class for :class:`Environment` with slightly more generic
-    assumptions, to ease subclassing.
+class ConfigurationContext(object):
+    """Interface to the webassets configuration key-value store.
+
+    This wraps the :class:`ConfigStorage`` interface and adds some
+    helpers. It allows attribute-access to the most important
+    settings, and transparently instantiates objects, such that
+    ``env.manifest`` gives you an object, even though the configuration
+    contains the string "json".
     """
 
-    config_storage_class = None
-    resolver_class = Resolver
-
-    def __init__(self, **config):
-        BundleRegistry.__init__(self)
-        self._config = self.config_storage_class(self)
-        self.resolver = self.resolver_class(self)
-
-        # directory, url currently do not have default values
-        #
-        # some thought went into these defaults:
-        #   - enable url_expire, because we want to encourage the right thing
-        #   - default to hash versions, for the same reason: they're better
-        #   - manifest=cache because hash versions are slow
-        self.config.setdefault('debug', False)
-        self.config.setdefault('cache', True)
-        self.config.setdefault('url_expire', None)
-        self.config.setdefault('auto_build', True)
-        self.config.setdefault('manifest', 'cache')
-        self.config.setdefault('versions', 'hash')
-        self.config.setdefault('updater', 'timestamp')
-        self.config.setdefault('load_path', [])
-        self.config.setdefault('url_mapping', {})
-
-        self.config.update(config)
+    def __init__(self, storage):
+        self._storage = storage
 
     def append_path(self, path, url=None):
         """Appends ``path`` to :attr:`load_path`, and adds a
@@ -429,18 +411,10 @@ class BaseEnvironment(BundleRegistry):
         if url:
             self.url_mapping[path] = url
 
-    @property
-    def config(self):
-        """Key-value configuration. Keys are case-insensitive.
-        """
-        # This is a property so that user are not tempted to assign
-        # a custom dictionary which won't uphold our caseless semantics.
-        return self._config
-
     def _set_debug(self, debug):
-        self.config['debug'] = debug
+        self._storage['debug'] = debug
     def _get_debug(self):
-        return self.config['debug']
+        return self._storage['debug']
     debug = property(_get_debug, _set_debug, doc=
     """Enable/disable debug mode. Possible values are:
 
@@ -454,11 +428,11 @@ class BaseEnvironment(BundleRegistry):
     """)
 
     def _set_cache(self, enable):
-        self.config['cache'] = enable
+        self._storage['cache'] = enable
     def _get_cache(self):
-        cache = get_cache(self.config['cache'], self)
-        if cache != self.config['cache']:
-            self.config['cache'] = cache
+        cache = get_cache(self._storage['cache'], self)
+        if cache != self._storage['cache']:
+            self._storage['cache'] = cache
         return cache
     cache = property(_get_cache, _set_cache, doc=
     """Controls the behavior of the cache. The cache will speed up rebuilding
@@ -480,9 +454,9 @@ class BaseEnvironment(BundleRegistry):
     """)
 
     def _set_auto_build(self, value):
-        self.config['auto_build'] = value
+        self._storage['auto_build'] = value
     def _get_auto_build(self):
-        return self.config['auto_build']
+        return self._storage['auto_build']
     auto_build = property(_get_auto_build, _set_auto_build, doc=
     """Controls whether bundles should be automatically built, and
     rebuilt, when required (if set to ``True``), or whether they
@@ -499,11 +473,11 @@ class BaseEnvironment(BundleRegistry):
     """)
 
     def _set_manifest(self, manifest):
-        self.config['manifest'] = manifest
+        self._storage['manifest'] = manifest
     def _get_manifest(self):
-        manifest = get_manifest(self.config['manifest'], env=self)
-        if manifest != self.config['manifest']:
-            self.config['manifest'] = manifest
+        manifest = get_manifest(self._storage['manifest'], env=self)
+        if manifest != self._storage['manifest']:
+            self._storage['manifest'] = manifest
         return manifest
     manifest = property(_get_manifest, _set_manifest, doc=
     """A manifest persists information about the versions bundles
@@ -551,11 +525,11 @@ class BaseEnvironment(BundleRegistry):
     """)
 
     def _set_versions(self, versions):
-        self.config['versions'] = versions
+        self._storage['versions'] = versions
     def _get_versions(self):
-        versions = get_versioner(self.config['versions'])
-        if versions != self.config['versions']:
-            self.config['versions'] = versions
+        versions = get_versioner(self._storage['versions'])
+        if versions != self._storage['versions']:
+            self._storage['versions'] = versions
         return versions
     versions = property(_get_versions, _set_versions, doc=
     """Defines what should be used as a Bundle ``version``.
@@ -584,11 +558,11 @@ class BaseEnvironment(BundleRegistry):
     """)
 
     def set_updater(self, updater):
-        self.config['updater'] = updater
+        self._storage['updater'] = updater
     def get_updater(self):
-        updater = get_updater(self.config['updater'])
-        if updater != self.config['updater']:
-            self.config['updater'] = updater
+        updater = get_updater(self._storage['updater'])
+        if updater != self._storage['updater']:
+            self._storage['updater'] = updater
         return updater
     updater = property(get_updater, set_updater, doc=
     """Controls how the ``auto_build`` option should determine
@@ -605,9 +579,9 @@ class BaseEnvironment(BundleRegistry):
     """)
 
     def _set_url_expire(self, url_expire):
-        self.config['url_expire'] = url_expire
+        self._storage['url_expire'] = url_expire
     def _get_url_expire(self):
-        return self.config['url_expire']
+        return self._storage['url_expire']
     url_expire = property(_get_url_expire, _set_url_expire, doc=
     """If you send your assets to the client using a
     *far future expires* header (to minimize the 304 responses
@@ -627,10 +601,10 @@ class BaseEnvironment(BundleRegistry):
     """)
 
     def _set_directory(self, directory):
-        self.config['directory'] = directory
+        self._storage['directory'] = directory
     def _get_directory(self):
         try:
-            return path.abspath(self.config['directory'])
+            return path.abspath(self._storage['directory'])
         except KeyError:
             raise EnvironmentError(
                 'The environment has no "directory" configured')
@@ -643,10 +617,10 @@ class BaseEnvironment(BundleRegistry):
     """)
 
     def _set_url(self, url):
-        self.config['url'] = url
+        self._storage['url'] = url
     def _get_url(self):
         try:
-            return self.config['url']
+            return self._storage['url']
         except KeyError:
             raise EnvironmentError(
                 'The environment has no "url" configured')
@@ -659,9 +633,9 @@ class BaseEnvironment(BundleRegistry):
     """)
 
     def _set_load_path(self, load_path):
-        self.config['load_path'] = load_path
+        self._storage['load_path'] = load_path
     def _get_load_path(self):
-        return self.config['load_path']
+        return self._storage['load_path']
     load_path = property(_get_load_path, _set_load_path, doc=
     """An list of directories that will be searched for source files.
 
@@ -682,9 +656,9 @@ class BaseEnvironment(BundleRegistry):
     """)
 
     def _set_url_mapping(self, url_mapping):
-        self.config['url_mapping'] = url_mapping
+        self._storage['url_mapping'] = url_mapping
     def _get_url_mapping(self):
-        return self.config['url_mapping']
+        return self._storage['url_mapping']
     url_mapping = property(_get_url_mapping, _set_url_mapping, doc=
     """A dictionary of directory -> url prefix mappings that will
     be considered when generating urls, in addition to the pair of
@@ -694,6 +668,53 @@ class BaseEnvironment(BundleRegistry):
     load path along with their respective url spaces, instead of
     modifying this setting directly.
     """)
+
+    def _set_resolver(self, resolver):
+        self._storage['resolver'] = resolver
+    def _get_resolver(self):
+        return self._storage['resolver']
+    resolver = property(_get_resolver, _set_resolver)
+
+
+class BaseEnvironment(BundleRegistry, ConfigurationContext):
+    """Abstract base class for :class:`Environment` with slightly more
+    generic assumptions, to ease subclassing.
+    """
+
+    config_storage_class = None
+    resolver_class = Resolver
+
+    def __init__(self, **config):
+        BundleRegistry.__init__(self)
+        self._config = self.config_storage_class(self)
+        ConfigurationContext.__init__(self, self._config)
+
+        # directory, url currently do not have default values
+        #
+        # some thought went into these defaults:
+        #   - enable url_expire, because we want to encourage the right thing
+        #   - default to hash versions, for the same reason: they're better
+        #   - manifest=cache because hash versions are slow
+        self.config.setdefault('debug', False)
+        self.config.setdefault('cache', True)
+        self.config.setdefault('url_expire', None)
+        self.config.setdefault('auto_build', True)
+        self.config.setdefault('manifest', 'cache')
+        self.config.setdefault('versions', 'hash')
+        self.config.setdefault('updater', 'timestamp')
+        self.config.setdefault('load_path', [])
+        self.config.setdefault('url_mapping', {})
+        self.config.setdefault('resolver', self.resolver_class())
+
+        self.config.update(config)
+
+    @property
+    def config(self):
+        """Key-value configuration. Keys are case-insensitive.
+        """
+        # This is a property so that user are not tempted to assign
+        # a custom dictionary which won't uphold our caseless semantics.
+        return self._config
 
 
 class DictConfigStorage(ConfigStorage):

@@ -64,6 +64,7 @@ class YAMLLoader(object):
             output=data.get('output', None),
             debug=data.get('debug', None),
             extra=data.get('extra', {}),
+            config=data.get('config', {}),
             depends=data.get('depends', None))
         return Bundle(*list(self._yield_bundle_contents(data)), **kwargs)
 
@@ -192,7 +193,7 @@ class YAMLLoader(object):
 
             # Load environment settings
             for setting in ('debug', 'cache', 'versions', 'url_expire',
-                            'auto_build', 'url', 'directory', 'manifest',
+                            'auto_build', 'url', 'directory', 'manifest', 'load_path',
                             # TODO: The deprecated values; remove at some point
                             'expire', 'updater'):
                 if setting in obj:
@@ -224,6 +225,8 @@ class PythonLoader(object):
     retrieve the bundles defined there.
     """
 
+    environment = "environment"
+
     def __init__(self, module_name):
         if isinstance(module_name, types.ModuleType):
             self.module = module_name
@@ -231,6 +234,9 @@ class PythonLoader(object):
             sys.path.insert(0, '')  # Ensure the current directory is on the path
             try:
                 try:
+                    if ":" in module_name:
+                        module_name, env = module_name.split(":")
+                        self.environment = env
                     self.module = import_module(module_name)
                 except ImportError as e:
                     raise LoaderError(e)
@@ -252,10 +258,12 @@ class PythonLoader(object):
     def load_environment(self):
         """Load an ``Environment`` defined in the Python module.
 
-        Expects a global name ``environment`` to be defined.
+        Expects as default a global name ``environment`` to be defined,
+        or overriden by passing a string ``module:environent`` to the
+        constructor.
         """
         try:
-            return getattr(self.module, 'environment')
+            return getattr(self.module, self.environment)
         except AttributeError as e:
             raise LoaderError(e)
 

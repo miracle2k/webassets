@@ -83,11 +83,10 @@ directory part.
 
     class PrefixResolver(Resolver):
 
-        def __init__(self, env, prefixmap):
-            super(PrefixResolver, self).__init__(env)
+        def __init__(self, prefixmap):
             self.map = prefixmap
 
-        def search_for_source(self, item):
+        def search_for_source(self, ctx, item):
             parts = item.split('/', 1)
             if len(parts) < 2:
                 raise ValueError(
@@ -108,7 +107,7 @@ Using it:
 .. code-block:: python
 
      env = webassets.Environment(path, url)
-     env.resolver = PrefixResolver(env, {
+     env.resolver = PrefixResolver({
          'app1': '/var/www/app1/static',
          'app2': '/srv/deploy/media/app2',
      })

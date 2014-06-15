@@ -193,6 +193,12 @@ Other
 .. autoclass:: webassets.filter.cssprefixer.CSSPrefixer
 
 
+``autoprefixer``
+~~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.autoprefixer.AutoprefixerFilter
+
+
 ``jinja2``
 ~~~~~~~~~~
 

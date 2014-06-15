@@ -30,7 +30,7 @@ from webassets import six
 from webassets.six.moves import map
 from webassets.six.moves import zip
 from webassets.exceptions import BundleError, BuildError
-from webassets.utils import RegistryMetaclass
+from webassets.utils import RegistryMetaclass, is_url, hash_func
 
 
 __all__ = ('get_updater', 'SKIP_CACHE',
@@ -59,13 +59,13 @@ class BaseUpdater(six.with_metaclass(RegistryMetaclass(
     A single instance can be used with different environments.
     """
 
-    def needs_rebuild(self, bundle, env):
+    def needs_rebuild(self, bundle, ctx):
         """Returns ``True`` if the given bundle needs to be rebuilt,
         ``False`` otherwise.
         """
         raise NotImplementedError()
 
-    def build_done(self, bundle, env):
+    def build_done(self, bundle, ctx):
         """This will be called once a bundle has been successfully built.
         """
 
@@ -78,8 +78,8 @@ class BundleDefUpdater(BaseUpdater):
     classes are usually going to want to use also.
     """
 
-    def check_bundle_definition(self, bundle, env):
-        if not env.cache:
+    def check_bundle_definition(self, bundle, ctx):
+        if not ctx.cache:
             # If no global cache is configured, we could always
             # fall back to a memory-cache specific for the rebuild
             # process (store as env._update_cache); however,
@@ -89,8 +89,8 @@ class BundleDefUpdater(BaseUpdater):
             return False
 
         cache_key = ('bdef', bundle.output)
-        current_hash = "%s" % hash(bundle)
-        cached_hash = env.cache.get(cache_key)
+        current_hash = "%s" % hash_func(bundle)
+        cached_hash = ctx.cache.get(cache_key)
         # This may seem counter-intuitive, but if no cache entry is found
         # then we actually return "no update needed". This is because
         # otherwise if no cache / a dummy cache is used, then we would be
@@ -99,28 +99,28 @@ class BundleDefUpdater(BaseUpdater):
             return cached_hash != current_hash
         return False
 
-    def needs_rebuild(self, bundle, env):
-        return self.check_bundle_definition(bundle, env)
+    def needs_rebuild(self, bundle, ctx):
+        return self.check_bundle_definition(bundle, ctx)
 
-    def build_done(self, bundle, env):
-        if not env.cache:
+    def build_done(self, bundle, ctx):
+        if not ctx.cache:
             return False
         cache_key = ('bdef', bundle.output)
-        cache_value = "%s" % hash(bundle)
-        env.cache.set(cache_key, cache_value)
+        cache_value = "%s" % hash_func(bundle)
+        ctx.cache.set(cache_key, cache_value)
 
 
 class TimestampUpdater(BundleDefUpdater):
 
     id = 'timestamp'
 
-    def check_timestamps(self, bundle, env, o_modified=None):
-        from .bundle import Bundle, is_url
+    def check_timestamps(self, bundle, ctx, o_modified=None):
+        from .bundle import Bundle
         from webassets.version import TimestampVersion
 
         if not o_modified:
             try:
-                resolved_output = bundle.resolve_output(env)
+                resolved_output = bundle.resolve_output(ctx)
             except BundleError:
                 # This exception will occur when the bundle output has
                 # placeholder, but a version cannot be found. If the
@@ -129,12 +129,12 @@ class TimestampUpdater(BundleDefUpdater):
                 # However, if no manifest is defined, raise an error,
                 # because otherwise, this updater would always return True,
                 # and thus not do its job at all.
-                if env.manifest is None:
+                if ctx.manifest is None:
                     raise BuildError((
                         '%s uses a version placeholder, and you are '
                         'using "%s" versions. To use automatic '
                         'building in this configuration, you need to '
-                        'define a manifest.' % (bundle, env.versions)))
+                        'define a manifest.' % (bundle, ctx.versions)))
                 return True
 
             try:
@@ -146,13 +146,14 @@ class TimestampUpdater(BundleDefUpdater):
        # Recurse through the bundle hierarchy. Check the timestamp of all
         # the bundle source files, as well as any additional
         # dependencies that we are supposed to watch.
+        from webassets.bundle import wrap
         for iterator, result in (
             (lambda e: map(lambda s: s[1], bundle.resolve_contents(e)), True),
             (bundle.resolve_depends, SKIP_CACHE)
         ):
-            for item in iterator(env):
+            for item in iterator(ctx):
                 if isinstance(item, Bundle):
-                    nested_result = self.check_timestamps(item, env, o_modified)
+                    nested_result = self.check_timestamps(item, wrap(ctx, item), o_modified)
                     if nested_result:
                         return nested_result
                 elif not is_url(item):
@@ -167,25 +168,25 @@ class TimestampUpdater(BundleDefUpdater):
                             return result
         return False
 
-    def needs_rebuild(self, bundle, env):
+    def needs_rebuild(self, bundle, ctx):
         return \
-            super(TimestampUpdater, self).needs_rebuild(bundle, env) or \
-            self.check_timestamps(bundle, env)
+            super(TimestampUpdater, self).needs_rebuild(bundle, ctx) or \
+            self.check_timestamps(bundle, ctx)
 
-    def build_done(self, bundle, env):
+    def build_done(self, bundle, ctx):
         # Reset the resolved dependencies, so any globs will be
         # re-resolved the next time we check if a rebuild is
         # required. This ensures that we begin watching new files
         # that are created, while still caching the globs as long
         # no changes happen.
         bundle._resolved_depends = None
-        super(TimestampUpdater, self).build_done(bundle, env)
+        super(TimestampUpdater, self).build_done(bundle, ctx)
 
 
 class AlwaysUpdater(BaseUpdater):
 
     id = 'always'
 
-    def needs_rebuild(self, bundle, env):
+    def needs_rebuild(self, bundle, ctx):
         return True
 

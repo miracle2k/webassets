@@ -18,6 +18,7 @@ except NameError:
     from sets import ImmutableSet as frozenset
 from webassets.exceptions import FilterError
 from webassets.importlib import import_module
+from webassets.utils import hash_func
 
 
 __all__ = ('Filter', 'CallableFilter', 'get_filter', 'register_filter',
@@ -135,7 +136,7 @@ class Filter(object):
     max_debug_level = False
 
     def __init__(self, **kwargs):
-        self.env = None
+        self.ctx = None
         self._options = parse_options(self.__class__.options)
 
         # Resolve options given directly to the filter. This
@@ -150,19 +151,16 @@ class Filter(object):
                 setattr(self, attribute, None)
         if kwargs:
             raise TypeError('got an unexpected keyword argument: %s' %
-                            kwargs.keys()[0])
-
-    def __hash__(self):
-        return self.id()
+                            list(kwargs.keys())[0])
 
     def __eq__(self, other):
         if isinstance(other, Filter):
             return self.id() == other.id()
         return NotImplemented
 
-    def set_environment(self, env):
+    def set_context(self, ctx):
         """This is called before the filter is used."""
-        self.env = env
+        self.ctx = ctx
 
     def get_config(self, setting=False, env=None, require=True,
                    what='dependency', type=None):
@@ -200,7 +198,7 @@ class Filter(object):
 
         value = None
         if not setting is False:
-            value = self.env.config.get(setting, None)
+            value = self.ctx.get(setting, None)
 
         if value is None and not env is False:
             value = os.environ.get(env)
@@ -243,7 +241,7 @@ class Filter(object):
         """
         # freezedicts() allows filters to return dict objects as part
         # of unique(), which are not per-se supported by hash().
-        return hash((self.name, freezedicts(self.unique()),))
+        return hash_func((self.name, freezedicts(self.unique()),))
 
     def setup(self):
         """Overwrite this to have the filter do initial setup work,
@@ -299,6 +297,23 @@ class Filter(object):
 
        Only one such filter is allowed.
        """
+
+    def get_additional_cache_keys(self, **kw):
+        """Additional cache keys dependent on keyword arguments.
+
+        If your filter's output is dependent on some or all of the
+        keyword arguments, you can return these arguments here as a list.
+        This will make sure the caching behavior is correct.
+
+        For example, the CSSRewrite filter depends not only on the
+        contents of the file it applies to, but also the output path
+        of the final file. If the CSSRewrite filter doesn't correctly
+        override this method, a certain output file with a certain base
+        directory might potentially get a CSSRewriten file from cache
+        that is meant for an output file in a different base directory.
+        """
+
+        return []
 
     # We just declared those for demonstration purposes
     del input
@@ -460,7 +475,8 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
         class tempfile_on_demand(object):
             def __repr__(self):
                 if not hasattr(self, 'filename'):
-                    self.fd, self.filename = tempfile.mkstemp()
+                    fd, self.filename = tempfile.mkstemp()
+                    os.close(fd)
                 return self.filename
 
             @property
@@ -475,25 +491,29 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                        item.format(input=input_file, output=output_file), argv))
 
         try:
+            data = (data.read() if hasattr(data, 'read') else data)
+            if data is not None:
+                data = data.encode('utf-8')
+
             if input_file.created:
                 if not data:
                     raise ValueError(
                         '{input} placeholder given, but no data passed')
-                with os.fdopen(input_file.fd, 'w') as f:
-                    f.write(data.read() if hasattr(data, 'read') else data)
+                with open(input_file.filename, 'wb') as f:
+                    f.write(data)
                     # No longer pass to stdin
                     data = None
-
-            proc = subprocess.Popen(
-                argv,
-                # we cannot use the in/out streams directly, as they might be
-                # StringIO objects (which are not supported by subprocess)
-                stdout=subprocess.PIPE,
-                stdin=subprocess.PIPE,
-                stderr=subprocess.PIPE)
-            data = (data.read() if hasattr(data, 'read') else data)
-            if data is not None:
-                data = data.encode('utf-8')
+            try:
+                proc = subprocess.Popen(
+                    argv,
+                    # we cannot use the in/out streams directly, as they might be
+                    # StringIO objects (which are not supported by subprocess)
+                    stdout=subprocess.PIPE,
+                    stdin=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    shell=os.name == 'nt')
+            except OSError:
+                raise FilterError('Program file not found: %s.' % argv[0])
             stdout, stderr = proc.communicate(data)
             if proc.returncode:
                 raise FilterError(
@@ -503,8 +523,8 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                         proc.returncode, stdout, stderr))
             else:
                 if output_file.created:
-                    with os.fdopen(output_file.fd, 'r') as f:
-                        out.write(f.read())
+                    with open(output_file.filename, 'rb') as f:
+                        out.write(f.read().decode('utf-8'))
                 else:
                     out.write(stdout.decode('utf-8'))
         finally:

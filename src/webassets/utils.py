@@ -8,7 +8,7 @@ from .exceptions import BundleError
 
 
 __all__ = ('md5_constructor', 'pickle', 'set', 'StringIO',
-           'common_path_prefix', 'working_directory')
+           'common_path_prefix', 'working_directory', 'is_url')
 
 
 if sys.version_info >= (2, 5):
@@ -42,6 +42,9 @@ except ImportError:     # Python 2
     import urlparse
     import urllib
 
+def hash_func(data):
+    from .cache import make_md5
+    return make_md5(data)
 
 
 def common_path_prefix(paths, sep=os.path.sep):
@@ -193,3 +196,10 @@ def cmp_debug_levels(level1, level2):
         # debug values should probably be done on assign. But because this
         # needs to happen in two places (Environment and Bundle) we do it here.
         raise BundleError('Invalid debug value: %s' % e)
+
+
+def is_url(s):
+    if not isinstance(s, str):
+        return False
+    parsed = urlparse.urlsplit(s)
+    return bool(parsed.scheme and parsed.netloc) and len(parsed.scheme) > 1

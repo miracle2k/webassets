@@ -130,7 +130,7 @@ class BuildCommand(Command):
         # Determine common prefix for use with ``directory`` option.
         if directory:
             prefix = os.path.commonprefix(
-                [os.path.normpath(b.resolve_output(self.environment))
+                [os.path.normpath(b.resolve_output())
                  for _, b in bundles if b.output])
             # dirname() gives the right value for a single file.
             prefix = os.path.dirname(prefix)
@@ -151,7 +151,7 @@ class BuildCommand(Command):
                 overwrite_filename = output[name]
             elif directory:
                 offset = os.path.normpath(
-                    bundle.resolve_output(self.environment))[len(prefix)+1:]
+                    bundle.resolve_output())[len(prefix)+1:]
                 overwrite_filename = os.path.join(directory, offset)
             to_build.append((bundle, overwrite_filename, name,))
 
@@ -168,8 +168,8 @@ class BuildCommand(Command):
 
             try:
                 if not overwrite_filename:
-                    bundle.build(force=True, env=self.environment,
-                        disable_cache=no_cache)
+                    with bundle.bind(self.environment):
+                        bundle.build(force=True, disable_cache=no_cache)
                 else:
                     # TODO: Rethink how we deal with container bundles here.
                     # As it currently stands, we write all child bundles
@@ -178,8 +178,9 @@ class BuildCommand(Command):
                     # using the ``Hunk`` objects that build() would return
                     # anyway.
                     output = StringIO()
-                    bundle.build(force=True, env=self.environment, output=output,
-                        disable_cache=no_cache)
+                    with bundle.bind(self.environment):
+                        bundle.build(force=True, output=output,
+                            disable_cache=no_cache)
                     if directory:
                         # Only auto-create directories in this mode.
                         output_dir = os.path.dirname(overwrite_filename)
@@ -540,10 +541,10 @@ class GenericArgparseImplementation(object):
     def run_with_argv(self, argv):
         try:
             ns = self.parser.parse_args(argv)
-        except SystemExit:
+        except SystemExit as e:
             # We do not want the main() function to exit the program.
             # See run() instead.
-            return 1
+            return e.args[0]
 
         return self.run_with_ns(ns)
 

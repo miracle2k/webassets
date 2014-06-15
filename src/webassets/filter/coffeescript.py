@@ -41,10 +41,15 @@ class CoffeeScript(Filter):
                 +'Use COFFEE_BIN instead.', ImminentDeprecationWarning)
 
         args = "-sp" + ("" if self.no_bare else 'b')
-        proc = subprocess.Popen([binary, args],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+        try:
+            proc = subprocess.Popen([binary, args],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+        except OSError as e:
+            if e.errno == 2:
+                raise Exception("coffeescript not installed or in system path for webassets")
+            raise
         stdout, stderr = proc.communicate(_in.read().encode('utf-8'))
         if proc.returncode != 0:
             raise FilterError(('coffeescript: subprocess had error: stderr=%s, '+
@@ -53,4 +58,4 @@ class CoffeeScript(Filter):
         elif stderr:
             print("coffeescript filter has warnings:", stderr)
         out.write(stdout.decode('utf-8'))
-    
+

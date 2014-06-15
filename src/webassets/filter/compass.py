@@ -57,6 +57,9 @@ class CompassConfig(dict):
                 return '{%s}' % ', '.join("'%s' => '%s'" % i for i in val.items())
             elif isinstance(val, tuple):
                 val = list(val)
+            elif isinstance(val, six.text_type) and not six.PY3:
+                # remove unicode indicator in python2 unicode string
+                return repr(val.encode('utf-8'))
             # works fine with strings and lists
             return repr(val)
         return '\n'.join(['%s = %s' % (k, string_rep(v)) for k, v in self.items()])
@@ -92,6 +95,15 @@ class Compass(Filter):
         The values are emitted as strings, and paths are relative to the
         Environment's ``directory`` by default; include a ``project_path``
         entry to override this.
+
+        The ``sourcemap`` option has a caveat. A file called _.css.map is
+        created by Compass in the tempdir (where _.scss is the original asset),
+        which is then moved into the output_path directory. Since the tempdir
+        is created one level down from the output path, the relative links in
+        the sourcemap should correctly map. This file, however, will not be
+        versioned, and thus this option should ideally only be used locally
+        for development and not in production with a caching service as the
+        _.css.map file will not be invalidated.
     """
 
     name = 'compass'
@@ -132,7 +144,14 @@ class Compass(Filter):
            directory, so that the cache folder will be deleted at the end.
         """
 
-        tempout = tempfile.mkdtemp()
+        # Create temp folder one dir below output_path so sources in
+        # sourcemap are correct. This will be in the project folder,
+        # and as such, while exteremly unlikely, this could interfere
+        # with existing files and directories.
+        tempout_dir = path.normpath(
+            path.join(path.dirname(kw['output_path']), '../')
+        )
+        tempout = tempfile.mkdtemp(dir=tempout_dir)
         # Temporarily move to "tempout", so .sass-cache will be created there
         old_wd = os.getcwd()
         os.chdir(tempout)
@@ -148,10 +167,10 @@ class Compass(Filter):
             # information about the urls under which media files will be
             # available. This is hard for two reasons: First, the options in
             # question aren't supported on the command line, so we need to write
-            # a temporary config file. Secondly, the assume a defined and
+            # a temporary config file. Secondly, they assume defined and
             # separate directories for "images", "stylesheets" etc., something
             # webassets knows nothing of: we don't support the user defining
-            # something such directories. Because we traditionally had this
+            # such directories. Because we traditionally had this
             # filter point all type-specific directories to the root media
             # directory, we will define the paths to match this. In other
             # words, in Compass, both inline-image("img/test.png) and
@@ -163,18 +182,19 @@ class Compass(Filter):
             # the configuration file via the COMPASS_CONFIG setting (see
             # tickets #36 and #125).
             #
-            # Note that is also the --relative-assets option, which we can't
-            # use because it calculates an actual relative path between the
-            # image and the css output file, the latter being in a temporary
-            # directory in our case.
+            # Note that there is also the --relative-assets option, which we
+            # can't use because it calculates an actual relative path between
+            # the image and the css output file, the latter being in a
+            # temporary directory in our case.
             config = CompassConfig(
-                project_path=self.env.directory,
-                http_path=self.env.url,
+                project_path=self.ctx.directory,
+                http_path=self.ctx.url,
                 http_images_dir='',
                 http_stylesheets_dir='',
                 http_fonts_dir='',
                 http_javascripts_dir='',
                 images_dir='',
+                output_style=':expanded',
             )
             # Update with the custom config dictionary, if any.
             if self.config:
@@ -195,9 +215,7 @@ class Compass(Filter):
                             '--config', config_file,
                             '--quiet',
                             '--boring',
-                            '--output-style', 'expanded',
                             source_path])
-
             proc = subprocess.Popen(command,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,
@@ -213,14 +231,23 @@ class Compass(Filter):
                                    'stdout=%s, returncode=%s') % (
                                                 stderr, stdout, proc.returncode))
 
-
-            guessed_outputfile = \
-                path.join(tempout, path.splitext(path.basename(source_path))[0])
-            f = open("%s.css" % guessed_outputfile)
+            guessed_outputfilename = path.splitext(path.basename(source_path))[0]
+            guessed_outputfilepath = path.join(tempout, guessed_outputfilename)
+            output_file = open("%s.css" % guessed_outputfilepath)
+            if config.get('sourcemap'):
+                sourcemap_file = open("%s.css.map" % guessed_outputfilepath)
+                sourcemap_output_filepath = path.join(
+                    path.dirname(kw['output_path']),
+                    path.basename(sourcemap_file.name)
+                )
+                if not path.exists(path.dirname(sourcemap_output_filepath)):
+                    os.mkdir(path.dirname(sourcemap_output_filepath))
+                sourcemap_output_file = open(sourcemap_output_filepath, 'w')
+                sourcemap_output_file.write(sourcemap_file.read())
             try:
-                out.write(f.read())
+                out.write(output_file.read())
             finally:
-                f.close()
+                output_file.close()
         finally:
             # Restore previous working dir
             os.chdir(old_wd)

@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import os
 from os import path
 from webassets import six
@@ -6,24 +7,84 @@ from webassets.six.moves import zip
 
 from .filter import get_filter
 from .merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
-                   select_filters, MoreThanOneFilterError, NoFilters)
+                    select_filters, MoreThanOneFilterError, NoFilters)
 from .updater import SKIP_CACHE
 from .exceptions import BundleError, BuildError
-from .utils import cmp_debug_levels, urlparse
+from .utils import cmp_debug_levels, hash_func
+from .env import ConfigurationContext, DictConfigStorage, BaseEnvironment
+from .utils import is_url
 
 
 __all__ = ('Bundle', 'get_all_bundle_files',)
 
 
-def is_url(s):
-    if not isinstance(s, str):
-        return False
-    parsed = urlparse.urlsplit(s)
-    return bool(parsed.scheme and parsed.netloc) and len(parsed.scheme) > 1
-
-
 def has_placeholder(s):
     return '%(version)s' in s
+
+
+class ContextWrapper(object):
+    """Implements a hierarchy-aware configuration context.
+
+    Since each bundle can provide settings that augment the values of
+    the parent bundle, and ultimately the environment, as the bundle
+    hierarchy is processed, this class is used to provide an interface
+    that searches through the hierarchy of settings. It's what you get
+    when you are given a ``ctx`` value.
+    """
+
+    def __init__(self, parent, overwrites=None):
+        self._parent, self._overwrites = parent, overwrites
+
+    def __getitem__(self, key):
+        try:
+            if self._overwrites is None:
+                raise KeyError()
+            return self._overwrites.config[key]
+        except KeyError:
+            return self._parent.config.get(key)
+
+    def __getattr__(self, item):
+        try:
+            return self.getattr(self._overwrites, item)
+        except (KeyError, AttributeError, EnvironmentError):
+            return self.getattr(self._parent, item)
+
+    def getattr(self, object, item):
+        # Helper because Bundles are special in that the config attributes
+        # are in bundle.config (bundle.config.url vs env.url or ctx.url).
+        if isinstance(object, Bundle):
+            return getattr(object.config, item)
+        else:
+            return getattr(object, item)
+
+    def get(self, key, default=None):
+        try:
+            return self.__getitem__(key)
+        except KeyError:
+            return default
+
+    @property
+    def environment(self):
+        """Find the root environment context."""
+        if isinstance(self._parent, BaseEnvironment):
+            return self._parent
+        return self._parent.environment
+
+
+def wrap(parent, overwrites):
+    """Return a context object where the values from ``overwrites``
+    augment the ``parent`` configuration. See :class:`ContextWrapper`.
+    """
+    return ContextWrapper(parent, overwrites)
+
+
+class BundleConfig(DictConfigStorage, ConfigurationContext):
+    """A configuration dict that also supports Environment-like attribute
+    access, i.e. ``config['resolver']`` and ``config.resolver``.
+    """
+    def __init__(self, bundle):
+        DictConfigStorage.__init__(self, bundle)
+        ConfigurationContext.__init__(self, self)
 
 
 class Bundle(object):
@@ -48,14 +109,21 @@ class Bundle(object):
     """
 
     def __init__(self, *contents, **options):
-        self.env = None
+        self._env = options.pop('env', None)
         self.contents = contents
         self.output = options.pop('output', None)
         self.filters = options.pop('filters', None)
-        self.debug = options.pop('debug', None)
         self.depends = options.pop('depends', [])
         self.version = options.pop('version', [])
         self.extra = options.pop('extra', {})
+
+        self._config = BundleConfig(self)
+        self._config.update(options.pop('config', {}))
+        if 'debug' in options:
+            debug = options.pop('debug')
+            if debug is not None:
+                self._config['debug'] = debug
+
         if options:
             raise TypeError("got unexpected keyword argument '%s'" %
                             list(options.keys())[0])
@@ -67,6 +135,18 @@ class Bundle(object):
             self.filters,
             self.contents,
         )
+
+    @property
+    def config(self):
+        # This is a property so that user are not tempted to assign
+        # a custom dictionary which won't uphold our caseless semantics.
+        return self._config
+
+    def _get_debug(self):
+        return self.config.get('debug', None)
+    def _set_debug(self, value):
+        self.config['debug'] = True
+    debug = property(_get_debug, _set_debug)
 
     def _get_filters(self):
         return self._filters
@@ -117,7 +197,7 @@ class Bundle(object):
     template tags, and can be used to attach things like a CSS
     'media' value.""")
 
-    def resolve_contents(self, env=None, force=False):
+    def resolve_contents(self, ctx=None, force=False):
         """Return an actual list of source files.
 
         What the user specifies as the bundle contents cannot be
@@ -139,7 +219,8 @@ class Bundle(object):
         Set ``force`` to ignore any cache, and always re-resolve
         glob  patterns.
         """
-        env = self._get_env(env)
+        if not ctx:
+            ctx = wrap(self.env, self)
 
         # TODO: We cache the values, which in theory is problematic, since
         # due to changes in the env object, the result of the globbing may
@@ -149,7 +230,7 @@ class Bundle(object):
             resolved = []
             for item in self.contents:
                 try:
-                    result = env.resolver.resolve_source(item)
+                    result = ctx.resolver.resolve_source(ctx, item)
                 except IOError as e:
                     raise BundleError(e)
                 if not isinstance(result, list):
@@ -163,7 +244,7 @@ class Bundle(object):
                 # exclude glob duplicates.
                 if self.output:
                     try:
-                        result.remove(self.resolve_output(env))
+                        result.remove(self.resolve_output(ctx))
                     except (ValueError, BundleError):
                         pass
 
@@ -183,7 +264,7 @@ class Bundle(object):
     rebuild is required.
     """)
 
-    def resolve_depends(self, env):
+    def resolve_depends(self, ctx):
         # TODO: Caching is as problematic here as it is in resolve_contents().
         if not self.depends:
             return []
@@ -191,7 +272,7 @@ class Bundle(object):
             resolved = []
             for item in self.depends:
                 try:
-                    result = env.resolver.resolve_source(item)
+                    result = ctx.resolver.resolve_source(ctx, item)
                 except IOError as e:
                     raise BundleError(e)
                 if not isinstance(result, list):
@@ -200,7 +281,7 @@ class Bundle(object):
             self._resolved_depends = resolved
         return self._resolved_depends
 
-    def get_version(self, env=None, refresh=False):
+    def get_version(self, ctx=None, refresh=False):
         """Return the current version of the Bundle.
 
         If the version is not cached in memory, it will first look in the
@@ -209,18 +290,19 @@ class Bundle(object):
         ``refresh`` causes a value in memory to be ignored, and the version
         to be looked up anew.
         """
-        env = self._get_env(env)
+        if not ctx:
+            ctx = wrap(self.env, self)
         if not self.version or refresh:
             version = None
             # First, try a manifest. This should be the fastest way.
-            if env.manifest:
-                version = env.manifest.query(self, env)
+            if ctx.manifest:
+                version = ctx.manifest.query(self, ctx)
             # Often the versioner is able to help.
             if not version:
                 from .version import VersionIndeterminableError
-                if env.versions:
+                if ctx.versions:
                     try:
-                        version = env.versions.determine_version(self, env)
+                        version = ctx.versions.determine_version(self, ctx)
                         assert version
                     except VersionIndeterminableError as e:
                         reason = e
@@ -234,25 +316,26 @@ class Bundle(object):
             self.version = version
         return self.version
 
-    def resolve_output(self, env=None, version=None):
+    def resolve_output(self, ctx=None, version=None):
         """Return the full, absolute output path.
 
         If a %(version)s placeholder is used, it is replaced.
         """
-        env = self._get_env(env)
-        output = env.resolver.resolve_output_to_path(self.output, self)
+        if not ctx:
+            ctx = wrap(self.env, self)
+        output = ctx.resolver.resolve_output_to_path(ctx, self.output, self)
         if has_placeholder(output):
-            output = output % {'version': version or self.get_version(env)}
+            output = output % {'version': version or self.get_version(ctx)}
         return output
 
-    def __hash__(self):
+    def id(self):
         """This is used to determine when a bundle definition has changed so
         that a rebuild is required.
 
         The hash therefore should be built upon data that actually affect the
         final build result.
         """
-        return hash((tuple(self.contents),
+        return hash_func((tuple(self.contents),
                      self.output,
                      tuple(self.filters),
                      bool(self.debug)))
@@ -271,14 +354,24 @@ class Bundle(object):
         """
         return not has_files(self) and not self.output
 
-    def _get_env(self, env):
-        # Note how bool(env) can be False, due to __len__.
-        env = env if env is not None else self.env
-        if env is None:
-            raise BundleError('Bundle is not connected to an environment')
-        return env
+    @contextmanager
+    def bind(self, env):
+        old_env = self._env
+        self._env = env
+        try:
+            yield
+        finally:
+            self._env = old_env
 
-    def _merge_and_apply(self, env, output, force, parent_debug=None,
+    def _get_env(self):
+        if self._env is None:
+            raise BundleError('Bundle is not connected to an environment')
+        return self._env
+    def _set_env(self, env):
+        self._env = env
+    env = property(_get_env, _set_env)
+
+    def _merge_and_apply(self, ctx, output, force, parent_debug=None,
                          parent_filters=[], extra_filters=[],
                          disable_cache=None):
         """Internal recursive build method.
@@ -312,10 +405,10 @@ class Bundle(object):
         # ever lower it, not increase it.
         #
         # If not parent_debug is given (top level), use the Environment value.
-        parent_debug = parent_debug if parent_debug is not None else env.debug
-        # Consider bundle's debug attribute and other things
+        parent_debug = parent_debug if parent_debug is not None else ctx.debug
+        # Consider bundle's debug attribute and other things.
         current_debug_level = _effective_debug_level(
-            env, self, extra_filters, default=parent_debug)
+            ctx, self, extra_filters, default=parent_debug)
         # Special case: If we end up with ``True``, assume ``False`` instead.
         # The alternative would be for the build() method to refuse to work at
         # this point, which seems unnecessarily inconvenient (Instead how it
@@ -335,7 +428,7 @@ class Bundle(object):
         # them should actually run, so that Filter.setup() can influence
         # this choice.
         for filter in filters:
-            filter.set_environment(env)
+            filter.set_context(ctx)
             # Since we call this now every single time before the filter
             # is used, we might pass the bundle instance it is going
             # to be used with. For backwards-compatibility reasons, this
@@ -358,7 +451,7 @@ class Bundle(object):
         filters_to_pass_down = merge_filters(filters, parent_filters)
 
         # Prepare contents
-        resolved_contents = self.resolve_contents(env, force=True)
+        resolved_contents = self.resolve_contents(ctx, force=True)
 
         # Unless we have been told by our caller to use or not use the cache
         # for this, try to decide for ourselves. The issue here is that when a
@@ -373,10 +466,10 @@ class Bundle(object):
         # Note: This decision only affects the current bundle instance. Even if
         # dependencies cause us to ignore the cache for this bundle instance,
         # child bundles may still use it!
-        actually_skip_cache_here = disable_cache or bool(self.resolve_depends(env))
+        actually_skip_cache_here = disable_cache or bool(self.resolve_depends(ctx))
 
         filtertool = FilterTool(
-            env.cache, no_cache_read=actually_skip_cache_here,
+            ctx.cache, no_cache_read=actually_skip_cache_here,
             kwargs={'output': output[0],
                     'output_path': output[1]})
 
@@ -386,7 +479,7 @@ class Bundle(object):
             if isinstance(cnt, Bundle):
                 # Recursively process nested bundles.
                 hunk = cnt._merge_and_apply(
-                    env, output, force, current_debug_level,
+                    wrap(ctx, cnt), output, force, current_debug_level,
                     filters_to_pass_down, disable_cache=disable_cache)
                 if hunk is not None:
                     hunks.append((hunk, {}))
@@ -414,7 +507,7 @@ class Bundle(object):
                 except NoFilters:
                     # Open the file ourselves.
                     if is_url(cnt):
-                        hunk = UrlHunk(cnt, env=env)
+                        hunk = UrlHunk(cnt, env=ctx)
                     else:
                         hunk = FileHunk(cnt)
 
@@ -458,7 +551,7 @@ class Bundle(object):
         # being possibly configured with cache reads off).
         return filtertool.apply(final, selected_filters, 'output')
 
-    def _build(self, env, extra_filters=[], force=None, output=None,
+    def _build(self, ctx, extra_filters=[], force=None, output=None,
                disable_cache=None):
         """Internal bundle build function.
 
@@ -487,20 +580,20 @@ class Bundle(object):
         if force:
             update_needed = True
         elif not has_placeholder(self.output) and \
-                not path.exists(self.resolve_output(env, self.output)):
+                not path.exists(self.resolve_output(ctx, self.output)):
             update_needed = True
         else:
-            update_needed = env.updater.needs_rebuild(self, env) \
-                if env.updater else True
+            update_needed = ctx.updater.needs_rebuild(self, ctx) \
+                if ctx.updater else True
             if update_needed==SKIP_CACHE:
                 disable_cache = True
 
         if not update_needed:
             # We can simply return the existing output file
-            return FileHunk(self.resolve_output(env, self.output))
+            return FileHunk(self.resolve_output(ctx, self.output))
 
         hunk = self._merge_and_apply(
-            env, [self.output, self.resolve_output(env, version='?')],
+            ctx, [self.output, self.resolve_output(ctx, version='?')],
             force, disable_cache=disable_cache, extra_filters=extra_filters)
         if hunk is None:
             raise BuildError('Nothing to build for %s, is empty' % self)
@@ -509,17 +602,17 @@ class Bundle(object):
             # If we are given a stream, just write to it.
             output.write(hunk.data())
         else:
-            if has_placeholder(self.output) and not env.versions:
+            if has_placeholder(self.output) and not ctx.versions:
                 raise BuildError((
                     'You have not set the "versions" option, but %s '
                     'uses a version placeholder in the output target'
                         % self))
 
             version = None
-            if env.versions:
-                version = env.versions.determine_version(self, env, hunk)
+            if ctx.versions:
+                version = ctx.versions.determine_version(self, ctx, hunk)
 
-            output_filename = self.resolve_output(env, version=version)
+            output_filename = self.resolve_output(ctx, version=version)
 
             # If it doesn't exist yet, create the target directory.
             output_dir = path.dirname(output_filename)
@@ -529,22 +622,22 @@ class Bundle(object):
             hunk.save(output_filename)
             self.version = version
 
-            if env.manifest:
-                env.manifest.remember(self, env, version)
-            if env.versions and version:
+            if ctx.manifest:
+                ctx.manifest.remember(self, ctx, version)
+            if ctx.versions and version:
                 # Hook for the versioner (for example set the timestamp of
                 # the file) to the actual version.
-                env.versions.set_version(self, env, output_filename, version)
+                ctx.versions.set_version(self, ctx, output_filename, version)
 
         # The updater may need to know this bundle exists and how it
         # has been last built, in order to detect changes in the
         # bundle definition, like new source files.
-        if env.updater:
-            env.updater.build_done(self, env)
+        if ctx.updater:
+            ctx.updater.build_done(self, ctx)
 
         return hunk
 
-    def build(self, env=None, force=None, output=None, disable_cache=None):
+    def build(self, force=None, output=None, disable_cache=None):
         """Build this bundle, meaning create the file given by the ``output``
         attribute, applying the configured filters etc.
 
@@ -559,62 +652,65 @@ class Bundle(object):
         The return value is a list of ``FileHunk`` objects, one for each bundle
         that was built.
         """
-        env = self._get_env(env)
+        ctx = wrap(self.env, self)
         hunks = []
-        for bundle, extra_filters in self.iterbuild(env):
+        for bundle, extra_filters, new_ctx in self.iterbuild(ctx):
             hunks.append(bundle._build(
-                env, extra_filters, force=force, output=output,
+                new_ctx, extra_filters, force=force, output=output,
                 disable_cache=disable_cache))
         return hunks
 
-    def iterbuild(self, env=None):
+    def iterbuild(self, ctx):
         """Iterate over the bundles which actually need to be built.
 
-        This will often only entail ``self``, though for container bundles (and
-        container bundle hierarchies), a list of all the non-container leafs
-        will be yielded.
+        This will often only entail ``self``, though for container bundles
+        (and container bundle hierarchies), a list of all the non-container
+        leafs will be yielded.
 
         Essentially, what this does is "skip" bundles which do not need to be
         built on their own (container bundles), and gives the caller the child
         bundles instead.
 
-        The return values are 2-tuples of (bundle, filter_list), with the
-        second item being a list of filters that the parent "container bundles"
-        this method is processing are passing down to the children.
+        The return values are 3-tuples of (bundle, filter_list, new_ctx), with
+        the second item being a list of filters that the parent "container
+        bundles" this method is processing are passing down to the children.
         """
-        env = self._get_env(env)
         if self.is_container:
-            for bundle, _ in self.resolve_contents(env):
+            for bundle, _ in self.resolve_contents(ctx):
                 if bundle.is_container:
-                    for child, child_filters in bundle.iterbuild(env):
-                        yield child, merge_filters(child_filters, self.filters)
+                    for child, child_filters, new_ctx in \
+                            bundle.iterbuild(wrap(ctx, bundle)):
+                        yield (
+                            child,
+                            merge_filters(child_filters, self.filters),
+                            new_ctx)
                 else:
-                    yield bundle, self.filters
+                    yield bundle, self.filters, wrap(ctx, bundle)
         else:
-            yield self, []
+            yield self, [], ctx
 
-    def _make_output_url(self, env):
+    def _make_output_url(self, ctx):
         """Return the output url, modified for expire header handling.
         """
 
         # Only query the version if we need to for performance
         version = None
-        if has_placeholder(self.output) or env.url_expire != False:
+        if has_placeholder(self.output) or ctx.url_expire != False:
             # If auto-build is enabled, we must not use a cached version
             # value, or we might serve old versions.
-            version = self.get_version(env, refresh=env.auto_build)
+            version = self.get_version(ctx, refresh=ctx.auto_build)
 
         url = self.output
         if has_placeholder(url):
             url = url % {'version': version}
-        url = env.resolver.resolve_output_to_url(url)
+        url = ctx.resolver.resolve_output_to_url(ctx, url)
 
-        if env.url_expire or (
-                env.url_expire is None and not has_placeholder(self.output)):
+        if ctx.url_expire or (
+                ctx.url_expire is None and not has_placeholder(self.output)):
             url = "%s?%s" % (url, version)
         return url
 
-    def _urls(self, env, extra_filters, *args, **kwargs):
+    def _urls(self, ctx, extra_filters, *args, **kwargs):
         """Return a list of urls for this bundle, and all subbundles,
         and, when it becomes necessary, start a build process.
         """
@@ -624,7 +720,7 @@ class Bundle(object):
         # form. Once a bundle needs to be built, all of it's child bundles
         # are built as well of course, so at this point we leave the urls()
         # recursion and start a build() recursion.
-        debug = _effective_debug_level(env, self, extra_filters)
+        debug = _effective_debug_level(ctx, self, extra_filters)
         if debug == 'merge':
             supposed_to_merge = True
         elif debug is True:
@@ -642,34 +738,37 @@ class Bundle(object):
             # With ``auto_build``, build the bundle to make sure the output is
             # up to date; otherwise, we just assume the file already exists.
             # (not wasting any IO ops)
-            if env.auto_build:
-                self._build(env, extra_filters=extra_filters, force=False,
+            if ctx.auto_build:
+                self._build(ctx, extra_filters=extra_filters, force=False,
                             *args, **kwargs)
-            return [self._make_output_url(env)]
+            return [self._make_output_url(ctx)]
         else:
             # We either have no files (nothing to build), or we are
             # in debug mode: Instead of building the bundle, we
             # source all contents instead.
             urls = []
-            for org, cnt in self.resolve_contents(env):
+            for org, cnt in self.resolve_contents(ctx):
                 if isinstance(cnt, Bundle):
-                    urls.extend(org.urls(env, *args, **kwargs))
+                    urls.extend(org._urls(
+                        wrap(ctx, cnt),
+                        merge_filters(extra_filters, self.filters),
+                        *args, **kwargs))
                 elif is_url(cnt):
                     urls.append(cnt)
                 else:
                     try:
-                        url = env.resolver.resolve_source_to_url(cnt, org)
+                        url = ctx.resolver.resolve_source_to_url(ctx, cnt, org)
                     except ValueError:
                         # If we cannot generate a url to a path outside the
                         # media directory. So if that happens, we copy the
                         # file into the media directory.
-                        external = pull_external(env, cnt)
-                        url = env.resolver.resolve_source_to_url(external, org)
+                        external = pull_external(ctx, cnt)
+                        url = ctx.resolver.resolve_source_to_url(ctx, external, org)
 
                     urls.append(url)
             return urls
 
-    def urls(self, env=None, *args, **kwargs):
+    def urls(self, *args, **kwargs):
         """Return a list of urls for this bundle.
 
         Depending on the environment and given options, this may be a single
@@ -679,14 +778,14 @@ class Bundle(object):
         Insofar necessary, this will automatically create or update the files
         behind these urls.
         """
-        env = self._get_env(env)
+        ctx = wrap(self.env, self)
         urls = []
-        for bundle, extra_filters in self.iterbuild(env):
-            urls.extend(bundle._urls(env, extra_filters, *args, **kwargs))
+        for bundle, extra_filters, new_ctx in self.iterbuild(ctx):
+            urls.extend(bundle._urls(new_ctx, extra_filters, *args, **kwargs))
         return urls
 
 
-def pull_external(env, filename):
+def pull_external(ctx, filename):
     """Helper which will pull ``filename`` into
     :attr:`Environment.directory`, for the purposes of being able to
     generate a url for it.
@@ -695,10 +794,10 @@ def pull_external(env, filename):
     # Generate the target filename. Use a hash to keep it unique and short,
     # but attach the base filename for readability.
     # The bit-shifting rids us of ugly leading - characters.
-    hashed_filename = hash(filename) & ((1<<64)-1)
+    hashed_filename = hash_func(filename)
     rel_path = path.join('webassets-external',
         "%s_%s" % (hashed_filename, path.basename(filename)))
-    full_path = path.join(env.directory, rel_path)
+    full_path = path.join(ctx.directory, rel_path)
 
     # Copy the file if necessary
     if path.isfile(full_path):
@@ -712,25 +811,28 @@ def pull_external(env, filename):
     return full_path
 
 
-def get_all_bundle_files(bundle, env=None):
+def get_all_bundle_files(bundle, ctx=None):
     """Return a flattened list of all source files of the given bundle, all
     its dependencies, recursively for all nested bundles.
 
     Making this a helper function rather than a part of the official
     Bundle feels right.
     """
-    env = bundle._get_env(env)
+    if not ctx:
+        ctx = wrap(bundle.env, bundle)
+    if not isinstance(ctx, ContextWrapper):
+        ctx = ContextWrapper(ctx)
     files = []
-    for _, c in bundle.resolve_contents(env):
+    for _, c in bundle.resolve_contents(ctx):
         if isinstance(c, Bundle):
-            files.extend(get_all_bundle_files(c, env))
+            files.extend(get_all_bundle_files(c, wrap(ctx, c)))
         elif not is_url(c):
             files.append(c)
-        files.extend(bundle.resolve_depends(env))
+        files.extend(bundle.resolve_depends(ctx))
     return files
 
 
-def _effective_debug_level(env, bundle, extra_filters=None, default=None):
+def _effective_debug_level(ctx, bundle, extra_filters=None, default=None):
     """This is a helper used both in the urls() and the build() recursions.
 
     It returns the debug level that this bundle, in a tree structure
@@ -751,10 +853,10 @@ def _effective_debug_level(env, bundle, extra_filters=None, default=None):
     open() need to be applied to child bundles, is just not worth it.
     """
     if default is None:
-        default = env.debug
+        default = ctx.environment.debug
 
-    if bundle.debug is not None:
-        level = bundle.debug
+    if bundle.config.get('debug') is not None:
+        level = bundle.config.debug
     else:
         # If bundle doesn't force a level, then the presence of filters which
         # declare they should always run puts the bundle automatically in

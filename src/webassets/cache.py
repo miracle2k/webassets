@@ -15,10 +15,14 @@ also serve in other places.
 
 import os
 from os import path
+import errno
+import tempfile
+import warnings
 from webassets import six
 from webassets.merge import BaseHunk
 from webassets.filter import Filter, freezedicts
 from webassets.utils import md5_constructor, pickle
+import types
 
 
 __all__ = ('FilesystemCache', 'MemoryCache', 'get_cache',)
@@ -52,23 +56,28 @@ def make_md5(*data):
     We care enough however not to use hash().
     """
     def walk(obj):
-        if isinstance(obj, (tuple, list)):
+        if isinstance(obj, (tuple, list, frozenset)):
             for item in obj:
                 for d in walk(item): yield d
-        elif isinstance(obj, dict):
+        elif isinstance(obj, (dict)):
             for k in sorted(obj.keys()):
                 for d in walk(k): yield d
                 for d in walk(obj[k]): yield d
         elif isinstance(obj, BaseHunk):
             yield obj.data().encode('utf-8')
-        elif isinstance(obj, Filter):
-            yield str(hash(obj)).encode('utf-8')
         elif isinstance(obj, int):
             yield str(obj).encode('utf-8')
         elif isinstance(obj, six.text_type):
             yield obj.encode('utf-8')
         elif isinstance(obj, six.binary_type):
             yield obj
+        elif hasattr(obj, "id"):
+            for i in walk(obj.id()):
+                yield i
+        elif obj is None:
+            yield "None".encode('utf-8')
+        elif isinstance(obj, types.FunctionType):
+            yield str(hash(obj)).encode('utf-8')
         else:
             raise ValueError('Cannot MD5 type %s' % type(obj))
     md5 = md5_constructor()
@@ -133,11 +142,11 @@ class MemoryCache(BaseCache):
                id(self) == id(other)
 
     def get(self, key):
-        key = make_hashable(key)
+        key = make_md5(make_hashable(key))
         return self.cache.get(key, None)
 
     def set(self, key, value):
-        key = make_hashable(key)
+        key = make_md5(make_hashable(key))
         self.cache[key] = value
         try:
             self.keys.remove(key)
@@ -171,26 +180,38 @@ class FilesystemCache(BaseCache):
 
     def get(self, key):
         filename = path.join(self.directory, '%s' % make_md5(self.V, key))
-        if not path.exists(filename):
+        try:
+            f = open(filename, 'rb')
+        except IOError as e:
+            if e.errno != errno.ENOENT:
+                raise
             return None
-        f = open(filename, 'rb')
         try:
             result = f.read()
         finally:
             f.close()
 
-        return safe_unpickle(result)
+        unpickled = safe_unpickle(result)
+        if unpickled is None:
+            warnings.warn('Ignoring corrupted cache file %s' % filename)
+        return unpickled
 
     def set(self, key, data):
-        filename = path.join(self.directory, '%s' % make_md5(self.V, key))
-        f = open(filename, 'wb')
+        md5 = '%s' % make_md5(self.V, key)
+        filename = path.join(self.directory, md5)
+        fd, temp_filename = tempfile.mkstemp(prefix='.' + md5,
+                dir=self.directory)
         try:
-            f.write(pickle.dumps(data))
-        finally:
-            f.close()
+            with os.fdopen(fd, 'wb') as f:
+                pickle.dump(data, f)
+                f.flush()
+                os.rename(temp_filename, filename)
+        except:
+            os.unlink(temp_filename)
+            raise
 
 
-def get_cache(option, env):
+def get_cache(option, ctx):
     """Return a cache instance based on ``option``.
     """
     if not option:
@@ -202,7 +223,7 @@ def get_cache(option, env):
         return option()
 
     if option is True:
-        directory = path.join(env.directory, '.webassets-cache')
+        directory = path.join(ctx.directory, '.webassets-cache')
         # Auto-create the default directory
         if not path.exists(directory):
             os.makedirs(directory)

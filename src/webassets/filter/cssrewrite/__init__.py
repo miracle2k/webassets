@@ -65,7 +65,7 @@ class CSSRewrite(CSSUrlRewriter):
             # rewritten in form of a url, so we can later easily match it
             # against the urls encountered in the CSS.
             replace_dict = False
-            root = addsep(self.env.directory)
+            root = addsep(self.ctx.directory)
             replace_dict = OrderedDict()
             for repldir, sub in self.replace.items():
                 repldir = addsep(os.path.normpath(join(root, repldir)))
@@ -92,9 +92,19 @@ class CSSRewrite(CSSUrlRewriter):
             # If path is an absolute one, keep it
             parsed = urlparse.urlparse(url)
             if not parsed.scheme and not parsed.path.startswith('/'):
+                abs_source_url = urlparse.urljoin(self.source_url, url)
+
+                # relpath() will not detect this case
+                if urlparse.urlparse(abs_source_url).scheme:
+                    return abs_source_url
+
                 # rewritten url: relative path from new location (output)
                 # to location of referenced file (source + current url)
-                url = urlpath.relpath(self.output_url,
-                    urlparse.urljoin(self.source_url, url))
+                url = urlpath.relpath(self.output_url, abs_source_url)
 
         return url
+
+    def get_additional_cache_keys(self, **kw):
+        if kw.has_key('output_path'):
+            return [os.path.dirname(kw['output_path'])]
+        return []

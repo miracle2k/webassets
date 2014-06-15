@@ -1,5 +1,9 @@
 from __future__ import with_statement
 
+import os
+
+from os.path import abspath, join, isabs
+
 from webassets.filter import ExternalTool
 from webassets.utils import working_directory
 
@@ -28,6 +32,11 @@ class Less(ExternalTool):
         compiler is written in Javascript and capable of running in the
         browser, you can set this to ``False`` to have your original less
         source files served (see below).
+
+    LESS_PATHS (paths)
+        Add include paths for less command line.
+        It should be a list of paths relatives to Environment.directory or absolute paths.
+        Order matters as less will pick the first file found in path order.
 
     .. admonition:: Compiling less in the browser
 
@@ -76,6 +85,7 @@ class Less(ExternalTool):
         'run_in_debug': 'LESS_RUN_IN_DEBUG',
         'line_numbers': 'LESS_LINE_NUMBERS',
         'extra_args': 'LESS_EXTRA_ARGS',
+        'paths': 'LESS_PATHS',
     }
     max_debug_level = None
 
@@ -85,11 +95,18 @@ class Less(ExternalTool):
             # Disable running in debug mode for this instance.
             self.max_debug_level = False
 
+    def resolve_source(self, path):
+        return self.ctx.resolver.resolve_source(self.ctx, path)
+
     def input(self, in_, out, source_path, **kw):
         # Set working directory to the source file so that includes are found
         args = [self.less or 'lessc']
         if self.line_numbers:
             args.append('--line-numbers=%s' % self.line_numbers)
+
+        if self.paths:
+            paths = [path if isabs(path) else self.resolve_source(path) for path in self.paths]
+            args.append('--include-path={0}'.format(os.pathsep.join(paths)))
         if self.extra_args:
             args.extend(self.extra_args)
         args.append('-')

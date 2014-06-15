@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 from __future__ import with_statement
 
@@ -14,6 +15,7 @@ from webassets.exceptions import FilterError
 from webassets.filter import (
     Filter, ExternalTool, get_filter, register_filter, unique_modules)
 from webassets.filter.compass import CompassConfig
+from webassets.bundle import ContextWrapper
 from .helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
@@ -69,7 +71,7 @@ class TestFilterBaseClass(object):
         env = Environment(None, None)
         env.config['attr1'] = 'bar'
         env.config['attr4'] = 'bar'
-        f = TestFilter(); f.env = env; f.setup()
+        f = TestFilter(); f.ctx = ContextWrapper(env); f.setup()
         assert f.attr1 == 'bar'
         assert f.attr4 is None    # Was configured to not support env
 
@@ -78,7 +80,7 @@ class TestFilterBaseClass(object):
         """
         m = Environment(None, None)
         f = Filter()
-        f.set_environment(m)
+        f.set_context(ContextWrapper(m))
         get_config = f.get_config
 
         # For the purposes of the following tests, we use two test
@@ -117,7 +119,7 @@ class TestFilterBaseClass(object):
         """
         m = Environment(None, None)
         f = Filter()
-        f.set_environment(m)
+        f.set_context(ContextWrapper(m))
         get_config = f.get_config
 
         with os_environ_sandbox():
@@ -190,12 +192,8 @@ class TestExternalToolClass(object):
                 # Special placeholders that are passed through
                 '{input}', '{output}']
         Filter().output(StringIO('content'), StringIO(), kwarg='value')
-        if PYPY:
-            assert Filter.result == (
-                ["Filter", 'value', '0', '{input}', '{output}'], 'content')
-        else:
-            assert Filter.result == (
-                ["Filter", 'value', 'False', '{input}', '{output}'], 'content')
+        assert Filter.result == (
+            ["Filter", 'value', 'False', '{input}', '{output}'], 'content')
 
     def test_method_input(self):
         """The method=input."""
@@ -321,10 +319,10 @@ class TestExternalToolClass(object):
             intercepted['filename'] = argv[0]
             with open(argv[0], 'r') as f:
                 # File has been generated with input data
-                assert f.read() == 'foo'
+                assert f.read().decode('utf-8') == u'fooñ'
             return DEFAULT
         self.popen.side_effect = check_input_file
-        Filter.subprocess(['{input}'], StringIO(), data='foo')
+        Filter.subprocess(['{input}'], StringIO(), data=u'fooñ')
         # No stdin was passed
         self.popen.return_value.communicate.assert_called_with(None)
         # File has been deleted
@@ -338,12 +336,36 @@ class TestExternalToolClass(object):
         self.popen.return_value.returncode = 0
         self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
 
-        # {input} creates an input file
+        # {output} creates an output file
         intercepted = {}
         def fake_output_file(argv,  **kw):
             intercepted['filename'] = argv[0]
             with open(argv[0], 'w') as f:
+                f.write(u'batñ'.encode('utf-8'))
+            return DEFAULT
+        self.popen.side_effect = fake_output_file
+        # We get the result we generated in the hook above
+        out = StringIO(u'')
+        Filter.subprocess(['{output}'], out)
+        assert out.getvalue() == u'batñ'
+        # File has been deleted
+        assert not os.path.exists(intercepted['filename'])
+
+    def test_output_moved(self):
+        class Filter(ExternalTool): pass
+        self.popen.return_value.returncode = 0
+        self.popen.return_value.communicate.return_value = ['stdout', 'stderr']
+
+        # {output} creates an output
+        # this test *moves* the file into the target location, and
+        # tests the fix to issue #286
+        intercepted = {}
+        def fake_output_file(argv,  **kw):
+            intercepted['filename'] = argv[0]
+            with open(argv[0] + '.tmp', 'w') as f:
                 f.write('bat')
+            import shutil
+            shutil.move(argv[0] + '.tmp', argv[0])
             return DEFAULT
         self.popen.side_effect = fake_output_file
         # We get the result we generated in the hook above
@@ -352,8 +374,6 @@ class TestExternalToolClass(object):
         assert out.getvalue() == 'bat'
         # File has been deleted
         assert not os.path.exists(intercepted['filename'])
-
-
 
 
 def test_register_filter():
@@ -545,12 +565,12 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.create_files({'test.pyc':'testing', 'test.py':'blue', 'boo.pyc':'boo'})
         modules = list( unique_modules(self.tempdir))
         assert modules == ['boo','test'],modules
-    
+
     def test_find_packages( self ):
         self.create_files({'moo/__init__.pyc':'testing','voo/__init__.py':'testing'})
         modules = list( unique_modules(self.tempdir))
         assert modules == ['moo','voo'],modules
-        
+
 
 class TestCSSPrefixer(TempEnvironmentHelper):
 
@@ -588,7 +608,7 @@ class TestCoffeeScript(TempEnvironmentHelper):
         self.env.config['COFFEE_NO_BARE'] = True
         self.create_files({'in': "@a = 1"})
         self.mkbundle('in', filters='coffeescript', output='out.js').build()
-        assert self.get('out.js') == '(function() {\n\n  this.a = 1;\n\n}).call(this);\n'
+        assert self.get('out.js') == '(function() {\n  this.a = 1;\n\n}).call(this);\n'
 
         self.env.config['COFFEE_NO_BARE'] = False
         self.create_files({'in': "@a = 1"})
@@ -682,6 +702,19 @@ class TestCssRewrite(TempEnvironmentHelper):
         self.mkbundle('in.css', filters=cssrewrite, output='out.css').build()
         assert self.get('out.css') == '''h1 { background: url(/new/sub/icon.png) }'''
 
+    def test_hostnames(self):
+        """[Regression] Properly deal with full urls.
+        """
+        self.env.append_path(self.path('g'), 'http://input.com/')
+        self.env.url = 'http://output.com/'
+
+        self.create_directories('g')
+        self.create_files({'g/in.css': '''h1 { background: url(sub/icon.png) }'''})
+
+        self.mkbundle('in.css', filters='cssrewrite', output='out.css').build()
+        self.p('out.css')
+        assert self.get('out.css') == '''h1 { background: url(http://input.com/sub/icon.png) }'''
+
     def test_replace_with_cache(self):
         """[Regression] Test replace mode while cache is active.
 
@@ -771,6 +804,32 @@ class TestLess(TempEnvironmentHelper):
         self.mkbundle('foo.less', filters='less', output='out.css').build()
         assert self.get('out.css') == self.default_files['foo.less']
 
+    def test_include_path(self):
+        '''It should allow specifying extra include paths'''
+        self.create_files({
+            'import.less': '''
+               @import "extra.less";
+               span { color: @c }
+               ''',
+            'extra/path/extra.less': '@c: red;'})
+        self.env.config['less_paths'] = ['extra/path']
+        self.mkbundle('import.less', filters='less', output='out.css').build()
+        assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
+
+    def test_include_path_order(self):
+        '''It should preserve extra include paths order'''
+        self.create_files({
+            'import.less': '''
+               @import "extra.less";
+               span { color: @c }
+               ''',
+            'extra/path/extra.less': '@c: red;',
+            'other/path/extra.less': '@c: blue;'})
+        self.env.config['less_paths'] = ['extra/path', 'other/path']
+        self.mkbundle('import.less', filters='less', output='out.css').build()
+        assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
+
+
 
 
 class TestSass(TempEnvironmentHelper):
@@ -824,13 +883,15 @@ class TestSass(TempEnvironmentHelper):
         assert '-sass-debug-info' in self.get('out.css')
 
         # If the value is None (the default), then the filter will look
-        # at the debug setting to determine whether to include debug info.
+        # at the global debug setting to determine whether to include debug
+        # info. Note: It looks at environment.debug! The local bundle.debug
+        # is likely to be always False for Sass, so is of little help.
         self.env.config['SASS_DEBUG_INFO'] = None
-        self.env.debug  = True
+        self.env.debug = True
         self.mkbundle('foo.sass', filters=get_filter('sass'),
                       output='out.css', debug=False).build(force=True)
         assert '-sass-debug-info' in self.get('out.css')
-        self.env.debug  = False
+        self.env.debug = False
         self.mkbundle('foo.sass', filters=get_filter('sass'),
                       output='out.css').build(force=True)
         assert not '-sass-debug-info' in self.get('out.css')
@@ -1008,7 +1069,7 @@ class TestJST(TempEnvironmentHelper):
         """Output strings directly if template_function == False."""
         self.env.config['JST_COMPILER'] = False
         self.mkbundle('templates/*.jst', filters='jst', output='out.js').build()
-        assert "JST['foo'] = '" in self.get('out.js')
+        assert "JST['foo'] = \"" in self.get('out.js')
 
     def test_namespace_config(self):
         self.env.config['JST_NAMESPACE'] = 'window.Templates'
@@ -1073,6 +1134,13 @@ class TestJST(TempEnvironmentHelper):
         bundle.build(force=True)
 
         assert 'new value' in self.get('out.js')
+
+    def test_backslashes_escaped(self):
+        """Test that JavaScript string literals are correctly escaped.
+        """
+        self.create_files({'backslashes.jst': """<input type="text" pattern="\S*"/>"""})
+        self.mkbundle('*.jst', filters='jst', output='out.js').build()
+        assert r"""template("<input type=\"text\" pattern=\"\\S*\"/>")""" in self.get('out.js')
 
 
 class TestHandlebars(TempEnvironmentHelper):
@@ -1159,4 +1227,66 @@ class TestTypeScript(TempEnvironmentHelper):
 
     def test(self):
         self.mkbundle('foo.ts', filters='typescript', output='out.js').build()
-        assert self.get("out.js") == """var X = (function () {\n    function X() { }\n    return X;\n})();\n"""
+        assert self.get("out.js") == 'var X = (function () {\n    function X() {\n    }\n    return X;\n})();\n'
+
+
+class TestRequireJS(TempEnvironmentHelper):
+
+    default_files = {
+        'requirejs.json': '{baseUrl: "/static/"}',
+        'script/app.js': '''\
+define(['./utils'], function(util) {
+  util.debug('APP');
+});
+''',
+        'script/utils.js': '''\
+define(function() {
+  return {debug: console.log};
+});
+''',
+    }
+
+    compiled_output = '''\
+define("script/utils",[],function(){return{debug:console.log}}),\
+define("script/app",["./utils"],function(e){e.debug("APP")});\
+'''
+
+    def setup(self):
+        if not find_executable('r.js'):
+            raise SkipTest('"r.js" executable not found')
+        TempEnvironmentHelper.setup(self)
+        self.env.config['requirejs_config'] = self.path('requirejs.json')
+        self.env.config['requirejs_baseUrl'] = self.path('')
+
+    def test_build(self):
+        self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
+        assert self.get('out.js') == self.compiled_output
+
+    def test_build_nooptimize(self):
+        self.env.config['requirejs_optimize'] = 'none'
+        self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
+        assert self.get('out.js').strip() == '''
+define('script/utils',[],function() {
+  return {debug: console.log};
+});
+
+define('script/app',['./utils'], function(util) {
+  util.debug('APP');
+});
+'''.strip()
+
+    def test_build_debug_rid(self):
+        self.env.debug = True
+        self.env.config['requirejs_run_in_debug'] = True
+        self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
+        assert self.get('out.js') == self.compiled_output
+
+    def test_build_debug_norid(self):
+        self.env.debug = True
+        self.env.config['requirejs_run_in_debug'] = False
+        self.mkbundle('script/app.js', filters='requirejs', output='out.js').build()
+        assert self.get('out.js') == '''\
+define(['./utils'], function(util) {
+  util.debug('APP');
+});
+'''

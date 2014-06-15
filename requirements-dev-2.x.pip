@@ -1,6 +1,6 @@
 # Some additonal dependencies that are currently not yet available on Python 3.
 
-PIL
+pillow
 clevercss
 pyScss==1.1.5
 slimmer

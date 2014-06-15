@@ -75,7 +75,11 @@ class AssetsExtension(Extension):
             # Otherwise assume a source file is given, which may be any
             # expression, except note that strings are handled separately above.
             else:
-                files.append(parser.parse_expression())
+                expression = parser.parse_expression()
+                if isinstance(expression, (nodes.List, nodes.Tuple)):
+                    files.extend(expression.iter_child_nodes())
+                else:
+                    files.append(expression)
 
         # Parse the contents of this tag
         body = parser.parse_statements(['name:endassets'], drop_needle=True)
@@ -178,7 +182,8 @@ class AssetsExtension(Extension):
             *self.resolve_contents(files, env), **bundle_kwargs)
 
         # Retrieve urls (this may or may not cause a build)
-        urls = bundle.urls(env=env)
+        with bundle.bind(env):
+            urls = bundle.urls()
 
         # For each url, execute the content of this template tag (represented
         # by the macro ```caller`` given to use by Jinja2).
@@ -199,16 +204,17 @@ class Jinja2Loader(GlobLoader):
     succeed.
     """
 
-    def __init__(self, assets_env, directories, jinja2_envs, charset='utf8'):
+    def __init__(self, assets_env, directories, jinja2_envs, charset='utf8', jinja_ext='*.html'):
         self.asset_env = assets_env
         self.directories = directories
         self.jinja2_envs = jinja2_envs
         self.charset = charset
+        self.jinja_ext = jinja_ext
 
     def load_bundles(self):
         bundles = []
         for template_dir in self.directories:
-            for filename in self.glob_files((template_dir, '*.html')):
+            for filename in self.glob_files((template_dir, self.jinja_ext)):
                 bundles.extend(self.with_file(filename, self._parse) or [])
         return bundles
 
