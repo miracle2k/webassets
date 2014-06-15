@@ -7,8 +7,8 @@ When upgrading from an older version, you might encounter some backwards
 incompatibility. The ``webassets`` API is not stable yet.
 
 
-In development version
-~~~~~~~~~~~~~~~~~~
+In 0.10
+~~~~~~~
 
 - The :class:`Resolver` API has changed. Rather than being bound to an
   environment via the constructor, the individual methods now receive
