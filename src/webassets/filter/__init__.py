@@ -475,7 +475,8 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
         class tempfile_on_demand(object):
             def __repr__(self):
                 if not hasattr(self, 'filename'):
-                    self.fd, self.filename = tempfile.mkstemp()
+                    fd, self.filename = tempfile.mkstemp()
+                    os.close(fd)
                 return self.filename
 
             @property
@@ -498,7 +499,7 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                 if not data:
                     raise ValueError(
                         '{input} placeholder given, but no data passed')
-                with os.fdopen(input_file.fd, 'wb') as f:
+                with open(input_file.filename, 'wb') as f:
                     f.write(data)
                     # No longer pass to stdin
                     data = None
