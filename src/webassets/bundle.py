@@ -372,7 +372,7 @@ class Bundle(object):
     env = property(_get_env, _set_env)
 
     def _merge_and_apply(self, ctx, output, force, parent_debug=None,
-                         parent_filters=[], extra_filters=[],
+                         parent_filters=None, extra_filters=None,
                          disable_cache=None):
         """Internal recursive build method.
 
@@ -396,6 +396,8 @@ class Bundle(object):
         (for now).
         """
 
+        parent_filters = parent_filters or []
+        extra_filters = extra_filters or []
         # Determine the debug level to use. It determines if and which filters
         # should be applied.
         #
@@ -551,7 +553,7 @@ class Bundle(object):
         # being possibly configured with cache reads off).
         return filtertool.apply(final, selected_filters, 'output')
 
-    def _build(self, ctx, extra_filters=[], force=None, output=None,
+    def _build(self, ctx, extra_filters=None, force=None, output=None,
                disable_cache=None):
         """Internal bundle build function.
 
@@ -571,7 +573,8 @@ class Bundle(object):
         should lock, so that multiple requests don't all start to build. When
         called from the command line, there is no need to lock.
         """
-
+        extra_filters = extra_filters or []
+        
         if not self.output:
             raise BuildError('No output target found for %s' % self)
 
