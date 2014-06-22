@@ -9,7 +9,7 @@ install:
   - sudo apt-get install python-software-properties
   - sudo apt-add-repository -y ppa:chris-lea/node.js
   - sudo apt-get update
-  - sudo apt-get install npm rubygems
+  - sudo apt-get install nodejs rubygems
   - # Use non-https registry? https://github.com/n1k0/casperjs/issues/876
   - sudo npm config set registry http://registry.npmjs.org/
   - sh requirements-dev.sh
