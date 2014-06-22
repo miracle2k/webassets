@@ -7,7 +7,7 @@ install:
   - sudo apt-get install python-tk
   # Install external filter binaries
   - sudo apt-get install python-software-properties
-  - sudo apt-add-repository ppa:chris-lea/node.js
+  - sudo apt-add-repository -y ppa:chris-lea/node.js
   - sudo apt-get update
   - sudo apt-get install npm rubygems
   - # Use non-https registry? https://github.com/n1k0/casperjs/issues/876
