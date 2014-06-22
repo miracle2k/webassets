@@ -1318,3 +1318,29 @@ define(['./utils'], function(util) {
   util.debug('APP');
 });
 '''
+
+
+class TestClosureStylesheets(TempEnvironmentHelper):
+
+    default_files = {
+        'test.css': """
+        @def COLOR red;
+        p {
+            color: COLOR;
+        }
+        """
+    }
+
+    def setup(self):
+        if not 'CLOSURE_STYLESHEETS_PATH' in os.environ:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+        
+    def test_compiler(self):
+        self.mkbundle('test.css', filters = 'closure_stylesheets_compiler', output = 'output.css').build()
+        assert 'color: red' in self.get('output.css')
+        
+    def test_minifier(self):
+        self.mkbundle('test.css', filters = 'closure_stylesheets_minifier', output = 'output.css').build()
+        assert self.get('output.css') == 'p{color:red}'
+        
