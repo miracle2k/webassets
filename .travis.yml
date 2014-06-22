@@ -6,6 +6,9 @@ install:
   # https://github.com/python-imaging/Pillow/issues/570
   - sudo apt-get install python-tk
   # Install external filter binaries
+  - apt-get install python-software-properties
+  - apt-add-repository ppa:chris-lea/node.js
+  - apt-get update
   - sudo apt-get install npm rubygems
   - # Use non-https registry? https://github.com/n1k0/casperjs/issues/876
   - sudo npm config set registry http://registry.npmjs.org/
