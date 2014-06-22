@@ -2,8 +2,8 @@
 
 # External filter binaries to install for testing.
 
-sudo gem install sass
-sudo gem install compass
+sudo gem install sass --version 3.2.19
+sudo gem install compass --version 0.12.6
 sudo gem install less --version 1.2.21
 
 sudo npm install -g less
