@@ -509,7 +509,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             raise SkipTest()
         self.mkbundle('foo.js', 'foo2.js', filters='uglifyjs', output='out.js').build()
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}more();'
-        
+
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
         # JS one. Maybe the solution is just to remove the old ruby filter.
@@ -548,7 +548,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         except ImportError:
             raise SkipTest()
         self.mkbundle('foo.js', filters='yui_js', output='out.js').build()
-        assert self.get('out.js') == "function foo(a){var b;document.write(a)};"
+        assert self.get('out.js') == 'function foo(c){var d;document.write(c);var b="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8"};'
 
     def test_yui_css(self):
         try:
@@ -1335,12 +1335,11 @@ class TestClosureStylesheets(TempEnvironmentHelper):
         if not 'CLOSURE_STYLESHEETS_PATH' in os.environ:
             raise SkipTest()
         TempEnvironmentHelper.setup(self)
-        
+
     def test_compiler(self):
         self.mkbundle('test.css', filters = 'closure_stylesheets_compiler', output = 'output.css').build()
         assert 'color: red' in self.get('output.css')
-        
+
     def test_minifier(self):
         self.mkbundle('test.css', filters = 'closure_stylesheets_minifier', output = 'output.css').build()
         assert self.get('output.css') == 'p{color:red}'
-        
