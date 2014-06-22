@@ -30,7 +30,7 @@ else:
 
         def __init__(self, fname, conf=None, data=''):
             super(FakeCSSFile, self).__init__(fname, conf=conf)
-            self.data = StringIO.StringIO(data)
+            self.data = StringIO(data)
 
         @contextmanager
         def open_parser(self):
