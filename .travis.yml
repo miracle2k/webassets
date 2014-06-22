@@ -7,6 +7,8 @@ install:
   - sudo apt-get install python-tk
   # Install external filter binaries
   - sudo apt-get install npm rubygems
+  - # Use non-https registry? https://github.com/n1k0/casperjs/issues/876
+  - sudo npm config set registry http://registry.npmjs.org/
   - sh requirements-dev.sh
   - pip install tox
 script: tox
