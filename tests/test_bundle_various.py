@@ -21,7 +21,7 @@ from nose import SkipTest
 from webassets import Bundle
 from webassets.utils import set
 from webassets.bundle import get_all_bundle_files
-from webassets.env import Environment
+from webassets.env import Environment, Resolver
 from webassets.exceptions import BundleError, BuildError
 from webassets.filter import Filter
 from webassets.updater import TimestampUpdater, SKIP_CACHE
@@ -591,7 +591,7 @@ class TestResolverAPI(TempEnvironmentHelper):
     def test_resolve_source(self):
         """Test the method is properly used in the build process.
         """
-        class MyResolver(self.env.resolver_class):
+        class MyResolver(Resolver):
             def resolve_source(self, ctx, item):
                 return path.join(ctx.directory, 'foo')
         self.env.resolver = MyResolver()
@@ -603,7 +603,7 @@ class TestResolverAPI(TempEnvironmentHelper):
     def test_depends(self):
         """The bundle dependencies also go through normalization.
         """
-        class MyResolver(self.env.resolver_class):
+        class MyResolver(Resolver):
             def resolve_source(self, ctx, item):
                 return path.join(ctx.directory, item[::-1])
         self.env.resolver = MyResolver()
@@ -625,7 +625,7 @@ class TestResolverAPI(TempEnvironmentHelper):
 
         See https://github.com/miracle2k/webassets/issues/71
         """
-        class MyResolver(self.env.resolver_class):
+        class MyResolver(Resolver):
             def resolve_source(self, ctx, item):
                 return path.join(ctx.directory, (".".join(item)))
         self.env.resolver = MyResolver()
