@@ -682,7 +682,6 @@ class BaseEnvironment(BundleRegistry, ConfigurationContext):
     """
 
     config_storage_class = None
-    resolver_class = Resolver
 
     def __init__(self, **config):
         BundleRegistry.__init__(self)
@@ -704,7 +703,7 @@ class BaseEnvironment(BundleRegistry, ConfigurationContext):
         self.config.setdefault('updater', 'timestamp')
         self.config.setdefault('load_path', [])
         self.config.setdefault('url_mapping', {})
-        self.config.setdefault('resolver', self.resolver_class())
+        self.config.setdefault('resolver', Resolver())
 
         self.config.update(config)
 
