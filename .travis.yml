@@ -11,10 +11,15 @@ install:
   - sudo apt-get update
   - sudo apt-get install nodejs rubygems
   - env
+  - gem env
+  - rvm info
   - # Use non-https registry? https://github.com/n1k0/casperjs/issues/876
   - sudo npm config set registry http://registry.npmjs.org/
   - sh requirements-dev.sh
   - pip install tox
+env:
+  global:
+     - MY_RUBY_HOME:
 script: tox
 notifications:
   email:
