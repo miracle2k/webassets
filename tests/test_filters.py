@@ -3,13 +3,13 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import os
-from io import StringIO
 from contextlib import contextmanager
 from nose.tools import assert_raises, assert_equal, assert_true
 from nose import SkipTest
 from mock import patch, Mock, DEFAULT
 from distutils.spawn import find_executable
 import re
+from webassets.utils import StringIO
 from webassets import Environment
 from webassets.exceptions import FilterError
 from webassets.filter import (
@@ -319,7 +319,7 @@ class TestExternalToolClass(object):
             intercepted['filename'] = argv[0]
             with open(argv[0], 'r') as f:
                 # File has been generated with input data
-                assert f.read() == u'fooñ'
+                assert f.read().decode('utf-8') == u'fooñ'
             return DEFAULT
         self.popen.side_effect = check_input_file
         Filter.subprocess(['{input}'], StringIO(), data=u'fooñ')
@@ -341,7 +341,7 @@ class TestExternalToolClass(object):
         def fake_output_file(argv,  **kw):
             intercepted['filename'] = argv[0]
             with open(argv[0], 'w') as f:
-                f.write(u'batñ')
+                f.write(u'batñ'.encode('utf-8'))
             return DEFAULT
         self.popen.side_effect = fake_output_file
         # We get the result we generated in the hook above

@@ -10,10 +10,10 @@ except ImportError:
     from urllib2 import Request as URLRequest, urlopen
     from urllib2 import HTTPError
 import logging
-from io import open, StringIO
+from io import open
 from webassets.six.moves import filter
 
-from .utils import cmp_debug_levels, hash_func
+from .utils import cmp_debug_levels, StringIO, hash_func
 
 
 __all__ = ('FileHunk', 'MemoryHunk', 'merge', 'FilterTool',

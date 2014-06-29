@@ -3,7 +3,6 @@ import shutil
 import os, sys
 import time
 import logging
-from io import StringIO
 
 from webassets.loaders import PythonLoader, YAMLLoader
 from webassets.bundle import get_all_bundle_files
@@ -12,7 +11,7 @@ from webassets.updater import TimestampUpdater
 from webassets.merge import MemoryHunk
 from webassets.version import get_manifest
 from webassets.cache import FilesystemCache
-from webassets.utils import set
+from webassets.utils import set, StringIO
 
 
 __all__ = ('CommandError', 'CommandLineEnvironment', 'main')

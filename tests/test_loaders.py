@@ -2,8 +2,8 @@ from __future__ import with_statement
 import sys
 from nose.tools import assert_raises
 import textwrap
-from io import StringIO
 from webassets.env import Environment
+from webassets.utils import StringIO
 from webassets.bundle import Bundle
 from webassets.loaders import PythonLoader, YAMLLoader, LoaderError
 from nose import SkipTest
@@ -48,7 +48,7 @@ class TestYAML(object):
                       config:
                         closure_bin: /tmp/closure
                     - lessfile3
-
+                
         """).load_bundles()
         assert len(bundles) == 4
         assert bundles['standard'].output == 'output.css'
