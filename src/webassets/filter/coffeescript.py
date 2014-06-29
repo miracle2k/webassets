@@ -45,7 +45,8 @@ class CoffeeScript(Filter):
             proc = subprocess.Popen([binary, args],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE)
+                stderr=subprocess.PIPE,
+                shell=(os.name == 'nt'))
         except OSError as e:
             if e.errno == 2:
                 raise Exception("coffeescript not installed or in system path for webassets")

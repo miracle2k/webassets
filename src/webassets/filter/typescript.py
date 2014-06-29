@@ -40,7 +40,8 @@ class TypeScript(Filter):
             args,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+            stderr=subprocess.PIPE,
+            shell=(os.name == 'nt'))
         stdout, stderr = proc.communicate()
         if proc.returncode != 0:
             raise FilterError("typescript: subprocess had error: stderr=%s," % stderr +

@@ -91,7 +91,8 @@ class ClosureTemplateFilter(JSTemplateFilter):
             # StringIO objects (which are not supported by subprocess)
             stdout=subprocess.PIPE,
             stdin=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+            stderr=subprocess.PIPE,
+            shell=(os.name == 'nt'))
         stdout, stderr = proc.communicate()
         if proc.returncode:
             raise FilterError('%s: subprocess returned a '
