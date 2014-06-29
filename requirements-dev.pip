@@ -5,6 +5,7 @@
 # (e.g. loading from YAML files).
 #
 # Libs required to run the tests
+pytest
 nose
 mock
 

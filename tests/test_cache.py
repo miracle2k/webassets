@@ -1,6 +1,7 @@
 from __future__ import with_statement
 
 import random
+import pytest
 from nose.tools import assert_equal
 from webassets.filter import Filter
 from webassets.cache import BaseCache, FilesystemCache, MemoryCache
@@ -9,28 +10,40 @@ from webassets.merge import MemoryHunk
 from .helpers import TempEnvironmentHelper, TempDirHelper
 
 
+def pytest_generate_tests(metafunc):
+    if 'c' in metafunc.fixturenames:
+        metafunc.parametrize("c", [FilesystemCache, MemoryCache], indirect=True)
+
+
+@pytest.fixture()
+def c(request):
+    helper = TempDirHelper()
+    helper.__enter__()
+
+    if request.param == FilesystemCache:
+        c = FilesystemCache(helper.tempdir)
+    elif request.param == MemoryCache:
+        c = MemoryCache(capacity=10000)
+    else:
+        raise ValueError(request.param)
+
+    def end():
+        helper.__exit__(None, None, None)
+    request.addfinalizer(end)
+    return c
+
+
 class TestCacheClasses(object):
     """Test the individual cache classes directly.
     """
 
-    def test_basic(self):
-        with TempDirHelper() as helper:
-            for cache in (
-                FilesystemCache(helper.tempdir),
-                MemoryCache(capacity=10000)
-            ):
-                yield self._test_simple, cache
-                yield self._test_hunks, cache
-                yield self._test_filters, cache
-                yield self._test_dicts, cache
-
-    def _test_simple(self, c):
+    def test_simple(self, c):
         # Simple get,set
         assert c.get('non-existant') is None
         c.set('foo', 'bar')
         assert c.get('foo') == 'bar'
 
-    def _test_hunks(self, c):
+    def test_hunks(self, c):
         """Test hunks as keys."""
         key = (MemoryHunk('bla'), 42)
         assert c.get(key) is None
@@ -38,7 +51,7 @@ class TestCacheClasses(object):
         assert c.get(key) == 'foo'
         assert c.get((MemoryHunk('bla'), 42)) == 'foo'
 
-    def _test_filters(self, c):
+    def test_filters(self, c):
         """Test filters as keys."""
         class MyFilter(Filter):
             pass
@@ -160,4 +173,3 @@ class TestSpecialCases(TempEnvironmentHelper):
         self.create_files({'in1': 'bar'})
         bundle.build(force=True)
         assert self.get('out') == 'bar'
-

@@ -317,9 +317,9 @@ class TestExternalToolClass(object):
         intercepted = {}
         def check_input_file(argv,  **kw):
             intercepted['filename'] = argv[0]
-            with open(argv[0], 'r') as f:
+            with open(argv[0], 'rb') as f:
                 # File has been generated with input data
-                assert f.read().decode('utf-8') == u'fooñ'
+                assert f.read() == b'foo\xc3\xb1'
             return DEFAULT
         self.popen.side_effect = check_input_file
         Filter.subprocess(['{input}'], StringIO(), data=u'fooñ')
@@ -341,7 +341,7 @@ class TestExternalToolClass(object):
         def fake_output_file(argv,  **kw):
             intercepted['filename'] = argv[0]
             with open(argv[0], 'w') as f:
-                f.write(u'batñ'.encode('utf-8'))
+                f.write('batñ')
             return DEFAULT
         self.popen.side_effect = fake_output_file
         # We get the result we generated in the hook above
@@ -527,7 +527,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             # Builtin jsmin
             "\nfunction foo(bar){var dummy;document.write(bar);var a=\"Ünícôdè\"}",
             # jsmin from PyPI
-            "function foo(bar){var dummy;document.write(bar);var a=\"Ünícôdè\"}",
+            ' function foo(bar){var dummy;document.write(bar);var a="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8";}'
         )
 
     def test_rjsmin(self):
@@ -536,7 +536,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         except ImportError:
             raise SkipTest()
         self.mkbundle('foo.js', filters='rjsmin', output='out.js').build()
-        assert self.get('out.js') == "function foo(bar){var dummy;document.write(bar);var a=\"Ünícôdè\"}"
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8";}'
 
     def test_jspacker(self):
         self.mkbundle('foo.js', filters='jspacker', output='out.js').build()
@@ -548,7 +548,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         except ImportError:
             raise SkipTest()
         self.mkbundle('foo.js', filters='yui_js', output='out.js').build()
-        assert self.get('out.js') == u'function foo(c){var d;document.write(c);var b="Ünícôdè"};'
+        assert self.get('out.js') == 'function foo(c){var d;document.write(c);var b="Ünícôdè"};'
 
     def test_yui_css(self):
         try:
