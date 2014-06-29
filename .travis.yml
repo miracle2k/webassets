@@ -39,8 +39,3 @@ notifications:
 branches:
   only:
     - master
-
-matrix:
-  allow_failures:
-    # Can't get PyPy to build so far.
-    - python: "pypy"
