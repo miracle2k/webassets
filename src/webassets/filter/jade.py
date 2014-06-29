@@ -90,7 +90,8 @@ class Jade(Filter):
         proc = subprocess.Popen(self.argv,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+            stderr=subprocess.PIPE,
+            shell=(os.name == 'nt'))
         stdout, stderr = proc.communicate(_in.read())
 
         if proc.returncode != 0:

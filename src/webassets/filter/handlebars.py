@@ -1,4 +1,5 @@
 import subprocess
+import os
 from os import path
 
 from webassets.exceptions import FilterError
@@ -63,7 +64,8 @@ class Handlebars(JSTemplateFilter):
         proc = subprocess.Popen(
             args, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+            stderr=subprocess.PIPE,
+            shell=(os.name == 'nt'))
         stdout, stderr = proc.communicate()
 
         if proc.returncode != 0:
