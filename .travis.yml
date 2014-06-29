@@ -20,7 +20,8 @@ install:
 env:
   global:
      - MY_RUBY_HOME:
-script: tox
+     #- GEM_HOME:
+script: tox -e py34
 notifications:
   email:
     - michael@elsdoerfer.com
