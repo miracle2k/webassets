@@ -548,7 +548,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         except ImportError:
             raise SkipTest()
         self.mkbundle('foo.js', filters='yui_js', output='out.js').build()
-        assert self.get('out.js') == 'function foo(c){var d;document.write(c);var b="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8"};'
+        assert self.get('out.js') == u'function foo(c){var d;document.write(c);var b="Ünícôdè"};'
 
     def test_yui_css(self):
         try:
