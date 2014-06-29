@@ -2,9 +2,9 @@
 
 # External filter binaries to install for testing.
 
-sudo gem install sass --version 3.2.19
-sudo gem install compass --version 0.12.6
-sudo gem install less --version 1.2.21
+gem install sass --version 3.2.19
+gem install compass --version 0.12.6
+gem install less --version 1.2.21
 
 sudo npm install -g less
 sudo npm install -g uglify-js@2.3.1
@@ -14,3 +14,4 @@ sudo npm install -g stylus
 sudo npm install -g handlebars
 sudo npm install -g typescript
 sudo npm install -g requirejs@2.1.11
+
