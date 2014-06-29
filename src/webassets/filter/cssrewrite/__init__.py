@@ -105,6 +105,6 @@ class CSSRewrite(CSSUrlRewriter):
         return url
 
     def get_additional_cache_keys(self, **kw):
-        if kw.has_key('output_path'):
+        if 'output_path' in kw:
             return [os.path.dirname(kw['output_path'])]
         return []
