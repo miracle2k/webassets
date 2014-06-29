@@ -32,7 +32,7 @@ install:
   # Install our test runner
   - pip install tox
 
-script: tox -e py34
+script: tox
 notifications:
   email:
     - michael@elsdoerfer.com
