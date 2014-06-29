@@ -189,4 +189,3 @@ class AlwaysUpdater(BaseUpdater):
 
     def needs_rebuild(self, bundle, ctx):
         return True
-

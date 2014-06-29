@@ -7,7 +7,7 @@ from itertools import takewhile
 from .exceptions import BundleError
 
 
-__all__ = ('md5_constructor', 'pickle', 'set', 'StringIO',
+__all__ = ('md5_constructor', 'pickle', 'set',
            'common_path_prefix', 'working_directory', 'is_url')
 
 
@@ -31,9 +31,6 @@ except NameError:
     from sets import Set as set
 else:
     set = set
-
-
-from webassets.six import StringIO
 
 
 try:
