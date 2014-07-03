@@ -1,3 +1,7 @@
+0.10.1 (2014-07-03)
+    - Python 3 fixes.
+    - Windows fix (Ionel Cristian Mărieș).
+
 0.10 (2014-06-15)
     - Add autoprefixer filter (Vincent Driessen).
     - Add require.js filter (metagriffin, Erik Taubeneck)
