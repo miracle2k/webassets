@@ -201,8 +201,8 @@ class TestExternalToolClass(object):
             method = 'input'
         assert getattr(Filter, 'output') is None
         assert getattr(Filter, 'open') is None
-        Filter().input(StringIO('bla'), StringIO())
-        assert Filter.result == ([], 'bla')
+        Filter().input(StringIO(u'błä'), StringIO())
+        assert Filter.result == ([], u'błä')
 
     def test_method_output(self):
         """The method=output."""
@@ -210,8 +210,8 @@ class TestExternalToolClass(object):
             method = 'output'
         assert getattr(Filter, 'input') is None
         assert getattr(Filter, 'open') is None
-        Filter().output(StringIO('bla'), StringIO())
-        assert Filter.result == ([], 'bla')
+        Filter().output(StringIO(u'błä'), StringIO())
+        assert Filter.result == ([], u'błä')
 
     def test_method_open(self):
         """The method=open."""
@@ -317,9 +317,9 @@ class TestExternalToolClass(object):
         intercepted = {}
         def check_input_file(argv,  **kw):
             intercepted['filename'] = argv[0]
-            with open(argv[0], 'r') as f:
+            with open(argv[0], 'rb') as f:
                 # File has been generated with input data
-                assert f.read().decode('utf-8') == u'fooñ'
+                assert f.read() == b'foo\xc3\xb1'
             return DEFAULT
         self.popen.side_effect = check_input_file
         Filter.subprocess(['{input}'], StringIO(), data=u'fooñ')
@@ -341,7 +341,7 @@ class TestExternalToolClass(object):
         def fake_output_file(argv,  **kw):
             intercepted['filename'] = argv[0]
             with open(argv[0], 'w') as f:
-                f.write(u'batñ'.encode('utf-8'))
+                f.write('batñ')
             return DEFAULT
         self.popen.side_effect = fake_output_file
         # We get the result we generated in the hook above
@@ -447,18 +447,24 @@ def test_callable_filter():
 class TestBuiltinFilters(TempEnvironmentHelper):
 
     default_files = {
-        'foo.css': """
+        'foo.css': u"""
+        /* Cômment wíth sóme Ünicòde */
             h1  {
                 font-family: "Verdana"  ;
                 color: #FFFFFF;
             }
         """,
-        'foo.js': """
+        'foo.js': u"""
+        // Cômment wíth sóme Ünicòde
         function foo(bar) {
             var dummy;
             document.write ( bar ); /* Write */
+            var a = "Ünícôdè";
         }
         """,
+        'foo2.js': """
+        more();
+        """
     }
 
     def test_cssmin(self):
@@ -486,11 +492,23 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('in', filters='clevercss', output='out.css').build()
         assert self.get('out.css') == """a {\n  color: #7f7f7f;\n}"""
 
-    def test_uglifyjs(self):
+    def test_uglifyjs_ascii(self):
+        if not find_executable('uglifyjs'):
+            raise SkipTest()
+        self.mkbundle('foo2.js', filters='uglifyjs', output='out.js').build()
+        assert self.get('out.js') == 'more();'
+
+    def test_uglifyjs_unicode(self):
         if not find_executable('uglifyjs'):
             raise SkipTest()
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
-        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar)}'
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}'
+
+    def test_uglifyjs_ascii_and_unicode(self):
+        if not find_executable('uglifyjs'):
+            raise SkipTest()
+        self.mkbundle('foo.js', 'foo2.js', filters='uglifyjs', output='out.js').build()
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}more();'
 
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
@@ -507,9 +525,9 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('foo.js', filters='jsmin', output='out.js').build()
         assert self.get('out.js') in (
             # Builtin jsmin
-            "\nfunction foo(bar){var dummy;document.write(bar);}",
+            "\nfunction foo(bar){var dummy;document.write(bar);var a=\"Ünícôdè\"}",
             # jsmin from PyPI
-            "function foo(bar){var dummy;document.write(bar);}",
+            ' function foo(bar){var dummy;document.write(bar);var a="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8";}'
         )
 
     def test_rjsmin(self):
@@ -518,7 +536,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         except ImportError:
             raise SkipTest()
         self.mkbundle('foo.js', filters='rjsmin', output='out.js').build()
-        assert self.get('out.js') == "function foo(bar){var dummy;document.write(bar);}"
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8";}'
 
     def test_jspacker(self):
         self.mkbundle('foo.js', filters='jspacker', output='out.js').build()
@@ -530,7 +548,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         except ImportError:
             raise SkipTest()
         self.mkbundle('foo.js', filters='yui_js', output='out.js').build()
-        assert self.get('out.js') == "function foo(a){var b;document.write(a)};"
+        assert self.get('out.js') == 'function foo(c){var d;document.write(c);var b="Ünícôdè"};'
 
     def test_yui_css(self):
         try:
@@ -640,7 +658,8 @@ class TestJinja2(TempEnvironmentHelper):
 class TestClosure(TempEnvironmentHelper):
 
     default_files = {
-        'foo.js': """
+        'foo.js': u"""
+        // Cômment wíth sóme Ünicòde
         function foo(bar) {
             var dummy;
             document.write ( bar ); /* Write */
@@ -1064,12 +1083,21 @@ class TestJST(TempEnvironmentHelper):
         self.env.config['JST_COMPILER'] = '_.template'
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
         assert '_.template' in self.get('out.js')
+        # make sure the default builder is not included
+        assert "var template =" not in self.get('out.js')
 
     def test_compiler_is_false(self):
         """Output strings directly if template_function == False."""
         self.env.config['JST_COMPILER'] = False
         self.mkbundle('templates/*.jst', filters='jst', output='out.js').build()
         assert "JST['foo'] = \"" in self.get('out.js')
+        assert "var template =" not in self.get('out.js')
+
+    def test_compiler_is_none(self):
+        """Make sure the default builder is included
+        if compiler is not specified """
+        self.mkbundle('templates/*.jst', filters='jst', output='out.js').build()
+        assert "var template =" in self.get('out.js')
 
     def test_namespace_config(self):
         self.env.config['JST_NAMESPACE'] = 'window.Templates'
@@ -1290,3 +1318,28 @@ define(['./utils'], function(util) {
   util.debug('APP');
 });
 '''
+
+
+class TestClosureStylesheets(TempEnvironmentHelper):
+
+    default_files = {
+        'test.css': """
+        @def COLOR red;
+        p {
+            color: COLOR;
+        }
+        """
+    }
+
+    def setup(self):
+        if not 'CLOSURE_STYLESHEETS_PATH' in os.environ:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test_compiler(self):
+        self.mkbundle('test.css', filters = 'closure_stylesheets_compiler', output = 'output.css').build()
+        assert 'color: red' in self.get('output.css')
+
+    def test_minifier(self):
+        self.mkbundle('test.css', filters = 'closure_stylesheets_minifier', output = 'output.css').build()
+        assert self.get('output.css') == 'p{color:red}'

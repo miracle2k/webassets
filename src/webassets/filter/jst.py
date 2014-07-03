@@ -138,7 +138,7 @@ class JST(JSTemplateFilter):
     def setup(self):
         super(JST, self).setup()
         self.include_jst_script = (self.template_function == 'template') \
-                                  or not self.template_function
+                                  or self.template_function is None
 
     def process_templates(self, out, hunks, **kwargs):
         namespace = self.namespace or 'window.JST'

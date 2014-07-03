@@ -7,7 +7,7 @@ more likely` found in `test_bundle_various.py``.
 
 import os
 from nose.tools import assert_raises
-
+import pytest
 from webassets import Bundle
 from webassets.cache import MemoryCache
 from webassets.exceptions import BuildError, BundleError
@@ -434,41 +434,36 @@ class TestFilterApplication(TempEnvironmentHelper):
         assert self.get('out2') == 'foo:childin:rootin:childout:rootout'
         assert self.get('out3') == 'foo:childin:childout'
 
-    def test_max_debug_level_filters(self):
-        """Test how filters are applied when they define a non-default
-        ``max_debug_level`` value.
-        """
 
-        class MaxDebugLevelFilters(TempEnvironmentHelper):
-            default_files = {'1': 'foo'}
+class TestMaxDebugLevelFilters(TempEnvironmentHelper):
+    """Test how filters are applied when they define a non-default
+    ``max_debug_level`` value.
+    """
 
-            def test_with_level(self, level):
-                self.env.debug = True  # allows all bundle debug levels
-                f = AppendFilter(':in', ':out'); f.max_debug_level = level
-                self.mkbundle('1', output='out', filters=f, debug=level).build()
-                assert self.get('out') == 'foo:in:out'
+    default_files = {'1': 'foo'}
 
-            def test_upgrading_affect_on_normal_filters(self):
-                """max_debug_level 'merge' upgrade does not cause filters with
-                a 'normal' max_debug_value to run. Note: A nested bundle is
-                used here, as otherwise the bundle's debug=True would also
-                override any upgrades through filter `max_debug_value``
-                attributes."""
-                self.env.debug = True  # allows all bundle debug levels
-                f = AppendFilter(':in_upgr', ':out_upgr')
-                f.max_debug_level = None
-                g = AppendFilter(':in_def', ':out_def')
-                self.mkbundle(Bundle('1', filters=(f, g), debug=True),
-                              output='out', debug='merge').build()
-                assert self.get('out') == 'foo:in_upgr:out_upgr'
+    # With max_debug_level=True causes merge mode
+    # With max_debug_level=None is same as =True
+    @pytest.mark.parametrize("level", ['merge', True, None])
+    def test_with_level(self, level):
+        self.env.debug = True  # allows all bundle debug levels
+        f = AppendFilter(':in', ':out'); f.max_debug_level = level
+        self.mkbundle('1', output='out', filters=f, debug=level).build()
+        assert self.get('out') == 'foo:in:out'
 
-        yield MaxDebugLevelFilters().test_with_level, 'merge'
-        # With max_debug_level=True causes merge mode
-        yield MaxDebugLevelFilters().test_with_level, True
-        # With max_debug_level=None is same as =True
-        yield MaxDebugLevelFilters().test_with_level, None
-
-        yield MaxDebugLevelFilters().test_upgrading_affect_on_normal_filters
+    def test_upgrading_affect_on_normal_filters(self):
+        """max_debug_level 'merge' upgrade does not cause filters with
+        a 'normal' max_debug_value to run. Note: A nested bundle is
+        used here, as otherwise the bundle's debug=True would also
+        override any upgrades through filter `max_debug_value``
+        attributes."""
+        self.env.debug = True  # allows all bundle debug levels
+        f = AppendFilter(':in_upgr', ':out_upgr')
+        f.max_debug_level = None
+        g = AppendFilter(':in_def', ':out_def')
+        self.mkbundle(Bundle('1', filters=(f, g), debug=True),
+                      output='out', debug='merge').build()
+        assert self.get('out') == 'foo:in_upgr:out_upgr'
 
 
 class TestAutoBuild(TempEnvironmentHelper):
@@ -606,20 +601,17 @@ class TestAutoBuild(TempEnvironmentHelper):
         self.setmtime('second.sass', mtime=now+300)
         assert updater.needs_rebuild(b, self.env) == SKIP_CACHE
 
-    def test_dependency_refresh_with_cache(self):
+    # Run once with the rebuild using force=False
+    # [Regression] And once using force=True (used to be a bug
+    # which caused the change in the dependency to not cause a
+    # cache invalidation).
+    @pytest.mark.parametrize('rebuild_with_force', [False, True])
+    def dependency_refresh_with_cache(self, rebuild_with_force):
         """If a bundle dependency is changed, the cache may not be
         used; otherwise, we'd be using previous build results from
         the cache, where we really need to do a refresh, because,
         for example, an included file has changed.
         """
-        # Run once with the rebuild using force=False
-        yield self._dependency_refresh_with_cache, False
-        # [Regression] And once using force=True (used to be a bug
-        # which caused the change in the dependency to not cause a
-        # cache invalidation).
-        yield self._dependency_refresh_with_cache, True
-
-    def _dependency_refresh_with_cache(self, rebuild_with_force):
         # We have to repeat these a lot
         DEPENDENCY = 'dependency.sass'
         DEPENDENCY_SUB = 'dependency_sub.sass'

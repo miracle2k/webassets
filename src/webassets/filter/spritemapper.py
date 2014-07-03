@@ -30,7 +30,7 @@ else:
 
         def __init__(self, fname, conf=None, data=''):
             super(FakeCSSFile, self).__init__(fname, conf=conf)
-            self.data = StringIO.StringIO(data)
+            self.data = StringIO(data)
 
         @contextmanager
         def open_parser(self):
@@ -78,10 +78,9 @@ class Spritemapper(Filter):
         padding = self.get_config('SPRITEMAPPER_PADDING', require=False)
         if padding:
             self.options['padding'] = padding
-        anneal_steps = self.get_config('SPRITEMAPPER_ANNEAL_STEPS',
-                                       require=False)
+        anneal_steps = self.get_config('SPRITEMAPPER_ANNEAL_STEPS', require=False)
         if anneal_steps:
-            self.options['anneal_steps'] = padding
+            self.options['anneal_steps'] = anneal_steps
 
     def input(self, _in, out, **kw):
 

@@ -8,10 +8,10 @@ webassets - Asset management for Python
 Introduction
 ------------
 
-webassets is a general, dependency-indepenant library for manage assets
+webassets is a general, dependency-independent library for managing
 the assets of your web application. It can merge and compress your CSS
 and JavaScript files, supporting a wide variety of different filters,
-and supports you working with compilers like CoffeeScript or Sass.
+and supports working with compilers like CoffeeScript or Sass.
 
 
 ---------------------
@@ -35,8 +35,8 @@ the respective page:
 Detailed documentation
 ----------------------
 
-This documentation also includes some pages with are applicable regardless
-of framework used:
+This documentation also includes some pages which are applicable regardless
+of the framework used:
 
 .. toctree::
    :maxdepth: 2
