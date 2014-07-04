@@ -7,6 +7,7 @@ from __future__ import print_function
 
 import tempfile
 import shutil
+import sys
 import os
 from os import path
 import time
@@ -18,7 +19,6 @@ from webassets.six.moves import zip
 
 __all__ = ('TempDirHelper', 'TempEnvironmentHelper',)
 
-
 class TempDirHelper(object):
     """Base-class for tests which provides a temporary directory
     (which is properly deleted after the test is done), and various
@@ -26,6 +26,7 @@ class TempDirHelper(object):
     """
 
     default_files = {}
+    encoding = sys.getfilesystemencoding()
 
     def setup(self):
         self._tempdir_created = tempfile.mkdtemp()
@@ -52,7 +53,6 @@ class TempDirHelper(object):
         """Helper that allows to quickly create a bunch of files in
         the media directory of the current test run.
         """
-        import codecs
         # Allow passing a list of filenames to create empty files
         if not hasattr(files, 'items'):
             files = dict(map(lambda n: (n, ''), files))
@@ -60,8 +60,8 @@ class TempDirHelper(object):
             dirs = path.dirname(self.path(name))
             if not path.exists(dirs):
                 os.makedirs(dirs)
-            f = codecs.open(self.path(name), 'w', 'utf-8')
-            f.write(data)
+            f = open(self.path(name), 'w')
+            f.write(data.encode(self.encoding))
             f.close()
 
     def create_directories(self, *dirs):
@@ -85,9 +85,7 @@ class TempDirHelper(object):
         """Return the given file's contents.
         """
         with open(self.path(name)) as f:
-            r = f.read()
-            print(repr(r))
-            return r
+            return f.read().decode(self.encoding)
 
     def unlink(self, name):
         os.unlink(self.path(name))
