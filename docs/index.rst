@@ -26,7 +26,7 @@ the respective page:
    :maxdepth: 1
 
    With Django <http://django-assets.readthedocs.org/en/latest/>
-   With Flask <http://flask-assets.readthedocs.org/en/latest/a>
+   With Flask <http://flask-assets.readthedocs.org/en/latest/>
    With Pyramid <https://github.com/sontek/pyramid_webassets>
    Other or no framework <generic/index>
 
