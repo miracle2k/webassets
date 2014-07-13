@@ -86,7 +86,7 @@ Start a daemon which monitors your bundle source files, and automatically
 rebuilds bundles when a change is detected.
 
 This can be useful during development, if building is not instantaneous, and
-you are loosing valuable time waiting for the build to finish while trying to
+you are losing valuable time waiting for the build to finish while trying to
 access your site.
 
 
