@@ -16,7 +16,7 @@ class RequireJSFilter(ExternalTool):
         $ npm install -g requirejs
 
     Details on configuring r.js can be found at
-    `http://requirejs.org/docs/optimization.html#basics`_.
+    http://requirejs.org/docs/optimization.html#basics.
 
     *Supported configuration options*:
 
