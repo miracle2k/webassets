@@ -206,7 +206,7 @@ class FilesystemCache(BaseCache):
                 pickle.dump(data, f)
                 f.flush()
             if os.path.isfile(filename):
-                os.path.unlink(filename)
+                os.unlink(filename)
             os.rename(temp_filename, filename)
         except:
             os.unlink(temp_filename)
