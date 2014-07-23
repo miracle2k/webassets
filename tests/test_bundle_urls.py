@@ -84,7 +84,7 @@ class TestUrlsVarious(BaseUrlsTester):
     def test_sorting(self):
         """Specifying a sorting function should sort the resolved list of files
         """
-        def sortFunc(files):
+        def sortFunc(cxt, files):
             return sorted(files, key=(lambda f: f[1]))
 
         self.env.debug = True
