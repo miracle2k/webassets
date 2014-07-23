@@ -46,14 +46,6 @@ class BaseUrlsTester(TempEnvironmentHelper):
                 return Bundle._make_url(self, *a, **kw)
         self.MockBundle = MockBundle
 
-        """
-        class MockResolver(Resolver):
-            def resolve_source(self, item):
-                return item
-
-        self.env.resolver = MockResolver(self.env)
-        """
-
 
 class TestUrlsVarious(BaseUrlsTester):
     """Other, general tests for the urls() method.
