@@ -55,7 +55,7 @@ class JSDepSort:
         pre_visits.add(path)
 
         for dep in deps:
-            dep_path = self.resolve_dep(dep, content_map)
+            dep_path = self.resolve_dep(dep, content_map, path)
             if not dep_path:
                 raise Exception(
                     'Could not resolve dependency "{}" of source'
@@ -75,13 +75,14 @@ class JSDepSort:
 
         post_visits.add(path)
 
-    def resolve_dep(self, dep, content_map):
+    def resolve_dep(self, dep, content_map, included_by):
         if dep.startswith("/"):
             #We are an absolute path.  Why would you do this???
             if dep in content_map:
                 return dep
             else:
-                raise Exception('Dependency "{}" not in this bundle.'.format(dep))
+                raise Exception('Dependency "{}" not in this bundle. (Included by {})'
+                        .format(dep, included_by))
 
         for search_path in self.search_path:
             path = os.path.join(search_path, dep)
@@ -89,6 +90,7 @@ class JSDepSort:
             if path in content_map:
                 return path 
             
-        raise Exception('Dependency "{}" not found in this bundle.'.format(dep))
+        raise Exception('Dependency "{}" not found in this bundle. (Included by {})'
+                .format(dep, included_by))
         
 
