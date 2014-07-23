@@ -5,11 +5,14 @@ from webassets.filter import Filter
 class JSDepSort:
 
     def __init__(self, *args, **kwargs):
-        self.search_path = kwargs.pop('search_path', [])
-        if not isinstance(self.search_path, (list, tuple)):
-            self.search_path = [self.search_path]
+       self.search_path = kwargs.pop('search_path', [])
+       if not isinstance(self.search_path, (list, tuple)):
+           self.search_path = [self.search_path]
+
+       if not '' in self.search_path:
+           self.search_path.append('')
     
-    def sort(self, contents):
+    def sort(self, ctx, contents):
         deps = map(self.parse_deps, map(lambda c: c[1], contents))
 
         content_map = {}
@@ -23,7 +26,7 @@ class JSDepSort:
         for content in contents:
             path = content[1]
             deps = content_map[path]['deps']
-            self.append_content(content, deps, content_map, ordered_contents, pre_visits, post_visits)
+            self.append_content(content, deps, ctx.directory, content_map, ordered_contents, pre_visits, post_visits)
         
         return ordered_contents
 
@@ -46,7 +49,7 @@ class JSDepSort:
 
             return dependencies
 
-    def append_content(self, content, deps, content_map, ordered_contents, pre_visits, post_visits):
+    def append_content(self, content, deps, base_dir, content_map, ordered_contents, pre_visits, post_visits):
         path = content[1]
         
         if path in post_visits:
@@ -55,7 +58,7 @@ class JSDepSort:
         pre_visits.add(path)
 
         for dep in deps:
-            dep_path = self.resolve_dep(dep, content_map, path)
+            dep_path = self.resolve_dep(dep, base_dir, content_map, path)
             if not dep_path:
                 raise Exception(
                     'Could not resolve dependency "{}" of source'
@@ -68,14 +71,14 @@ class JSDepSort:
 
 
             self.append_content(content_map[dep_path]['content'], content_map[dep_path]['deps'], 
-                        content_map, ordered_contents, pre_visits, post_visits)
+                        base_dir, content_map, ordered_contents, pre_visits, post_visits)
 
 
         ordered_contents.append(content)
 
         post_visits.add(path)
 
-    def resolve_dep(self, dep, content_map, included_by):
+    def resolve_dep(self, dep, base_dir, content_map, included_by):
         if dep.startswith("/"):
             #We are an absolute path.  Why would you do this???
             if dep in content_map:
@@ -85,7 +88,7 @@ class JSDepSort:
                         .format(dep, included_by))
 
         for search_path in self.search_path:
-            path = os.path.join(search_path, dep)
+            path = os.path.join(base_dir, os.path.join(search_path, dep))
             # print 'searching for dep {} at {}'.format(dep, path)
             if path in content_map:
                 return path 

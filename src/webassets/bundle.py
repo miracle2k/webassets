@@ -253,7 +253,7 @@ class Bundle(object):
 
             # A hook for sorting the bundle contents in a certain order
             if self.sort:
-                resolved = self.sort(resolved)
+                resolved = self.sort(ctx, resolved)
 
             self._resolved_contents = resolved
 
