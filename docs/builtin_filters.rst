@@ -149,6 +149,12 @@ JS/CSS compilers
 .. autoclass:: webassets.filter.coffeescript.CoffeeScript
 
 
+``requirejs``
+~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.requirejs.RequireJSFilter
+
+
 JavaScript templates
 --------------------
 
@@ -194,7 +200,7 @@ Other
 
 
 ``autoprefixer``
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 .. autoclass:: webassets.filter.autoprefixer.AutoprefixerFilter
 
