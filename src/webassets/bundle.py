@@ -275,15 +275,15 @@ class Bundle(object):
                     filter_hash = (filter_,"deps")
                     if filter_deps is None:
                         # if not yet resolved, load from cache
-                        filter_deps = env.cache.get(filter_hash) if env.cache else []
-                    elif env.cache:
-                        env.cache.set(filter_hash, filter_deps)
+                        filter_deps = ctx.cache.get(filter_hash) if ctx.cache else []
+                    elif ctx.cache:
+                        ctx.cache.set(filter_hash, filter_deps)
                     if filter_deps:
                         resolved.extend(filter_deps)
             if self.depends:
                 for item in self.depends:
                     try:
-                        result = ctx.resolver.resolve_source(item)
+                        result = ctx.resolver.resolve_source(ctx, item)
                     except IOError as e:
                         raise BundleError(e)
                     if not isinstance(result, list):
@@ -566,7 +566,7 @@ class Bundle(object):
         
         # Resolve deps second time and after building - in case filter
         # didn't know them before.
-        self.resolve_depends(env, True)
+        self.resolve_depends(ctx, True)
         
         return ret
 

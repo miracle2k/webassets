@@ -2,6 +2,7 @@ import os
 
 from webassets.filter import Filter
 from webassets.utils import working_directory
+import os
 
 
 __all__ = ('PyScss',)
@@ -73,6 +74,10 @@ class PyScss(Filter):
         'assets_url': 'PYSCSS_ASSETS_URL',
     }
     max_debug_level = None
+    depends = None
+    
+    def find_dependencies(self):
+        return self.depends
 
     def setup(self):
         super(PyScss, self).setup()
@@ -136,3 +141,5 @@ class PyScss(Filter):
             # to stdout, via logging. We might have to do something about
             # this, and evaluate such problems to an exception.
             out.write(scss.compile())
+            
+            self.depends = list(os.path.join(f.parent_dir, f.filename) for f in scss.source_files)
