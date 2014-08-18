@@ -245,7 +245,7 @@ class Compass(Filter):
                 sourcemap_output_file = open(sourcemap_output_filepath, 'w')
                 sourcemap_output_file.write(sourcemap_file.read())
             try:
-                out.write(output_file.read())
+                out.write(output_file.read().decode('utf-8'))
             finally:
                 output_file.close()
         finally:
