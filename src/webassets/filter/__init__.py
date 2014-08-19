@@ -492,7 +492,7 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
 
         try:
             data = (data.read() if hasattr(data, 'read') else data)
-            if data is not None:
+            if isinstance(data, unicode):
                 data = data.encode('utf-8')
 
             if input_file.created:
