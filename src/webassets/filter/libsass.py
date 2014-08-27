@@ -1,3 +1,5 @@
+# coding: utf-8
+
 """
 This filter based on Jesús Jerez <jerezmoreno@gmail.com> code [1].
 
@@ -5,6 +7,7 @@ This filter based on Jesús Jerez <jerezmoreno@gmail.com> code [1].
 """
 
 from __future__ import print_function
+from __future__ import absolute_import
 
 from webassets.filter import Filter
 
@@ -34,6 +37,11 @@ class LibSass(Filter):
 
     LIBSASS_IMAGES (images)
         an optional path to find images
+
+    See libsass documentation for full documentation about these configuration
+    options:
+
+        http://hongminhee.org/libsass-python/sass.html#sass.compile
     """
     name = 'libsass'
     options = {
@@ -59,6 +67,7 @@ class LibSass(Filter):
         source_path = kwargs['source_path']
 
         out.write(
+            # http://hongminhee.org/libsass-python/sass.html#sass.compile
             self.sass.compile(
                 filename=source_path,
                 output_style=self.style,

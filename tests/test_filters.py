@@ -974,33 +974,31 @@ class TestPyScss(TempEnvironmentHelper):
 
 
 class TestLibSass(TempEnvironmentHelper):
-
     default_files = {
-        'foo.scss': """@import "bar"; a {color: red + green; }""",
+        'foo.scss': '@import "bar"; a {color: red + green; }',
         'bar.scss': 'h1{color:red}'
     }
 
     def setup(self):
         try:
             import sass
-            self.sass = scss
+            self.sass = sass
         except ImportError:
             raise SkipTest()
         TempEnvironmentHelper.setup(self)
 
     def test(self):
         self.mkbundle('foo.scss', filters='libsass', output='out.css').build()
-        assert self.get('out.css') == 'h1 {\n  color: #ff0000;\n}\na {\n  color: #ff8000;\n}\n'
+        assert self.get('out.css') == (
+            'h1 {\n  color: red; }\n\na {\n  color: #ff8000; }\n'
+        )
+
+    def test_compressed(self):
+        libsass = get_filter('libsass', style='compressed')
+        self.mkbundle('foo.scss', filters=libsass, output='out.css').build()
+        assert self.get('out.css') == 'h1{color:red;}a{color:#ff8000;}'
 
     def test_assets(self):
-        try:
-            import PIL
-            # Travis does not support PNG files, see
-            # https://github.com/travis-ci/travis-ci/issues/746
-            from PIL import Image
-            Image.new('RGB', (10,10)).save(StringIO(), 'png')
-        except (ImportError, IOError):
-            raise SkipTest()
         self.create_files({'noise.scss': 'h1 {background: background-noise()}'})
         self.mkbundle('noise.scss', filters='pyscss', output='out.css').build()
 
