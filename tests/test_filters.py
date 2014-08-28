@@ -998,14 +998,6 @@ class TestLibSass(TempEnvironmentHelper):
         self.mkbundle('foo.scss', filters=libsass, output='out.css').build()
         assert self.get('out.css') == 'h1{color:red;}a{color:#ff8000;}'
 
-    def test_assets(self):
-        self.create_files({'noise.scss': 'h1 {background: background-noise()}'})
-        self.mkbundle('noise.scss', filters='pyscss', output='out.css').build()
-
-        assert doctest_match(
-            'h1 {\n  background: url("...png");\n}\n',
-            self.get('out.css'),)
-
 
 class TestCompass(TempEnvironmentHelper):
 
