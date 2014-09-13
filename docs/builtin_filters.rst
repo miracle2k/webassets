@@ -53,6 +53,12 @@ Javascript compressors
 .. autoclass:: webassets.filter.jspacker.JSPacker
 
 
+``slimit``
+~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.slimit.Slimit
+
+
 CSS compressors
 ---------------
 

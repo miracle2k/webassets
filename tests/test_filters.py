@@ -510,6 +510,27 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('foo.js', 'foo2.js', filters='uglifyjs', output='out.js').build()
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}more();'
 
+    def test_slimit_ascii(self):
+        try:
+            self.mkbundle('foo2.js', filters='slimit', output='out.js').build()
+        except EnvironmentError:
+            raise SkipTest("slimit is not installed")
+        assert self.get('out.js') == 'more();'
+
+    def test_slimit_unicode(self):
+        try:
+            self.mkbundle('foo.js', filters='slimit', output='out.js').build()
+        except EnvironmentError:
+            raise SkipTest("slimit is not installed")
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè";}'
+
+    def test_slimit_ascii_and_unicode(self):
+        try:
+            self.mkbundle('foo.js', 'foo2.js', filters='slimit', output='out.js').build()
+        except EnvironmentError:
+            raise SkipTest("slimit is not installed")
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè";}more();'
+
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
         # JS one. Maybe the solution is just to remove the old ruby filter.

@@ -21,6 +21,7 @@ Jinja2>=2.5
 cssutils
 yuicompressor
 closure
+slimit
 
 # Python libs that requiring manual installation
 #cssprefixer
