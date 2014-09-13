@@ -22,6 +22,7 @@ cssutils
 yuicompressor
 closure
 slimit
+libsass
 
 # Python libs that requiring manual installation
 #cssprefixer

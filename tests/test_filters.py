@@ -994,6 +994,32 @@ class TestPyScss(TempEnvironmentHelper):
             self.get('out.css'),)
 
 
+class TestLibSass(TempEnvironmentHelper):
+    default_files = {
+        'foo.scss': '@import "bar"; a {color: red + green; }',
+        'bar.scss': 'h1{color:red}'
+    }
+
+    def setup(self):
+        try:
+            import sass
+            self.sass = sass
+        except ImportError:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.mkbundle('foo.scss', filters='libsass', output='out.css').build()
+        assert self.get('out.css') == (
+            'h1 {\n  color: red; }\n\na {\n  color: #ff8000; }\n'
+        )
+
+    def test_compressed(self):
+        libsass = get_filter('libsass', style='compressed')
+        self.mkbundle('foo.scss', filters=libsass, output='out.css').build()
+        assert self.get('out.css') == 'h1{color:red;}a{color:#ff8000;}'
+
+
 class TestCompass(TempEnvironmentHelper):
 
     default_files = {
