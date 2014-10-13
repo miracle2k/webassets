@@ -35,11 +35,11 @@ class Sass(Filter):
 
     If you want to use the output filter mode and still also use the
     @import directive in your Sass files, you will need to pass along
-    the ``includes_dir`` argument, which specifies the path to which
+    the ``load_paths`` argument, which specifies the path to which
     the imports are relative to (this is implemented by changing the
     working directory before calling the ``sass`` executable)::
 
-        sass = get_filter('sass', as_output=True, includes_dir='/tmp')
+        sass = get_filter('sass', as_output=True, load_paths='/tmp')
 
     If you are confused as to why this is necessary, consider that
     in the case of an output filter, the source files might come from
