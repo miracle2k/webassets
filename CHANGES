@@ -1,3 +1,7 @@
+Unreleased
+    - Prevent filters from crashing if the input file is empty (empty string
+      passed)
+
 0.10.1 (2014-07-03)
     - Python 3 fixes.
     - Windows fix (Ionel Cristian Mărieș).
