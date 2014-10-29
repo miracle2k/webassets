@@ -5,45 +5,17 @@ more likely` found in `test_bundle_various.py``.
 """
 
 
-import logging
 import os
-import sys
-from mock import patch
 from nose.tools import assert_raises
 import pytest
 from webassets import Bundle
 from webassets.cache import MemoryCache
 from webassets.exceptions import BuildError, BundleError
 from webassets.filter import Filter
-from webassets.merge import MemoryHunk
 from webassets.test import TempEnvironmentHelper
 from webassets.updater import BaseUpdater, SKIP_CACHE, TimestampUpdater
 
 from tests.helpers import noop
-
-
-class NoisyHandler(logging.StreamHandler):
-    def handleError(self, record):
-        sys.stderr.write('Logged from file %s, line %s\n' % (
-            record.filename, record.lineno))
-        raise
-
-@pytest.fixture
-def debug_logging(request):
-    log = logging.getLogger('webassets.debug')
-    log.setLevel(logging.DEBUG)
-    original_handlers = log.handlers[:]
-    for h in original_handlers:
-        log.removeHandler(h)
-    noisy_handler = NoisyHandler()
-    log.addHandler(noisy_handler)
-    def reset_logging():
-        for h in original_handlers:
-            log.addHandler(h)
-        log.removeHandler(noisy_handler)
-        log.setLevel(logging.ERROR)
-    request.addfinalizer(reset_logging)
-    return log
 
 
 class TestBuildVarious(TempEnvironmentHelper):
@@ -59,25 +31,6 @@ class TestBuildVarious(TempEnvironmentHelper):
 
     def test_nested_bundle(self):
         """A nested bundle."""
-        self.mkbundle('in1', self.mkbundle('in3', 'in4'), 'in2', output='out').build()
-        assert self.get('out') == 'A\nC\nD\nB'
-
-    @patch.object(MemoryHunk, '__repr__', return_value="FOO")
-    def test_repr_not_called(self, repr_mock):
-        """Ensure MemoryHunk.__repr__ isn't called when logging is off."""
-        self.mkbundle('in1', self.mkbundle('in3', 'in4'), 'in2', output='out').build()
-        assert self.get('out') == 'A\nC\nD\nB'
-        assert not repr_mock.called
-
-    @patch.object(MemoryHunk, '__repr__', return_value="FOO")
-    def test_repr_called(self, repr_mock, debug_logging):
-        """Ensure MemoryHunk.__repr__ is called when logging is on."""
-        self.mkbundle('in1', self.mkbundle('in3', 'in4'), 'in2', output='out').build()
-        assert self.get('out') == 'A\nC\nD\nB'
-        assert repr_mock.called
-
-    def test_repr_works(self, debug_logging):
-        """Ensure MemoryHunk.__repr__ logging doesn't raise."""
         self.mkbundle('in1', self.mkbundle('in3', 'in4'), 'in2', output='out').build()
         assert self.get('out') == 'A\nC\nD\nB'
 
