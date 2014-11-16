@@ -520,8 +520,6 @@ class ConfigurationContext(object):
           No manifest is used.
 
       Any custom manifest implementation.
-
-    The default value is ``None``.
     """)
 
     def _set_versions(self, versions):
