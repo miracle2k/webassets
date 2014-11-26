@@ -2,6 +2,7 @@ from webassets import six
 import contextlib
 import os
 import sys
+import re
 from itertools import takewhile
 
 from .exceptions import BundleError
@@ -47,6 +48,9 @@ def hash_func(data):
     return make_md5(data)
 
 
+_directory_separator_re = re.compile(r"[/\\]+")
+
+
 def common_path_prefix(paths, sep=os.path.sep):
     """os.path.commonpath() is completely in the wrong place; it's
     useless with paths since it only looks at one character at a time,
@@ -57,7 +61,10 @@ def common_path_prefix(paths, sep=os.path.sep):
     """
     def allnamesequal(name):
         return all(n==name[0] for n in name[1:])
-    bydirectorylevels = zip(*[p.split(sep) for p in paths])
+
+    # The regex splits the paths on both / and \ characters, whereas the
+    # rosettacode.org algorithm only uses os.path.sep
+    bydirectorylevels = zip(*[_directory_separator_re.split(p) for p in paths])
     return sep.join(x[0] for x in takewhile(allnamesequal, bydirectorylevels))
 
 
