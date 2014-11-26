@@ -1217,6 +1217,22 @@ class TestJST(TempEnvironmentHelper):
         self.mkbundle('*.jst', filters='jst', output='out.js').build()
         assert r"""template("<input type=\"text\" pattern=\"\\S*\"/>")""" in self.get('out.js')
 
+    def test_backslashes_changed_to_slash_in_name(self):
+        self.create_files({
+            'templates\\foo\\test.jst': '<div>Test</div>',
+            'templates\\bar\\other.jst': '<div>Other</div>'})
+        self.mkbundle('templates\*\*.jst', filters='jst', output='out.js').build()
+        assert "'foo/test'" in self.get('out.js')
+        assert "'bar/other'" in self.get('out.js')
+
+    def test_separator_config(self):
+        self.env.config['JST_DIR_SEPARATOR'] = '_'
+        self.create_files({
+            'templates/foo/test.jst': '<div>Test</div>',
+            'templates/bar/other.jst': '<div>Other</div>'})
+        self.mkbundle('templates\*\*.jst', filters='jst', output='out.js').build()
+        assert "'foo_test'" in self.get('out.js')
+        assert "'bar_other'" in self.get('out.js')
 
 class TestHandlebars(TempEnvironmentHelper):
 
