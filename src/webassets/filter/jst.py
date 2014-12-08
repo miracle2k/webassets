@@ -1,4 +1,5 @@
 import os
+import re
 try:
     import json
 except ImportError:
@@ -121,6 +122,10 @@ class JST(JSTemplateFilter):
             of the ``window`` object, or you won't be able to access the
             templates.
 
+    JST_DIR_SEPARATOR (separator)
+        The separator character to use for templates within directories.
+        Defaults to '/'
+
     .. _Jammit:
     .. _underscore.js: http://documentcloud.github.com/underscore/#template
     """
@@ -132,6 +137,8 @@ class JST(JSTemplateFilter):
         'namespace': 'JST_NAMESPACE',
         # Wrap everything in a closure
         'bare': 'JST_BARE',
+        # The path separator to use with templates in different directories
+        'separator': 'JST_DIR_SEPARATOR'
     }
     max_debug_level = None
 
@@ -155,7 +162,7 @@ class JST(JSTemplateFilter):
             # Make it a valid Javascript string.
             contents = json.dumps(hunk.data())
 
-            out.write("%s['%s'] = " % (namespace, name))
+            out.write("%s['%s'] = " % (namespace, self._get_jst_name(name)))
             if self.template_function is False:
                 out.write("%s;\n" % (contents))
             else:
@@ -165,6 +172,12 @@ class JST(JSTemplateFilter):
         if self.bare is False:
             out.write("})();")
 
+    def _get_jst_name(self, name):
+        """Return the name for the JST with any path separators normalised"""
+        return _path_separator_re.sub(self.separator or "/", name)
+
+
+_path_separator_re = re.compile(r'[/\\]+')
 
 _jst_script = 'var template = function(str){var fn = new Function(\'obj\', \'var \
 __p=[],print=function(){__p.push.apply(__p,arguments);};\

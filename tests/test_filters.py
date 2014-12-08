@@ -3,6 +3,7 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import os
+import os.path
 from contextlib import contextmanager
 from nose.tools import assert_raises, assert_equal, assert_true
 from nose import SkipTest
@@ -1217,6 +1218,24 @@ class TestJST(TempEnvironmentHelper):
         self.mkbundle('*.jst', filters='jst', output='out.js').build()
         assert r"""template("<input type=\"text\" pattern=\"\\S*\"/>")""" in self.get('out.js')
 
+    def test_backslashes_changed_to_slash_in_name(self):
+        # Using normpath() here so that the filenames will only have
+        # backslashes on Windows.
+        self.create_files({
+            os.path.normpath('templates/foo/test.jst'): '<div>Test</div>',
+            os.path.normpath('templates/bar/other.jst'): '<div>Other</div>'})
+        self.mkbundle('templates/*/*.jst', filters='jst', output='out.js').build()
+        assert "'foo/test'" in self.get('out.js')
+        assert "'bar/other'" in self.get('out.js')
+
+    def test_separator_config(self):
+        self.env.config['JST_DIR_SEPARATOR'] = '_'
+        self.create_files({
+            'templates/foo/test.jst': '<div>Test</div>',
+            'templates/bar/other.jst': '<div>Other</div>'})
+        self.mkbundle('templates/*/*.jst', filters='jst', output='out.js').build()
+        assert "'foo_test'" in self.get('out.js')
+        assert "'bar_other'" in self.get('out.js')
 
 class TestHandlebars(TempEnvironmentHelper):
 
