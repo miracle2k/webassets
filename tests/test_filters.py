@@ -549,7 +549,9 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             # Builtin jsmin
             "\nfunction foo(bar){var dummy;document.write(bar);var a=\"Ünícôdè\"}",
             # jsmin from PyPI
-            ' function foo(bar){var dummy;document.write(bar);var a="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8";}'
+            ' function foo(bar){var dummy;document.write(bar);var a="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8";}',
+            # jsmin from v8
+            '\n\nfunction foo(a){\nvar b;\ndocument.write(a);\nvar c="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8";\n}\n\n',
         )
 
     def test_rjsmin(self):
