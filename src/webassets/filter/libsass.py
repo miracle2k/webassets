@@ -49,6 +49,7 @@ class LibSass(Filter):
         'includes': 'LIBSASS_INCLUDES',
         'images': 'LIBSASS_IMAGES',
     }
+    max_debug_level = None
 
     def setup(self):
         super(LibSass, self).setup()
