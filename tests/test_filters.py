@@ -896,7 +896,12 @@ class TestSass(TempEnvironmentHelper):
     def test_sass(self):
         sass = get_filter('sass', debug_info=False)
         self.mkbundle('foo.sass', filters=sass, output='out.css').build()
-        assert self.get('out.css') == """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
+        assert self.get('out.css') in (
+            # Sass <= 3.3
+            """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""",
+            # Sass 3.4+
+            """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""",
+        )
 
     def test_sass_import(self):
         """Test referencing other files in sass.
@@ -904,7 +909,12 @@ class TestSass(TempEnvironmentHelper):
         sass = get_filter('sass', debug_info=False)
         self.create_files({'import-test.sass': '''@import foo.sass'''})
         self.mkbundle('import-test.sass', filters=sass, output='out.css').build()
-        assert doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""", self.get('out.css'))
+        assert (
+            # Sass <= 3.3
+            doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""", self.get('out.css'))
+            # Sass 3.4+
+            or doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""", self.get('out.css'))
+        )
 
     def test_scss(self):
         # SCSS is a CSS superset, should be able to compile the CSS file just fine
@@ -945,7 +955,12 @@ class TestSass(TempEnvironmentHelper):
         sass_output = get_filter('sass', debug_info=False, as_output=True)
         self.create_files({'p1': 'h1', 'p2': '\n  color: #FFFFFF'})
         self.mkbundle('p1', 'p2', filters=sass_output, output='out.css').build()
-        assert self.get('out.css') == """/* line 1 */\nh1 {\n  color: white;\n}\n"""
+        assert self.get('out.css') in (
+            # Sass <= 3.3
+            """/* line 1 */\nh1 {\n  color: white;\n}\n""",
+            # Sass 3.4+
+            """/* line 1 */\nh1 {\n  color: #FFFFFF;\n}\n""",
+        )
 
     def test_custom_include_path(self):
         """Test a custom include_path.
@@ -956,7 +971,12 @@ class TestSass(TempEnvironmentHelper):
             'includes/vars.sass': '$a_color: #FFFFFF',
             'base.sass': '@import vars.sass\nh1\n  color: $a_color'})
         self.mkbundle('base.sass', filters=sass_output, output='out.css').build()
-        assert self.get('out.css') == """/* line 2 */\nh1 {\n  color: white;\n}\n"""
+        assert self.get('out.css') in (
+            # Sass <= 3.3
+            """/* line 2 */\nh1 {\n  color: white;\n}\n""",
+            # Sass 3.4+
+            """/* line 2 */\nh1 {\n  color: #FFFFFF;\n}\n""",
+        )
 
 
 class TestPyScss(TempEnvironmentHelper):
