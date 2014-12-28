@@ -13,6 +13,9 @@ class CleanCSS(ExternalTool):
     Clean-css is an external tool written for NodeJS; this filter assumes that
     the ``cleancss`` executable is in the path. Otherwise, you may define
     a ``CLEANCSS_BIN`` setting.
+
+    Additional options may be passed to ``cleancss`` binary using the setting
+    ``CLEANCSS_EXTRA_ARGS``, which expects a list of strings.
     """
 
     name = 'cleancss'
