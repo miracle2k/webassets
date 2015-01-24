@@ -838,7 +838,7 @@ class TestLess(TempEnvironmentHelper):
                ''',
             'foo.less': '@c: red;'})
         self.mkbundle('import.less', filters='less', output='out.css').build()
-        assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
+        assert self.get('out.css') == 'span {\n  color: red;\n}\n'
 
     def test_run_in_debug_mode(self):
         """A setting can be used to make less not run in debug."""
@@ -857,7 +857,7 @@ class TestLess(TempEnvironmentHelper):
             'extra/path/extra.less': '@c: red;'})
         self.env.config['less_paths'] = ['extra/path']
         self.mkbundle('import.less', filters='less', output='out.css').build()
-        assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
+        assert self.get('out.css') == 'span {\n  color: red;\n}\n'
 
     def test_include_path_order(self):
         '''It should preserve extra include paths order'''
@@ -870,7 +870,7 @@ class TestLess(TempEnvironmentHelper):
             'other/path/extra.less': '@c: blue;'})
         self.env.config['less_paths'] = ['extra/path', 'other/path']
         self.mkbundle('import.less', filters='less', output='out.css').build()
-        assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
+        assert self.get('out.css') == 'span {\n  color: red;\n}\n'
 
 
 
@@ -1040,7 +1040,7 @@ class TestLibSass(TempEnvironmentHelper):
     def test_compressed(self):
         libsass = get_filter('libsass', style='compressed')
         self.mkbundle('foo.scss', filters=libsass, output='out.css').build()
-        assert self.get('out.css') == 'h1{color:red;}a{color:#ff8000;}'
+        assert self.get('out.css') == 'h1{color:red}a{color:#ff8000}'
 
 
 class TestCompass(TempEnvironmentHelper):
