@@ -713,7 +713,7 @@ class Bundle(object):
             url = "%s?%s" % (url, version)
         return url
 
-    def _urls(self, ctx, extra_filters, *args, **kwargs):
+    def _urls(self, ctx, extra_filters, with_bodies,  *args, **kwargs):
         """Return a list of urls for this bundle, and all subbundles,
         and, when it becomes necessary, start a build process.
         """
@@ -744,7 +744,13 @@ class Bundle(object):
             if ctx.auto_build:
                 self._build(ctx, extra_filters=extra_filters, force=False,
                             *args, **kwargs)
-            return [self._make_output_url(ctx)]
+            if with_bodies:
+                # The hunks returned by the _build() method aren't useful as
+                # they sometimes have %(version)s in them. Can this be changed?
+                hunk = FileHunk(self.resolve_output(ctx))
+                return [(self._make_output_url(ctx), hunk.data())]
+            else:
+                return [self._make_output_url(ctx)]
         else:
             # We either have no files (nothing to build), or we are
             # in debug mode: Instead of building the bundle, we
@@ -755,10 +761,15 @@ class Bundle(object):
                     urls.extend(org._urls(
                         wrap(ctx, cnt),
                         merge_filters(extra_filters, self.filters),
+                        with_bodies,
                         *args, **kwargs))
                 elif is_url(cnt):
-                    urls.append(cnt)
+                    if with_bodies:
+                        urls.append((cnt, UrlHunk(cnt, ctx).data()))
+                    else:
+                        urls.append(cnt)
                 else:
+                    external = None
                     try:
                         url = ctx.resolver.resolve_source_to_url(ctx, cnt, org)
                     except ValueError:
@@ -768,7 +779,10 @@ class Bundle(object):
                         external = pull_external(ctx, cnt)
                         url = ctx.resolver.resolve_source_to_url(ctx, external, org)
 
-                    urls.append(url)
+                    if with_bodies:
+                        urls.append((url, FileHunk(external or cnt).data()))
+                    else:
+                        urls.append(url)
             return urls
 
     def urls(self, *args, **kwargs):
@@ -784,8 +798,20 @@ class Bundle(object):
         ctx = wrap(self.env, self)
         urls = []
         for bundle, extra_filters, new_ctx in self.iterbuild(ctx):
-            urls.extend(bundle._urls(new_ctx, extra_filters, *args, **kwargs))
+            urls.extend(bundle._urls(new_ctx, extra_filters, False, *args, **kwargs))
         return urls
+
+    def urls_with_bodies(self, *args, **kwargs):
+        """Returns a list of tuples containing urls and their content.
+
+        Works just like urls() except that it returns tuples of the urls
+        and their respective content.
+        """
+        ctx = wrap(self.env, self)
+        urls_contents = []
+        for bundle, extra_filters, new_ctx in self.iterbuild(ctx):
+            urls_contents.extend(bundle._urls(new_ctx, extra_filters, True, *args, **kwargs))
+        return urls_contents
 
 
 def pull_external(ctx, filename):

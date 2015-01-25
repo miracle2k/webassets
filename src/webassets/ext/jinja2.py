@@ -142,6 +142,7 @@ class AssetsExtension(Extension):
         #
         # Summary: We have to be satisfied with a single EXTRA variable.
         args = [nodes.Name('ASSET_URL', 'store'),
+                nodes.Name('ASSET_CONTENTS', 'store'),
                 nodes.Name('EXTRA', 'store')]
 
         # Return a ``CallBlock``, which means Jinja2 will call a Python method
@@ -183,13 +184,13 @@ class AssetsExtension(Extension):
 
         # Retrieve urls (this may or may not cause a build)
         with bundle.bind(env):
-            urls = bundle.urls()
+            urls = bundle.urls_with_bodies()
 
         # For each url, execute the content of this template tag (represented
         # by the macro ```caller`` given to use by Jinja2).
         result = u""
-        for url in urls:
-            result += caller(url, bundle.extra)
+        for url, body in urls:
+            result += caller(url, body, bundle.extra)
         return result
 
 

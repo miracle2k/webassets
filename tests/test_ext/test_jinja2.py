@@ -27,6 +27,7 @@ class TestTemplateTag(object):
         test_instance = self
         class MockBundle(Bundle):
             urls_to_fake = ['foo']
+            content_to_fake = ['bar']
             def __init__(self, *a, **kw):
                 Bundle.__init__(self, *a, **kw)
                 self.env = assets_env
@@ -38,6 +39,9 @@ class TestTemplateTag(object):
                 test_instance.the_bundle = self
             def urls(self, *a, **kw):
                 return self.urls_to_fake
+            def urls_with_bodies(self, *a, **kw):
+                return zip(self.urls_to_fake, self.content_to_fake)
+
         self._old_bundle_class = AssetsExtension.BundleClass
         AssetsExtension.BundleClass = self.BundleClass = MockBundle
 
@@ -87,7 +91,13 @@ class TestTemplateTag(object):
         """Ensure the tag correctly spits out the urls the bundle returns.
         """
         self.BundleClass.urls_to_fake = ['foo', 'bar']
+        self.BundleClass.content_to_fake = ['as', 'df']
         assert self.render_template('"file1" "file2" "file3"') == 'foo;bar;'
+
+    def test_asset_contents(self):
+        output = self.jinja_env.from_string(
+            '{% assets "bundle" %}{{ ASSET_CONTENTS }}{% endassets %}').render({})
+        assert output == 'bar'
 
     def test_debug_on_tag(self):
         content = self.jinja_env.from_string(
