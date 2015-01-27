@@ -33,19 +33,42 @@ class Sass(Filter):
         sass = get_filter('sass', as_output=True)
         Bundle(...., filters=(sass,))
 
-    If you want to use the output filter mode and still also use the
-    @import directive in your Sass files, you will need to pass along
-    the ``load_paths`` argument, which specifies the path to which
-    the imports are relative to (this is implemented by changing the
-    working directory before calling the ``sass`` executable)::
+    However, if you want to use the output filter mode and still also
+    use the @import directive in your Sass files, you will need to
+    pass along the ``load_paths`` argument, which specifies the path
+    to which the imports are relative to (this is implemented by
+    changing the working directory before calling the ``sass``
+    executable)::
 
         sass = get_filter('sass', as_output=True, load_paths='/tmp')
 
-    If you are confused as to why this is necessary, consider that
-    in the case of an output filter, the source files might come from
-    various places in the filesystem, put are merged together and
-    passed to Sass as one big chunk. The filter cannot by itself know
-    which of the source directories to use as a base.
+    With ``as_output=True``, the resulting concatenation of the Sass
+    files is piped to Sass via stdin (``cat ... | sass --stdin ...``)
+    and may cause applications to not compile if import statements are
+    given as relative paths.
+
+    For example, if a file ``foo/bar/baz.scss`` imports file
+    ``foo/bar/bat.scss`` (same directory) and the import is defined as
+    ``@import "bat";`` then Sass will fail compiling because Sass
+    has naturally no information on where ``baz.scss`` is located on
+    disk (since the data was passed via stdin) in order for Sass to
+    resolve the location of ``bat.scss``::
+
+        Traceback (most recent call last):
+        ...
+        webassets.exceptions.FilterError: sass: subprocess had error: stderr=(sass):1: File to import not found or unreadable: bat. (Sass::SyntaxError)
+               Load paths:
+                 /path/to/project-foo
+                on line 1 of standard input
+          Use --trace for backtrace.
+        , stdout=, returncode=65
+
+    To overcome this issue, the full path must be provided in the
+    import statement, ``@import "foo/bar/bat"``, then webassets
+    will pass the ``load_paths`` argument (e.g.,
+    ``/path/to/project-foo``) to Sass via its ``-I`` flags so Sass can
+    resolve the full path to the file to be imported:
+    ``/path/to/project-foo/foo/bar/bat``
 
     Support configuration options:
 
