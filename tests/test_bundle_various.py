@@ -60,6 +60,16 @@ class TestBundleConfig(TempEnvironmentHelper):
         bundle.extra = None
         assert Bundle(bundle).extra == {}
 
+    def test_post_init_set_debug_to_True(self):
+        bundle = Bundle()
+        bundle.debug = True
+        assert bundle.debug is True
+
+    def test_post_init_set_debug_to_False(self):
+        bundle = Bundle()
+        bundle.debug = False
+        assert bundle.debug is False
+
     def test_filter_assign(self):
         """Test the different ways we can assign filters to the bundle.
         """

@@ -35,4 +35,10 @@ class JSMin(Filter):
         self.jsmin = jsmin
 
     def output(self, _in, out, **kw):
-        self.jsmin.JavascriptMinify().minify(_in, out)
+        if hasattr(self.jsmin, 'JavaScriptMinifier'):
+            # jsmin.py from v8
+            minifier = self.jsmin.JavaScriptMinifier()
+            minified = minifier.JSMinify(_in.read())
+            out.write(minified)
+        else:
+            self.jsmin.JavascriptMinify().minify(_in, out)

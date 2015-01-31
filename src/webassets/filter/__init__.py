@@ -496,7 +496,7 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                 data = data.encode('utf-8')
 
             if input_file.created:
-                if not data:
+                if data is None:
                     raise ValueError(
                         '{input} placeholder given, but no data passed')
                 with open(input_file.filename, 'wb') as f:
