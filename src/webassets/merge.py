@@ -10,7 +10,7 @@ except ImportError:
     from urllib2 import Request as URLRequest, urlopen
     from urllib2 import HTTPError
 import logging
-from io import open
+from io import open, BytesIO
 from webassets.six.moves import filter
 
 from .utils import cmp_debug_levels, StringIO, hash_func
@@ -56,8 +56,11 @@ class BaseHunk(object):
         raise NotImplementedError()
 
     def save(self, filename):
-        with open(filename, 'w') as f:
-            f.write(self.data())
+        data = self.data()
+        if isinstance(data, unicode):
+            data = data.encode('utf-8')
+        with open(filename, 'wb') as f:
+            f.write(data)
 
 
 class FileHunk(BaseHunk):
@@ -74,7 +77,7 @@ class FileHunk(BaseHunk):
         pass
 
     def data(self):
-        f = open(self.filename, 'r', encoding='utf-8')
+        f = open(self.filename, 'rb')
         try:
             return f.read()
         finally:
@@ -158,11 +161,11 @@ class MemoryHunk(BaseHunk):
         return self._data
 
     def save(self, filename):
-        f = open(filename, 'w', encoding='utf-8')
-        try:
-            f.write(self.data())
-        finally:
-            f.close()
+        data = self.data()
+        if isinstance(data, unicode):
+            data = data.encode('utf-8')
+        with open(filename, 'wb') as f:
+            f.write(data)
 
 
 def merge(hunks, separator=None):
@@ -221,6 +224,32 @@ class FilterTool(object):
             self.cache.set(key, content)
         return MemoryHunk(content)
 
+    def create_input_buffer_for(self, data):
+        have_binary = isinstance(data, BytesIO)
+
+        if isinstance(data, unicode):
+            return StringIO(data)
+        else:
+            return BytesIO(data)
+
+    def convert_input_buffer_for(self, filter, data):
+        accepts_binary = getattr(filter, 'binary_input', False)
+        have_binary = isinstance(data, BytesIO)
+
+        if accepts_binary and not have_binary:
+            return BytesIO(data.getvalue().encode('utf-8'))
+        elif not accepts_binary and have_binary:
+            return StringIO(data.getvalue().decode('utf-8'))
+        else:
+            return data
+
+    def create_output_buffer_for(self, filter):
+        if getattr(filter, 'binary_output', False):
+            return BytesIO(b'')
+        else:
+            # For 2.x, StringIO().getvalue() returns str
+            return StringIO(u'')
+
     def apply(self, hunk, filters, type, kwargs=None):
         """Apply the given list of filters to the hunk, returning a new
         ``MemoryHunk`` object.
@@ -243,11 +272,12 @@ class FilterTool(object):
         kwargs_final.update(kwargs or {})
 
         def func():
-            data = StringIO(hunk.data())
+            data = self.create_input_buffer_for(hunk.data())
             for filter in filters:
+                data = self.convert_input_buffer_for(filter, data)
+                out = self.create_output_buffer_for(filter)
                 log.debug('Running method "%s" of  %s with kwargs=%s',
                     type, filter, kwargs_final)
-                out = StringIO(u'') # For 2.x, StringIO().getvalue() returns str
                 getattr(filter, type)(data, out, **kwargs_final)
                 data = out
                 data.seek(0)

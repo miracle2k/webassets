@@ -6,8 +6,8 @@ from __future__ import with_statement
 
 import os
 import pickle
-from webassets import six
 
+from webassets import six
 from webassets.merge import FileHunk
 from webassets.utils import md5_constructor, RegistryMetaclass, is_url
 
@@ -162,8 +162,12 @@ class HashVersion(Version):
                 raise VersionIndeterminableError(
                     'output target has a placeholder')
 
+        data = hunk.data()
+        if isinstance(data, unicode):
+            data = data.encode('utf-8')
+
         hasher = self.hasher()
-        hasher.update(hunk.data().encode('utf-8'))
+        hasher.update(data)
         return hasher.hexdigest()[:self.length]
 
 
