@@ -118,7 +118,7 @@ class Sass(Filter):
         if cd:
             os.chdir(cd)
 
-        binary = self.binary.split() if self.binary else 'sass'
+        binary = self.binary.split() if self.binary else ['sass']
 
         try:
             args = binary + [
