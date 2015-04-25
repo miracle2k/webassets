@@ -118,8 +118,10 @@ class Sass(Filter):
         if cd:
             os.chdir(cd)
 
+        binary = self.binary.split() if self.binary else 'sass'
+
         try:
-            args = [self.binary or 'sass',
+            args = binary + [
                     '--stdin',
                     '--style', self.style or 'expanded',
                     '--line-comments']
