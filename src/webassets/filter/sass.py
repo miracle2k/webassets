@@ -114,9 +114,10 @@ class Sass(Filter):
         # Switch to source file directory if asked, so that this directory
         # is by default on the load path. We could pass it via -I, but then
         # files in the (undefined) wd could shadow the correct files.
-        old_dir = os.getcwd()
+        orig_cwd = os.getcwd()
+        child_cwd = orig_cwd
         if cd:
-            os.chdir(cd)
+            child_cwd = cd
 
         try:
             args = [self.binary or 'sass',
@@ -125,7 +126,7 @@ class Sass(Filter):
                     '--line-comments']
             if isinstance(self.ctx.cache, FilesystemCache):
                 args.extend(['--cache-location',
-                             os.path.join(old_dir, self.ctx.cache.directory, 'sass')])
+                             os.path.join(orig_cwd, self.ctx.cache.directory, 'sass')])
             elif not cd:
                 # Without a fixed working directory, the location of the cache
                 # is basically undefined, so prefer not to use one at all.
@@ -147,7 +148,8 @@ class Sass(Filter):
                                     stderr=subprocess.PIPE,
                                     # shell: necessary on windows to execute
                                     # ruby files, but doesn't work on linux.
-                                    shell=(os.name == 'nt'))
+                                    shell=(os.name == 'nt'),
+                                    cwd=child_cwd)
             stdout, stderr = proc.communicate(_in.read().encode('utf-8'))
 
             if proc.returncode != 0:
@@ -159,8 +161,7 @@ class Sass(Filter):
 
             out.write(stdout.decode('utf-8'))
         finally:
-            if cd:
-                os.chdir(old_dir)
+            pass
 
     def input(self, _in, out, source_path, output_path, **kw):
         if self.as_output:
