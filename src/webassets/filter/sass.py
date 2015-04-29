@@ -2,7 +2,7 @@ from __future__ import print_function
 import os, subprocess
 
 from webassets.filter import Filter
-from webassets.exceptions import FilterError, ImminentDeprecationWarning
+from webassets.exceptions import FilterError
 from webassets.cache import FilesystemCache
 
 
@@ -119,8 +119,10 @@ class Sass(Filter):
         if cd:
             child_cwd = cd
 
+        binary = self.binary.split() if self.binary else ['sass']
+
         try:
-            args = [self.binary or 'sass',
+            args = binary + [
                     '--stdin',
                     '--style', self.style or 'expanded',
                     '--line-comments']
@@ -153,7 +155,7 @@ class Sass(Filter):
             stdout, stderr = proc.communicate(_in.read().encode('utf-8'))
 
             if proc.returncode != 0:
-                raise FilterError(('sass: subprocess had error: stderr=%s, '+
+                raise FilterError(('sass: subprocess had error: stderr=%s, ' +
                                    'stdout=%s, returncode=%s') % (
                                                 stderr, stdout, proc.returncode))
             elif stderr:
@@ -183,6 +185,6 @@ class SCSS(Sass):
     name = 'scss'
 
     def __init__(self, *a, **kw):
-        assert not 'scss' in kw
+        assert 'scss' not in kw
         kw['scss'] = True
         super(SCSS, self).__init__(*a, **kw)
