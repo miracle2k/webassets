@@ -19,7 +19,7 @@ Framework integration
 ---------------------
 
 For some web frameworks, ``webassets`` provides special
-integration. If you are using one of the supported frameworks, to go
+integration. If you are using one of the supported frameworks, go to
 the respective page:
 
 .. toctree::
