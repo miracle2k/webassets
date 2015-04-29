@@ -119,49 +119,46 @@ class Sass(Filter):
         if cd:
             child_cwd = cd
 
-        try:
-            args = [self.binary or 'sass',
-                    '--stdin',
-                    '--style', self.style or 'expanded',
-                    '--line-comments']
-            if isinstance(self.ctx.cache, FilesystemCache):
-                args.extend(['--cache-location',
-                             os.path.join(orig_cwd, self.ctx.cache.directory, 'sass')])
-            elif not cd:
-                # Without a fixed working directory, the location of the cache
-                # is basically undefined, so prefer not to use one at all.
-                args.extend(['--no-cache'])
-            if (self.ctx.environment.debug if self.debug_info is None else self.debug_info):
-                args.append('--debug-info')
-            if self.use_scss:
-                args.append('--scss')
-            if self.use_compass:
-                args.append('--compass')
-            for path in self.load_paths or []:
-                args.extend(['-I', path])
-            for lib in self.libs or []:
-                args.extend(['-r', lib])
+        args = [self.binary or 'sass',
+                '--stdin',
+                '--style', self.style or 'expanded',
+                '--line-comments']
+        if isinstance(self.ctx.cache, FilesystemCache):
+            args.extend(['--cache-location',
+                         os.path.join(orig_cwd, self.ctx.cache.directory, 'sass')])
+        elif not cd:
+            # Without a fixed working directory, the location of the cache
+            # is basically undefined, so prefer not to use one at all.
+            args.extend(['--no-cache'])
+        if (self.ctx.environment.debug if self.debug_info is None else self.debug_info):
+            args.append('--debug-info')
+        if self.use_scss:
+            args.append('--scss')
+        if self.use_compass:
+            args.append('--compass')
+        for path in self.load_paths or []:
+            args.extend(['-I', path])
+        for lib in self.libs or []:
+            args.extend(['-r', lib])
 
-            proc = subprocess.Popen(args,
-                                    stdin=subprocess.PIPE,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    # shell: necessary on windows to execute
-                                    # ruby files, but doesn't work on linux.
-                                    shell=(os.name == 'nt'),
-                                    cwd=child_cwd)
-            stdout, stderr = proc.communicate(_in.read().encode('utf-8'))
+        proc = subprocess.Popen(args,
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                # shell: necessary on windows to execute
+                                # ruby files, but doesn't work on linux.
+                                shell=(os.name == 'nt'),
+                                cwd=child_cwd)
+        stdout, stderr = proc.communicate(_in.read().encode('utf-8'))
 
-            if proc.returncode != 0:
-                raise FilterError(('sass: subprocess had error: stderr=%s, '+
-                                   'stdout=%s, returncode=%s') % (
-                                                stderr, stdout, proc.returncode))
-            elif stderr:
-                print("sass filter has warnings:", stderr)
+        if proc.returncode != 0:
+            raise FilterError(('sass: subprocess had error: stderr=%s, '+
+                               'stdout=%s, returncode=%s') % (
+                                            stderr, stdout, proc.returncode))
+        elif stderr:
+            print("sass filter has warnings:", stderr)
 
-            out.write(stdout.decode('utf-8'))
-        finally:
-            pass
+        out.write(stdout.decode('utf-8'))
 
     def input(self, _in, out, source_path, output_path, **kw):
         if self.as_output:
