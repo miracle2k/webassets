@@ -479,6 +479,11 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                     os.close(fd)
                 return self.filename
 
+            def read(self):
+                if self.created:
+                    with open(self.filename) as f:
+                        return f.read()
+
             @property
             def created(self):
                 return hasattr(self, 'filename')
@@ -518,9 +523,12 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
             if proc.returncode:
                 raise FilterError(
                     '%s: subprocess returned a non-success result code: '
-                    '%s, stdout=%s, stderr=%s' % (
+                    '%s, stdout=%s, stderr=%s, input_file:\n%s\n%s\n%s' % (
                         cls.name or cls.__name__, 
-                        proc.returncode, stdout, stderr))
+                        proc.returncode, stdout, stderr,
+                        '{:-^80}'.format(' input begin '),
+                        input_file.read(),
+                        '{:-^80}'.format(' input end ')))
             else:
                 if output_file.created:
                     with open(output_file.filename, 'rb') as f:
