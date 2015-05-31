@@ -91,7 +91,7 @@ class Compass(Filter):
 
     COMPASS_CONFIG
         An optional dictionary of Compass `configuration options
-        <http://compass-style.org/help/tutorials/configuration-reference/>`_.
+        <http://compass-style.org/help/documentation/configuration-reference/>`_.
         The values are emitted as strings, and paths are relative to the
         Environment's ``directory`` by default; include a ``project_path``
         entry to override this.
