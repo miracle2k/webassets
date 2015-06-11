@@ -91,6 +91,16 @@ class Sass(Filter):
 
         By default, the value of this option will depend on the
         environment ``DEBUG`` setting.
+
+    SASS_LINE_COMMENTS
+        Passes ``--line-comments`` flag to sass which emit comments in the
+        generated CSS indicating the corresponding source line.
+
+	Note that this option is disabled by Sass if ``--style compressed`` or
+        ``--debug-info`` options are provided.
+
+        Enabled by default. To disable, set empty environment variable
+        ``SASS_LINE_COMMENTS=`` or pass ``line_comments=False`` to this filter.
     """
     # TODO: If an output filter could be passed the list of all input
     # files, the filter might be able to do something interesting with
@@ -107,6 +117,7 @@ class Sass(Filter):
         'load_paths': 'SASS_LOAD_PATHS',
         'libs': 'SASS_LIBS',
         'style': 'SASS_STYLE',
+        'line_comments': 'SASS_LINE_COMMENTS',
     }
     max_debug_level = None
 
@@ -121,8 +132,9 @@ class Sass(Filter):
 
         args = [self.binary or 'sass',
                 '--stdin',
-                '--style', self.style or 'expanded',
-                '--line-comments']
+                '--style', self.style or 'expanded']
+        if self.line_comments is None or self.line_comments:
+            args.append('--line-comments')
         if isinstance(self.ctx.cache, FilesystemCache):
             args.extend(['--cache-location',
                          os.path.join(orig_cwd, self.ctx.cache.directory, 'sass')])
