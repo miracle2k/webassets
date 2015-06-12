@@ -59,7 +59,7 @@ class PyScss(Filter):
         default.
 
     PYSCSS_STYLE (style)
-        The style of the output CSS. Can be one of ``nested` (default),
+        The style of the output CSS. Can be one of ``nested`` (default),
         ``compact``, ``compressed``, or ``expanded``.
     """
 
