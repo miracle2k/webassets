@@ -1046,10 +1046,15 @@ class TestLibSass(TempEnvironmentHelper):
 class TestCompass(TempEnvironmentHelper):
 
     default_files = {
-        'foo.scss': """
+        'foo.scss': u"""
             h1  {
                 font-family: "Verdana"  ;
                 color: #FFFFFF;
+            }
+        """,
+        'unicode.scss': u"""
+            h1 {
+                content: "áé";
             }
         """,
         'import.scss': """
@@ -1078,6 +1083,14 @@ class TestCompass(TempEnvironmentHelper):
         # [bug] test compass with scss files
         self.mkbundle('foo.scss', filters='compass', output='out.css').build()
         assert doctest_match("""/* ... */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""", self.get('out.css'))
+
+    def test_compass_with_unicode(self):
+        # [bug] test compass with scss files
+        self.mkbundle('unicode.scss', filters='compass', output='out.css').build()
+
+        # It's very hard to test this with doctest_match
+        # And by asserting that it's in the content this test is proven
+        assert """content: "\xc3\xa1\xc3\xa9";""" in self.get('out.css')
 
     def test_images_dir(self):
         # [bug] Make sure the compass plugin can reference images. It expects
