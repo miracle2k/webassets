@@ -6,7 +6,6 @@
 - git checkout {release}
 - ./setup.py sdist upload
 - scp sdist file to my own server
-- Run ``fab publish_docs`` to publish release documentation.
 - git checkout master
 - Don't forget to push --all and push --tags.
 
