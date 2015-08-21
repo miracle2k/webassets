@@ -21,7 +21,8 @@ Jinja2>=2.5
 cssutils
 yuicompressor
 closure
-slimit
+slimit==0.8.1
+ply==3.4 # https://github.com/rspivak/slimit/issues/76
 libsass
 
 # Python libs that requiring manual installation
