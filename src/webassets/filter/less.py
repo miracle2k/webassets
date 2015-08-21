@@ -46,7 +46,6 @@ class Less(ExternalTool):
         meaning the source files will first be concatenated, and then the
         Less filter is applied in one go. This can provide a speedup for
         bigger projects.
->>>>>>> Append as_output option in less filter
 
     .. admonition:: Compiling less in the browser
 
@@ -137,7 +136,7 @@ class Less(ExternalTool):
         if self.as_output:
             out.write(_in.read())
         else:
-            self._apply_less(_in, out, os.path.dirname(source_path))
+            self._apply_less(_in, out, source_path)
 
     def output(self, _in, out, **kwargs):
         if not self.as_output:
