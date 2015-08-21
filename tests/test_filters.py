@@ -1064,7 +1064,7 @@ class TestLibSass(TempEnvironmentHelper):
     def test_compressed(self):
         libsass = get_filter('libsass', style='compressed')
         self.mkbundle('foo.scss', filters=libsass, output='out.css').build()
-        assert self.get('out.css') == 'h1{color:red}a{color:#ff8000}'
+        assert self.get('out.css') == 'h1{color:red}a{color:#ff8000}\n'
 
 
 class TestCompass(TempEnvironmentHelper):
