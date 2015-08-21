@@ -17,7 +17,9 @@ First, create an environment instance:
 .. code-block:: python
 
     from webassets import Environment
-    my_env = Environment('../static/media', '/media')
+    my_env = Environment(
+        directory='../static/media',
+        url='/media')
 
 
 As you can see, the environment requires two arguments, the path in which
