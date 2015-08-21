@@ -20,10 +20,12 @@ First, create an environment instance:
     my_env = Environment('../static/media', '/media')
 
 
-As you can see, the environment requires two arguments, the path in which
-your media files are located, as well as the url prefix under which the
-media directory is available. This prefix will be used when generating
-output urls.
+As you can see, the environment requires two arguments:
+
+- the path in which your media files are located
+
+- the url prefix under which the media directory is available. This prefix will be used when generating
+  output urls.
 
 Next, you need to define your assets, in the form of so called *bundles*,
 and register them with the environment. The easist way to do it is directly
