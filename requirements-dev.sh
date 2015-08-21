@@ -10,7 +10,7 @@
 # Only install NodeJS version by default.
 #gem install less --version 1.2.21
 
-npm install -g less
+npm install -g less@2.5.1
 npm install -g uglify-js@2.3.1
 npm install -g coffee-script@1.6.2
 npm install -g clean-css@1.0.2
