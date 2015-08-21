@@ -26,7 +26,7 @@ media directory is available. This prefix will be used when generating
 output urls.
 
 Next, you need to define your assets, in the form of so called *bundles*,
-and register them with the environment. The easist way to do it is directly
+and register them with the environment. The easiest way to do it is directly
 in code:
 
 .. code-block:: python
