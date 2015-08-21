@@ -31,6 +31,7 @@ from os import path
 import tempfile
 import shutil
 import subprocess
+from io import open
 from webassets import six
 
 from webassets.exceptions import FilterError
@@ -233,7 +234,7 @@ class Compass(Filter):
 
             guessed_outputfilename = path.splitext(path.basename(source_path))[0]
             guessed_outputfilepath = path.join(tempout, guessed_outputfilename)
-            output_file = open("%s.css" % guessed_outputfilepath)
+            output_file = open("%s.css" % guessed_outputfilepath, encoding='utf-8')
             if config.get('sourcemap'):
                 sourcemap_file = open("%s.css.map" % guessed_outputfilepath)
                 sourcemap_output_filepath = path.join(
@@ -245,7 +246,7 @@ class Compass(Filter):
                 sourcemap_output_file = open(sourcemap_output_filepath, 'w')
                 sourcemap_output_file.write(sourcemap_file.read())
             try:
-                contents = output_file.read().decode('utf-8')
+                contents = output_file.read()
                 out.write(contents)
             finally:
                 output_file.close()

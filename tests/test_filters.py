@@ -1114,7 +1114,11 @@ class TestCompass(TempEnvironmentHelper):
 
         # It's very hard to test this with doctest_match
         # And by asserting that it's in the content this test is proven
-        assert """content: "\xc3\xa1\xc3\xa9";""" in self.get('out.css')
+        from webassets.six import PY3
+        if PY3:
+            assert """content: "áé";""" in self.get('out.css')
+        else:
+            assert """content: "\xc3\xa1\xc3\xa9";""" in self.get('out.css')
 
     def test_images_dir(self):
         # [bug] Make sure the compass plugin can reference images. It expects
