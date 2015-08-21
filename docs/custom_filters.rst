@@ -289,3 +289,5 @@ More?
 
 You can have a look inside the ``webassets.filter`` module source
 code to see a large number of example filters.
+
+.. automodule:: webassets.filter

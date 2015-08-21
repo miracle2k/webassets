@@ -33,19 +33,42 @@ class Sass(Filter):
         sass = get_filter('sass', as_output=True)
         Bundle(...., filters=(sass,))
 
-    If you want to use the output filter mode and still also use the
-    @import directive in your Sass files, you will need to pass along
-    the ``includes_dir`` argument, which specifies the path to which
-    the imports are relative to (this is implemented by changing the
-    working directory before calling the ``sass`` executable)::
+    However, if you want to use the output filter mode and still also
+    use the @import directive in your Sass files, you will need to
+    pass along the ``load_paths`` argument, which specifies the path
+    to which the imports are relative to (this is implemented by
+    changing the working directory before calling the ``sass``
+    executable)::
 
-        sass = get_filter('sass', as_output=True, includes_dir='/tmp')
+        sass = get_filter('sass', as_output=True, load_paths='/tmp')
 
-    If you are confused as to why this is necessary, consider that
-    in the case of an output filter, the source files might come from
-    various places in the filesystem, put are merged together and
-    passed to Sass as one big chunk. The filter cannot by itself know
-    which of the source directories to use as a base.
+    With ``as_output=True``, the resulting concatenation of the Sass
+    files is piped to Sass via stdin (``cat ... | sass --stdin ...``)
+    and may cause applications to not compile if import statements are
+    given as relative paths.
+
+    For example, if a file ``foo/bar/baz.scss`` imports file
+    ``foo/bar/bat.scss`` (same directory) and the import is defined as
+    ``@import "bat";`` then Sass will fail compiling because Sass
+    has naturally no information on where ``baz.scss`` is located on
+    disk (since the data was passed via stdin) in order for Sass to
+    resolve the location of ``bat.scss``::
+
+        Traceback (most recent call last):
+        ...
+        webassets.exceptions.FilterError: sass: subprocess had error: stderr=(sass):1: File to import not found or unreadable: bat. (Sass::SyntaxError)
+               Load paths:
+                 /path/to/project-foo
+                on line 1 of standard input
+          Use --trace for backtrace.
+        , stdout=, returncode=65
+
+    To overcome this issue, the full path must be provided in the
+    import statement, ``@import "foo/bar/bat"``, then webassets
+    will pass the ``load_paths`` argument (e.g.,
+    ``/path/to/project-foo``) to Sass via its ``-I`` flags so Sass can
+    resolve the full path to the file to be imported:
+    ``/path/to/project-foo/foo/bar/bat``
 
     Support configuration options:
 
@@ -68,6 +91,16 @@ class Sass(Filter):
 
         By default, the value of this option will depend on the
         environment ``DEBUG`` setting.
+
+    SASS_LINE_COMMENTS
+        Passes ``--line-comments`` flag to sass which emit comments in the
+        generated CSS indicating the corresponding source line.
+
+	Note that this option is disabled by Sass if ``--style compressed`` or
+        ``--debug-info`` options are provided.
+
+        Enabled by default. To disable, set empty environment variable
+        ``SASS_LINE_COMMENTS=`` or pass ``line_comments=False`` to this filter.
     """
     # TODO: If an output filter could be passed the list of all input
     # files, the filter might be able to do something interesting with
@@ -84,6 +117,7 @@ class Sass(Filter):
         'load_paths': 'SASS_LOAD_PATHS',
         'libs': 'SASS_LIBS',
         'style': 'SASS_STYLE',
+        'line_comments': 'SASS_LINE_COMMENTS',
     }
     max_debug_level = None
 
@@ -91,53 +125,52 @@ class Sass(Filter):
         # Switch to source file directory if asked, so that this directory
         # is by default on the load path. We could pass it via -I, but then
         # files in the (undefined) wd could shadow the correct files.
-        old_dir = os.getcwd()
+        orig_cwd = os.getcwd()
+        child_cwd = orig_cwd
         if cd:
-            os.chdir(cd)
+            child_cwd = cd
 
-        try:
-            args = [self.binary or 'sass',
-                    '--stdin',
-                    '--style', self.style or 'expanded',
-                    '--line-comments']
-            if isinstance(self.ctx.cache, FilesystemCache):
-                args.extend(['--cache-location',
-                             os.path.join(old_dir, self.ctx.cache.directory, 'sass')])
-            elif not cd:
-                # Without a fixed working directory, the location of the cache
-                # is basically undefined, so prefer not to use one at all.
-                args.extend(['--no-cache'])
-            if (self.ctx.environment.debug if self.debug_info is None else self.debug_info):
-                args.append('--debug-info')
-            if self.use_scss:
-                args.append('--scss')
-            if self.use_compass:
-                args.append('--compass')
-            for path in self.load_paths or []:
-                args.extend(['-I', path])
-            for lib in self.libs or []:
-                args.extend(['-r', lib])
+        args = [self.binary or 'sass',
+                '--stdin',
+                '--style', self.style or 'expanded']
+        if self.line_comments is None or self.line_comments:
+            args.append('--line-comments')
+        if isinstance(self.ctx.cache, FilesystemCache):
+            args.extend(['--cache-location',
+                         os.path.join(orig_cwd, self.ctx.cache.directory, 'sass')])
+        elif not cd:
+            # Without a fixed working directory, the location of the cache
+            # is basically undefined, so prefer not to use one at all.
+            args.extend(['--no-cache'])
+        if (self.ctx.environment.debug if self.debug_info is None else self.debug_info):
+            args.append('--debug-info')
+        if self.use_scss:
+            args.append('--scss')
+        if self.use_compass:
+            args.append('--compass')
+        for path in self.load_paths or []:
+            args.extend(['-I', path])
+        for lib in self.libs or []:
+            args.extend(['-r', lib])
 
-            proc = subprocess.Popen(args,
-                                    stdin=subprocess.PIPE,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    # shell: necessary on windows to execute
-                                    # ruby files, but doesn't work on linux.
-                                    shell=(os.name == 'nt'))
-            stdout, stderr = proc.communicate(_in.read().encode('utf-8'))
+        proc = subprocess.Popen(args,
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                # shell: necessary on windows to execute
+                                # ruby files, but doesn't work on linux.
+                                shell=(os.name == 'nt'),
+                                cwd=child_cwd)
+        stdout, stderr = proc.communicate(_in.read().encode('utf-8'))
 
-            if proc.returncode != 0:
-                raise FilterError(('sass: subprocess had error: stderr=%s, '+
-                                   'stdout=%s, returncode=%s') % (
-                                                stderr, stdout, proc.returncode))
-            elif stderr:
-                print("sass filter has warnings:", stderr)
+        if proc.returncode != 0:
+            raise FilterError(('sass: subprocess had error: stderr=%s, '+
+                               'stdout=%s, returncode=%s') % (
+                                            stderr, stdout, proc.returncode))
+        elif stderr:
+            print("sass filter has warnings:", stderr)
 
-            out.write(stdout.decode('utf-8'))
-        finally:
-            if cd:
-                os.chdir(old_dir)
+        out.write(stdout.decode('utf-8'))
 
     def input(self, _in, out, source_path, output_path, **kw):
         if self.as_output:

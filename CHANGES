@@ -1,3 +1,10 @@
+0.11 (2015-08-21)
+    - Add libsass filter (Mantas, sirex).
+    - Add SlimitIt filter (Michael Fladischer).
+    - Prevent filters from crashing if the input file is empty (empty string
+      passed).
+    - A number of smaller improvements.
+
 0.10.1 (2014-07-03)
     - Python 3 fixes.
     - Windows fix (Ionel Cristian Mărieș).

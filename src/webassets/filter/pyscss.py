@@ -57,6 +57,10 @@ class PyScss(Filter):
         The url PyScss should use when generating urls to files in
         ``PYSCSS_ASSETS_ROOT``. Will use ``PYSCSS_STATIC_URL`` by
         default.
+
+    PYSCSS_STYLE (style)
+        The style of the output CSS. Can be one of ``nested`` (default),
+        ``compact``, ``compressed``, or ``expanded``.
     """
 
     # TODO: PyScss now allows STATIC_ROOT to be a callable, though
@@ -71,6 +75,7 @@ class PyScss(Filter):
         'static_url': 'PYSCSS_STATIC_URL',
         'assets_root': 'PYSCSS_ASSETS_ROOT',
         'assets_url': 'PYSCSS_ASSETS_URL',
+        'style': 'PYSCSS_STYLE',
     }
     max_debug_level = None
 
@@ -79,6 +84,14 @@ class PyScss(Filter):
 
         import scss
         self.scss = scss
+
+        if self.style:
+            try:
+                from packaging.version import Version
+            except ImportError:
+                from distutils.version import LooseVersion as Version
+            assert Version(scss.__version__) >= Version('1.2.0'), \
+                'PYSCSS_STYLE only supported in pyScss>=1.2.0'
 
         # Initialize various settings:
         # Why are these module-level, not instance-level ?!
@@ -120,12 +133,17 @@ class PyScss(Filter):
         # relative references work.
         with working_directory(os.path.dirname(source_path)):
 
+            scss_opts = {
+                'debug_info': (
+                    self.ctx.environment.debug if self.debug_info is None else self.debug_info),
+            }
+            if self.style:
+                scss_opts['style'] = self.style
+            else:
+                scss_opts['compress'] = False
+
             scss = self.scss.Scss(
-                scss_opts={
-                    'compress': False,
-                    'debug_info': (
-                        self.ctx.environment.debug if self.debug_info is None else self.debug_info),
-                },
+                scss_opts=scss_opts,
                 # This is rather nice. We can pass along the filename,
                 # but also give it already preprocessed content.
                 scss_files={source_path: _in.read()})

@@ -56,7 +56,7 @@ class BaseHunk(object):
         raise NotImplementedError()
 
     def save(self, filename):
-        with open(filename, 'w') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             f.write(self.data())
 
 
@@ -147,8 +147,7 @@ class MemoryHunk(BaseHunk):
         # a question of performance, make sure to log in such a way that
         # when logging is disabled, this won't be called, i.e.: don't
         # %s-format yourself, let logging do it as needed.
-        # TODO: Add a test to ensure this isn't called.
-        return '<%s %s>' % (self.__class__.__name__, hash_func(self.data))
+        return '<%s %s>' % (self.__class__.__name__, hash_func(self))
 
     def mtime(self):
         pass

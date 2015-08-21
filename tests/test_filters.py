@@ -3,6 +3,7 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import os
+import os.path
 from contextlib import contextmanager
 from nose.tools import assert_raises, assert_equal, assert_true
 from nose import SkipTest
@@ -510,6 +511,27 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('foo.js', 'foo2.js', filters='uglifyjs', output='out.js').build()
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}more();'
 
+    def test_slimit_ascii(self):
+        try:
+            self.mkbundle('foo2.js', filters='slimit', output='out.js').build()
+        except EnvironmentError:
+            raise SkipTest("slimit is not installed")
+        assert self.get('out.js') == 'more();'
+
+    def test_slimit_unicode(self):
+        try:
+            self.mkbundle('foo.js', filters='slimit', output='out.js').build()
+        except EnvironmentError:
+            raise SkipTest("slimit is not installed")
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè";}'
+
+    def test_slimit_ascii_and_unicode(self):
+        try:
+            self.mkbundle('foo.js', 'foo2.js', filters='slimit', output='out.js').build()
+        except EnvironmentError:
+            raise SkipTest("slimit is not installed")
+        assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè";}more();'
+
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
         # JS one. Maybe the solution is just to remove the old ruby filter.
@@ -527,7 +549,9 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             # Builtin jsmin
             "\nfunction foo(bar){var dummy;document.write(bar);var a=\"Ünícôdè\"}",
             # jsmin from PyPI
-            ' function foo(bar){var dummy;document.write(bar);var a="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8";}'
+            ' function foo(bar){var dummy;document.write(bar);var a="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8";}',
+            # jsmin from v8
+            '\n\nfunction foo(a){\nvar b;\ndocument.write(a);\nvar c="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8";\n}\n\n',
         )
 
     def test_rjsmin(self):
@@ -814,7 +838,7 @@ class TestLess(TempEnvironmentHelper):
                ''',
             'foo.less': '@c: red;'})
         self.mkbundle('import.less', filters='less', output='out.css').build()
-        assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
+        assert self.get('out.css') == 'span {\n  color: red;\n}\n'
 
     def test_run_in_debug_mode(self):
         """A setting can be used to make less not run in debug."""
@@ -833,7 +857,7 @@ class TestLess(TempEnvironmentHelper):
             'extra/path/extra.less': '@c: red;'})
         self.env.config['less_paths'] = ['extra/path']
         self.mkbundle('import.less', filters='less', output='out.css').build()
-        assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
+        assert self.get('out.css') == 'span {\n  color: red;\n}\n'
 
     def test_include_path_order(self):
         '''It should preserve extra include paths order'''
@@ -846,9 +870,33 @@ class TestLess(TempEnvironmentHelper):
             'other/path/extra.less': '@c: blue;'})
         self.env.config['less_paths'] = ['extra/path', 'other/path']
         self.mkbundle('import.less', filters='less', output='out.css').build()
-        assert self.get('out.css') == 'span {\n  color: #ff0000;\n}\n'
+        assert self.get('out.css') == 'span {\n  color: red;\n}\n'
 
+    def test_as_output_filter(self):
+        """The less filter can be configured to work as on output filter,
+        first merging the sources together, then applying less.
+        """
+        # To test this, split a sass rules into two files.
+        less_output = get_filter('less', as_output=True)
+        self.create_files(
+            {'p1': '@base: #123456;', 'p2': 'P { color: @base }'}
+        )
+        self.mkbundle(
+            'p1', 'p2', filters=less_output, output='out.css'
+        ).build()
+        assert self.get('out.css') == """P {\n  color: #123456;\n}\n"""
 
+        less_output = get_filter('less', as_output=False)
+        self.create_files(
+            {'p1': '@base: #123456;', 'p2': 'P { color: @base }'}
+        )
+
+        def mkbundle():
+            self.mkbundle(
+                'p1', 'p2', filters=less_output, output='out2.css'
+            ).build()
+
+        assert_raises(FilterError, mkbundle)
 
 
 class TestSass(TempEnvironmentHelper):
@@ -874,7 +922,12 @@ class TestSass(TempEnvironmentHelper):
     def test_sass(self):
         sass = get_filter('sass', debug_info=False)
         self.mkbundle('foo.sass', filters=sass, output='out.css').build()
-        assert self.get('out.css') == """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n"""
+        assert self.get('out.css') in (
+            # Sass <= 3.3
+            """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""",
+            # Sass 3.4+
+            """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""",
+        )
 
     def test_sass_import(self):
         """Test referencing other files in sass.
@@ -882,7 +935,12 @@ class TestSass(TempEnvironmentHelper):
         sass = get_filter('sass', debug_info=False)
         self.create_files({'import-test.sass': '''@import foo.sass'''})
         self.mkbundle('import-test.sass', filters=sass, output='out.css').build()
-        assert doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""", self.get('out.css'))
+        assert (
+            # Sass <= 3.3
+            doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""", self.get('out.css'))
+            # Sass 3.4+
+            or doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""", self.get('out.css'))
+        )
 
     def test_scss(self):
         # SCSS is a CSS superset, should be able to compile the CSS file just fine
@@ -923,7 +981,12 @@ class TestSass(TempEnvironmentHelper):
         sass_output = get_filter('sass', debug_info=False, as_output=True)
         self.create_files({'p1': 'h1', 'p2': '\n  color: #FFFFFF'})
         self.mkbundle('p1', 'p2', filters=sass_output, output='out.css').build()
-        assert self.get('out.css') == """/* line 1 */\nh1 {\n  color: white;\n}\n"""
+        assert self.get('out.css') in (
+            # Sass <= 3.3
+            """/* line 1 */\nh1 {\n  color: white;\n}\n""",
+            # Sass 3.4+
+            """/* line 1 */\nh1 {\n  color: #FFFFFF;\n}\n""",
+        )
 
     def test_custom_include_path(self):
         """Test a custom include_path.
@@ -934,7 +997,12 @@ class TestSass(TempEnvironmentHelper):
             'includes/vars.sass': '$a_color: #FFFFFF',
             'base.sass': '@import vars.sass\nh1\n  color: $a_color'})
         self.mkbundle('base.sass', filters=sass_output, output='out.css').build()
-        assert self.get('out.css') == """/* line 2 */\nh1 {\n  color: white;\n}\n"""
+        assert self.get('out.css') in (
+            # Sass <= 3.3
+            """/* line 2 */\nh1 {\n  color: white;\n}\n""",
+            # Sass 3.4+
+            """/* line 2 */\nh1 {\n  color: #FFFFFF;\n}\n""",
+        )
 
 
 class TestPyScss(TempEnvironmentHelper):
@@ -973,13 +1041,44 @@ class TestPyScss(TempEnvironmentHelper):
             self.get('out.css'),)
 
 
+class TestLibSass(TempEnvironmentHelper):
+    default_files = {
+        'foo.scss': '@import "bar"; a {color: red + green; }',
+        'bar.scss': 'h1{color:red}'
+    }
+
+    def setup(self):
+        try:
+            import sass
+            self.sass = sass
+        except ImportError:
+            raise SkipTest()
+        TempEnvironmentHelper.setup(self)
+
+    def test(self):
+        self.mkbundle('foo.scss', filters='libsass', output='out.css').build()
+        assert self.get('out.css') == (
+            'h1 {\n  color: red; }\n\na {\n  color: #ff8000; }\n'
+        )
+
+    def test_compressed(self):
+        libsass = get_filter('libsass', style='compressed')
+        self.mkbundle('foo.scss', filters=libsass, output='out.css').build()
+        assert self.get('out.css') == 'h1{color:red}a{color:#ff8000}'
+
+
 class TestCompass(TempEnvironmentHelper):
 
     default_files = {
-        'foo.scss': """
+        'foo.scss': u"""
             h1  {
                 font-family: "Verdana"  ;
                 color: #FFFFFF;
+            }
+        """,
+        'unicode.scss': u"""
+            h1 {
+                content: "áé";
             }
         """,
         'import.scss': """
@@ -1008,6 +1107,18 @@ class TestCompass(TempEnvironmentHelper):
         # [bug] test compass with scss files
         self.mkbundle('foo.scss', filters='compass', output='out.css').build()
         assert doctest_match("""/* ... */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""", self.get('out.css'))
+
+    def test_compass_with_unicode(self):
+        # [bug] test compass with scss files
+        self.mkbundle('unicode.scss', filters='compass', output='out.css').build()
+
+        # It's very hard to test this with doctest_match
+        # And by asserting that it's in the content this test is proven
+        from webassets.six import PY3
+        if PY3:
+            assert """content: "áé";""" in self.get('out.css')
+        else:
+            assert """content: "\xc3\xa1\xc3\xa9";""" in self.get('out.css')
 
     def test_images_dir(self):
         # [bug] Make sure the compass plugin can reference images. It expects
@@ -1170,6 +1281,24 @@ class TestJST(TempEnvironmentHelper):
         self.mkbundle('*.jst', filters='jst', output='out.js').build()
         assert r"""template("<input type=\"text\" pattern=\"\\S*\"/>")""" in self.get('out.js')
 
+    def test_backslashes_changed_to_slash_in_name(self):
+        # Using normpath() here so that the filenames will only have
+        # backslashes on Windows.
+        self.create_files({
+            os.path.normpath('templates/foo/test.jst'): '<div>Test</div>',
+            os.path.normpath('templates/bar/other.jst'): '<div>Other</div>'})
+        self.mkbundle('templates/*/*.jst', filters='jst', output='out.js').build()
+        assert "'foo/test'" in self.get('out.js')
+        assert "'bar/other'" in self.get('out.js')
+
+    def test_separator_config(self):
+        self.env.config['JST_DIR_SEPARATOR'] = '_'
+        self.create_files({
+            'templates/foo/test.jst': '<div>Test</div>',
+            'templates/bar/other.jst': '<div>Other</div>'})
+        self.mkbundle('templates/*/*.jst', filters='jst', output='out.js').build()
+        assert "'foo_test'" in self.get('out.js')
+        assert "'bar_other'" in self.get('out.js')
 
 class TestHandlebars(TempEnvironmentHelper):
 

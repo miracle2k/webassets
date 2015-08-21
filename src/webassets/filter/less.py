@@ -2,8 +2,6 @@ from __future__ import with_statement
 
 import os
 
-from os.path import abspath, join, isabs
-
 from webassets.filter import ExternalTool
 from webassets.utils import working_directory
 
@@ -37,6 +35,17 @@ class Less(ExternalTool):
         Add include paths for less command line.
         It should be a list of paths relatives to Environment.directory or absolute paths.
         Order matters as less will pick the first file found in path order.
+
+    LESS_AS_OUTPUT (boolean)
+        By default, this works as an "input filter", meaning ``less`` is
+        called for each source file in the bundle. This is because the
+        path of the source file is required so that @import directives
+        within the Less file can be correctly resolved.
+
+        However, it is possible to use this filter as an "output filter",
+        meaning the source files will first be concatenated, and then the
+        Less filter is applied in one go. This can provide a speedup for
+        bigger projects.
 
     .. admonition:: Compiling less in the browser
 
@@ -86,6 +95,7 @@ class Less(ExternalTool):
         'line_numbers': 'LESS_LINE_NUMBERS',
         'extra_args': 'LESS_EXTRA_ARGS',
         'paths': 'LESS_PATHS',
+        'as_output': 'LESS_AS_OUTPUT'
     }
     max_debug_level = None
 
@@ -98,17 +108,38 @@ class Less(ExternalTool):
     def resolve_source(self, path):
         return self.ctx.resolver.resolve_source(self.ctx, path)
 
-    def input(self, in_, out, source_path, **kw):
+    def _apply_less(self, in_, out, source_path=None, **kw):
         # Set working directory to the source file so that includes are found
         args = [self.less or 'lessc']
         if self.line_numbers:
             args.append('--line-numbers=%s' % self.line_numbers)
 
         if self.paths:
-            paths = [path if isabs(path) else self.resolve_source(path) for path in self.paths]
+            paths = [
+                path if os.path.isabs(path) else self.resolve_source(path)
+                for path in self.paths
+            ]
             args.append('--include-path={0}'.format(os.pathsep.join(paths)))
+
         if self.extra_args:
             args.extend(self.extra_args)
+
         args.append('-')
-        with working_directory(filename=source_path):
+
+        if source_path:
+            with working_directory(filename=source_path):
+                self.subprocess(args, out, in_)
+        else:
             self.subprocess(args, out, in_)
+
+    def input(self, _in, out, source_path, output_path, **kw):
+        if self.as_output:
+            out.write(_in.read())
+        else:
+            self._apply_less(_in, out, source_path)
+
+    def output(self, _in, out, **kwargs):
+        if not self.as_output:
+            out.write(_in.read())
+        else:
+            self._apply_less(_in, out)
