@@ -1142,6 +1142,7 @@ class TestCompassConfig(object):
         'http_path': '/',
         'relative_assets': True,
         'output_style': ':nested',
+        'javascripts_dir': u'diretório_javascript',
         'sprite_load_path': [
             'static/img',
         ],
@@ -1155,6 +1156,10 @@ class TestCompassConfig(object):
 
     def setup(self):
         self.compass_config = CompassConfig(self.config).to_string()
+
+    def test_compass_config_is_unicode(self):
+        from webassets.six import text_type
+        assert isinstance(self.compass_config, text_type)
 
     def test_string_value(self):
         assert "http_path = '/'" in self.compass_config
