@@ -1064,7 +1064,7 @@ class TestLibSass(TempEnvironmentHelper):
     def test_compressed(self):
         libsass = get_filter('libsass', style='compressed')
         self.mkbundle('foo.scss', filters=libsass, output='out.css').build()
-        assert self.get('out.css') == 'h1{color:red}a{color:#ff8000}'
+        assert self.get('out.css') == 'h1{color:red}a{color:#ff8000}\n'
 
 
 class TestCompass(TempEnvironmentHelper):
@@ -1142,6 +1142,7 @@ class TestCompassConfig(object):
         'http_path': '/',
         'relative_assets': True,
         'output_style': ':nested',
+        'javascripts_dir': u'diretório_javascript',
         'sprite_load_path': [
             'static/img',
         ],
@@ -1155,6 +1156,10 @@ class TestCompassConfig(object):
 
     def setup(self):
         self.compass_config = CompassConfig(self.config).to_string()
+
+    def test_compass_config_is_unicode(self):
+        from webassets.six import text_type
+        assert isinstance(self.compass_config, text_type)
 
     def test_string_value(self):
         assert "http_path = '/'" in self.compass_config

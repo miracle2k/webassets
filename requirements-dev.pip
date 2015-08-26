@@ -23,7 +23,7 @@ yuicompressor
 closure
 slimit==0.8.1
 ply==3.4 # https://github.com/rspivak/slimit/issues/76
-libsass
+libsass==0.8.3
 
 # Python libs that requiring manual installation
 #cssprefixer
