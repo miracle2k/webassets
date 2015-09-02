@@ -36,5 +36,5 @@ For URL expiry functionality, you need to use a manifest that holds version
 information. See :doc:`/expiring`.
 
 There is a barebone Google App Engine example in the
-`examples/appengine/ <https://github.com/miracle2k/webassets/blob/master/tests/>`_
+`examples/appengine/ <https://github.com/miracle2k/webassets/blob/master/examples/appengine/>`_
 folder.
