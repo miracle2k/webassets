@@ -23,9 +23,6 @@ class CSSUtils(Filter):
         self.cssutils = cssutils
 
         try:
-            # cssutils is unaware of so many new CSS3 properties,
-            # vendor-prefixes etc., that it's diagnostic messages are rather
-            # useless. Disable them.
             log = logging.getLogger('assets.cssutils')
             log.addHandler(logging.handlers.MemoryHandler(10))
 
@@ -36,6 +33,11 @@ class CSSUtils(Filter):
             else:
                 func = cssutils.log.setlog
             func(log)
+            
+            # cssutils is unaware of so many new CSS3 properties,
+            # vendor-prefixes etc., that it's diagnostic messages are rather
+            # useless. Disable them.
+            cssutils.log.setLevel(logging.FATAL)
         except ImportError:
             # During doc generation, Django is not going to be setup and will
             # fail when the settings object is accessed. That's ok though.
