@@ -16,8 +16,9 @@ from webassets.exceptions import FilterError
 from webassets.filter import (
     Filter, ExternalTool, get_filter, register_filter, unique_modules)
 from webassets.filter.compass import CompassConfig
+from webassets.filter.autoprefixer import AutoprefixerFilter
 from webassets.bundle import ContextWrapper
-from .helpers import TempEnvironmentHelper
+from helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
 # unpredictable text like temp paths or timestamps. doctest has
@@ -1477,3 +1478,18 @@ class TestClosureStylesheets(TempEnvironmentHelper):
     def test_minifier(self):
         self.mkbundle('test.css', filters = 'closure_stylesheets_minifier', output = 'output.css').build()
         assert self.get('output.css') == 'p{color:red}'
+
+
+class TestAutoprefixer6Filter(TempEnvironmentHelper):
+    default_files = {
+        'test.css': """
+        .shadow {
+            animation: blablabla
+        }
+        """
+    }
+
+    def test_first(self):
+        self.mkbundle('test.css', filters='autoprefixer6', output='output.css').build()
+        out = self.get('output.css')
+        assert 'webkit' in out
