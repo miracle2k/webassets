@@ -16,7 +16,7 @@ install:
   - sudo apt-add-repository -y ppa:chris-lea/node.js
   - sudo apt-get update
   - sudo apt-get install rubygems
-  - npm install -g postcss autoprefixer
+  - npm install -g postcss postcss-cli autoprefixer
 
   # These are useful for debugging this mess.
   #- env
