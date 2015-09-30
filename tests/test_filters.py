@@ -16,9 +16,8 @@ from webassets.exceptions import FilterError
 from webassets.filter import (
     Filter, ExternalTool, get_filter, register_filter, unique_modules)
 from webassets.filter.compass import CompassConfig
-from webassets.filter.autoprefixer import AutoprefixerFilter
 from webassets.bundle import ContextWrapper
-from helpers import TempEnvironmentHelper
+from .helpers import TempEnvironmentHelper
 
 # Sometimes testing filter output can be hard if they generate
 # unpredictable text like temp paths or timestamps. doctest has
