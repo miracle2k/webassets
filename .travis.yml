@@ -1,6 +1,9 @@
 language: python
 python:
   - 2.6
+before_install:
+  - sudo apt-get install nodejs npm
+
 install: 
   # Supposed to help get PIL to install on PyPi
   # https://github.com/python-imaging/Pillow/issues/570
@@ -12,8 +15,7 @@ install:
   - sudo apt-get install python-software-properties
   - sudo apt-add-repository -y ppa:chris-lea/node.js
   - sudo apt-get update
-  - sudo apt-get install nodejs rubygems
-  - sudo apt-get install npm
+  - sudo apt-get install rubygems
   - npm install -g postcss autoprefixer
 
   # These are useful for debugging this mess.
