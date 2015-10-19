@@ -53,3 +53,29 @@ class AutoprefixerFilter(ExternalTool):
             args.extend(self.extra_args)
         with working_directory(filename=source_path):
             self.subprocess(args, out, in_)
+
+
+class Autoprefixer6Filter(AutoprefixerFilter):
+    name = 'autoprefixer6'
+
+    options = {
+        'autoprefixer': 'AUTOPREFIXER_BIN',
+        'browsers': 'AUTOPREFIXER_BROWSERS',
+        'extra_args': 'AUTOPREFIXER_EXTRA_ARGS',
+    }
+
+    _postcss_autoprefixer = ['-u', 'autoprefixer']
+
+    def input(self, in_, out, source_path, **kw):
+        # Set working directory to the source file so that includes are found
+        args = [self.autoprefixer or 'postcss']
+        args.extend(self._postcss_autoprefixer)
+
+        if self.browsers:
+            if isinstance(self.browsers, (list, tuple)):
+                self.browsers = u','.join(self.browsers)
+            args.extend(['--autoprefixer.browsers', self.browsers])
+        if self.extra_args:
+            args.extend(self.extra_args)
+        with working_directory(filename=source_path):
+            self.subprocess(args, out, in_)
