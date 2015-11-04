@@ -116,6 +116,7 @@ class Bundle(object):
         self.depends = options.pop('depends', [])
         self.version = options.pop('version', [])
         self.extra = options.pop('extra', {})
+        self.once = options.pop('once', False)
 
         self._config = BundleConfig(self)
         self._config.update(options.pop('config', {}))
@@ -228,6 +229,7 @@ class Bundle(object):
         # in. We should find a fix for this.
         if getattr(self, '_resolved_contents', None) is None or force:
             resolved = []
+            seen = set()
             for item in self.contents:
                 try:
                     result = ctx.resolver.resolve_source(ctx, item)
@@ -240,15 +242,22 @@ class Bundle(object):
                 # TODO: This will not work for nested bundle contents. If it
                 # doesn't work properly anyway, should be do it in the first
                 # place? If there are multiple versions, it will fail as well.
-                # TODO: There is also the question whether we can/should
-                # exclude glob duplicates.
                 if self.output:
                     try:
                         result.remove(self.resolve_output(ctx))
                     except (ValueError, BundleError):
                         pass
 
-                resolved.extend(map(lambda r: (item, r), result))
+                if self.once:
+                    # If "once" flag is set, check normalized path of each
+                    # file to make sure we haven't seen it before
+                    for r in result:
+                        normpath = path.normpath(r)
+                        if not normpath in seen:
+                            resolved.append((item, r))
+                            seen.add(normpath)
+                else:
+                    resolved.extend(map(lambda r: (item, r), result))
 
             self._resolved_contents = resolved
         return self._resolved_contents
