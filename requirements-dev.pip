@@ -13,7 +13,6 @@ mock
 Sphinx
 
 # Libs that are needed for some features
-PyYaml
 glob2
 
 # Libs that are needed by filters.
@@ -23,7 +22,3 @@ yuicompressor
 closure
 slimit==0.8.1
 ply==3.4 # https://github.com/rspivak/slimit/issues/76
-libsass==0.8.3
-
-# Python libs that requiring manual installation
-#cssprefixer
