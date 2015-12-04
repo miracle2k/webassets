@@ -95,16 +95,7 @@ class BuildCommand(Command):
             # TODO: Reset again (refactor commands to be classes)
             self.environment.debug = False
 
-        # TODO: Oh how nice it would be to use the future options stack.
         if manifest is not None:
-            try:
-                manifest = get_manifest(manifest, env=self.environment)
-            except ValueError:
-                manifest = get_manifest(
-                    # abspath() is important, or this will be considered
-                    # relative to Environment.directory.
-                    "file:%s" % os.path.abspath(manifest),
-                    env=self.environment)
             self.environment.manifest = manifest
 
         # Use output as a dict.

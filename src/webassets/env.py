@@ -435,10 +435,17 @@ class ConfigurationContext(object):
     def _set_cache(self, enable):
         self._storage['cache'] = enable
     def _get_cache(self):
-        cache = get_cache(self._storage['cache'], self)
-        if cache != self._storage['cache']:
-            self._storage['cache'] = cache
-        return cache
+        """ Instantiate the cache once and store it on the context.
+            If the underlying setting changes, reinstantiate the cache.
+        """
+        if hasattr(self, '_cache'):
+            stored_setting, stored_cache = self._cache
+            if stored_setting == self._storage['cache']:
+                return stored_cache
+
+        new_cache = get_cache(self._storage['cache'], self)
+        self._cache = (self._storage['cache'], new_cache)
+        return new_cache
     cache = property(_get_cache, _set_cache, doc=
     """Controls the behavior of the cache. The cache will speed up rebuilding
     of your bundles, by caching individual filter results. This can be
@@ -480,10 +487,24 @@ class ConfigurationContext(object):
     def _set_manifest(self, manifest):
         self._storage['manifest'] = manifest
     def _get_manifest(self):
-        manifest = get_manifest(self._storage['manifest'], env=self)
-        if manifest != self._storage['manifest']:
-            self._storage['manifest'] = manifest
-        return manifest
+        """ Instantiate the manifest once and store it on the context.
+            If the underlying setting changes, reinstantiate the manifest.
+        """
+        if hasattr(self, '_manifest'):
+            stored_setting, stored_manifest = self._manifest
+            if stored_setting == self._storage['manifest']:
+                return stored_manifest
+
+        try:
+            new_manifest = get_manifest(self._storage['manifest'], env=self)
+        except ValueError:
+            new_manifest = get_manifest(
+                # abspath() is important, or this will be considered
+                # relative to Environment.directory.
+                "file:%s" % os.path.abspath(self._storage['manifest']),
+                env=self)
+        self._manifest = (self._storage['manifest'], new_manifest)
+        return new_manifest
     manifest = property(_get_manifest, _set_manifest, doc=
     """A manifest persists information about the versions bundles
     are at.
@@ -530,10 +551,17 @@ class ConfigurationContext(object):
     def _set_versions(self, versions):
         self._storage['versions'] = versions
     def _get_versions(self):
-        versions = get_versioner(self._storage['versions'])
-        if versions != self._storage['versions']:
-            self._storage['versions'] = versions
-        return versions
+        """ Instantiate the versioner once and store it on the context.
+            If the underlying setting changes, reinstantiate the versioner.
+        """
+        if hasattr(self, '_versions'):
+            stored_setting, stored_versions = self._versions
+            if stored_setting == self._storage['versions']:
+                return stored_versions
+
+        new_versions = get_versioner(self._storage['versions'])
+        self._versions = (self._storage['versions'], new_versions)
+        return new_versions
     versions = property(_get_versions, _set_versions, doc=
     """Defines what should be used as a Bundle ``version``.
 
@@ -563,10 +591,17 @@ class ConfigurationContext(object):
     def set_updater(self, updater):
         self._storage['updater'] = updater
     def get_updater(self):
-        updater = get_updater(self._storage['updater'])
-        if updater != self._storage['updater']:
-            self._storage['updater'] = updater
-        return updater
+        """ Instantiate the updater once and store it on the context.
+            If the underlying setting changes, reinstantiate the updater.
+        """
+        if hasattr(self, '_updater'):
+            stored_setting, stored_updater = self._updater
+            if stored_setting == self._storage['updater']:
+                return stored_updater
+
+        new_updater = get_updater(self._storage['updater'])
+        self._updater = (self._storage['updater'], new_updater)
+        return new_updater
     updater = property(get_updater, set_updater, doc=
     """Controls how the ``auto_build`` option should determine
     whether a bundle needs to be rebuilt.
