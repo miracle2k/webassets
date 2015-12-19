@@ -125,8 +125,8 @@ class UrlHunk(BaseHunk):
                 if self.env and self.env.cache:
                     self.env.cache.set(
                         ('url', 'headers', self.url),
-                        (response.headers.getheader("ETag"),
-                         response.headers.getheader("Last-Modified")))
+                        (response.headers.get("ETag"),
+                         response.headers.get("Last-Modified")))
                     self.env.cache.set(('url', 'contents', self.url), self._data)
         return self._data
 
