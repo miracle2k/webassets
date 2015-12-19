@@ -35,9 +35,6 @@ class LibSass(Filter):
     LIBSASS_INCLUDES (includes)
         an optional list of paths to find @imported SASS/CSS source files
 
-    LIBSASS_IMAGES (images)
-        an optional path to find images
-
     See libsass documentation for full documentation about these configuration
     options:
 
@@ -46,8 +43,7 @@ class LibSass(Filter):
     name = 'libsass'
     options = {
         'style': 'LIBSASS_STYLE',
-        'includes': 'LIBSASS_INCLUDES',
-        'images': 'LIBSASS_IMAGES',
+        'includes': 'LIBSASS_INCLUDES'
     }
     max_debug_level = None
 
@@ -72,7 +68,6 @@ class LibSass(Filter):
             self.sass.compile(
                 filename=source_path,
                 output_style=self.style,
-                include_paths=(self.includes if self.includes else []),
-                image_path=(self.images if self.images else '')
+                include_paths=(self.includes if self.includes else [])
             )
         )
