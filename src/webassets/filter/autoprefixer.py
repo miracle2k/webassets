@@ -42,6 +42,8 @@ class AutoprefixerFilter(ExternalTool):
         'extra_args': 'AUTOPREFIXER_EXTRA_ARGS',
     }
 
+    max_debug_level = None
+
     def input(self, in_, out, source_path, **kw):
         # Set working directory to the source file so that includes are found
         args = [self.autoprefixer or 'autoprefixer']
@@ -65,6 +67,8 @@ class Autoprefixer6Filter(AutoprefixerFilter):
     }
 
     _postcss_autoprefixer = ['-u', 'autoprefixer']
+
+    max_debug_level = None    
 
     def input(self, in_, out, source_path, **kw):
         # Set working directory to the source file so that includes are found
