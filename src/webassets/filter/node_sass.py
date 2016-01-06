@@ -10,14 +10,37 @@ __all__ = ('NodeSass', )
 
 
 class NodeSass(Sass):
+    """Converts `Scss <http://sass-lang.com/>`_ markup to real CSS.
+
+    This uses node-sass which is a wrapper around libsass.
+
+    This is an alternative to using the ``sass`` or ``scss`` filters,
+    which are based on the original, external tools.
+
+    *Supported configuration options:*
+
+    NODE_SASS_DEBUG_INFO (debug_info)
+        Include debug information in the output
+
+        If unset, the default value will depend on your
+        :attr:`Environment.debug` setting.
+
+    NODE_SASS_LOAD_PATHS (load_paths)
+        Additional load paths that node-sass should use.
+
+    NODE_SASS_STYLE (style)
+        The style of the output CSS. Can be one of ``nested`` (default),
+        ``compact``, ``compressed``, or ``expanded``.
+    """
+
     name = 'node-sass'
     options = {
-        'binary': 'SASS_BIN',
-        'debug_info': 'SASS_DEBUG_INFO',
-        'use_scss': ('scss', 'SASS_USE_SCSS'),
-        'as_output': 'SASS_AS_OUTPUT',
-        'load_paths': 'SASS_LOAD_PATHS',
-        'style': 'SASS_STYLE',
+        'binary': 'NODE_SASS_BIN',
+        'debug_info': 'NODE_SASS_DEBUG_INFO',
+        'use_scss': ('scss', 'NODE_SASS_USE_SCSS'),
+        'as_output': 'NODE_SASS_AS_OUTPUT',
+        'load_paths': 'NODE_SASS_LOAD_PATHS',
+        'style': 'NODE_SASS_STYLE',
     }
     max_debug_level = None
 
