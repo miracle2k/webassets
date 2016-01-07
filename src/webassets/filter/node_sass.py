@@ -84,3 +84,15 @@ class NodeSass(Sass):
         finally:
             if cd:
                 os.chdir(old_dir)
+
+
+class NodeSCSS(NodeSass):
+    """Version of the ``node-sass`` filter that uses the SCSS syntax.
+    """
+
+    name = 'node-scss'
+
+    def __init__(self, *a, **kw):
+        assert not 'scss' in kw
+        kw['scss'] = True
+        super(NodeSCSS, self).__init__(*a, **kw)

@@ -149,6 +149,12 @@ JS/CSS compilers
 .. autoclass:: webassets.filter.node_sass.NodeSass
 
 
+``node-scss``
+~~~~~~~~~~
+
+.. autoclass:: webassets.filter.node_sass.NodeSCSS
+
+
 ``stylus``
 ~~~~~~~~~~
 
