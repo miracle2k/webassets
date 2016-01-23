@@ -18,3 +18,5 @@ npm install -g stylus
 npm install -g handlebars
 npm install -g typescript
 npm install -g requirejs@2.1.11
+npm install -g autoprefixer
+npm install -g postcss-cli
