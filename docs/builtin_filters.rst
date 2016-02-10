@@ -167,6 +167,12 @@ JS/CSS compilers
 .. autoclass:: webassets.filter.coffeescript.CoffeeScript
 
 
+``typescript``
+~~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.typescript.TypeScript
+
+
 ``requirejs``
 ~~~~~~~~~~~~~
 
