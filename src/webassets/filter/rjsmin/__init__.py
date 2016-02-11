@@ -18,9 +18,18 @@ class RJSMin(Filter):
     which is included with webassets. However, if you have the external
     package installed, it will be used instead. You may want to do this
     to get access to the faster C-extension.
+
+    Supported configuration options:
+
+    RJSMIN_KEEP_BANG_COMMENTS (boolean)
+        Keep bang-comments (comments starting with an exclamation mark).
     """
 
     name = 'rjsmin'
+    options = {
+        'keep_bang_comments': 'RJSMIN_KEEP_BANG_COMMENTS',
+    }
 
     def output(self, _in, out, **kw):
-        out.write(rjsmin.jsmin(_in.read()))
+        keep = self.keep_bang_comments or False
+        out.write(rjsmin.jsmin(_in.read(), keep_bang_comments=keep))
