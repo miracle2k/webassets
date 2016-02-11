@@ -167,8 +167,9 @@ class FilesystemCache(BaseCache):
 
     V = 2   # We have changed the cache format once
 
-    def __init__(self, directory):
+    def __init__(self, directory, new_file_mode=None):
         self.directory = directory
+        self.new_file_mode = new_file_mode
 
     def __eq__(self, other):
         """Return equality with the config values
@@ -205,6 +206,10 @@ class FilesystemCache(BaseCache):
             with os.fdopen(fd, 'wb') as f:
                 pickle.dump(data, f)
                 f.flush()
+            # If a non default mode is specified, then chmod the file to
+            # it before renaming it into place
+            if self.new_file_mode is not None:
+                os.chmod(temp_filename, self.new_file_mode)
             if os.path.isfile(filename):
                 os.unlink(filename)
             os.rename(temp_filename, filename)
@@ -231,4 +236,4 @@ def get_cache(option, ctx):
             os.makedirs(directory)
     else:
         directory = option
-    return FilesystemCache(directory)
+    return FilesystemCache(directory, ctx.cache_file_mode)
