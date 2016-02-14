@@ -39,6 +39,16 @@ class LibSass(Filter):
     options:
 
         http://hongminhee.org/libsass-python/sass.html#sass.compile
+
+    *Example:*
+
+    Define a bundle for ``style.scss`` that contains ``@imports`` to files in
+    subfolders:
+
+    .. code-block:: python
+
+        Bundle('style.scss', filters='libsass', output='style.css', depends'**/*.scss')
+    
     """
     name = 'libsass'
     options = {
