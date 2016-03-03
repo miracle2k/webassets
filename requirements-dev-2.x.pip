@@ -5,6 +5,4 @@ clevercss
 pyScss==1.1.5
 slimmer
 cssmin
-
-# Default rsmin package is not installable via pip
-http://michael.elsdoerfer.name/rjsmin/rjsmin-1.0.1-webassets.tar.gz
+rjsmin>=1.0.12
