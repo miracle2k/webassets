@@ -3,6 +3,8 @@ dist: trusty
 language: python
 python:
   - 2.6
+node_js:
+  - "4.3.2"
 install:
   - sudo apt-get -qq update
 
@@ -15,7 +17,7 @@ install:
   # that NVM and RVM are pre-installed (see below).
   - sudo apt-get install python-software-properties
 
-  - npm install -g postcss autoprefixer
+  - npm install -g postcss-cli autoprefixer
 
   # Now install the external filter binaries, finally.
   # If we use sudo for this, ruby gems will not work: it seems they are
