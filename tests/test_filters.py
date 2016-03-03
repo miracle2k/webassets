@@ -1389,7 +1389,12 @@ class TestTypeScript(TempEnvironmentHelper):
 
     def test(self):
         self.mkbundle('foo.ts', filters='typescript', output='out.js').build()
-        assert self.get("out.js") == 'var X = (function () {\n    function X() {\n    }\n    return X;\n})();\n'
+        assert self.get("out.js") in [
+            # older versions of typescript
+            'var X = (function () {\n    function X() {\n    }\n    return X;\n})();\n',
+            # newer versions
+            'var X = (function () {\n    function X() {\n    }\n    return X;\n}());\n'
+        ]
 
 
 class TestRequireJS(TempEnvironmentHelper):
