@@ -143,14 +143,20 @@ JS/CSS compilers
 .. autoclass:: webassets.filter.pyscss.PyScss
 
 
+``libsass``
+~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.libsass.LibSass
+
+
 ``node-sass``
-~~~~~~~~~~
+~~~~~~~~~~~~~
 
 .. autoclass:: webassets.filter.node_sass.NodeSass
 
 
 ``node-scss``
-~~~~~~~~~~
+~~~~~~~~~~~~~
 
 .. autoclass:: webassets.filter.node_sass.NodeSCSS
 
