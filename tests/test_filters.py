@@ -1044,7 +1044,9 @@ class TestPyScss(TempEnvironmentHelper):
 class TestLibSass(TempEnvironmentHelper):
     default_files = {
         'foo.scss': '@import "bar"; a {color: red + green; }',
-        'bar.scss': 'h1{color:red}'
+        'bar.scss': 'h1{color:red}',
+        'a.scss': '$foo: bar;',
+        'b.scss': '$foo: foo !default; .test {background-color: $foo;}'
     }
 
     def setup(self):
@@ -1065,6 +1067,25 @@ class TestLibSass(TempEnvironmentHelper):
         libsass = get_filter('libsass', style='compressed')
         self.mkbundle('foo.scss', filters=libsass, output='out.css').build()
         assert self.get('out.css') == 'h1{color:red}a{color:#ff8000}\n'
+
+    def test_as_output_filter(self):
+        libsass = get_filter('libsass', as_output=True)
+        self.mkbundle('a.scss', 'b.scss', filters=libsass, output='out.css').build()
+        assert self.get('out.css') == (
+            '.test {\n  background-color: bar; }\n'
+        )
+
+    def test_as_input_filter(self):
+        libsass = get_filter('libsass', as_output=False)
+        self.mkbundle('a.scss', 'b.scss', filters=libsass, output='out.css').build()
+        assert self.get('out.css') == (
+            '\n.test {\n  background-color: foo; }\n'
+        )
+
+    def test_as_output_filter_compressed(self):
+        libsass = get_filter('libsass', as_output=True, style='compressed')
+        self.mkbundle('a.scss', 'b.scss', filters=libsass, output='out.css').build()
+        assert self.get('out.css') == '.test{background-color:bar}\n'
 
 
 class TestCompass(TempEnvironmentHelper):
