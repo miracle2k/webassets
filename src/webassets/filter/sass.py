@@ -121,6 +121,9 @@ class Sass(Filter):
     }
     max_debug_level = None
 
+    def resolve_path(self, path):
+        return self.ctx.resolver.resolve_source(self.ctx, path)
+
     def _apply_sass(self, _in, out, cd=None):
         # Switch to source file directory if asked, so that this directory
         # is by default on the load path. We could pass it via -I, but then
@@ -149,9 +152,17 @@ class Sass(Filter):
         if self.use_compass:
             args.append('--compass')
         for path in self.load_paths or []:
-            args.extend(['-I', path])
+            if os.path.isabs(path):
+                abs_path = path
+            else:
+                abs_path = self.resolve_path(path)
+            args.extend(['-I', abs_path])
         for lib in self.libs or []:
-            args.extend(['-r', lib])
+            if os.path.isabs(lib):
+                abs_path = lib
+            else:
+                abs_path = self.resolve_path(lib)
+            args.extend(['-r', abs_path])
 
         proc = subprocess.Popen(args,
                                 stdin=subprocess.PIPE,
