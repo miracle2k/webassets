@@ -101,6 +101,30 @@ class Sass(Filter):
 
         Enabled by default. To disable, set empty environment variable
         ``SASS_LINE_COMMENTS=`` or pass ``line_comments=False`` to this filter.
+
+    SASS_AS_OUTPUT
+        By default, this works as an "input filter", meaning ``sass`` is
+        called for each source file in the bundle. This is because the
+        path of the source file is required so that @import directives
+        within the Sass file can be correctly resolved.
+
+        However, it is possible to use this filter as an "output filter",
+        meaning the source files will first be concatenated, and then the
+        Sass filter is applied in one go. This can provide a speedup for
+        bigger projects.
+
+        It will also allow you to share variables between files.
+
+    SASS_LOAD_PATHS
+        It should be a list of paths relatives to Environment.directory or absolute paths.
+        Order matters as sass will pick the first file found in path order.
+        These are fed into the -I flag of the sass command and
+        is used to control where sass imports code from.
+
+    SASS_LIBS
+        It should be a list of paths relatives to Environment.directory or absolute paths.
+        These are fed into the -r flag of the sass command and
+        is used to require ruby libraries before running sass.
     """
     # TODO: If an output filter could be passed the list of all input
     # files, the filter might be able to do something interesting with
