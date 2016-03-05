@@ -1497,3 +1497,22 @@ class TestAutoprefixer6Filter(TempEnvironmentHelper):
         self.mkbundle('test.css', filters='autoprefixer6', output='output.css').build()
         out = self.get('output.css')
         assert 'webkit' in out
+
+
+class TestBabel(TempEnvironmentHelper):
+    default_files = {
+        'test.es6': """var x = (p) => { return false; };"""
+    }
+
+    def test_es2015(self):
+        es2015 = get_filter('babel', presets='es2015')
+        try:
+            self.mkbundle('test.es6', filters=es2015, output='output.js').build()
+        except FilterError as e:
+            # babel is not installed, that's ok.
+            if 'Program file not found' in e.message:
+                raise SkipTest()
+            else:
+                raise
+        assert "var x = function x" in self.get('output.js')
+

@@ -12,6 +12,11 @@ external tools.
 
 You can also write :doc:`custom filters <custom_filters>`.
 
+Javascript cross-compilers
+--------------------------
+
+.. autoclass:: webassets.filter.babel.Babel
+
 
 Javascript compressors
 ----------------------
