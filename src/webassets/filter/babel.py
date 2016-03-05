@@ -41,6 +41,9 @@ class Babel(ExternalTool):
     BABEL_PRESETS
         Passed straight through to ``babel --presets`` to specify which babel
         presets to use
+
+    BABEL_EXTRA_ARGS
+        A list of manual arguments to be specified to the babel command
     """
     name = 'babel'
     max_debug_level = None
@@ -48,11 +51,14 @@ class Babel(ExternalTool):
     options = {
         'binary': 'BABEL_BIN',
         'presets': 'BABEL_PRESETS',
+        'extra_args': 'BABEL_EXTRA_ARGS',
     }
 
     def input(self, _in, out, **kw):
         args = [self.binary or 'babel']
         if self.presets:
-            args += [ '--presets', self.presets ]
+            args += ['--presets', self.presets]
+        if self.extra_args:
+            args.extend(self.extra_args)
         return self.subprocess(args, out, _in)
 

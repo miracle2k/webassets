@@ -1516,3 +1516,9 @@ class TestBabel(TempEnvironmentHelper):
                 raise
         assert "var x = function x" in self.get('output.js')
 
+    def test_extra_args(self):
+        self.env.config['BABEL_EXTRA_ARGS'] = ['--minified']
+        self.mkbundle('test.es6', filters='babel', output='output.js').build()
+        assert (self.get('output.js').strip() ==
+                'var x=p => {return false};')
+
