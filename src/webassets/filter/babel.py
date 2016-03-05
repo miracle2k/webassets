@@ -6,7 +6,7 @@ class Babel(ExternalTool):
     Requires the babel executable to be available externally.
     To install it, you might be able to do::
 
-        $ npm install --global babel
+        $ npm install --global babel-cli
 
     You probably also want some presets::
 
