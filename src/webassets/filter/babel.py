@@ -44,6 +44,9 @@ class Babel(ExternalTool):
 
     BABEL_EXTRA_ARGS
         A list of manual arguments to be specified to the babel command
+
+    BABEL_RUN_IN_DEBUG
+        May be set to False to make babel not run in debug
     """
     name = 'babel'
     max_debug_level = None
@@ -52,7 +55,14 @@ class Babel(ExternalTool):
         'binary': 'BABEL_BIN',
         'presets': 'BABEL_PRESETS',
         'extra_args': 'BABEL_EXTRA_ARGS',
+        'run_in_debug': 'BABEL_RUN_IN_DEBUG',
     }
+
+    def setup(self):
+        super(Babel, self).setup()
+        if self.run_in_debug is False:
+            # Disable running in debug mode for this instance.
+            self.max_debug_level = False
 
     def input(self, _in, out, **kw):
         args = [self.binary or 'babel']
