@@ -139,6 +139,17 @@ the filter. First, you need to register the class with the system though:
     from webassets.filter import register_filter
     register_filter(NoopFilter)
 
+Or if you are using yaml then use the filters key for the environment:
+
+.. code-block:: yaml
+
+    directory: .
+    url: /
+    debug: True
+    updater: timestamp
+    filters:
+        - my_custom_package.my_filter
+
 After that, you can use the filter like you would any of the built-in ones:
 
 .. code-block:: django
