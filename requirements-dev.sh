@@ -18,3 +18,7 @@ npm install -g stylus
 npm install -g handlebars
 npm install -g typescript
 npm install -g requirejs@2.1.11
+npm install -g babel-cli
+# Don't install the babel-preset globally because
+# there's a bug with older verisons of node
+npm install babel-preset-es2015 --save
