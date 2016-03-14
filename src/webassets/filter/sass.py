@@ -188,14 +188,17 @@ class Sass(Filter):
                 abs_path = self.resolve_path(lib)
             args.extend(['-r', abs_path])
 
-        proc = subprocess.Popen(args,
-                                stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                # shell: necessary on windows to execute
-                                # ruby files, but doesn't work on linux.
-                                shell=(os.name == 'nt'),
-                                cwd=child_cwd)
+        try:
+            proc = subprocess.Popen(args,
+                                    stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    # shell: necessary on windows to execute
+                                    # ruby files, but doesn't work on linux.
+                                    shell=(os.name == 'nt'),
+                                    cwd=child_cwd)
+        except OSError:
+            raise FilterError('Program file not found: %s.' % args[0])
         stdout, stderr = proc.communicate(_in.read().encode('utf-8'))
 
         if proc.returncode != 0:
