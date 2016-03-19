@@ -1,15 +1,14 @@
 from __future__ import print_function
 import os, subprocess
 
-from webassets.filter import Filter
-from webassets.exceptions import FilterError, ImminentDeprecationWarning
+from webassets.filter import ExternalTool
 from webassets.cache import FilesystemCache
 
 
 __all__ = ('Sass', 'SCSS')
 
 
-class Sass(Filter):
+class Sass(ExternalTool):
     """Converts `Sass <http://sass-lang.com/>`_ markup to real CSS.
 
     Requires the Sass executable to be available externally. To install
@@ -188,24 +187,7 @@ class Sass(Filter):
                 abs_path = self.resolve_path(lib)
             args.extend(['-r', abs_path])
 
-        proc = subprocess.Popen(args,
-                                stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                # shell: necessary on windows to execute
-                                # ruby files, but doesn't work on linux.
-                                shell=(os.name == 'nt'),
-                                cwd=child_cwd)
-        stdout, stderr = proc.communicate(_in.read().encode('utf-8'))
-
-        if proc.returncode != 0:
-            raise FilterError(('sass: subprocess had error: stderr=%s, '+
-                               'stdout=%s, returncode=%s') % (
-                                            stderr, stdout, proc.returncode))
-        elif stderr:
-            print("sass filter has warnings:", stderr)
-
-        out.write(stdout.decode('utf-8'))
+        return self.subprocess(args, out, _in)
 
     def input(self, _in, out, source_path, output_path, **kw):
         if self.as_output:
