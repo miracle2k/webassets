@@ -73,7 +73,7 @@ class Jade(Filter):
         """
         super(Jade, self).setup()
 
-        self.argv.append(self.jade or 'jade')
+        self.argv = [self.jade or 'jade']
         self.argv.append('--client')
 
         if self.jade_no_debug:
