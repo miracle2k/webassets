@@ -7,7 +7,7 @@ from webassets.filter import (
 
 class ReplaceFilter(Filter):
     """
-        A filter that allows abitrary search/replace of strings using a source
+        A filter that allows arbitrary search/replace of strings using a source
         regex and a replacement string. Unlike cssrewrite this works on strings
         which are not paths and can be used as an output filter.
 
