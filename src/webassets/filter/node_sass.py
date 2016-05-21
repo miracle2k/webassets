@@ -31,6 +31,9 @@ class NodeSass(Sass):
     NODE_SASS_STYLE (style)
         The style of the output CSS. Can be one of ``nested`` (default),
         ``compact``, ``compressed``, or ``expanded``.
+
+    NODE_SASS_CLI_ARGS (cli_args)
+        Additional cli arguments
     """
 
     name = 'node-sass'
@@ -41,6 +44,7 @@ class NodeSass(Sass):
         'as_output': 'NODE_SASS_AS_OUTPUT',
         'load_paths': 'NODE_SASS_LOAD_PATHS',
         'style': 'NODE_SASS_STYLE',
+        'cli_args': 'NODE_SASS_CLI_ARGS',
     }
     max_debug_level = None
 
@@ -63,6 +67,9 @@ class NodeSass(Sass):
                 args.append('--debug-info')
             for path in self.load_paths or []:
                 args.extend(['--include-path', path])
+
+            if (self.cli_args):
+                args.extend(self.cli_args)
 
             proc = subprocess.Popen(args,
                                     stdin=subprocess.PIPE,
