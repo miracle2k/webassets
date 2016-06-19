@@ -25,8 +25,8 @@ the respective page:
 .. toctree::
    :maxdepth: 1
 
-   With Django <http://django-assets.readthedocs.org/en/latest/>
-   With Flask <http://flask-assets.readthedocs.org/en/latest/>
+   With Django <https://django-assets.readthedocs.io/en/latest/>
+   With Flask <https://flask-assets.readthedocs.io/en/latest/>
    With Pyramid <https://github.com/sontek/pyramid_webassets>
    Other or no framework <generic/index>
 
