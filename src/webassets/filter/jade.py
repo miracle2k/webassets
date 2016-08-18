@@ -73,7 +73,7 @@ class Jade(Filter):
         """
         super(Jade, self).setup()
 
-        self.argv.append(self.jade or 'jade')
+        self.argv = [self.jade or 'jade']
         self.argv.append('--client')
 
         if self.jade_no_debug:
@@ -117,6 +117,8 @@ class Jade(Filter):
         if self.jade_runtime:
             with open(self.jade_runtime) as file:
                 runtime = ''.join(file.readlines())
+        else:
+            runtime = ''
 
         # JavaScript code to initialize the window-level object that will hold
         # our compiled Jade templates as functions

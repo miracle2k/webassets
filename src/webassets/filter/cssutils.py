@@ -22,24 +22,11 @@ class CSSUtils(Filter):
         import cssutils
         self.cssutils = cssutils
 
-        try:
-            # cssutils is unaware of so many new CSS3 properties,
-            # vendor-prefixes etc., that it's diagnostic messages are rather
-            # useless. Disable them.
-            log = logging.getLogger('assets.cssutils')
-            log.addHandler(logging.handlers.MemoryHandler(10))
-
-            # Newer versions of cssutils print a deprecation warning
-            # for 'setlog'.
-            if hasattr(cssutils.log, 'setLog'):
-                func = cssutils.log.setLog
-            else:
-                func = cssutils.log.setlog
-            func(log)
-        except ImportError:
-            # During doc generation, Django is not going to be setup and will
-            # fail when the settings object is accessed. That's ok though.
-            pass
+        # cssutils is unaware of many new CSS3 properties,
+        # vendor-prefixes etc., and logs many non-fatal warnings
+        # about them. These diagnostic messages are rather
+        # useless, so disable everything that's non-fatal.
+        cssutils.log.setLevel(logging.FATAL)
 
     def output(self, _in, out, **kw):
         sheet = self.cssutils.parseString(_in.read())

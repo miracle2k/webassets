@@ -12,10 +12,11 @@ class Slimit(Filter):
     which is a JavaScript minifier written in Python. It compiles JavaScript
     into more compact code so that it downloads and runs faster.
 
-    Right now it does not use the mangle options to its minifier.
+    It offers mangle and mangle_toplevel options through SLIMIT_MANGLE and SLIMIT_MANGLE_TOPLEVEL
     """
 
     name = 'slimit'
+    options = {"mangle": "SLIMIT_MANGLE", "mangle_toplevel": "SLIMIT_MANGLE_TOPLEVEL"}
 
     def setup(self):
         try:
@@ -26,4 +27,5 @@ class Slimit(Filter):
             self.slimit = slimit
 
     def output(self, _in, out, **kw):
-        out.write(self.slimit.minify(_in.read()))
+        out.write(self.slimit.minify(_in.read(),
+                mangle=self.mangle, mangle_toplevel=self.mangle_toplevel))

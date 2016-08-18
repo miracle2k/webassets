@@ -992,7 +992,7 @@ class TestSass(TempEnvironmentHelper):
         """Test a custom include_path.
         """
         sass_output = get_filter('sass', debug_info=False, as_output=True,
-                                 load_paths=[self.path('includes')])
+                                 load_paths=['includes'])
         self.create_files({
             'includes/vars.sass': '$a_color: #FFFFFF',
             'base.sass': '@import vars.sass\nh1\n  color: $a_color'})
@@ -1044,7 +1044,9 @@ class TestPyScss(TempEnvironmentHelper):
 class TestLibSass(TempEnvironmentHelper):
     default_files = {
         'foo.scss': '@import "bar"; a {color: red + green; }',
-        'bar.scss': 'h1{color:red}'
+        'bar.scss': 'h1{color:red}',
+        'a.scss': '$foo: bar;',
+        'b.scss': '$foo: foo !default; .test {background-color: $foo;}'
     }
 
     def setup(self):
@@ -1065,6 +1067,25 @@ class TestLibSass(TempEnvironmentHelper):
         libsass = get_filter('libsass', style='compressed')
         self.mkbundle('foo.scss', filters=libsass, output='out.css').build()
         assert self.get('out.css') == 'h1{color:red}a{color:#ff8000}\n'
+
+    def test_as_output_filter(self):
+        libsass = get_filter('libsass', as_output=True)
+        self.mkbundle('a.scss', 'b.scss', filters=libsass, output='out.css').build()
+        assert self.get('out.css') == (
+            '.test {\n  background-color: bar; }\n'
+        )
+
+    def test_as_input_filter(self):
+        libsass = get_filter('libsass', as_output=False)
+        self.mkbundle('a.scss', 'b.scss', filters=libsass, output='out.css').build()
+        assert self.get('out.css') == (
+            '\n.test {\n  background-color: foo; }\n'
+        )
+
+    def test_as_output_filter_compressed(self):
+        libsass = get_filter('libsass', as_output=True, style='compressed')
+        self.mkbundle('a.scss', 'b.scss', filters=libsass, output='out.css').build()
+        assert self.get('out.css') == '.test{background-color:bar}\n'
 
 
 class TestCompass(TempEnvironmentHelper):
@@ -1389,7 +1410,12 @@ class TestTypeScript(TempEnvironmentHelper):
 
     def test(self):
         self.mkbundle('foo.ts', filters='typescript', output='out.js').build()
-        assert self.get("out.js") == 'var X = (function () {\n    function X() {\n    }\n    return X;\n})();\n'
+        assert self.get("out.js") in [
+            # older versions of typescript
+            'var X = (function () {\n    function X() {\n    }\n    return X;\n})();\n',
+            # newer versions
+            'var X = (function () {\n    function X() {\n    }\n    return X;\n}());\n'
+        ]
 
 
 class TestRequireJS(TempEnvironmentHelper):
@@ -1477,3 +1503,50 @@ class TestClosureStylesheets(TempEnvironmentHelper):
     def test_minifier(self):
         self.mkbundle('test.css', filters = 'closure_stylesheets_minifier', output = 'output.css').build()
         assert self.get('output.css') == 'p{color:red}'
+
+
+class TestAutoprefixer6Filter(TempEnvironmentHelper):
+    default_files = {
+        'test.css': """
+        .shadow {
+            animation: blablabla
+        }
+        """
+    }
+
+    def test_first(self):
+        self.mkbundle('test.css', filters='autoprefixer6', output='output.css').build()
+        out = self.get('output.css')
+        assert 'webkit' in out
+
+
+class TestBabel(TempEnvironmentHelper):
+    default_files = {
+        'test.es6': """var x = (p) => { return false; };"""
+    }
+
+    def test_es2015(self):
+        es2015 = get_filter('babel', presets='es2015')
+        try:
+            self.mkbundle('test.es6', filters=es2015, output='output.js').build()
+        except FilterError as e:
+            # babel is not installed, that's ok.
+            if 'Program file not found' in e.message:
+                raise SkipTest()
+            else:
+                raise
+        assert "var x = function x" in self.get('output.js')
+
+    def test_extra_args(self):
+        self.env.config['BABEL_EXTRA_ARGS'] = ['--minified']
+        self.mkbundle('test.es6', filters='babel', output='output.js').build()
+        assert (self.get('output.js').strip() ==
+                'var x=p => {return false};')
+
+    def test_run_in_debug_mode(self):
+        """A setting can be used to make babel not run in debug."""
+        self.env.debug = True
+        self.env.config['babel_run_in_debug'] = False
+        self.mkbundle('test.es6', filters='babel', output='output.js').build()
+        assert self.get('output.js') == self.default_files['test.es6']
+

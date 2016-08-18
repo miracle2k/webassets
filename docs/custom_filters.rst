@@ -39,15 +39,15 @@ transformation depends on the source file's filename. For example,
 the :ref:`cssrewrite <filters-cssrewrite>` filter needs to know the
 location of the source file relative to the final output file, so it
 can properly update relative references. Another example
-are CSS converters like :ref:`less <filters-less>`, which support
-include mechanisms that work relative to the input filename.
+are CSS converters like :ref:`less <filters-less>`, which 
+work relative to the input filename.
 
 With that in mind...
 
 The very easy way
 -----------------
 
-In the simplest case, a filter is simply a function what takes two
+In the simplest case, a filter is simply a function that takes two
 arguments, an input stream and an output stream.
 
 .. code-block:: python
@@ -112,7 +112,7 @@ Class-based filters have a ``name`` attribute, which you need to set if you
 want to register your filter globally.
 
 The ``input`` method will be called for every source file, the ``output``
-method will be applied once after a bundle's contents have been concated.
+method will be applied once after a bundle's contents have been concatenated.
 
 Among the ``kwargs`` you currently receive are:
 
@@ -138,6 +138,17 @@ the filter. First, you need to register the class with the system though:
 
     from webassets.filter import register_filter
     register_filter(NoopFilter)
+
+Or if you are using yaml then use the filters key for the environment:
+
+.. code-block:: yaml
+
+    directory: .
+    url: /
+    debug: True
+    updater: timestamp
+    filters:
+        - my_custom_package.my_filter
 
 After that, you can use the filter like you would any of the built-in ones:
 

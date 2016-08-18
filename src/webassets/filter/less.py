@@ -110,7 +110,7 @@ class Less(ExternalTool):
 
     def _apply_less(self, in_, out, source_path=None, **kw):
         # Set working directory to the source file so that includes are found
-        args = [self.less or 'lessc']
+        args = self.parse_binary(self.less or 'lessc')
         if self.line_numbers:
             args.append('--line-numbers=%s' % self.line_numbers)
 

@@ -1,29 +1,25 @@
+sudo: required
+dist: trusty
 language: python
 python:
   - 2.6
-install: 
+node_js:
+  - "4.3.2"
+install:
+  - sudo apt-get -qq update
+
   # Supposed to help get PIL to install on PyPi
   # https://github.com/python-imaging/Pillow/issues/570
   - sudo apt-get install python-tk
-  
+
   # To install external filter binaries, we first need to install
   # RubyGems and Node/NPM. I'm not sure why, since it seems clear
   # that NVM and RVM are pre-installed (see below).
   - sudo apt-get install python-software-properties
-  - sudo apt-add-repository -y ppa:chris-lea/node.js
-  - sudo apt-get update
-  - sudo apt-get install nodejs rubygems
 
-  # These are useful for debugging this mess.
-  #- env
-  #- gem env
-  #- rvm info
+  - npm install -g postcss-cli autoprefixer
 
-  # Use non-http registry? https://github.com/n1k0/casperjs/issues/876
-  # Without this, installing doesn't work.  
-  - sudo npm config set registry http://registry.npmjs.org/
-
-  # Now install the external filter binaries, finally. 
+  # Now install the external filter binaries, finally.
   # If we use sudo for this, ruby gems will not work: it seems they are
   # then installed globally, but are then searched for in a RVM location.
   # (Clearing GEM_HOME might be a way to fix this, if sudo where necessary).
