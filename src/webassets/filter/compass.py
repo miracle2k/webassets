@@ -242,6 +242,7 @@ class Compass(Filter):
                     os.mkdir(path.dirname(sourcemap_output_filepath))
                 sourcemap_output_file = open(sourcemap_output_filepath, 'w')
                 sourcemap_output_file.write(sourcemap_file.read())
+                sourcemap_file.close()
             try:
                 contents = output_file.read()
                 out.write(contents)
