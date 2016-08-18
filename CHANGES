@@ -1,3 +1,9 @@
+0.12 (2016-08-18)
+    - Babel filter (JDeuce).
+    - NodeSASS filter (Luke Benstead).
+    - Autoprefixer 6 filter (Eugeniy Kuznetsov).
+    - Many other small changes and improvements by various contributors.
+
 0.11.1 (2015-08-26)
     - Fix compass filter bug (Pablo Aguiar).
 
