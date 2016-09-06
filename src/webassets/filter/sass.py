@@ -187,7 +187,7 @@ class Sass(ExternalTool):
                 abs_path = self.resolve_path(lib)
             args.extend(['-r', abs_path])
 
-        return self.subprocess(args, out, _in)
+        return self.subprocess(args, out, _in, cwd=child_cwd)
 
     def input(self, _in, out, source_path, output_path, **kw):
         if self.as_output:

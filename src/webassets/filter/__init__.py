@@ -456,10 +456,12 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
         self.subprocess(argv, out, data=data)
 
     @classmethod
-    def subprocess(cls, argv, out, data=None):
+    def subprocess(cls, argv, out, data=None, cwd=None):
         """Execute the commandline given by the list in ``argv``.
 
         If a byestring is given via ``data``, it is piped into data.
+
+        If ``cwd`` is not None, the process will be executed in that directory.
 
         ``argv`` may contain two placeholders:
 
@@ -511,6 +513,7 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                     stdout=subprocess.PIPE,
                     stdin=subprocess.PIPE,
                     stderr=subprocess.PIPE,
+                    cwd=cwd,
                     shell=os.name == 'nt')
             except OSError:
                 raise FilterError('Program file not found: %s.' % argv[0])
