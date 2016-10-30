@@ -1541,7 +1541,7 @@ class TestBabel(TempEnvironmentHelper):
         self.env.config['BABEL_EXTRA_ARGS'] = ['--minified']
         self.mkbundle('test.es6', filters='babel', output='output.js').build()
         assert (self.get('output.js').strip() ==
-                'var x=p => {return false};')
+                'var x=p=>{return false};')
 
     def test_run_in_debug_mode(self):
         """A setting can be used to make babel not run in debug."""
