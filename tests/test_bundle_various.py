@@ -533,6 +533,40 @@ class TestGlobbing(TempEnvironmentHelper):
             get_all_bundle_files(self.mkbundle('*', output='out.js'))))
 
 
+class TestRemoveDuplicates(TempEnvironmentHelper):
+    default_files = {
+        'foo.js': 'foo',
+        'hubris.js': 'hubris',
+        'whimsy.js': 'whimsy'
+    }
+
+    def test_file_is_included_once(self):
+        self.mkbundle('whimsy.js', '*.js', output='out').build()
+        content = self.get('out').split('\n')
+        assert content[0] == 'whimsy'
+        remaining = content[1:]
+        remaining.sort()
+        assert remaining == ['foo', 'hubris']
+
+    def test_duplicate_nested_bundles_removed(self):
+        nested = self.mkbundle('*.js')
+        bundle = self.mkbundle(nested, nested)
+        all_files = get_all_bundle_files(bundle)
+        all_files.sort()
+        assert all_files == [self.path('foo.js'), self.path('hubris.js'),
+                             self.path('whimsy.js')]
+
+    def test_disable_remove_duplicate_option(self):
+        self.mkbundle(
+            'whimsy.js',
+            '*.js',
+            output='out',
+            remove_duplicates=False).build()
+        contents = self.get('out').split('\n')
+        contents.sort()
+        assert contents == ['foo', 'hubris', 'whimsy', 'whimsy']
+
+
 class MockHTTPHandler(HTTPHandler):
 
     def __init__(self, urls={}):
