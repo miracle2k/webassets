@@ -7,6 +7,7 @@ from __future__ import with_statement
 
 import copy
 from os import path
+import uuid
 try:
     from urllib.request import \
         HTTPHandler, build_opener, install_opener, addinfourl
@@ -526,11 +527,25 @@ class TestGlobbing(TempEnvironmentHelper):
                            get_all_bundle_files(self.mkbundle('*'))))
 
     def test_glob_exclude_output(self):
-        """Never include the output file in the globbinb result.
+        """Never include the output file in the globbing result.
         """
         self.create_files(['out.js'])
         assert not list(filter(lambda s: 'out.js' in s,
             get_all_bundle_files(self.mkbundle('*', output='out.js'))))
+
+    def test_glob_ordering_consistent(self):
+        """Glob results should be sorted alphabetically
+        """
+        # Create randomly named files using a UUID for both name and contents.
+        unique_names = [uuid.uuid4().hex for i in range(10)]
+        files = {}
+        for name in unique_names:
+            files[name + ".uuid"] = name
+        self.create_files(files)
+        self.mkbundle("*.uuid", output="out").build()
+        content = self.get("out").split("\n")
+        expected_output = sorted(unique_names)
+        assert content == expected_output
 
 
 class MockHTTPHandler(HTTPHandler):
