@@ -9,6 +9,7 @@ import subprocess
 import inspect
 import shlex
 import tempfile
+import pkgutil
 from webassets import six
 from webassets.six.moves import map
 from webassets.six.moves import zip
@@ -693,10 +694,10 @@ def load_builtin_filters():
     from os import path
     import warnings
 
-    current_dir = path.dirname(__file__)
-    for name in unique_modules(current_dir):
-
-        module_name = 'webassets.filter.%s' % name
+    #current_dir = path.dirname(__file__)
+    #for name in unique_modules(current_dir):
+    for loader, module_name, ispkg in pkgutil.iter_modules(__path__, __name__ + '.'):
+        #module_name = 'webassets.filter.%s' % name
         try:
             module = import_module(module_name)
         except Exception as e:
