@@ -9,6 +9,7 @@ import subprocess
 import inspect
 import shlex
 import tempfile
+import pkgutil
 from webassets import six
 from webassets.six.moves import map
 from webassets.six.moves import zip
@@ -693,10 +694,27 @@ def load_builtin_filters():
     from os import path
     import warnings
 
-    current_dir = path.dirname(__file__)
-    for name in unique_modules(current_dir):
+    # load modules to work based with and without pyinstaller
+    # from: https://github.com/webcomics/dosage/blob/master/dosagelib/loader.py
+    # see: https://github.com/pyinstaller/pyinstaller/issues/1905
 
-        module_name = 'webassets.filter.%s' % name
+    # load modules using iter_modules()
+    # (should find all filters in normal build, but not pyinstaller)
+    prefix = __name__ + '.'
+    module_names = [m[1] for m in pkgutil.iter_modules(__path__, prefix)]
+
+    # special handling for PyInstaller
+    importers = map(pkgutil.get_importer, __path__)
+    toc = set()
+    for i in importers:
+        if hasattr(i, 'toc'):
+            toc |= i.toc
+    for elm in toc:
+        if elm.startswith(prefix):
+            module_names.append(elm)
+
+    for module_name in module_names:
+        #module_name = 'webassets.filter.%s' % name
         try:
             module = import_module(module_name)
         except Exception as e:
