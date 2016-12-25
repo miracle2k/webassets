@@ -34,7 +34,7 @@ child bundle:
 
 .. code-block:: python
 
-    sass = Bundle('*.sass' filters='sass', output='gen/sass.css')
+    sass = Bundle('*.sass', filters='sass', output='gen/sass.css')
     all_css = Bundle('css/jquery.calendar.css', sass,
                      filters='cssmin', output="gen/all.css")
 
