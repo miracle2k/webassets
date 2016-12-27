@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 # External filter binaries to install for testing.
 
 # Disable, because there are issues with the install on Travis CI.
