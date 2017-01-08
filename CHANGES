@@ -1,3 +1,10 @@
+0.12.1 (2017-01-08)
+    - Fix compatibility with Jinja 2.9.
+    - When globbing, include files in alphabetical order (Sam Douglas).
+    - Remove duplicate files from bundles (Sam Douglas).
+    - Support for PyInstaller (Ilya Kreymer).
+    - Fix the sass filter (Dan Callaghan).
+
 0.12 (2016-08-18)
     - Babel filter (JDeuce).
     - NodeSASS filter (Luke Benstead).
