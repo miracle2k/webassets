@@ -141,8 +141,8 @@ class AssetsExtension(Extension):
         # Interlope end.
         #
         # Summary: We have to be satisfied with a single EXTRA variable.
-        args = [nodes.Name('ASSET_URL', 'store'),
-                nodes.Name('EXTRA', 'store')]
+        args = [nodes.Name('ASSET_URL', 'param'),
+                nodes.Name('EXTRA', 'param')]
 
         # Return a ``CallBlock``, which means Jinja2 will call a Python method
         # of ours when the tag needs to be rendered. That method can then

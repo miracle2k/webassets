@@ -109,14 +109,19 @@ class Resolver(object):
     """
 
     def glob(self, basedir, expr):
-        """Generator that runs when a glob expression needs to be
-        resolved. Yields a list of absolute filenames.
+        """Evaluates a glob expression.
+         Yields a sorted list of absolute filenames.
         """
-        expr = path.join(basedir, expr)
-        for filename in glob.iglob(expr):
-            if path.isdir(filename):
-                continue
-            yield filename
+        def glob_generator(basedir, expr):
+            expr = path.join(basedir, expr)
+            for filename in glob.iglob(expr):
+                if path.isdir(filename):
+                    continue
+                yield path.normpath(filename)
+
+        # The order of files returned by the glob implementation is undefined,
+        # so sort alphabetically to maintain a deterministic ordering
+        return sorted(glob_generator(basedir, expr))
 
     def consider_single_directory(self, directory, item):
         """Searches for ``item`` within ``directory``. Is able to
@@ -128,7 +133,7 @@ class Resolver(object):
         expr = path.join(directory, item)
         if has_magic(expr):
             # Note: No error if glob returns an empty list
-            return list(self.glob(directory, item))
+            return self.glob(directory, item)
         else:
             if path.exists(expr):
                 return expr
@@ -151,14 +156,14 @@ class Resolver(object):
             # We glob all paths.
             result = []
             for path in ctx.load_path:
-                result.extend(list(self.glob(path, item)))
+                result.extend(self.glob(path, item))
             return result
         else:
             # Single file, stop when we find the first match, or error
             # out otherwise. We still use glob() because then the load_path
             # itself can contain globs. Neat!
             for path in ctx.load_path:
-                result = list(self.glob(path, item))
+                result = self.glob(path, item)
                 if result:
                     return result
             raise IOError("'%s' not found in load path: %s" % (

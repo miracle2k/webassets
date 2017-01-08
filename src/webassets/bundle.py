@@ -115,6 +115,7 @@ class Bundle(object):
         self.filters = options.pop('filters', None)
         self.depends = options.pop('depends', [])
         self.version = options.pop('version', [])
+        self.remove_duplicates = options.pop('remove_duplicates', True)
         self.extra = options.pop('extra', {})
 
         self._config = BundleConfig(self)
@@ -250,8 +251,26 @@ class Bundle(object):
 
                 resolved.extend(map(lambda r: (item, r), result))
 
+            # Exclude duplicate files from the bundle.
+            # This will only keep the first occurrence of a file in the bundle.
+            if self.remove_duplicates:
+                resolved = self._filter_duplicates(resolved)
+
             self._resolved_contents = resolved
+
         return self._resolved_contents
+
+    @staticmethod
+    def _filter_duplicates(resolved):
+        # Keep track of the resolved filenames that have been seen, and only
+        # add it the first time it is encountered.
+        seen_files = set()
+        result = []
+        for item, r in resolved:
+            if r not in seen_files:
+                seen_files.add(r)
+                result.append((item, r))
+        return result
 
     def _get_depends(self):
         return self._depends
@@ -574,7 +593,7 @@ class Bundle(object):
         called from the command line, there is no need to lock.
         """
         extra_filters = extra_filters or []
-        
+
         if not self.output:
             raise BuildError('No output target found for %s' % self)
 
