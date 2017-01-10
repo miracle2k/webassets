@@ -17,12 +17,16 @@ class TypeScript(Filter):
     TypeScript is an external tool written for NodeJS.
     This filter assumes that the ``tsc`` executable is in the path. Otherwise, you
     may define the ``TYPESCRIPT_BIN`` setting.
+
+    To specify TypeScript compiler options, ``TYPESCRIPT_CONFIG`` may be defined.
+    E.g.: ``--removeComments true --target ES6``.
     """
 
     name = 'typescript'
     max_debug_level = None
     options = {
         'binary': 'TYPESCRIPT_BIN',
+        'config': 'TYPESCRIPT_CONFIG'
     }
 
     def output(self, _in, out, **kw):
@@ -36,6 +40,8 @@ class TypeScript(Filter):
             f.write(_in.read())
 
         args = [self.binary or 'tsc', '--out', output_filename, input_filename]
+        if self.config:
+            args += self.config.split()
         proc = subprocess.Popen(
             args,
             stdin=subprocess.PIPE,
