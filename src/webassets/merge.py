@@ -173,7 +173,7 @@ def merge(hunks, separator=None):
     # files, like when a last line is a //-comment.
     if not separator:
         separator = '\n'
-    return MemoryHunk(separator.join([h.data() for h in hunks]))
+    return MemoryHunk(separator.join([h.data().decode('utf-8') for h in hunks]))
 
 
 class MoreThanOneFilterError(Exception):
