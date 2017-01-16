@@ -606,7 +606,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
     def test_rcssmin(self):
         try:
             self.mkbundle('foo.css', filters='rcssmin', output='out.css').build()
-        except ImportError:
+        except EnvironmentError:
             raise SkipTest()
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFFFFF}"""
 
