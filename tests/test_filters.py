@@ -603,6 +603,13 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         self.mkbundle('in', filters='stylus', output='out.css').build()
         assert self.get('out.css') == """a {\n  width: 100px;\n  height: 50px;\n}\n\n"""
 
+    def test_rcssmin(self):
+        try:
+            self.mkbundle('foo.css', filters='rcssmin', output='out.css').build()
+        except ImportError:
+            raise SkipTest()
+        assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFFFFF}"""
+
     def test_find_pyc_files( self ):
         self.create_files({'test.pyc':'testing', 'test.py':'blue', 'boo.pyc':'boo'})
         modules = list( unique_modules(self.tempdir))
