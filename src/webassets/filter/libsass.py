@@ -51,7 +51,7 @@ class LibSass(Filter):
 
     .. code-block:: python
 
-        Bundle('style.scss', filters='libsass', output='style.css', depends'**/*.scss')
+        Bundle('style.scss', filters='libsass', output='style.css', depends='**/*.scss')
     
     """
     name = 'libsass'
