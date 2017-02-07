@@ -96,6 +96,11 @@ CSS compressors
 
 .. autoclass:: webassets.filter.slimmer.CSSSlimmer
 
+``rcssmin``
+~~~~~~~~~~
+
+.. autoclass:: webassets.filter.rcssmin.RCSSMin
+
 
 .. _filters-css-compilers:
 
