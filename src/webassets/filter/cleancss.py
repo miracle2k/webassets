@@ -1,7 +1,7 @@
 import os
+from subprocess import PIPE, Popen
 
 from webassets.filter import ExternalTool
-
 
 __all__ = ('CleanCSS',)
 
@@ -24,6 +24,15 @@ class CleanCSS(ExternalTool):
         'extra_args': 'CLEANCSS_EXTRA_ARGS',
     }
 
+    @property
+    def cleancss_ver(self):
+        if not hasattr(self, '_cleancss_ver'):
+            # out = b"MAJOR.MINOR.REVISION" // b"3.4.19" or b"4.0.0"
+            out, err = Popen(
+                ['cleancss', '--version'], stdout=PIPE).communicate()
+            self._cleancss_ver = int(out[:out.index(b'.')])
+        return self._cleancss_ver
+
     def output(self, _in, out, **kw):
         args = [self.binary or 'cleancss']
         if self.extra_args:
@@ -31,7 +40,9 @@ class CleanCSS(ExternalTool):
         self.subprocess(args, out, _in)
 
     def input(self, _in, out, **kw):
-        args = [self.binary or 'cleancss', '--root', os.path.dirname(kw['source_path'])]
+        args = [self.binary or 'cleancss']
+        if self.cleancss_ver < 4:
+            args += ['--root', os.path.dirname(kw['source_path'])]
         if self.extra_args:
             args.extend(self.extra_args)
         self.subprocess(args, out, _in)
