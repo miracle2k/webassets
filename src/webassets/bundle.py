@@ -120,6 +120,9 @@ class Bundle(object):
 
         self._config = BundleConfig(self)
         self._config.update(options.pop('config', {}))
+
+        self.auto_build = self._config.get('auto_build', False)
+
         if 'debug' in options:
             debug = options.pop('debug')
             if debug is not None:
@@ -720,7 +723,7 @@ class Bundle(object):
         if has_placeholder(self.output) or ctx.url_expire != False:
             # If auto-build is enabled, we must not use a cached version
             # value, or we might serve old versions.
-            version = self.get_version(ctx, refresh=ctx.auto_build)
+            version = self.get_version(ctx, refresh=ctx.auto_build or self.auto_build)
 
         url = self.output
         if has_placeholder(url):
@@ -760,7 +763,7 @@ class Bundle(object):
             # With ``auto_build``, build the bundle to make sure the output is
             # up to date; otherwise, we just assume the file already exists.
             # (not wasting any IO ops)
-            if ctx.auto_build:
+            if ctx.auto_build or self.auto_build:
                 self._build(ctx, extra_filters=extra_filters, force=False,
                             *args, **kwargs)
             return [self._make_output_url(ctx)]

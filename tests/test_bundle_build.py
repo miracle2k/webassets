@@ -505,6 +505,28 @@ class TestAutoBuild(TempEnvironmentHelper):
         bundle.build(force=False)
         assert self.get('out') == 'A'
 
+    def test_autocreate_with_bundle_autobuild(self):
+        """Behavior of urls() and build() interfaces with auto_build
+        setting enabled for bundle and not for environment.
+        """
+        self.env.auto_build = False
+        self.env.url_expire = False
+        bundle1 = self.mkbundle('in1', output='out1', config={'auto_build': True})
+        bundle2 = self.mkbundle('in1', output='out2', config={'auto_build': False})
+        bundle3 = self.mkbundle('in1', output='out3')
+
+        # urls() cause build with Bundle._config['auto_build'] = True
+        bundle1.urls()
+        assert self.get('out1') == 'A'
+
+        # urls() doesn't cause build with Bundle._config['auto_build'] = False
+        bundle2.urls()
+        assert not self.exists('out2')
+
+        # urls() doesn't cause build with default auto_build value
+        bundle3.urls()
+        assert not self.exists('out3')
+
     def test_no_updater(self):
         """[Regression] If Environment.updater is set to False/None,
         this won't cause problems during the build, and will in fact be the
