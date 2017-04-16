@@ -17,7 +17,7 @@ assume that ``java`` is on the system path.
 
 Supported configuration options:
 
-CLOSURE_COMPRESSOR_OPTIMIZATION
+SIMPLE_OPTIMIZATIONS
     Corresponds to Google Closure's `compilation level parameter
     <https://code.google.com/closure/compiler/docs/compilation_levels.html>`_.
 
@@ -41,7 +41,7 @@ class ClosureJS(JavaTool):
 
     name = 'closure_js'
     options = {
-        'opt': 'CLOSURE_COMPRESSOR_OPTIMIZATION',
+        'opt': 'SIMPLE_OPTIMIZATIONS',
         'extra_args': 'CLOSURE_EXTRA_ARGS',
     }
 
