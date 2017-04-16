@@ -16,6 +16,7 @@ also serve in other places.
 import os
 from os import path
 import errno
+import stat
 import tempfile
 import warnings
 from webassets import six
@@ -212,6 +213,7 @@ class FilesystemCache(BaseCache):
                 os.chmod(temp_filename, self.new_file_mode)
             if os.path.isfile(filename):
                 os.unlink(filename)
+            os.chmod(temp_filename, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
             os.rename(temp_filename, filename)
         except:
             os.unlink(temp_filename)
