@@ -28,10 +28,18 @@ arguments:
   source files will merely be merged into the output file. Filters are
   applied in the order in which they are given.
 
-* ``output`` - Name/path of the output file. All source files will be merged
-  and the result stored at this location. A ``%(version)s`` placeholder is
+* ``merge`` - If ``True`` (the default), All source files will be merged
+  and the result stored at ``output``. Otherwise, each file will be
+  processed separately.
+
+* ``output`` - Name/path of the output file. A ``%(version)s`` placeholder is
   supported here, which will be replaced with the version of the file. See
   :doc:`/expiring`.
+  If ``merge`` is ``True``, this argument is required and you can also use
+  these placeholders:
+  - ``%(name)s`` Just the name of the source file, whithout path or extension (eg: 'common')
+  - ``%(path)s`` The path and name of the source file (eg: 'portal/js/common')
+  - ``%(ext)s`` The extension of source file (eg: 'js')
 
 * ``depends`` - Additional files that will be watched to determine if the 
   bundle needs to be rebuilt. This is usually necessary if you are using
@@ -101,6 +109,7 @@ Some things to consider when nesting bundles:
   an output target, it simply serves as a container of its sub-bundles,
   which in turn will be processed into their respective output files.
   In this case it must not have any files of its own.
+* A bundle with ``merge=False`` cannot contain nested bundles.
 
 
 Building bundles

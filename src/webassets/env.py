@@ -3,7 +3,6 @@ from os import path
 from itertools import chain
 from webassets import six
 from webassets.six.moves import map
-from webassets.six.moves import zip
 from webassets.utils import is_url
 
 try:
@@ -60,7 +59,7 @@ class ConfigStorage(object):
             self.__setitem__(key, d[key])
 
     def setdefault(self, key, value):
-        if not key in self:
+        if key not in self:
             self.__setitem__(key, value)
             return value
         return self.__getitem__(key)
@@ -208,7 +207,7 @@ class Resolver(object):
         for candidate, url in mapping:
             if needle.startswith(candidate):
                 # Found it!
-                rel_path = needle[len(candidate)+1:]
+                rel_path = needle[len(candidate) + 1:]
                 # If there are any subdirs in rel_path, ensure
                 # they use HTML-style path separators, in case
                 # the local OS (Windows!) has a different scheme
@@ -365,11 +364,14 @@ class BundleRegistry(object):
             else:
                 bundle = Bundle(*args, **kwargs)
 
+            if not bundle.merge:
+                return self.decompose_bundle(name, bundle)
+
             if name in self._named_bundles:
                 if self._named_bundles[name] == bundle:
                     pass  # ignore
                 else:
-                    raise RegisterError('Another bundle is already registered '+
+                    raise RegisterError('Another bundle is already registered ' +
                                         'as "%s": %s' % (name, self._named_bundles[name]))
             else:
                 self._named_bundles[name] = bundle
@@ -388,6 +390,52 @@ class BundleRegistry(object):
         for bundle in bundles:
             self._anon_bundles.append(bundle)
             bundle.env = self    # take ownership
+
+    def decompose_bundle(self, name, bundle):
+        from .bundle import Bundle
+
+        if not bundle.output:
+            raise RegisterError('If `merge` is False, an output must be defined')
+
+        for content in bundle.contents:
+            if isinstance(content, Bundle):
+                raise RegisterError('Nested bundles are not allowed when `merge` is False')
+
+        bundle.env = self
+        bundles = []
+        contents = bundle.resolve_contents()
+        for _, abspath in contents:
+            nb = self.register_decomposed(name, bundle, abspath)
+            bundles.append(nb)
+
+        return bundles
+
+    def register_decomposed(self, name, bundle, abspath):
+        from .bundle import Bundle
+
+        relpath = path.relpath(abspath, self.directory)
+        basename = path.basename(relpath)
+        filename, _ = path.splitext(basename)
+        filepath, fileext = path.splitext(relpath)
+        new_name = path.join(name, basename) if name else basename
+        # The output might also contain `%(version)s` so I can't use
+        # the C-style method of string formatting
+        output = (
+            bundle.output
+            .replace('%(name)s', filename)
+            .replace('%(path)s', filepath)
+            .replace('%(ext)s', fileext.strip('.'))
+        )
+        new_bundle = Bundle(
+            relpath,
+            output=output,
+            filters=bundle.filters,
+            depends=bundle.depends,
+            remove_duplicates=bundle.remove_duplicates,
+            extra=bundle.extra,
+        )
+        new_bundle._config = bundle._config
+        return self.register(new_name, new_bundle)
 
 
 # Those are config keys used by the environment. Framework-wrappers may

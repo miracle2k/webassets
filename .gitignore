@@ -6,6 +6,8 @@
 /*.wpr
 # JetBrains
 /.idea
+# SublimeText
+*.sublime-*
 
 # distutils
 /build
@@ -23,3 +25,4 @@
 /envdev*
 /.virtualenv*
 /node_modules/
+

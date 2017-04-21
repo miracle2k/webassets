@@ -12,7 +12,9 @@ set -e
 # Only install NodeJS version by default.
 #gem install less --version 1.2.21
 
-npm install -g less@2.5.1
+npm install -g postcss-cli
+npm install -g autoprefixer
+npm install -g less
 npm install -g uglify-js@2.3.1
 npm install -g coffee-script@1.6.2
 npm install -g clean-css@1.0.2
@@ -20,7 +22,7 @@ npm install -g stylus
 npm install -g handlebars
 npm install -g typescript
 npm install -g requirejs@2.1.11
-npm install -g babel-cli@6.18.0
+npm install -g babel-cli@6.18.0 --save
 # Don't install the babel-preset globally because
 # there's a bug with older verisons of node
-npm install babel-preset-es2015@6.18.0 --save
+npm install babel-preset-es2015@6.18.0

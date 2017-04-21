@@ -17,8 +17,6 @@ install:
   # that NVM and RVM are pre-installed (see below).
   - sudo apt-get install python-software-properties
 
-  - npm install -g postcss-cli autoprefixer
-
   # Now install the external filter binaries, finally.
   # If we use sudo for this, ruby gems will not work: it seems they are
   # then installed globally, but are then searched for in a RVM location.
