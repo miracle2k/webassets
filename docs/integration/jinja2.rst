@@ -7,7 +7,7 @@ It will provide a ``{% assets %}`` tag which allows you to reference your
 bundles from within a template to render its urls.
 
 It also allows you to create bundles on-the-fly, thus making it possible
-to define your assets entirly within your templates.
+to define your assets entirely within your templates.
 
 If you are using Jinja2 inside of Django, see
 :django:`this page <jinja2>`.
