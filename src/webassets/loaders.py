@@ -33,6 +33,15 @@ class LoaderError(Exception):
     """
 
 
+class attrconfig(object):
+    def __init__(self, config):
+        self.config = config
+    def __getattr__(self, key):
+        return self.config.get(key, None)
+    def __getitem__(self, key):
+        return self.config.get(key, None)
+
+
 class YAMLLoader(object):
     """Will load an environment or a set of bundles from
     `YAML <http://en.wikipedia.org/wiki/YAML>`_ files.
@@ -47,7 +56,7 @@ class YAMLLoader(object):
             self.yaml = yaml
         self.file_or_filename = file_or_filename
 
-    def _yield_bundle_contents(self, data):
+    def _yield_bundle_contents(self, data, env):
         """Yield bundle contents from the given dict.
 
         Each item yielded will be either a string representing a file path
@@ -57,11 +66,20 @@ class YAMLLoader(object):
             contents = contents,
         for content in contents:
             if isinstance(content, dict):
-                content = self._get_bundle(content)
-            yield content
+                content = self._get_bundle(content, env)
+            if content is not None:
+                yield content
 
-    def _get_bundle(self, data):
+    def _check_condition(self, env, cond):
+        config = attrconfig(getattr(env, 'config', None) or {})
+        return bool(eval(cond, globals(), dict(env=env, config=config)))
+
+    def _get_bundle(self, data, env):
         """Return a bundle initialised by the given dict."""
+        cond = data.get('if', None)
+        if cond is not None:
+            if not self._check_condition(env, cond):
+                return None
         kwargs = dict(
             filters=data.get('filters', None),
             output=data.get('output', None),
@@ -69,7 +87,7 @@ class YAMLLoader(object):
             extra=data.get('extra', {}),
             config=data.get('config', {}),
             depends=data.get('depends', None))
-        return Bundle(*list(self._yield_bundle_contents(data)), **kwargs)
+        return Bundle(*list(self._yield_bundle_contents(data, env)), **kwargs)
 
     def _get_bundles(self, obj, known_bundles=None):
         """Return a dict that keys bundle names to bundles."""
@@ -77,7 +95,9 @@ class YAMLLoader(object):
         for key, data in six.iteritems(obj):
             if data is None:
                 data = {}
-            bundles[key] = self._get_bundle(data)
+            bundle = self._get_bundle(data, known_bundles)
+            if bundle is not None:
+                bundles[key] = bundle
 
         # now we need to recurse through the bundles and get any that
         # are included in each other.
@@ -143,7 +163,7 @@ class YAMLLoader(object):
         may be referenced as well. Note that you may pass any
         compatibly dict-like object.
 
-        Finally, you may also use nesting:
+        You may also use nesting:
 
         .. code-block:: yaml
 
@@ -154,6 +174,31 @@ class YAMLLoader(object):
                     - contents: "*.coffee"
                       filters: coffeescript
 
+        Finally, bundles can be conditionally filtered out:
+
+        .. code-block:: yaml
+
+            js-all:
+                contents:
+                    - jquery.js
+                    # asset "less.min.js" will only be included if
+                    # both debug AND less_run_in_debug are true.
+                    - if: config.debug and config.less_run_in_debug
+                      contents: 'less.min.js'
+
+
+        The ``if`` directive is evaluated as a python expression; if it
+        evaluates to truthy, the bundle is included, otherwise it is
+        silently excluded. The expression has access to the following
+        local variables:
+
+        * ``config``: a dict-like version of `environment.config` whose
+          items are available as attributes (all attributes will be None
+          if no `environment` parameter was specified)
+
+        * ``env``: the `environment` parameter passed to `load_bundles()`
+
+        * And any other global variables
         """
         # TODO: Support a "consider paths relative to YAML location, return
         # as absolute paths" option?
