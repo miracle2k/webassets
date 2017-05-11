@@ -43,6 +43,10 @@ arguments:
   .. warning::
     Currently, using ``depends`` disables caching for a bundle.
 
+  .. warning::
+    Bundles that use ``depends`` are never cached. Using ``depends`` in
+    production without setting ``auto_build=False`` is probably a bad idea.
+
 
 Nested bundles
 --------------
