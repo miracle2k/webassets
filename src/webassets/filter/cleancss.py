@@ -27,9 +27,10 @@ class CleanCSS(ExternalTool):
     @property
     def cleancss_ver(self):
         if not hasattr(self, '_cleancss_ver'):
+            args = [self.binary or 'cleancss']
+            args += ['--version']
             # out = b"MAJOR.MINOR.REVISION" // b"3.4.19" or b"4.0.0"
-            out, err = Popen(
-                ['cleancss', '--version'], stdout=PIPE).communicate()
+            out, err = Popen(args, stdout=PIPE).communicate()
             self._cleancss_ver = int(out[:out.index(b'.')])
         return self._cleancss_ver
 
