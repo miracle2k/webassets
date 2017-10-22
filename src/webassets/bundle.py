@@ -117,6 +117,7 @@ class Bundle(object):
         self.version = options.pop('version', [])
         self.remove_duplicates = options.pop('remove_duplicates', True)
         self.extra = options.pop('extra', {})
+        self.merge = options.pop('merge', True)
 
         self._config = BundleConfig(self)
         self._config.update(options.pop('config', {}))

@@ -1,14 +1,12 @@
 from __future__ import with_statement
 
 import os
-from nose.tools import assert_raises, with_setup
+from nose.tools import assert_raises
 
 from webassets import six
 from webassets import Environment
 from webassets.env import RegisterError
 from webassets import Bundle
-from webassets.test import TempEnvironmentHelper
-
 
 
 class TestEnvApi(object):
@@ -48,6 +46,64 @@ class TestEnvApi(object):
         self.m.register('foofighters', b, output="bar")
         assert b in self.m['foofighters'].contents
 
+    def test_register_composed_bundle(self):
+        """Test registering a bundle with `merge=False`
+        """
+        env = Environment('tests')
+
+        env.register(
+            'base1', 'helpers.py', 'test_ext/__init__.py',
+            merge=False,
+            output='build/%(name)s.%(version)s.css'
+        )
+        assert 'base1' not in env
+        assert 'base1/helpers.py' in env
+        assert 'base1/__init__.py' in env
+
+        env.register(
+            '', 'helpers.py', 'test_ext/__init__.py',
+            merge=False,
+            output='build/%(name)s.css'
+        )
+        assert 'helpers.py' in env
+        assert '__init__.py' in env
+        assert env['helpers.py'].output == 'build/helpers.css'
+        assert env['__init__.py'].output == 'build/__init__.css'
+
+        env.register(
+            'base2', 'helper*.*',
+            merge=False,
+            output='build/%(name)s.%(ext)s'
+        )
+        assert 'base2/helpers.py' in env
+        assert env['base2/helpers.py'].output == 'build/helpers.py'
+
+        env.register(
+            'base3', 'test_ext/__init__.py',
+            merge=False,
+            output='build/%(path)s.css'
+        )
+        assert env['base3/__init__.py'].output == 'build/test_ext/__init__.css'
+
+    def test_register_composed_invalid(self):
+        """Test registering a bundle with `merge=False`
+        and invalid options.
+        """
+        env = Environment('tests')
+
+        # No `output`
+        assert_raises(
+            RegisterError, env.register,
+            'base1', 'helpers.py', merge=False
+        )
+
+        # Nested bundle
+        b = Bundle()
+        assert_raises(
+            RegisterError, env.register,
+            'base2', 'helpers.py', b, merge=False, output='a'
+        )
+
     def test_register_invalid_call(self):
         """Test calling self.m.register with an invalid syntax.
         """
@@ -86,7 +142,7 @@ class TestEnvApi(object):
         b = Bundle()
         self.m.register('foo', b)
         assert 'foo' in self.m
-        assert not 'bar' in self.m
+        assert 'bar' not in self.m
 
     def test_bool_evaluation(self):
         """Test that environment evaluates to True in a boolean context.
