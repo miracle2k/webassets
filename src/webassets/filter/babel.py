@@ -1,5 +1,6 @@
 from webassets.filter import ExternalTool
 
+
 class Babel(ExternalTool):
     """Processes ES6+ code into ES5 friendly code using `Babel <https://babeljs.io/>`_.
 
@@ -70,5 +71,7 @@ class Babel(ExternalTool):
             args += ['--presets', self.presets]
         if self.extra_args:
             args.extend(self.extra_args)
+        if 'source_path' in kw:
+            args.extend(['--filename', kw['source_path']])
         return self.subprocess(args, out, _in)
 
