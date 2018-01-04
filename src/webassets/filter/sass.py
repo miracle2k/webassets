@@ -114,6 +114,11 @@ class Sass(ExternalTool):
 
         It will also allow you to share variables between files.
 
+    SASS_SOURCE_MAP
+        If provided, this will generate source maps in the output depending
+	on the type specified. By default this will use Sass's ``auto``.
+	Possible values are ``auto``, ``file``, ``inline``, or ``none``.
+
     SASS_LOAD_PATHS
         It should be a list of paths relatives to Environment.directory or absolute paths.
         Order matters as sass will pick the first file found in path order.
@@ -140,6 +145,7 @@ class Sass(ExternalTool):
         'load_paths': 'SASS_LOAD_PATHS',
         'libs': 'SASS_LIBS',
         'style': 'SASS_STYLE',
+	'source_map': 'SASS_SOURCE_MAP',
         'line_comments': 'SASS_LINE_COMMENTS',
     }
     max_debug_level = None
@@ -174,6 +180,8 @@ class Sass(ExternalTool):
             args.append('--scss')
         if self.use_compass:
             args.append('--compass')
+        if self.source_map:
+            args.append('--sourcemap=' + self.source_map)
         for path in self.load_paths or []:
             if os.path.isabs(path):
                 abs_path = path
