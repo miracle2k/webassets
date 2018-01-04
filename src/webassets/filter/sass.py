@@ -180,8 +180,8 @@ class Sass(ExternalTool):
             args.append('--scss')
         if self.use_compass:
             args.append('--compass')
-	if self.source_map:
-	    args.append('--sourcemap=' + self.source_map)
+        if self.source_map:
+            args.append('--sourcemap=' + self.source_map)
         for path in self.load_paths or []:
             if os.path.isabs(path):
                 abs_path = path
