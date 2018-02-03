@@ -11,6 +11,7 @@ except ImportError:
     from urllib2 import HTTPError
 import logging
 from io import open
+from webassets import six
 from webassets.six.moves import filter
 
 from .utils import cmp_debug_levels, StringIO, hash_func
@@ -119,7 +120,10 @@ class UrlHunk(BaseHunk):
                 self._data = self.env.cache.get(('url', 'contents', self.url))
             else:
                 with contextlib.closing(response):
-                    self._data = response.read()
+                    data = response.read()
+                if isinstance(data, six.binary_type):
+                    data = data.decode('utf-8')
+                self._data = data
 
                 # Cache the info from this request
                 if self.env and self.env.cache:
