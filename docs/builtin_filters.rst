@@ -107,6 +107,14 @@ CSS compressors
 JS/CSS compilers
 ----------------
 
+.. _filters-postcss:
+
+``postcss``
+~~~~~~~~~~~~~
+
+.. autoclass:: webassets.filter.postcss.PostCSS
+
+
 ``clevercss``
 ~~~~~~~~~~~~~
 
