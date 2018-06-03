@@ -60,7 +60,7 @@
       example, the command line can now load YAML files.
     - Added a new JSON manifest implementation (Krzysztof Tarnowski).
     - Bundles now support an ``extra`` dict that is made available by the
-      template tags, usuable for arbitrary custom data.
+      template tags, usable for arbitrary custom data.
     - Various API finetuning (Bundle.build, inheritance of the ``debug=``
       flag, ``auto_build`` behaviour). See the "Upgrading" section in the
       documentation for more information on this.

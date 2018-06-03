@@ -37,7 +37,7 @@ arguments:
   :doc:`/expiring`.
   If ``merge`` is ``True``, this argument is required and you can also use
   these placeholders:
-  - ``%(name)s`` Just the name of the source file, whithout path or extension (eg: 'common')
+  - ``%(name)s`` Just the name of the source file, without path or extension (eg: 'common')
   - ``%(path)s`` The path and name of the source file (eg: 'portal/js/common')
   - ``%(ext)s`` The extension of source file (eg: 'js')
 

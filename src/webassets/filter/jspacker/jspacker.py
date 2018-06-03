@@ -298,7 +298,7 @@ class JavaScriptPacker:
 
     def analyze(self, script, regexp, encode):
         # analyse
-        # retreive all words in the script
+        # retrieve all words in the script
         regexp = re.compile(regexp, re.M)
         all = regexp.findall(script)
         sorted = [] # list of words sorted by frequency
@@ -433,7 +433,7 @@ class JavaScriptPacker:
                 if ascii < 36:
                     decode = ENCODE.sub(inline, decode)
             # special case: when $count==0 there ar no keywords. i want to keep
-            #  the basic shape of the unpacking funcion so i'll frig the code...
+            #  the basic shape of the unpacking function so i'll frig the code...
             if not count:
                 raise NotImplemented
                 #) $decode = $decode.replace(/(\$count)\s*=\s*1/, "$1=0");

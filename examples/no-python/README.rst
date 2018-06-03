@@ -3,7 +3,7 @@ Standalone example
 
 This shows how you might use ``webassets`` outside of a Python project.
 
-A global script ``webassets`` is installed by the Pyton package. In this
+A global script ``webassets`` is installed by the Python package. In this
 directory, run::
 
      $ webasssets -c bundles.yaml build

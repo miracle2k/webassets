@@ -291,7 +291,7 @@ class PythonLoader(object):
         """Load an ``Environment`` defined in the Python module.
 
         Expects as default a global name ``environment`` to be defined,
-        or overriden by passing a string ``module:environent`` to the
+        or overridden by passing a string ``module:environment`` to the
         constructor.
         """
         try:

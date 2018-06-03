@@ -361,6 +361,6 @@ bundles:
                 self.cmd_env, argparse.Namespace())
         with self:
             time.sleep(0.1)
-        # No errors occured
+        # No errors occurred
 
 
