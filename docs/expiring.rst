@@ -179,7 +179,7 @@ provides a manifest type that writes all information to a single file::
 
     env = Environment(...)
     env.manifest = 'file'
-    env.manifest = 'file:/tmp/manifest.to-be-deployed'  # explict filename
+    env.manifest = 'file:/tmp/manifest.to-be-deployed'  # explicit filename
 
 You can then just copy this one file to the web server, and ``webassets``
 will know all about the versions without having to consult the media files.

@@ -118,7 +118,7 @@ class Compass(Filter):
 
         Also, there's a bunch of other issues we need to work around:
 
-         - compass doesn't support given an explict output file, only a
+         - compass doesn't support given an explicit output file, only a
            "--css-dir" output directory.
 
            We have to "guess" the filename that will be created in that

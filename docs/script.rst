@@ -56,7 +56,7 @@ the commands as simple methods.
     cmdenv.build()
 
 
-You are reponsible for parsing the command line in any way you see fit
+You are responsible for parsing the command line in any way you see fit
 (using for example the :py:mod:`optparse` or :py:mod:`argparse` libraries,
 or whatever your framework provides as a command line utility shell), and
 then invoking the corresponding methods on your instance of

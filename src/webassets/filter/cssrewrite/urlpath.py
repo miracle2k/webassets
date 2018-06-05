@@ -247,7 +247,7 @@ More comprehensive tests.
 
 CHANGELOG
 2005/07/31
-Can now pass mulitple args to ``pathjoin``.
+Can now pass multiple args to ``pathjoin``.
 Finalised as version 0.1.0
 
 2005/06/18

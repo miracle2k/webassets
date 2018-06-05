@@ -204,7 +204,7 @@ class WatchCommand(Command):
         ``loop``
             A callback, taking no arguments, to be called once every loop
             iteration. Can be useful to integrate the command with other code.
-            If not specified, the loop wil call ``time.sleep()``.
+            If not specified, the loop will call ``time.sleep()``.
         """
         # TODO: This should probably also restart when the code changes.
         mtimes = {}

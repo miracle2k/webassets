@@ -1,7 +1,7 @@
 # webassets has no dependencies for it's base functionality.
 #
 # However, most filters are wrappers around external libraries and
-# tools, and some features also need additonal library support
+# tools, and some features also need additional library support
 # (e.g. loading from YAML files).
 #
 # Libs required to run the tests

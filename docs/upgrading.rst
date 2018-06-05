@@ -151,7 +151,7 @@ In 0.8
   :meth:`Environment._normalize_source_path` method used mainly by
   extensions like ``Flask-Assets`` has been removed. Instead, extensions now
   need to implement a custom :class:`Resolver`. The
-  :class:`Evironment.absurl` method has also disappeared, and replacing it
+  :class:`Environment.absurl` method has also disappeared, and replacing it
   can now be done via a custom :class:`Resolver`` class.
 
 - :attr:`Environment.directory` now always returns an absolute path; if a

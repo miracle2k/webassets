@@ -29,14 +29,14 @@ class RequireJSFilter(ExternalTool):
     config (env: REQUIREJS_CONFIG)
 
         The RequireJS options file. The path is taken to be relative
-        to the Enviroment.directory (by defualt is /static).
+        to the Environment.directory (by default is /static).
 
 
     baseUrl (env: REQUIREJS_BASEURL)
 
         The ``baseUrl`` parameter to r.js; this is the directory that
         AMD modules will be loaded from. The path is taken relative
-        to the Enviroment.directory (by defualt is /static).
+        to the Environment.directory (by default is /static).
         Typically, this is used in
         conjunction with a ``baseUrl`` parameter set in the `config`
         options file, where the baseUrl value in the config file is
