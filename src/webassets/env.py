@@ -684,7 +684,7 @@ class ConfigurationContext(object):
                 'The environment has no "directory" configured')
     directory = property(_get_directory, _set_directory, doc=
     """The base directory to which all paths will be relative to,
-    unless :attr:`load_paths` are given, in which case this will
+    unless :attr:`load_path` are given, in which case this will
     only serve as the output directory.
 
     In the url space, it is mapped to :attr:`urls`.
