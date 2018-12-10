@@ -95,7 +95,7 @@ need to merge together with uncompressed ones, you could do it like so:
 
     register('js-all',
         'jquery.min.js',
-        Bundle(filters='jsmin', 'uncompressed.js'))
+        Bundle('uncompressed.js', filters='jsmin'))
 
 
 Generally speaking, nested bundles allow you to apply different sets of
