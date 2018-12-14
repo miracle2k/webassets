@@ -91,16 +91,6 @@ class Sass(ExternalTool):
         By default, the value of this option will depend on the
         environment ``DEBUG`` setting.
 
-    SASS_LINE_COMMENTS
-        Passes ``--line-comments`` flag to sass which emit comments in the
-        generated CSS indicating the corresponding source line.
-
-	Note that this option is disabled by Sass if ``--style compressed`` or
-        ``--debug-info`` options are provided.
-
-        Enabled by default. To disable, set empty environment variable
-        ``SASS_LINE_COMMENTS=`` or pass ``line_comments=False`` to this filter.
-
     SASS_AS_OUTPUT
         By default, this works as an "input filter", meaning ``sass`` is
         called for each source file in the bundle. This is because the
@@ -165,15 +155,6 @@ class Sass(ExternalTool):
         args = [self.binary or 'sass',
                 '--stdin',
                 '--style', self.style or 'expanded']
-        if self.line_comments is None or self.line_comments:
-            args.append('--line-comments')
-        if isinstance(self.ctx.cache, FilesystemCache):
-            args.extend(['--cache-location',
-                         os.path.join(orig_cwd, self.ctx.cache.directory, 'sass')])
-        elif not cd:
-            # Without a fixed working directory, the location of the cache
-            # is basically undefined, so prefer not to use one at all.
-            args.extend(['--no-cache'])
         if (self.ctx.environment.debug if self.debug_info is None else self.debug_info):
             args.append('--debug-info')
         if self.use_scss:
