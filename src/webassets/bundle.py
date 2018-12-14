@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 import os
 from os import path
+from threading import Lock
 from webassets import six
 from webassets.six.moves import map
 from webassets.six.moves import zip
@@ -13,6 +14,7 @@ from .exceptions import BundleError, BuildError
 from .utils import cmp_debug_levels, hash_func
 from .env import ConfigurationContext, DictConfigStorage, BaseEnvironment
 from .utils import is_url
+from .lockmanager import LockManager
 
 
 __all__ = ('Bundle', 'get_all_bundle_files',)
@@ -107,6 +109,7 @@ class Bundle(object):
     ``env`` parameter - so a parent bundle can provide the environment for
     child bundles that do not know it.
     """
+    lockmanager = LockManager()
 
     def __init__(self, *contents, **options):
         self._env = options.pop('env', None)
@@ -598,65 +601,79 @@ class Bundle(object):
         if not self.output:
             raise BuildError('No output target found for %s' % self)
 
-        # Determine if we really need to build, or if the output file
-        # already exists and nothing has changed.
-        if force:
-            update_needed = True
-        elif not has_placeholder(self.output) and \
-                not path.exists(self.resolve_output(ctx, self.output)):
-            update_needed = True
-        else:
-            update_needed = ctx.updater.needs_rebuild(self, ctx) \
-                if ctx.updater else True
-            if update_needed==SKIP_CACHE:
-                disable_cache = True
+        """
+        We lock on the output file. We could lock on self.id() here
+        but it could allow two different bundles with the same output
+        to go through. This would happen if e.g. the bundle gets
+        replaced with a different bundle with the same output file.
 
-        if not update_needed:
-            # We can simply return the existing output file
-            return FileHunk(self.resolve_output(ctx, self.output))
+        We get the lock from a ``LockManager`` based on the output name
+        to prevent this and support tags, which create a new
+        bundle object for every tag. So we can't use an ``Lock``
+        that is an attribute of this object.
+        """
+        with Bundle.lockmanager.get_lock(self.output):
+            # Determine if we really need to build, or if the output file
+            # already exists and nothing has changed.
+            if force:
+                update_needed = True
+            elif not has_placeholder(self.output) and \
+                    not path.exists(self.resolve_output(ctx, self.output)):
+                update_needed = True
+            else:
+                update_needed = ctx.updater.needs_rebuild(self, ctx) \
+                    if ctx.updater else True
+                if update_needed==SKIP_CACHE:
+                    disable_cache = True
 
-        hunk = self._merge_and_apply(
-            ctx, [self.output, self.resolve_output(ctx, version='?')],
-            force, disable_cache=disable_cache, extra_filters=extra_filters)
-        if hunk is None:
-            raise BuildError('Nothing to build for %s, is empty' % self)
+            if not update_needed:
+                # We can simply return the existing output file
+                return FileHunk(self.resolve_output(ctx, self.output))
 
-        if output:
-            # If we are given a stream, just write to it.
-            output.write(hunk.data())
-        else:
-            if has_placeholder(self.output) and not ctx.versions:
-                raise BuildError((
-                    'You have not set the "versions" option, but %s '
-                    'uses a version placeholder in the output target'
-                        % self))
+            hunk = self._merge_and_apply(
+                ctx, [self.output, self.resolve_output(ctx, version='?')],
+                force, disable_cache=disable_cache,
+                extra_filters=extra_filters)
+            if hunk is None:
+                raise BuildError('Nothing to build for %s, is empty' % self)
 
-            version = None
-            if ctx.versions:
-                version = ctx.versions.determine_version(self, ctx, hunk)
+            if output:
+                # If we are given a stream, just write to it.
+                output.write(hunk.data())
+            else:
+                if has_placeholder(self.output) and not ctx.versions:
+                    raise BuildError((
+                        'You have not set the "versions" option, but %s '
+                        'uses a version placeholder in the output target'
+                            % self))
 
-            output_filename = self.resolve_output(ctx, version=version)
+                version = None
+                if ctx.versions:
+                    version = ctx.versions.determine_version(self, ctx, hunk)
 
-            # If it doesn't exist yet, create the target directory.
-            output_dir = path.dirname(output_filename)
-            if not path.exists(output_dir):
-                os.makedirs(output_dir)
+                output_filename = self.resolve_output(ctx, version=version)
 
-            hunk.save(output_filename)
-            self.version = version
+                # If it doesn't exist yet, create the target directory.
+                output_dir = path.dirname(output_filename)
+                if not path.exists(output_dir):
+                    os.makedirs(output_dir)
 
-            if ctx.manifest:
-                ctx.manifest.remember(self, ctx, version)
-            if ctx.versions and version:
-                # Hook for the versioner (for example set the timestamp of
-                # the file) to the actual version.
-                ctx.versions.set_version(self, ctx, output_filename, version)
+                hunk.save(output_filename)
+                self.version = version
 
-        # The updater may need to know this bundle exists and how it
-        # has been last built, in order to detect changes in the
-        # bundle definition, like new source files.
-        if ctx.updater:
-            ctx.updater.build_done(self, ctx)
+                if ctx.manifest:
+                    ctx.manifest.remember(self, ctx, version)
+                if ctx.versions and version:
+                    # Hook for the versioner (for example set the timestamp of
+                    # the file) to the actual version.
+                    ctx.versions.set_version(self, ctx, output_filename,
+                        version)
+
+            # The updater may need to know this bundle exists and how it
+            # has been last built, in order to detect changes in the
+            # bundle definition, like new source files.
+            if ctx.updater:
+                ctx.updater.build_done(self, ctx)
 
         return hunk
 
