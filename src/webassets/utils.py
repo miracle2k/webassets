@@ -12,6 +12,8 @@ __all__ = ('md5_constructor', 'pickle', 'set', 'StringIO',
            'common_path_prefix', 'working_directory', 'is_url')
 
 
+import base64
+
 if sys.version_info >= (2, 5):
     import hashlib
     md5_constructor = hashlib.md5
@@ -210,3 +212,18 @@ def is_url(s):
         return False
     parsed = urlparse.urlsplit(s)
     return bool(parsed.scheme and parsed.netloc) and len(parsed.scheme) > 1
+
+
+def calculate_sri(input):
+    """Calculate SRI string"""
+    BUF_SIZE = 65536
+    hash = hashlib.sha384()
+    with open(input, 'rb') as f:
+        while True:
+            data = f.read(BUF_SIZE)
+            if not data:
+                break
+            hash.update(data)
+    hash = hash.digest()
+    hash_base64 = base64.b64encode(hash).decode()
+    return 'sha384-{}'.format(hash_base64)
