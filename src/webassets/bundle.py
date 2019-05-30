@@ -12,7 +12,7 @@ from .updater import SKIP_CACHE
 from .exceptions import BundleError, BuildError
 from .utils import cmp_debug_levels, hash_func
 from .env import ConfigurationContext, DictConfigStorage, BaseEnvironment
-from .utils import is_url, calculate_sri
+from .utils import is_url, calculate_sri_on_file
 
 
 __all__ = ('Bundle', 'get_all_bundle_files',)
@@ -118,7 +118,6 @@ class Bundle(object):
         self.remove_duplicates = options.pop('remove_duplicates', True)
         self.extra = options.pop('extra', {})
         self.merge = options.pop('merge', True)
-        self.calculate_sri = options.pop('calculate_sri', False)
 
         self._config = BundleConfig(self)
         self._config.update(options.pop('config', {}))
@@ -738,6 +737,8 @@ class Bundle(object):
         """Return a list of urls for this bundle, and all subbundles,
         and, when it becomes necessary, start a build process.
         """
+        # Check if we should calculate SRI
+        calculate_sri = kwargs.pop('calculate_sri', False)
 
         # Look at the debug value to see if this bundle should return the
         # source urls (in debug mode), or a single url of the bundle in built
@@ -765,9 +766,9 @@ class Bundle(object):
             if ctx.auto_build:
                 self._build(ctx, extra_filters=extra_filters, force=False,
                             *args, **kwargs)
-            if self.calculate_sri:
+            if calculate_sri:
                 return [{'uri': self._make_output_url(ctx),
-                         'sri': calculate_sri(ctx.resolver.resolve_output_to_path(ctx, self.output, self))}]
+                         'sri': calculate_sri_on_file(ctx.resolver.resolve_output_to_path(ctx, self.output, self))}]
             else:
                 return [self._make_output_url(ctx)]
         else:
@@ -780,29 +781,31 @@ class Bundle(object):
                     urls.extend(org._urls(
                         wrap(ctx, cnt),
                         merge_filters(extra_filters, self.filters),
-                        *args, **kwargs))
+                        *args,
+                        calculate_sri=calculate_sri,
+                        **kwargs))
                 elif is_url(cnt):
                     # Can't calculate SRI for non file
-                    if self.calculate_sri:
-                        urls.append({'uri': cnt})
+                    if calculate_sri:
+                        urls.append({'uri': cnt, 'sri': None})
                     else:
                         urls.append(cnt)
                 else:
                     sri = None
                     try:
                         url = ctx.resolver.resolve_source_to_url(ctx, cnt, org)
-                        if self.calculate_sri:
-                            sri = calculate_sri(ctx.resolver.resolve_output_to_path(ctx, cnt, org))
+                        if calculate_sri:
+                            sri = calculate_sri_on_file(ctx.resolver.resolve_output_to_path(ctx, cnt, org))
                     except ValueError:
                         # If we cannot generate a url to a path outside the
                         # media directory. So if that happens, we copy the
                         # file into the media directory.
                         external = pull_external(ctx, cnt)
                         url = ctx.resolver.resolve_source_to_url(ctx, external, org)
-                        if self.calculate_sri:
-                            sri = calculate_sri(ctx.resolver.resolve_output_to_path(ctx, external, org))
+                        if calculate_sri:
+                            sri = calculate_sri_on_file(ctx.resolver.resolve_output_to_path(ctx, external, org))
 
-                    if self.calculate_sri:
+                    if calculate_sri:
                         urls.append({'uri': url, 'sri': sri})
                     else:
                         urls.append(url)

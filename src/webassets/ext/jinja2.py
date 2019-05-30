@@ -177,15 +177,14 @@ class AssetsExtension(Extension):
             'output': output,
             'filters': filter,
             'debug': dbg,
-            'depends': depends,
-            'calculate_sri': True,
+            'depends': depends
         }
         bundle = self.BundleClass(
             *self.resolve_contents(files, env), **bundle_kwargs)
 
         # Retrieve urls (this may or may not cause a build)
         with bundle.bind(env):
-            urls = bundle.urls()
+            urls = bundle.urls(calculate_sri=True)
 
         # For each url, execute the content of this template tag (represented
         # by the macro ```caller`` given to use by Jinja2).

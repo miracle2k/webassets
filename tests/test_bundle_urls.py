@@ -6,14 +6,16 @@ more likely` found in `test_bundle_various.py``.
 
 from __future__ import with_statement
 
-from nose.tools import assert_raises, assert_equal
 from nose import SkipTest
+from nose.tools import assert_raises, assert_equal
 
+from tests.test_bundle_build import AppendFilter
 from webassets import Bundle
 from webassets.exceptions import BundleError
 from webassets.test import TempEnvironmentHelper, TempDirHelper
 
-from tests.test_bundle_build import AppendFilter
+# SRI for an empty file
+_EMPTY_FILE_SRI = 'sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb'
 
 
 class BaseUrlsTester(TempEnvironmentHelper):
@@ -34,15 +36,19 @@ class BaseUrlsTester(TempEnvironmentHelper):
         self.build_called = build_called = []
         self.makeurl_called = makeurl_called = []
         env = self.env
+
         class MockBundle(Bundle):
             def __init__(self, *a, **kw):
                 Bundle.__init__(self, *a, **kw)
                 self.env = env
+
             def _build(self, *a, **kw):
                 build_called.append(self.output)
+
             def _make_url(self, *a, **kw):
                 makeurl_called.append(self.output)
                 return Bundle._make_url(self, *a, **kw)
+
         self.MockBundle = MockBundle
 
 
@@ -130,6 +136,23 @@ class TestUrlsVarious(BaseUrlsTester):
             assert len(urls) == 1
             assert_regex(urls[0], r'.*/webassets-external/[\da-z]*_foo.css')
 
+    def test_external_refs_calculate_sri(self):
+        """If a bundle contains absolute paths outside of the
+        media directory, to generate a url they are copied in.
+        """
+        try:
+            from nose.tools import assert_regex
+        except ImportError:
+            raise SkipTest("Assertion method only present in 2.7+")
+        self.env.debug = True
+        with TempDirHelper() as h:
+            h.create_files(['foo.css'])
+            bundle = self.mkbundle(h.path('foo.css'))
+            urls = bundle.urls(calculate_sri=True)
+            assert len(urls) == 1
+            assert_regex(urls[0]['uri'], r'.*/webassets-external/[\da-z]*_foo.css')
+            assert urls[0]['sri'] == _EMPTY_FILE_SRI
+
 
 class TestUrlsWithDebugFalse(BaseUrlsTester):
     """Test url generation in production mode - everything is always built.
@@ -191,10 +214,75 @@ class TestUrlsWithDebugFalse(BaseUrlsTester):
         None of this has any effect, since Environment.debug=False.
         """
         bundle = self.MockBundle(
-                '1', '2',
-                self.MockBundle('a', output='child1', debug=False),
-                output='rootout', debug=True)
+            '1', '2',
+            self.MockBundle('a', output='child1', debug=False),
+            output='rootout', debug=True)
         assert_equal(bundle.urls(), ['/rootout'])
+
+    def test_simple_bundle_with_sri(self):
+        bundle = self.MockBundle('a', 'b', 'c', output='out')
+        assert bundle.urls(calculate_sri=True) == [{'uri': '/out', 'sri': None}]
+        assert len(self.build_called) == 1
+
+    def test_nested_bundle_with_sri(self):
+        bundle = self.MockBundle(
+            'a', self.MockBundle('d', 'childout'), 'c', output='out')
+        assert bundle.urls(calculate_sri=True) == [{'uri': '/out', 'sri': None}]
+        assert len(self.build_called) == 1
+
+    def test_container_bundle_with_sri(self):
+        """A bundle that has only child bundles and does not specify
+        an output target of its own will simply build its child
+        bundles separately.
+        """
+        bundle = self.MockBundle(
+            self.MockBundle('a', output='child1'),
+            self.MockBundle('a', output='child2'))
+        assert bundle.urls(calculate_sri=True) == [{'uri': '/child1', 'sri': None},
+                                                   {'uri': '/child2', 'sri': None}]
+        assert len(self.build_called) == 2
+
+    def test_source_bundle_with_sri(self):
+        """If a bundle does neither specify an output target nor any
+        filters, its file are always sourced directly.
+        """
+        bundle = self.MockBundle('a', self.MockBundle('d', output='childout'))
+        # The child bundle generates a file, thus we end up being able to actually calculate the SRI in this case.
+        assert bundle.urls(calculate_sri=True) == [
+            {'uri': '/a', 'sri': 'sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb'},
+            {'uri': '/childout', 'sri': None}]
+        assert len(self.build_called) == 1
+
+    def test_root_bundle_switching_to_merge_with_sri(self):
+        """A bundle explicitly says it wants to be merged, wanting to override
+        the  global "debug=False" setting. This is ineffectual (and anyway
+        does not affect url generation).
+        """
+        bundle = self.MockBundle('1', '2', output='childout', debug='merge')
+        assert_equal(bundle.urls(calculate_sri=True), [{'uri': '/childout', 'sri': None}])
+        assert len(self.build_called) == 1
+
+    def test_root_bundle_switching_to_debug_true_with_sri(self):
+        """A bundle explicitly says it wants to be processed in debug
+        mode, wanting overriding the global "debug=False" setting. This is
+        ineffectual.
+        """
+        bundle = self.MockBundle('1', '2', output='childout', debug=True)
+        assert_equal(bundle.urls(calculate_sri=True), [{'uri': '/childout', 'sri': None}])
+        assert len(self.build_called) == 1
+
+    def test_root_debug_true_and_child_debug_false_with_sri(self):
+        """The root bundle explicitly says it wants to be processed in
+        debug mode, overriding the global "debug" setting, and a child
+        bundle asks for debugging to be disabled again.
+
+        None of this has any effect, since Environment.debug=False.
+        """
+        bundle = self.MockBundle(
+            '1', '2',
+            self.MockBundle('a', output='child1', debug=False),
+            output='rootout', debug=True)
+        assert_equal(bundle.urls(calculate_sri=True), [{'uri': '/rootout', 'sri': None}])
 
 
 class TestUrlsWithDebugTrue(BaseUrlsTester):
@@ -269,6 +357,80 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
         assert_equal(bundle.urls(), ['/a', '/childout', '/c'])
         assert len(self.build_called) == 1
 
+    def test_simple_bundle_with_sri(self):
+        bundle = self.MockBundle('a', 'b', 'c', output='out')
+        assert_equal(bundle.urls(calculate_sri=True),
+                     [{'sri': _EMPTY_FILE_SRI, 'uri': '/a'},
+                      {'sri': _EMPTY_FILE_SRI, 'uri': '/b'},
+                      {'sri': _EMPTY_FILE_SRI, 'uri': '/c'}])
+        assert_equal(len(self.build_called), 0)
+
+    def test_nested_bundle_with_sri(self):
+        bundle = self.MockBundle(
+            'a', self.MockBundle('1', '2', output='childout'), 'c', output='out')
+        assert bundle.urls(calculate_sri=True) == [{'sri': _EMPTY_FILE_SRI, 'uri': '/a'},
+                                                   {'sri': _EMPTY_FILE_SRI, 'uri': '/1'},
+                                                   {'sri': _EMPTY_FILE_SRI, 'uri': '/2'},
+                                                   {'sri': _EMPTY_FILE_SRI, 'uri': '/c'}]
+        assert len(self.build_called) == 0
+
+    def test_container_bundle_with_sri(self):
+        """A bundle that has only sub bundles and does not specify
+        an output target of its own.
+        """
+        bundle = self.MockBundle(
+            self.MockBundle('a', output='child1'),
+            self.MockBundle('a', output='child2'))
+        assert bundle.urls(calculate_sri=True) == [{'sri': _EMPTY_FILE_SRI, 'uri': '/a'},
+                                                   {'sri': _EMPTY_FILE_SRI, 'uri': '/a'}]
+        assert len(self.build_called) == 0
+
+    def test_url_source_with_sri(self):
+        """[Regression] Test a Bundle that contains a source URL.
+        """
+        bundle = self.MockBundle('http://test.de', output='out')
+        assert_equal(bundle.urls(calculate_sri=True), [{'sri': None, 'uri': 'http://test.de'}])
+        assert_equal(len(self.build_called), 0)
+
+        # This is the important test. It proves that the url source
+        # was handled separately, and not processed like any other
+        # source file, which would be passed through makeurl().
+        # This is a bit convoluted to test because the code that
+        # converts a bundle content into an url operates just fine
+        # on a url source, so there is no easy other way to determine
+        # whether the url source was treated special.
+        assert_equal(len(self.makeurl_called), 0)
+
+    def test_root_bundle_switching_to_debug_false_with_sri(self):
+        """A bundle explicitly says it wants to be processed with
+        debug=False, overriding the global "debug=True" setting.
+        """
+        bundle = self.MockBundle('1', '2', output='childout', debug=False)
+        assert_equal(bundle.urls(calculate_sri=True), [{'sri': None, 'uri': '/childout'}])
+        assert len(self.build_called) == 1
+
+    def test_root_bundle_switching_to_merge_with_sri(self):
+        """A bundle explicitly says it wants to be merged, overriding
+        the global "debug=True" setting.
+        """
+        bundle = self.MockBundle('1', '2', output='childout', debug='merge')
+        assert_equal(bundle.urls(calculate_sri=True), [{'sri': None, 'uri': '/childout'}])
+        assert len(self.build_called) == 1
+
+    def test_child_bundle_switching_with_sri(self):
+        """A child bundle explicitly says it wants to be processed in
+        "merge" mode, overriding the global "debug=True" setting, with the
+        root bundle not having an opinion.
+        """
+        bundle = self.MockBundle(
+            'a', self.MockBundle('1', '2', output='childout', debug='merge'),
+            'c', output='out')
+        assert_equal(bundle.urls(calculate_sri=True),
+                     [{'sri': _EMPTY_FILE_SRI, 'uri': '/a'},
+                      {'sri': None, 'uri': '/childout'},
+                      {'sri': _EMPTY_FILE_SRI, 'uri': '/c'}])
+        assert len(self.build_called) == 1
+
 
 class TestUrlsWithDebugMerge(BaseUrlsTester):
 
@@ -306,4 +468,36 @@ class TestUrlsWithDebugMerge(BaseUrlsTester):
             'a', self.MockBundle('1', '2', output='childout', debug=True),
             'c', output='out')
         assert_equal(bundle.urls(), ['/out'])
+        assert len(self.build_called) == 1
+
+    def test_simple_bundle_with_sri(self):
+        bundle = self.MockBundle('a', 'b', 'c', output='out')
+        assert bundle.urls(calculate_sri=True) == [{'sri': None, 'uri': '/out'}]
+        assert len(self.build_called) == 1
+
+    def test_nested_bundle_with_sri(self):
+        bundle = self.MockBundle('a', self.MockBundle('d', 'childout'), 'c', output='out')
+        assert bundle.urls(calculate_sri=True) == [{'sri': None, 'uri': '/out'}]
+        assert len(self.build_called) == 1
+
+    def test_child_bundle_switching_to_debug_false_with_sri(self):
+        """A child bundle explicitly says it wants to be processed in
+        full production mode, with overriding the global "debug" setting.
+
+        This makes no difference to the urls that are generated.
+        """
+        bundle = self.MockBundle(
+            'a', self.MockBundle('1', '2', output='childout', debug=False),
+            'c', output='out')
+        assert_equal(bundle.urls(calculate_sri=True), [{'sri': None, 'uri': '/out'}])
+        assert len(self.build_called) == 1
+
+    def test_root_bundle_switching_to_debug_true_with_sri(self):
+        """A bundle explicitly says it wants to be processed in debug mode,
+        overriding the global ``debug=merge"`` setting. This is ineffectual.
+        """
+        bundle = self.MockBundle(
+            'a', self.MockBundle('1', '2', output='childout', debug=True),
+            'c', output='out')
+        assert_equal(bundle.urls(calculate_sri=True), [{'sri': None, 'uri': '/out'}])
         assert len(self.build_called) == 1

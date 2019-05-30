@@ -36,6 +36,14 @@ else:
     set = set
 
 
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+else:
+    FileNotFoundError = FileNotFoundError
+
+
 from webassets.six import StringIO
 
 
@@ -214,16 +222,28 @@ def is_url(s):
     return bool(parsed.scheme and parsed.netloc) and len(parsed.scheme) > 1
 
 
-def calculate_sri(input):
-    """Calculate SRI string"""
-    BUF_SIZE = 65536
+def calculate_sri(data):
+    """Calculate SRI string for data buffer."""
     hash = hashlib.sha384()
-    with open(input, 'rb') as f:
-        while True:
-            data = f.read(BUF_SIZE)
-            if not data:
-                break
-            hash.update(data)
+    hash.update(data)
     hash = hash.digest()
     hash_base64 = base64.b64encode(hash).decode()
     return 'sha384-{}'.format(hash_base64)
+
+
+def calculate_sri_on_file(file_name):
+    """Calculate SRI string if file can be found. Otherwise silently return None"""
+    BUF_SIZE = 65536
+    hash = hashlib.sha384()
+    try:
+        with open(file_name, 'rb') as f:
+            while True:
+                data = f.read(BUF_SIZE)
+                if not data:
+                    break
+                hash.update(data)
+        hash = hash.digest()
+        hash_base64 = base64.b64encode(hash).decode()
+        return 'sha384-{}'.format(hash_base64)
+    except FileNotFoundError:
+        return None
