@@ -820,6 +820,12 @@ class Bundle(object):
 
         Insofar necessary, this will automatically create or update the files
         behind these urls.
+
+        :param calculate_sri: Set to true to calculate a sub-resource integrity
+        string for the URLs. This changes the returned format.
+
+        :return: List of URIs if calculate_sri is False. If calculate_sri is
+                 true: list of {'uri': '<uri>', 'sri': '<sri-hash>'}.
         """
         ctx = wrap(self.env, self)
         urls = []
