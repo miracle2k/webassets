@@ -4,6 +4,7 @@ from __future__ import with_statement
 
 import os
 import os.path
+from subprocess import check_output
 from contextlib import contextmanager
 from nose.tools import assert_raises, assert_equal, assert_true
 from nose import SkipTest
@@ -422,7 +423,7 @@ def test_get_filter():
     assert hasattr(get_filter(lambda: None), 'output')
 
     # Arguments passed to get_filter are used for instance creation.
-    assert get_filter('sass', scss=True).use_scss == True
+    assert get_filter('rcssmin', keep_bang_comments=True).keep_bang_comments == True
     # However, this is not allowed when a filter instance is passed directly,
     # or a callable object.
     assert_raises(AssertionError, get_filter, f, 'test')
@@ -906,6 +907,116 @@ class TestLess(TempEnvironmentHelper):
         assert_raises(FilterError, mkbundle)
 
 
+class TestRubySass(TempEnvironmentHelper):
+
+    default_files = {
+        'foo.css': """
+            h1  {
+                font-family: "Verdana"  ;
+                color: #FFFFFF;
+            }
+        """,
+        'foo.sass': """h1
+            font-family: "Verdana"
+            color: #FFFFFF
+        """,
+    }
+
+    def setup(self):
+        if not find_executable('sass'):
+            raise SkipTest()
+
+        if "Ruby" not in check_output(["sass", "--version"]).decode('utf-8'):
+            raise SkipTest()
+
+        TempEnvironmentHelper.setup(self)
+
+    def test_sass(self):
+        sass = get_filter('sass_ruby', debug_info=False)
+        self.mkbundle('foo.sass', filters=sass, output='out.css').build()
+        assert self.get('out.css') in (
+            # Sass <= 3.3
+            """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""",
+            # Sass 3.4+
+            """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""",
+        )
+
+    def test_sass_import(self):
+        """Test referencing other files in sass.
+        """
+        sass = get_filter('sass_ruby', debug_info=False)
+        self.create_files({'import-test.sass': '''@import foo.sass'''})
+        self.mkbundle('import-test.sass', filters=sass, output='out.css').build()
+        assert (
+            # Sass <= 3.3
+            doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""", self.get('out.css'))
+            # Sass 3.4+
+            or doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""", self.get('out.css'))
+        )
+
+    def test_scss(self):
+        # SCSS is a CSS superset, should be able to compile the CSS file just fine
+        scss = get_filter('scss_ruby', debug_info=False)
+        self.mkbundle('foo.css', filters=scss, output='out.css').build()
+        assert self.get('out.css') == """/* line 2 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
+
+    def test_debug_info_option(self):
+        # The debug_info argument to the sass filter can be configured via
+        # a global SASS_DEBUG_INFO option.
+        self.env.config['SASS_DEBUG_INFO'] = False
+        self.mkbundle('foo.sass', filters=get_filter('sass_ruby'), output='out.css').build(force=True)
+        assert not '-sass-debug-info' in self.get('out.css')
+
+        # However, an instance-specific debug_info option takes precedence.
+        self.mkbundle('foo.sass', filters=get_filter('sass_ruby', debug_info=True), output='out.css').build(force=True)
+        assert '-sass-debug-info' in self.get('out.css')
+
+        # If the value is None (the default), then the filter will look
+        # at the global debug setting to determine whether to include debug
+        # info. Note: It looks at environment.debug! The local bundle.debug
+        # is likely to be always False for Sass, so is of little help.
+        self.env.config['SASS_DEBUG_INFO'] = None
+        self.env.debug = True
+        self.mkbundle('foo.sass', filters=get_filter('sass_ruby'),
+                      output='out.css', debug=False).build(force=True)
+        assert '-sass-debug-info' in self.get('out.css')
+        self.env.debug = False
+        self.mkbundle('foo.sass', filters=get_filter('sass_ruby'),
+                      output='out.css').build(force=True)
+        assert not '-sass-debug-info' in self.get('out.css')
+
+    def test_as_output_filter(self):
+        """The sass filter can be configured to work as on output filter,
+        first merging the sources together, then applying sass.
+        """
+        # To test this, split a sass rules into two files.
+        sass_output = get_filter('sass_ruby', debug_info=False, as_output=True)
+        self.create_files({'p1': 'h1', 'p2': '\n  color: #FFFFFF'})
+        self.mkbundle('p1', 'p2', filters=sass_output, output='out.css').build()
+        assert self.get('out.css') in (
+            # Sass <= 3.3
+            """/* line 1 */\nh1 {\n  color: white;\n}\n""",
+            # Sass 3.4+
+            """/* line 1 */\nh1 {\n  color: #FFFFFF;\n}\n""",
+        )
+
+    def test_custom_include_path(self):
+        """Test a custom include_path.
+        """
+        sass_output = get_filter('sass_ruby', debug_info=False, as_output=True,
+                                 load_paths=['includes'])
+        self.create_files({
+            'includes/vars.sass': '$a_color: #FFFFFF',
+            'base.sass': '@import vars.sass\nh1\n  color: $a_color'})
+        self.mkbundle('base.sass', filters=sass_output, output='out.css').build()
+        assert self.get('out.css') in (
+            # Sass <= 3.3
+            """/* line 2 */\nh1 {\n  color: white;\n}\n""",
+            # Sass 3.4+
+            """/* line 2 */\nh1 {\n  color: #FFFFFF;\n}\n""",
+        )
+
+
 class TestSass(TempEnvironmentHelper):
 
     default_files = {
@@ -927,88 +1038,51 @@ class TestSass(TempEnvironmentHelper):
         TempEnvironmentHelper.setup(self)
 
     def test_sass(self):
-        sass = get_filter('sass', debug_info=False)
+        sass = get_filter('sass')
         self.mkbundle('foo.sass', filters=sass, output='out.css').build()
-        assert self.get('out.css') in (
-            # Sass <= 3.3
-            """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""",
-            # Sass 3.4+
-            """/* line 1 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""",
+        assert self.get('out.css')  == (
+            """h1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
         )
 
     def test_sass_import(self):
         """Test referencing other files in sass.
         """
-        sass = get_filter('sass', debug_info=False)
+        sass = get_filter('sass')
         self.create_files({'import-test.sass': '''@import foo.sass'''})
         self.mkbundle('import-test.sass', filters=sass, output='out.css').build()
         assert (
-            # Sass <= 3.3
-            doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: white;\n}\n""", self.get('out.css'))
-            # Sass 3.4+
-            or doctest_match("""/* line 1, ...foo.sass */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""", self.get('out.css'))
+            doctest_match("""h1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n""", self.get('out.css'))
         )
 
     def test_scss(self):
         # SCSS is a CSS superset, should be able to compile the CSS file just fine
-        scss = get_filter('scss', debug_info=False)
+        scss = get_filter('scss')
         self.mkbundle('foo.css', filters=scss, output='out.css').build()
-        assert self.get('out.css') == """/* line 2 */\nh1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
-
-    def test_debug_info_option(self):
-        # The debug_info argument to the sass filter can be configured via
-        # a global SASS_DEBUG_INFO option.
-        self.env.config['SASS_DEBUG_INFO'] = False
-        self.mkbundle('foo.sass', filters=get_filter('sass'), output='out.css').build(force=True)
-        assert not '-sass-debug-info' in self.get('out.css')
-
-        # However, an instance-specific debug_info option takes precedence.
-        self.mkbundle('foo.sass', filters=get_filter('sass', debug_info=True), output='out.css').build(force=True)
-        assert '-sass-debug-info' in self.get('out.css')
-
-        # If the value is None (the default), then the filter will look
-        # at the global debug setting to determine whether to include debug
-        # info. Note: It looks at environment.debug! The local bundle.debug
-        # is likely to be always False for Sass, so is of little help.
-        self.env.config['SASS_DEBUG_INFO'] = None
-        self.env.debug = True
-        self.mkbundle('foo.sass', filters=get_filter('sass'),
-                      output='out.css', debug=False).build(force=True)
-        assert '-sass-debug-info' in self.get('out.css')
-        self.env.debug = False
-        self.mkbundle('foo.sass', filters=get_filter('sass'),
-                      output='out.css').build(force=True)
-        assert not '-sass-debug-info' in self.get('out.css')
+        assert self.get('out.css') == """h1 {\n  font-family: "Verdana";\n  color: #FFFFFF;\n}\n"""
 
     def test_as_output_filter(self):
         """The sass filter can be configured to work as on output filter,
         first merging the sources together, then applying sass.
         """
         # To test this, split a sass rules into two files.
-        sass_output = get_filter('sass', debug_info=False, as_output=True)
+        sass_output = get_filter('sass', as_output=True)
         self.create_files({'p1': 'h1', 'p2': '\n  color: #FFFFFF'})
         self.mkbundle('p1', 'p2', filters=sass_output, output='out.css').build()
-        assert self.get('out.css') in (
-            # Sass <= 3.3
-            """/* line 1 */\nh1 {\n  color: white;\n}\n""",
-            # Sass 3.4+
-            """/* line 1 */\nh1 {\n  color: #FFFFFF;\n}\n""",
+        assert self.get('out.css') == (
+            """h1 {\n  color: #FFFFFF;\n}\n"""
         )
 
     def test_custom_include_path(self):
         """Test a custom include_path.
         """
-        sass_output = get_filter('sass', debug_info=False, as_output=True,
+        sass_output = get_filter('sass', as_output=True,
                                  load_paths=['includes'])
         self.create_files({
             'includes/vars.sass': '$a_color: #FFFFFF',
             'base.sass': '@import vars.sass\nh1\n  color: $a_color'})
         self.mkbundle('base.sass', filters=sass_output, output='out.css').build()
-        assert self.get('out.css') in (
-            # Sass <= 3.3
-            """/* line 2 */\nh1 {\n  color: white;\n}\n""",
-            # Sass 3.4+
-            """/* line 2 */\nh1 {\n  color: #FFFFFF;\n}\n""",
+        assert self.get('out.css') == (
+            """h1 {\n  color: #FFFFFF;\n}\n"""
         )
 
 

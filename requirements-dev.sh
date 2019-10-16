@@ -15,6 +15,7 @@ set -e
 npm install -g postcss-cli
 npm install -g autoprefixer
 npm install -g less
+npm install -g sass
 npm install -g uglify-js@2.3.1
 npm install -g coffee-script@1.6.2
 npm install -g clean-css@1.0.2

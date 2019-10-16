@@ -149,6 +149,18 @@ JS/CSS compilers
 .. autoclass:: webassets.filter.sass.SCSS
 
 
+``ruby_sass``
+~~~~~~~~
+
+.. autoclass:: webassets.filter.sass.RubySass
+
+
+``ruby_scss``
+~~~~~~~~
+
+.. autoclass:: webassets.filter.sass.RubySCSS
+
+
 ``compass``
 ~~~~~~~~~~~
 
