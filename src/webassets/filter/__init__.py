@@ -524,7 +524,9 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                     '%s: subprocess returned a non-success result code: '
                     '%s, stdout=%s, stderr=%s' % (
                         cls.name or cls.__name__,
-                        proc.returncode, stdout, stderr))
+                        proc.returncode,
+                        stdout.decode('utf-8').strip(),
+                        stderr.decode('utf-8').strip()))
             else:
                 if output_file.created:
                     with open(output_file.filename, 'rb') as f:
