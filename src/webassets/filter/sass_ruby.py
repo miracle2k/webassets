@@ -1,20 +1,23 @@
 from __future__ import print_function
-
-import os
+import os, subprocess
 
 from webassets.filter import ExternalTool
+from webassets.cache import FilesystemCache
 
-__all__ = ('Sass', 'SCSS')
+
+__all__ = ('RubySass', 'RubySCSS')
 
 
-class Sass(ExternalTool):
-    """Converts `Sass <http://sass-lang.com/>`_ markup to
-    real CSS.
+class RubySass(ExternalTool):
+    """Converts `Sass <http://sass-lang.com/>`_ markup to real CSS.
+
+    This filter uses the legacy ruby Sass compiler, which has been
+    replaced by the dart version in use in the ``sass`` filter.
 
     Requires the Sass executable to be available externally. To install
     it, you might be able to do::
 
-         $ sudo npm install -g sass
+         $ sudo gem install sass
 
     By default, this works as an "input filter", meaning ``sass`` is
     called for each source file in the bundle. This is because the
@@ -76,8 +79,30 @@ class Sass(ExternalTool):
         try to run ``sass`` as if it's in the system path.
 
     SASS_STYLE
-        The style for the output CSS. Can be one of ``expanded`` (default)
-        or ``compressed``.
+        The style for the output CSS. Can be one of ``expanded`` (default),
+        ``nested``, ``compact`` or ``compressed``.
+
+    SASS_DEBUG_INFO
+        If set to ``True``, will cause Sass to output debug information
+        to be used by the FireSass Firebug plugin. Corresponds to the
+        ``--debug-info`` command line option of Sass.
+
+        Note that for this, Sass uses ``@media`` rules, which are
+        not removed by a CSS compressor. You will thus want to make
+        sure that this option is disabled in production.
+
+        By default, the value of this option will depend on the
+        environment ``DEBUG`` setting.
+
+    SASS_LINE_COMMENTS
+        Passes ``--line-comments`` flag to sass which emit comments in the
+        generated CSS indicating the corresponding source line.
+
+	Note that this option is disabled by Sass if ``--style compressed`` or
+        ``--debug-info`` options are provided.
+
+        Enabled by default. To disable, set empty environment variable
+        ``SASS_LINE_COMMENTS=`` or pass ``line_comments=False`` to this filter.
 
     SASS_AS_OUTPUT
         By default, this works as an "input filter", meaning ``sass`` is
@@ -92,24 +117,39 @@ class Sass(ExternalTool):
 
         It will also allow you to share variables between files.
 
+    SASS_SOURCE_MAP
+        If provided, this will generate source maps in the output depending
+	on the type specified. By default this will use Sass's ``auto``.
+	Possible values are ``auto``, ``file``, ``inline``, or ``none``.
+
     SASS_LOAD_PATHS
         It should be a list of paths relatives to Environment.directory or absolute paths.
         Order matters as sass will pick the first file found in path order.
         These are fed into the -I flag of the sass command and
         is used to control where sass imports code from.
+
+    SASS_LIBS
+        It should be a list of paths relatives to Environment.directory or absolute paths.
+        These are fed into the -r flag of the sass command and
+        is used to require ruby libraries before running sass.
     """
     # TODO: If an output filter could be passed the list of all input
     # files, the filter might be able to do something interesting with
     # it (for example, determine that all source files are in the same
     # directory).
 
-    name = 'sass'
+    name = 'sass_ruby'
     options = {
         'binary': 'SASS_BIN',
         'use_scss': ('scss', 'SASS_USE_SCSS'),
+        'use_compass': ('use_compass', 'SASS_COMPASS'),
+        'debug_info': 'SASS_DEBUG_INFO',
         'as_output': 'SASS_AS_OUTPUT',
         'load_paths': 'SASS_LOAD_PATHS',
+        'libs': 'SASS_LIBS',
         'style': 'SASS_STYLE',
+	'source_map': 'SASS_SOURCE_MAP',
+        'line_comments': 'SASS_LINE_COMMENTS',
     }
     max_debug_level = None
 
@@ -128,16 +168,35 @@ class Sass(ExternalTool):
         args = [self.binary or 'sass',
                 '--stdin',
                 '--style', self.style or 'expanded']
-
-        if not self.use_scss:
-            args.append("--indented")
-
+        if self.line_comments is None or self.line_comments:
+            args.append('--line-comments')
+        if isinstance(self.ctx.cache, FilesystemCache):
+            args.extend(['--cache-location',
+                         os.path.join(orig_cwd, self.ctx.cache.directory, 'sass')])
+        elif not cd:
+            # Without a fixed working directory, the location of the cache
+            # is basically undefined, so prefer not to use one at all.
+            args.extend(['--no-cache'])
+        if (self.ctx.environment.debug if self.debug_info is None else self.debug_info):
+            args.append('--debug-info')
+        if self.use_scss:
+            args.append('--scss')
+        if self.use_compass:
+            args.append('--compass')
+        if self.source_map:
+            args.append('--sourcemap=' + self.source_map)
         for path in self.load_paths or []:
             if os.path.isabs(path):
                 abs_path = path
             else:
                 abs_path = self.resolve_path(path)
             args.extend(['-I', abs_path])
+        for lib in self.libs or []:
+            if os.path.isabs(lib):
+                abs_path = lib
+            else:
+                abs_path = self.resolve_path(lib)
+            args.extend(['-r', abs_path])
 
         return self.subprocess(args, out, _in, cwd=child_cwd)
 
@@ -154,13 +213,13 @@ class Sass(ExternalTool):
             self._apply_sass(_in, out)
 
 
-class SCSS(Sass):
+class RubySCSS(RubySass):
     """Version of the ``sass`` filter that uses the SCSS syntax.
     """
 
-    name = 'scss'
+    name = 'scss_ruby'
 
     def __init__(self, *a, **kw):
-        assert 'scss' not in kw
+        assert not 'scss' in kw
         kw['scss'] = True
-        super(SCSS, self).__init__(*a, **kw)
+        super(RubySCSS, self).__init__(*a, **kw)
