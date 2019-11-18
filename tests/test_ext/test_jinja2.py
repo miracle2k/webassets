@@ -55,6 +55,11 @@ class TestTemplateTag(object):
             '{% assets '+args+' %}{{ ASSET_URL }};{% endassets %}')\
                 .render(ctx or {})
 
+    def render_template_sri(self, args, ctx=None):
+        return self.jinja_env.from_string(
+            '{% assets '+args+' %}{{ ASSET_URL }}[{{ ASSET_SRI|default(\'NOT_SET\', true) }}];{% endassets %}')\
+                .render(ctx or {})
+
     def test_reference_bundles(self):
         self.render_template('"foo_bundle", "bar_bundle"')
         assert self.the_bundle.contents == (self.foo_bundle, self.bar_bundle)
@@ -88,6 +93,12 @@ class TestTemplateTag(object):
         """
         self.BundleClass.urls_to_fake = ['foo', 'bar']
         assert self.render_template('"file1" "file2" "file3"') == 'foo;bar;'
+
+    def test_output_urls_integrity(self):
+        """Ensure the tag correctly spits out the urls the bundle returns when using SRI.
+        """
+        self.BundleClass.urls_to_fake = [{'uri': 'foo'}, {'uri': 'bar', 'sri': 'TEST_SRI'}]
+        assert self.render_template_sri('"file1" "file2" "file3"') == 'foo[NOT_SET];bar[TEST_SRI];'
 
     def test_debug_on_tag(self):
         content = self.jinja_env.from_string(
