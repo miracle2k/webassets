@@ -1596,7 +1596,14 @@ class TestAutoprefixer6Filter(TempEnvironmentHelper):
     }
 
     def test_first(self):
-        self.mkbundle('test.css', filters='autoprefixer6', output='output.css').build()
+        try:
+            self.mkbundle('test.css', filters='autoprefixer6', output='output.css').build()
+        except FilterError as e:
+            # postcss is not installed, that's ok.
+            if 'Program file not found' in e.message:
+                raise SkipTest()
+            else:
+                raise
         out = self.get('output.css')
         assert 'webkit' in out
 
@@ -1620,7 +1627,14 @@ class TestBabel(TempEnvironmentHelper):
 
     def test_extra_args(self):
         self.env.config['BABEL_EXTRA_ARGS'] = ['--minified']
-        self.mkbundle('test.es6', filters='babel', output='output.js').build()
+        try:
+            self.mkbundle('test.es6', filters='babel', output='output.js').build()
+        except FilterError as e:
+            # babel is not installed, that's ok.
+            if 'Program file not found' in e.message:
+                raise SkipTest()
+            else:
+                raise
         assert (self.get('output.js').strip() ==
                 'var x=p=>{return false};')
 
