@@ -587,7 +587,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         if not find_executable('cleancss'):
             raise SkipTest()
         self.mkbundle('foo.css', filters='cleancss', output='out.css').build()
-        assert self.get('out.css') == 'h1{font-family:Verdana;color:#FFF}'
+        assert self.get('out.css') in ('h1{font-family:Verdana;color:#FFF}', 'h1{font-family:Verdana;color:#fff}')
 
     def test_cssslimmer(self):
         try:
@@ -1612,7 +1612,7 @@ class TestBabel(TempEnvironmentHelper):
             self.mkbundle('test.es6', filters=es2015, output='output.js').build()
         except FilterError as e:
             # babel is not installed, that's ok.
-            if 'Program file not found' in e.message:
+            if 'Program file not found' in str(e):
                 raise SkipTest()
             else:
                 raise
