@@ -21,7 +21,7 @@ npm install -g coffee-script@1.6.2
 npm install -g clean-css@1.0.2
 npm install -g stylus
 npm install -g handlebars
-npm install -g typescript
+npm install -g typescript@3.7.2
 npm install -g requirejs@2.1.11
 npm install -g babel-cli@6.18.0 --save
 # Don't install the babel-preset globally because
