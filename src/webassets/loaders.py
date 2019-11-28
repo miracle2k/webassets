@@ -159,7 +159,7 @@ class YAMLLoader(object):
         # as absolute paths" option?
         f, _ = self._open()
         try:
-            obj = self.yaml.load(f) or {}
+            obj = self.yaml.safe_load(f) or {}
             return self._get_bundles(obj, environment)
         finally:
             f.close()
@@ -198,7 +198,7 @@ class YAMLLoader(object):
         """
         f, filename = self._open()
         try:
-            obj = self.yaml.load(f) or {}
+            obj = self.yaml.safe_load(f) or {}
 
             env = Environment()
 
