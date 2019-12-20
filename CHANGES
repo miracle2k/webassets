@@ -1,4 +1,6 @@
 2.0 (2019-12-20)
+    Jump to 2.0 to leave alpha versioning and start doing semver. No actual breaking changes.
+
     - Make the `sass` and `scss` filters compatible with the reference compiler
     - Add new `sass_ruby` and `scss_ruby` filters to use the deprecated Ruby Sass compiler
     - Update and improve a number of filters.
