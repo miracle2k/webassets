@@ -1,6 +1,8 @@
-Unreleased
+2.0 (2019-12-20)
     - Make the `sass` and `scss` filters compatible with the reference compiler
     - Add new `sass_ruby` and `scss_ruby` filters to use the deprecated Ruby Sass compiler
+    - Update and improve a number of filters.
+    - Add a SRI feature (Arvid Norlander).
 
 0.12.1 (2017-01-08)
     - Fix compatibility with Jinja 2.9.
