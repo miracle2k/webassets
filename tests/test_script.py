@@ -192,7 +192,7 @@ class TestWatchMixin(object):
 
     def stop_watching(self):
         """Stop the watch command thread."""
-        assert self.t.isAlive() # If it has already ended, something is wrong
+        assert self.t.is_alive() # If it has already ended, something is wrong
         self.stopped = True
         self.t.join(1)
 
