@@ -121,7 +121,7 @@ Among the ``kwargs`` you currently receive are:
   it.
 
 - ``output_path``: The final output path that your filters work will
-  ultimatily end up in.
+  ultimately end up in.
 
 .. note::
 
