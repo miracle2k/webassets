@@ -193,10 +193,7 @@ class TestYAMLCustomFilters(TestYAML):
         super(TestYAMLCustomFilters, self).setup()
 
         # If zope.dottedname is not installed, that's OK
-        try:
-            import zope.dottedname.resolve
-        except ImportError:
-            raise SkipTest()
+        pytest.importorskip("zope.dottedname.resolve")
         # Save off the original get_import_resolver
         self.original_resolver = YAMLLoader._get_import_resolver
         # Make a mock
