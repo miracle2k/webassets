@@ -1,15 +1,13 @@
-from nose.plugins.skip import SkipTest
+import pytest
+
 from webassets import Environment as AssetsEnvironment, Bundle
 from webassets.test import TempEnvironmentHelper
 
 
-try:
-    import jinja2
-except ImportError:
-    raise SkipTest('Jinja2 not installed')
-else:
-    from jinja2 import Template, Environment as JinjaEnvironment
-    from webassets.ext.jinja2 import AssetsExtension, Jinja2Loader
+jinja2 = pytest.importorskip('jinja2')
+
+from jinja2 import Template, Environment as JinjaEnvironment
+from webassets.ext.jinja2 import AssetsExtension, Jinja2Loader
 
 
 class TestTemplateTag(object):
