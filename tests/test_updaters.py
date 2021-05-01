@@ -1,5 +1,7 @@
 import os
-from nose.tools import assert_raises
+
+import pytest
+
 from webassets import Environment, Bundle
 from webassets.exceptions import BundleError, BuildError
 from webassets.updater import TimestampUpdater, BundleDefUpdater, SKIP_CACHE
@@ -201,7 +203,7 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         an error is raised.
         """
         bundle = self.mkbundle('in', output='out', depends=('file',))
-        assert_raises(BundleError, self.updater.needs_rebuild, bundle, self.env)
+        pytest.raises(BundleError, self.updater.needs_rebuild, bundle, self.env)
 
     def test_changed_file_after_nested_bundle(self):
         """[Regression] Regression-test for a particular bug where the
@@ -264,7 +266,7 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         b = self.mkbundle('in', output='out-%(version)s')
 
         # Confirm DummyVersion works as we expect it to.
-        assert_raises(VersionIndeterminableError,
+        pytest.raises(VersionIndeterminableError,
             self.env.versions.determine_version, b, self.env)
 
         # Without a manifest, an error is raised. With no version being
@@ -272,7 +274,7 @@ class TestTimestampUpdater(TempEnvironmentHelper):
         # We would have to blindly return YES, PROCEED WITH BUILD every
         # time, thus not doing our job.
         self.env.manifest = None
-        assert_raises(BuildError, self.env.updater.needs_rebuild, b, self.env)
+        pytest.raises(BuildError, self.env.updater.needs_rebuild, b, self.env)
 
         # As soon as a manifest is set, the updater will start to work,
         # even if the manifest does not actually have a version. This is

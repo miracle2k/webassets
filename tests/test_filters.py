@@ -6,11 +6,17 @@ import os
 import os.path
 from subprocess import check_output
 from contextlib import contextmanager
-from nose.tools import assert_raises, assert_equal, assert_true
-from nose import SkipTest
-from mock import patch, Mock, DEFAULT
+
+try:
+    from unittest.mock import patch, Mock, DEFAULT
+except ImportError:
+    from mock import patch, Mock, DEFAULT
+
 from distutils.spawn import find_executable
 import re
+
+import pytest
+
 from webassets.utils import StringIO
 from webassets import Environment
 from webassets.exceptions import FilterError
@@ -66,7 +72,7 @@ class TestFilterBaseClass(object):
         # Test __init__ arguments
         assert TestFilter(attr1='foo').attr1 == 'foo'
         assert TestFilter(secondattr='foo').attr2 == 'foo'
-        assert_raises(TypeError, TestFilter, attr3='foo')
+        pytest.raises(TypeError, TestFilter, attr3='foo')
         assert TestFilter(attr4='foo').attr4 == 'foo'
 
         # Test config vars
@@ -94,19 +100,19 @@ class TestFilterBaseClass(object):
 
         with os_environ_sandbox():
             # Test raising of error, and test not raising it.
-            assert_raises(EnvironmentError, get_config, NAME)
+            pytest.raises(EnvironmentError, get_config, NAME)
             assert get_config(NAME, require=False) is None
 
             # Start with only the environment variable set.
             os.environ[NAME] = 'bar'
             assert get_config(NAME) == 'bar'
             assert get_config(env=NAME, setting=False) == 'bar'
-            assert_raises(EnvironmentError, get_config, setting=NAME, env=False)
+            pytest.raises(EnvironmentError, get_config, setting=NAME, env=False)
 
             # Set the value in the environment as well.
             m.config[NAME] = 'foo'
             # Ensure that settings take precedence.
-            assert_equal(get_config(NAME), 'foo')
+            assert get_config(NAME) == 'foo'
             # Two different names can be supplied.
             assert get_config(setting=NAME2, env=NAME) == 'bar'
 
@@ -114,7 +120,7 @@ class TestFilterBaseClass(object):
             del os.environ[NAME]
             assert get_config(NAME) == 'foo'
             assert get_config(setting=NAME, env=False) == 'foo'
-            assert_raises(EnvironmentError, get_config, env=NAME)
+            pytest.raises(EnvironmentError, get_config, env=NAME)
 
     def test_getconfig_os_env_types(self):
         """Test type conversion for values read from the environment.
@@ -174,7 +180,7 @@ class TestExternalToolClass(object):
     def setup(self):
         if not hasattr(str, 'format'):
             # A large part of this functionality is not available on Python 2.5
-            raise SkipTest()
+            pytest.skip("test not for py 2.5")
         self.patcher = patch('subprocess.Popen')
         self.popen = self.patcher.start()
         self.popen.return_value = Mock()
@@ -225,7 +231,7 @@ class TestExternalToolClass(object):
         assert Filter.result == ([], None)
 
     def test_method_invalid(self):
-        assert_raises(AssertionError,
+        pytest.raises(AssertionError,
             type, 'Filter', (ExternalTool,), {'method': 'foobar'})
 
     def test_no_method(self):
@@ -307,7 +313,7 @@ class TestExternalToolClass(object):
         # With error
         self.popen.return_value.returncode = 1
         self.popen.return_value.communicate.return_value = [b'stdout', b'stderr']
-        assert_raises(FilterError, Filter.subprocess, ['test'], StringIO())
+        pytest.raises(FilterError, Filter.subprocess, ['test'], StringIO())
 
     def test_input_var(self):
         """Test {input} variable."""
@@ -331,7 +337,7 @@ class TestExternalToolClass(object):
         assert not os.path.exists(intercepted['filename'])
 
         # {input} requires input data
-        assert_raises(ValueError, Filter.subprocess, ['{input}'], StringIO())
+        pytest.raises(ValueError, Filter.subprocess, ['{input}'], StringIO())
 
     def test_output_var(self):
         class Filter(ExternalTool): pass
@@ -382,13 +388,13 @@ def test_register_filter():
     """Test registration of custom filters.
     """
     # Needs to be a ``Filter`` subclass.
-    assert_raises(ValueError, register_filter, object)
+    pytest.raises(ValueError, register_filter, object)
 
     # A name is required.
     class MyFilter(Filter):
         name = None
         def output(self, *a, **kw): pass
-    assert_raises(ValueError, register_filter, MyFilter)
+    pytest.raises(ValueError, register_filter, MyFilter)
 
     # We should be able to register a filter with a name.
     MyFilter.name = 'foo'
@@ -400,7 +406,7 @@ def test_register_filter():
         name = 'foo'
         def output(self, *a, **kw): pass
     register_filter(OverrideMyFilter)
-    assert_true(isinstance(get_filter('foo'), OverrideMyFilter))
+    assert isinstance(get_filter('foo'), OverrideMyFilter)
 
 
 def test_get_filter():
@@ -408,12 +414,12 @@ def test_get_filter():
     """
     # By name - here using one of the builtins.
     assert isinstance(get_filter('jsmin'), Filter)
-    assert_raises(ValueError, get_filter, 'notafilteractually')
+    pytest.raises(ValueError, get_filter, 'notafilteractually')
 
     # By class.
     class MyFilter(Filter): pass
     assert isinstance(get_filter(MyFilter), MyFilter)
-    assert_raises(ValueError, get_filter, object())
+    pytest.raises(ValueError, get_filter, object())
 
     # Passing an instance doesn't do anything.
     f = MyFilter()
@@ -426,8 +432,8 @@ def test_get_filter():
     assert get_filter('rcssmin', keep_bang_comments=True).keep_bang_comments == True
     # However, this is not allowed when a filter instance is passed directly,
     # or a callable object.
-    assert_raises(AssertionError, get_filter, f, 'test')
-    assert_raises(AssertionError, get_filter, lambda: None, 'test')
+    pytest.raises(AssertionError, get_filter, f, 'test')
+    pytest.raises(AssertionError, get_filter, lambda: None, 'test')
 
 
 def test_callable_filter():
@@ -474,41 +480,35 @@ class TestBuiltinFilters(TempEnvironmentHelper):
             self.mkbundle('foo.css', filters='cssmin', output='out.css').build()
         except EnvironmentError:
             # cssmin is not installed, that's ok.
-            raise SkipTest()
+            pytest.skip('no cssmin')
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
 
     def test_cssutils(self):
-        try:
-            import cssutils
-        except ImportError:
-            raise SkipTest()
+        cssutils = pytest.importorskip('cssutils')
         self.mkbundle('foo.css', filters='cssutils', output='out.css').build()
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFF}"""
 
     def test_clevercss(self):
-        try:
-            import clevercss
-        except ImportError:
-            raise SkipTest()
+        clevercss = pytest.importorskip('clevercss')
         self.create_files({'in': """a:\n    color: #fff.darken(50%)"""})
         self.mkbundle('in', filters='clevercss', output='out.css').build()
         assert self.get('out.css') == """a {\n  color: #7f7f7f;\n}"""
 
     def test_uglifyjs_ascii(self):
         if not find_executable('uglifyjs'):
-            raise SkipTest()
+            pytest.skip('no uglifyjs')
         self.mkbundle('foo2.js', filters='uglifyjs', output='out.js').build()
         assert self.get('out.js') == 'more();'
 
     def test_uglifyjs_unicode(self):
         if not find_executable('uglifyjs'):
-            raise SkipTest()
+            pytest.skip('no uglifyjs')
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}'
 
     def test_uglifyjs_ascii_and_unicode(self):
         if not find_executable('uglifyjs'):
-            raise SkipTest()
+            pytest.skip('no uglifyjs')
         self.mkbundle('foo.js', 'foo2.js', filters='uglifyjs', output='out.js').build()
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}more();'
 
@@ -516,35 +516,32 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         try:
             self.mkbundle('foo2.js', filters='slimit', output='out.js').build()
         except EnvironmentError:
-            raise SkipTest("slimit is not installed")
+            pytest.skip("slimit is not installed")
         assert self.get('out.js') == 'more();'
 
     def test_slimit_unicode(self):
         try:
             self.mkbundle('foo.js', filters='slimit', output='out.js').build()
         except EnvironmentError:
-            raise SkipTest("slimit is not installed")
+            pytest.skip("slimit is not installed")
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè";}'
 
     def test_slimit_ascii_and_unicode(self):
         try:
             self.mkbundle('foo.js', 'foo2.js', filters='slimit', output='out.js').build()
         except EnvironmentError:
-            raise SkipTest("slimit is not installed")
+            pytest.skip("slimit is not installed")
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè";}more();'
 
     def test_less_ruby(self):
         # TODO: Currently no way to differentiate the ruby lessc from the
         # JS one. Maybe the solution is just to remove the old ruby filter.
-        raise SkipTest()
+        pytest.skip()
         self.mkbundle('foo.css', filters='less_ruby', output='out.css').build()
         assert self.get('out.css') == 'h1 {\n  font-family: "Verdana";\n  color: #ffffff;\n}\n'
 
     def test_jsmin(self):
-        try:
-            import jsmin
-        except ImportError:
-            raise SkipTest()
+        jsmin = pytest.importorskip('jsmin')
         self.mkbundle('foo.js', filters='jsmin', output='out.js').build()
         assert self.get('out.js') in (
             # Builtin jsmin
@@ -556,10 +553,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         )
 
     def test_rjsmin(self):
-        try:
-            import rjsmin
-        except ImportError:
-            raise SkipTest()
+        rjsmin = pytest.importorskip('rjsmin')
         self.mkbundle('foo.js', filters='rjsmin', output='out.js').build()
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="\xc3\x9cn\xc3\xadc\xc3\xb4d\xc3\xa8";}'
 
@@ -568,38 +562,29 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         assert self.get('out.js').startswith('eval(function(p,a,c,k,e,d)')
 
     def test_yui_js(self):
-        try:
-            import yuicompressor
-        except ImportError:
-            raise SkipTest()
+        yuicompressor = pytest.importorskip('yuicompressor')
         self.mkbundle('foo.js', filters='yui_js', output='out.js').build()
         assert self.get('out.js') == 'function foo(c){var d;document.write(c);var b="Ünícôdè"};'
 
     def test_yui_css(self):
-        try:
-            import yuicompressor
-        except ImportError:
-            raise SkipTest()
+        yuicompressor = pytest.importorskip('yuicompressor')
         self.mkbundle('foo.css', filters='yui_css', output='out.css').build()
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
 
     def test_cleancss(self):
         if not find_executable('cleancss'):
-            raise SkipTest()
+            pytest.skip('no cleancss')
         self.mkbundle('foo.css', filters='cleancss', output='out.css').build()
         assert self.get('out.css') in ('h1{font-family:Verdana;color:#FFF}', 'h1{font-family:Verdana;color:#fff}')
 
     def test_cssslimmer(self):
-        try:
-            import slimmer
-        except ImportError:
-            raise SkipTest()
+        slimmer = pytest.importorskip('slimmer')
         self.mkbundle('foo.css', filters='css_slimmer', output='out.css').build()
         assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
 
     def test_stylus(self):
         if not find_executable('stylus'):
-            raise SkipTest()
+            pytest.skip('no stylus')
         self.create_files({'in': """a\n  width:100px\n  height:(@width/2)"""})
         self.mkbundle('in', filters='stylus', output='out.css').build()
         assert self.get('out.css') == """a {\n  width: 100px;\n  height: 50px;\n}\n\n"""
@@ -608,7 +593,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         try:
             self.mkbundle('foo.css', filters='rcssmin', output='out.css').build()
         except EnvironmentError:
-            raise SkipTest()
+            pytest.skip('no rcssmin')
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#FFFFFF}"""
 
     def test_find_pyc_files( self ):
@@ -625,10 +610,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
 class TestCSSPrefixer(TempEnvironmentHelper):
 
     def setup(self):
-        try:
-            import cssprefixer
-        except ImportError:
-            raise SkipTest()
+        cssprefixer = pytest.importorskip('cssprefixer')
         TempEnvironmentHelper.setup(self)
 
     def test(self):
@@ -646,7 +628,7 @@ class TestCoffeeScript(TempEnvironmentHelper):
 
     def setup(self):
         if not find_executable('coffee'):
-            raise SkipTest()
+            pytest.skip('no coffee')
         TempEnvironmentHelper.setup(self)
 
     def test_default_options(self):
@@ -669,10 +651,7 @@ class TestCoffeeScript(TempEnvironmentHelper):
 class TestJinja2(TempEnvironmentHelper):
 
     def setup(self):
-        try:
-            import jinja2
-        except ImportError:
-            raise SkipTest()
+        jinja2 = pytest.importorskip('jinja')
         TempEnvironmentHelper.setup(self)
 
     def test_default_options(self):
@@ -700,11 +679,7 @@ class TestClosure(TempEnvironmentHelper):
     }
 
     def setup(self):
-        try:
-            import closure
-        except ImportError:
-            raise SkipTest()
-
+        closure = pytest.importorskip('closure')
         TempEnvironmentHelper.setup(self)
 
     def test_closure(self):
@@ -828,7 +803,7 @@ class TestLess(TempEnvironmentHelper):
 
     def setup(self):
         if not find_executable('lessc'):
-            raise SkipTest()
+            pytest.skip('no lessc')
         TempEnvironmentHelper.setup(self)
 
     def test(self):
@@ -904,7 +879,7 @@ class TestLess(TempEnvironmentHelper):
                 'p1', 'p2', filters=less_output, output='out2.css'
             ).build()
 
-        assert_raises(FilterError, mkbundle)
+        pytest.raises(FilterError, mkbundle)
 
 
 class TestRubySass(TempEnvironmentHelper):
@@ -924,10 +899,10 @@ class TestRubySass(TempEnvironmentHelper):
 
     def setup(self):
         if not find_executable('sass'):
-            raise SkipTest()
+            pytest.skip('no sass')
 
         if "Ruby" not in check_output(["sass", "--version"]).decode('utf-8'):
-            raise SkipTest()
+            pytest.skip('no Ruby')
 
         TempEnvironmentHelper.setup(self)
 
@@ -1034,7 +1009,7 @@ class TestSass(TempEnvironmentHelper):
 
     def setup(self):
         if not find_executable('sass'):
-            raise SkipTest()
+            pytest.skip('no sass')
         TempEnvironmentHelper.setup(self)
 
     def test_sass(self):
@@ -1098,7 +1073,7 @@ class TestPyScss(TempEnvironmentHelper):
             import scss
             self.scss = scss
         except ImportError:
-            raise SkipTest()
+            pytest.skip('no scss')
         TempEnvironmentHelper.setup(self)
 
     def test(self):
@@ -1113,7 +1088,7 @@ class TestPyScss(TempEnvironmentHelper):
             from PIL import Image
             Image.new('RGB', (10,10)).save(StringIO(), 'png')
         except (ImportError, IOError):
-            raise SkipTest()
+            pytest.skip('no PIL or Pillow')
         self.create_files({'noise.scss': 'h1 {background: background-noise()}'})
         self.mkbundle('noise.scss', filters='pyscss', output='out.css').build()
 
@@ -1135,7 +1110,7 @@ class TestLibSass(TempEnvironmentHelper):
             import sass
             self.sass = sass
         except ImportError:
-            raise SkipTest()
+            pytest.skip('no sass')
         TempEnvironmentHelper.setup(self)
 
     def test(self):
@@ -1194,7 +1169,7 @@ class TestCompass(TempEnvironmentHelper):
 
     def setup(self):
         if not find_executable('compass'):
-            raise SkipTest()
+            pytest.skip('no compass')
         TempEnvironmentHelper.setup(self)
 
     def test_compass(self):
@@ -1420,7 +1395,7 @@ class TestHandlebars(TempEnvironmentHelper):
 
     def setup(self):
         if not find_executable('handlebars'):
-            raise SkipTest()
+            pytest.skip('no handlebars')
         TempEnvironmentHelper.setup(self)
 
     def test_basic(self):
@@ -1456,10 +1431,7 @@ class TestJinja2JS(TempEnvironmentHelper):
     }
 
     def setup(self):
-        try:
-            import closure_soy
-        except:
-            raise SkipTest()
+        closure_soy = pytest.importorskip('closure_soy')
         TempEnvironmentHelper.setup(self)
 
     def test(self):
@@ -1486,7 +1458,7 @@ class TestTypeScript(TempEnvironmentHelper):
 
     def setup(self):
         if not find_executable('tsc'):
-            raise SkipTest()
+            pytest.skip('no tsc')
         TempEnvironmentHelper.setup(self)
 
     def test(self):
@@ -1517,7 +1489,7 @@ define("script/app",["./utils"],function(e){e.debug("APP")});\
 
     def setup(self):
         if not find_executable('r.js'):
-            raise SkipTest('"r.js" executable not found')
+            pytest.skip('"r.js" executable not found')
         TempEnvironmentHelper.setup(self)
         self.env.config['requirejs_config'] = self.path('requirejs.json')
         self.env.config['requirejs_baseUrl'] = self.path('')
@@ -1569,7 +1541,7 @@ class TestClosureStylesheets(TempEnvironmentHelper):
 
     def setup(self):
         if not 'CLOSURE_STYLESHEETS_PATH' in os.environ:
-            raise SkipTest()
+            pytest.skip('no CLOSURE_STYLESHEETS_PATH in env')
         TempEnvironmentHelper.setup(self)
 
     def test_compiler(self):
@@ -1596,7 +1568,7 @@ class TestAutoprefixer6Filter(TempEnvironmentHelper):
         except FilterError as e:
             # postcss is not installed, that's ok.
             if 'Program file not found' in e.message:
-                raise SkipTest()
+                pytest.skip(e.message)
             else:
                 raise
         out = self.get('output.css')
@@ -1615,7 +1587,7 @@ class TestBabel(TempEnvironmentHelper):
         except FilterError as e:
             # babel is not installed, that's ok.
             if 'Program file not found' in str(e):
-                raise SkipTest()
+                pytest.skip(e.message)
             else:
                 raise
         assert "var x = function x" in self.get('output.js')
@@ -1627,7 +1599,7 @@ class TestBabel(TempEnvironmentHelper):
         except FilterError as e:
             # babel is not installed, that's ok.
             if 'Program file not found' in e.message:
-                raise SkipTest()
+                pytest.skip(e.message)
             else:
                 raise
         assert (self.get('output.js').strip() ==

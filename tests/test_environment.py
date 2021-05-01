@@ -1,7 +1,8 @@
 from __future__ import with_statement
 
 import os
-from nose.tools import assert_raises
+
+import pytest
 
 from webassets import six
 from webassets import Environment
@@ -92,14 +93,14 @@ class TestEnvApi(object):
         env = Environment('tests')
 
         # No `output`
-        assert_raises(
+        pytest.raises(
             RegisterError, env.register,
             'base1', 'helpers.py', merge=False
         )
 
         # Nested bundle
         b = Bundle()
-        assert_raises(
+        pytest.raises(
             RegisterError, env.register,
             'base2', 'helpers.py', b, merge=False, output='a'
         )
@@ -107,8 +108,8 @@ class TestEnvApi(object):
     def test_register_invalid_call(self):
         """Test calling self.m.register with an invalid syntax.
         """
-        assert_raises(TypeError, self.m.register)
-        assert_raises(TypeError, self.m.register, 'one-argument-only')
+        pytest.raises(TypeError, self.m.register)
+        pytest.raises(TypeError, self.m.register, 'one-argument-only')
 
     def test_register_duplicate(self):
         """Test name clashes.
@@ -125,8 +126,8 @@ class TestEnvApi(object):
         assert len(self.m) == 1
 
         # Otherwise, an error is raised.
-        assert_raises(RegisterError, self.m.register, 'foo', b2)
-        assert_raises(RegisterError, self.m.register, 'foo', 's1', 's2', 's3')
+        pytest.raises(RegisterError, self.m.register, 'foo', b2)
+        pytest.raises(RegisterError, self.m.register, 'foo', 's1', 's2', 's3')
 
     def test_register_anon_bundle(self):
         """Self registering an anonymous bundle.
@@ -158,8 +159,8 @@ class TestEnvApi(object):
         # An environment can be constructed without given url or directory.
         env = Environment()
         # But then accessing them will fail, and with it most operations.
-        assert_raises(EnvironmentError, getattr, env, 'url')
-        assert_raises(EnvironmentError, getattr, env, 'directory')
+        pytest.raises(EnvironmentError, getattr, env, 'url')
+        pytest.raises(EnvironmentError, getattr, env, 'directory')
 
         # Test constructing the environment with values for url and directory
         env = Environment('foo', 'bar')
@@ -242,7 +243,7 @@ class TestSpecialProperties(object):
 
         # Invalid value
         self.m.versions = 'invalid-value'
-        assert_raises(ValueError, getattr, self.m, 'versions')
+        pytest.raises(ValueError, getattr, self.m, 'versions')
 
     def test_cache(self):
         from webassets.cache import BaseCache, FilesystemCache

@@ -5,7 +5,7 @@ from webassets.test import TempDirHelper, TempEnvironmentHelper
 
 
 __all__ = ('TempDirHelper', 'TempEnvironmentHelper', 'noop',
-           'assert_raises_regexp', 'check_warnings')
+           'assert_raises_regex', 'check_warnings')
 
 
 # Define a noop filter; occasionally in tests we need to define
@@ -13,28 +13,9 @@ __all__ = ('TempDirHelper', 'TempEnvironmentHelper', 'noop',
 noop = lambda _in, out: out.write(_in.read())
 
 
-try:
-    # Python 3
-    from nose.tools import assert_raises_regex
-except ImportError:
-    try:
-        # Python >= 2.7
-        from nose.tools import assert_raises_regexp as assert_raises_regex
-    except:
-        # Python < 2.7
-        def assert_raises_regex(expected, regexp, callable, *a, **kw):
-            try:
-                callable(*a, **kw)
-            except expected as e:
-                if isinstance(regexp, basestring):
-                    regexp = re.compile(regexp)
-                if not regexp.search(str(e.message)):
-                    raise self.failureException('"%s" does not match "%s"' %
-                             (regexp.pattern, str(e.message)))
-            else:
-                if hasattr(expected,'__name__'): excName = expected.__name__
-                else: excName = str(expected)
-                raise AssertionError("%s not raised" % excName)
+from pytest import raises
+def assert_raises_regex(expected, regexp, callable, *a, **kw):
+    raises(expected, callable, *a, **kw).match(regexp)
 
 
 try:

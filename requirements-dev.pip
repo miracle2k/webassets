@@ -6,8 +6,7 @@
 #
 # Libs required to run the tests
 pytest
-nose
-mock
+mock;python_version<"3.3"
 
 # Libs helpful during development
 Sphinx

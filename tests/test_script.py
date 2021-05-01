@@ -8,14 +8,12 @@ from __future__ import with_statement
 
 import logging
 from threading import Thread, Event
-from nose.tools import assert_raises
-from nose import SkipTest
+
+import pytest
+
 import time
 
-try:
-    import argparse
-except ImportError:
-    raise SkipTest()
+argparse = pytest.importorskip("argparse")
 
 from webassets import Bundle
 from webassets.exceptions import BuildError
@@ -96,7 +94,7 @@ class TestBuildCommand(TestCLI):
 
         # Building to a non-existing path would fail, directories
         # are not auto-created here.
-        assert_raises(IOError, self.cmd_env.build,
+        pytest.raises(IOError, self.cmd_env.build,
             output=[('a', self.path('new/custom'))])
 
     def test_custom_directory(self):
@@ -119,7 +117,7 @@ class TestBuildCommand(TestCLI):
         b2 = MockBundle(output='b2')
         b = MockBundle(b1, b2)
         self.assets_env.add(b)
-        assert_raises(CommandError, self.cmd_env.build,
+        pytest.raises(CommandError, self.cmd_env.build,
             directory=self.path('some/path'))
 
     def test_no_cache(self):
@@ -313,15 +311,12 @@ class TestArgparseImpl(TestWatchMixin, TempEnvironmentHelper):
         the commandline, we fail with a clean error.
         """
         impl = GenericArgparseImplementation(env=None)
-        assert_raises(CommandError, impl.run_with_argv, ['build'])
+        pytest.raises(CommandError, impl.run_with_argv, ['build'])
 
     def test_watch_config_file(self):
         """The watch command has an eye on the config file. This is an
         extension to the base watch command."""
-        try:
-            import yaml
-        except ImportError:
-            raise SkipTest()
+        yaml = pytest.importorskip("yaml")
 
         self.cmd_env = CommandLineEnvironment(self.env, logging)
         self.cmd_env.commands['watch'] = \

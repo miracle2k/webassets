@@ -3,7 +3,8 @@
 import hashlib
 
 import os
-from nose.tools import assert_raises
+
+import pytest
 
 from webassets.env import Environment
 from webassets.merge import MemoryHunk
@@ -60,7 +61,7 @@ class TestTimestampVersion(TempEnvironmentHelper):
 
         # What if the output file does not exist? (this should not happen, right?)
         self.unlink('out')
-        assert_raises(OSError, self.v.determine_version,
+        pytest.raises(OSError, self.v.determine_version,
             self.bundle, self.env, None)
 
     def test_with_placeholder(self):
@@ -71,7 +72,7 @@ class TestTimestampVersion(TempEnvironmentHelper):
 
         # If any source file is missing, the updater cannot do its job.
         self.unlink('dep')
-        assert_raises(VersionIndeterminableError, self.v.determine_version,
+        pytest.raises(VersionIndeterminableError, self.v.determine_version,
             self.bundle, self.env, None)
 
     def test_outputfile_timestamp(self):
@@ -127,13 +128,13 @@ class TestHashVersion(TempEnvironmentHelper):
 
         # What if the output file does not exist? (this should not happen, right?)
         self.unlink('out')
-        assert_raises(IOError, self.v.determine_version,
+        pytest.raises(IOError, self.v.determine_version,
             self.bundle, self.env, None)
 
     def test_with_placeholder(self):
         # The HashVersion cannot function in this case.
         self.bundle.output = 'out-%(version)s'
-        assert_raises(VersionIndeterminableError, self.v.determine_version,
+        pytest.raises(VersionIndeterminableError, self.v.determine_version,
             self.bundle, self.env, None)
 
 
@@ -221,7 +222,7 @@ class TestCacheManifest(TempEnvironmentHelper):
 
         # If no cache is enabled, an error is raised
         self.env.cache = False
-        assert_raises(EnvironmentError,
+        pytest.raises(EnvironmentError,
             manifest.remember, self.bundle, self.env, 'the-version')
-        assert_raises(EnvironmentError,
+        pytest.raises(EnvironmentError,
             manifest.query, self.bundle, self.env)

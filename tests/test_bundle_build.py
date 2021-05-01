@@ -6,8 +6,10 @@ more likely` found in `test_bundle_various.py``.
 
 
 import os
-from nose.tools import assert_raises
+
+from pytest import raises as assert_raises
 import pytest
+
 from webassets import Bundle
 from webassets.cache import MemoryCache
 from webassets.exceptions import BuildError, BundleError
