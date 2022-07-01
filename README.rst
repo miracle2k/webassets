@@ -10,7 +10,7 @@ Documentation: |travis|
         you shouldn't run into any trouble.
 
         You can `download a tarball`__ of the development version, or
-        install it via ``pip install webassets==dev``.
+        install it via ``pip install webassets[dev]``.
 
 
 Development:
