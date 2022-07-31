@@ -121,7 +121,7 @@ In 0.8
   only works on the level of :meth:`Bundle.urls`. The new behaviour is more
   consistent, makes more sense, and simplifies the code.
 
-  The main backwards-incompatiblity caused by this is that when
+  The main backwards-incompatibility caused by this is that when
   ``environment.auto_build=False``, and you are calling ``bundle.build()``
   without specifying an explicit ``force`` argument, it used to be the case
   that ``force=True`` was assumed, i.e. the bundle was built without looking
