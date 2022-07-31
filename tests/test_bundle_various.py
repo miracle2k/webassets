@@ -496,7 +496,7 @@ class TestGlobbing(TempEnvironmentHelper):
         bundle.resolve_contents()
 
     def test_non_pattern_missing_files(self):
-        """Ensure that if we specify a non-existant file, it will still
+        """Ensure that if we specify a non-existent file, it will still
         be returned in the debug urls(), and build() will raise the IOError
         rather than the globbing failing and the bundle being empty
         """

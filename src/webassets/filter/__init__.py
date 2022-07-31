@@ -460,7 +460,7 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
     def subprocess(cls, argv, out, data=None, cwd=None):
         """Execute the commandline given by the list in ``argv``.
 
-        If a byestring is given via ``data``, it is piped into data.
+        If a bytestring is given via ``data``, it is piped into data.
 
         If ``cwd`` is not None, the process will be executed in that directory.
 
