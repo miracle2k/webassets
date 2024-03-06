@@ -39,7 +39,7 @@ class TypeScript(Filter):
         with open(input_filename, 'w') as f:
             f.write(_in.read())
 
-        args = [self.binary or 'tsc', '--out', output_filename, input_filename]
+        args = [self.binary or 'tsc', '--outFile', output_filename, input_filename]
         if self.config:
             args += self.config.split()
         proc = subprocess.Popen(
