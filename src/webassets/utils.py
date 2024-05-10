@@ -16,7 +16,8 @@ import base64
 
 if sys.version_info >= (2, 5):
     import hashlib
-    md5_constructor = hashlib.md5
+    from functools import partial
+    md5_constructor = partial(hashlib.md5, usedforsecurity=False)
 else:
     import md5
     md5_constructor = md5.new
