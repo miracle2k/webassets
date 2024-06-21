@@ -16,8 +16,15 @@ import base64
 
 if sys.version_info >= (2, 5):
     import hashlib
-    from functools import partial
-    md5_constructor = partial(hashlib.md5, usedforsecurity=False)
+    try:
+        from functools import partial
+        # Include the usedforsecurity parameter so the call will
+        # succeed on systems that enforce compliance with the 
+        # Federal Information Processing Standard (FIPS) and thus
+        # don't allow md5 for encryption.
+        md5_constructor = partial(hashlib.md5,usedforsecurity=False)
+    except (ImportError,TypeError):
+        md5_constructor = hashlib.md5
 else:
     import md5
     md5_constructor = md5.new
