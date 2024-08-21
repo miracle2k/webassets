@@ -39,7 +39,7 @@ def freezedicts(obj):
 
 
 def smartsplit(string, sep):
-    """Split while allowing escaping.
+    r"""Split while allowing escaping.
 
     So far, this seems to do what I expect - split at the separator,
     allow escaping via \, and allow the backslash itself to be escaped.
