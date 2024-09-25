@@ -3,6 +3,7 @@ package-dir = "src"
 
 [tool.uv]
 dev-dependencies = [
+    "pytest-xdist>=3.6.1",
     "pytest>=8.3.3",
     "ruff>=0.6.7",
     "sphinx>=8.0.2",
@@ -32,6 +33,7 @@ classifiers = [
 license = {text = "BSD"}
 requires-python = ">=3.10"
 dependencies = [
+    "pyyaml>=6.0.2",
     "zope-dottedname>=6.0",
 ]
 
