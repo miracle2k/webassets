@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "@babel/cli": "^7.25.6",
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.4",
+    "autoprefixer": "^10.4.20",
+    "clean-css": "^1.0.2",
+    "coffee-script": "^1.6.2",
+    "handlebars": "^4.7.8",
+    "less": "^4.2.0",
+    "postcss-cli": "^11.0.0",
+    "requirejs": "^2.1.11",
+    "sass": "^1.79.3",
+    "stylus": "^0.63.0",
+    "typescript": "^3.7.2",
+    "uglify-js": "^2.3.1"
+  }
+}
