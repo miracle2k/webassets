@@ -33,6 +33,10 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - uses: hynek/setup-cached-uv@v2
+      - run: |
+          npm install
+          echo "$(pwd)/node_modules/.bin" >> "$GITHUB_PATH"
+
       - name: Prepare tox
         run: |
           V=${{ matrix.python-version }}
