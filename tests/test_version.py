@@ -32,8 +32,8 @@ def test_builtin_manifest_accessors():
 
 class TestTimestampVersion(TempEnvironmentHelper):
 
-    def setup(self):
-        super(TestTimestampVersion, self).setup()
+    def setup_method(self):
+        super().setup_method()
         self.v = TimestampVersion()
 
         # Create a bunch of files with known mtimes
@@ -95,8 +95,8 @@ class TestTimestampVersion(TempEnvironmentHelper):
 
 class TestHashVersion(TempEnvironmentHelper):
 
-    def setup(self):
-        super(TestHashVersion, self).setup()
+    def setup_method(self):
+        super().setup_method()
         self.v = HashVersion()
 
         # Create a bunch of files with known content
@@ -140,8 +140,8 @@ class TestHashVersion(TempEnvironmentHelper):
 
 class TestFileManifest(TempEnvironmentHelper):
 
-    def setup(self):
-        super(TestFileManifest, self).setup()
+    def setup_method(self):
+        super().setup_method()
         self.bundle = self.mkbundle(output='foo')
 
     def test_repl(self):
@@ -177,8 +177,8 @@ class TestFileManifest(TempEnvironmentHelper):
 
 class TestJsonManifest(TempEnvironmentHelper):
 
-    def setup(self):
-        super(TestJsonManifest, self).setup()
+    def setup_method(self):
+        super().setup_method()
         self.bundle = self.mkbundle(output='foo')
 
     def test_repl(self):
@@ -200,8 +200,8 @@ class TestJsonManifest(TempEnvironmentHelper):
 
 class TestCacheManifest(TempEnvironmentHelper):
 
-    def setup(self):
-        super(TestCacheManifest, self).setup()
+    def setup_method(self):
+        super().setup_method()
         self.bundle = self.mkbundle(output='foo')
 
     def test_repl(self):

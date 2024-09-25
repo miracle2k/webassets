@@ -177,8 +177,8 @@ class TestVersionFeatures(TempEnvironmentHelper):
 
     default_files = {'in': 'foo'}
 
-    def setup(self):
-        super(TestVersionFeatures, self).setup()
+    def setup_method(self):
+        super().setup_method()
         self.env.manifest = DummyManifest()
         self.env.versions = DummyVersion()
 
@@ -371,8 +371,8 @@ class TestLoadPath(TempEnvironmentHelper):
     an optional feature.
     """
 
-    def setup(self):
-        TempEnvironmentHelper.setup(self)
+    def setup_method(self):
+        super().setup_method()
         self.env.updater = False
         self.env.directory = self.path('dir')
         self.env.debug = True
@@ -603,8 +603,8 @@ class TestUrlContents(TempEnvironmentHelper):
     """Test bundles containing a URL.
     """
 
-    def setup(self):
-        TempEnvironmentHelper.setup(self)
+    def setup_method(self):
+        super().setup_method()
         mock_opener = build_opener(MockHTTPHandler({
             'http://foo': u'function() {}'}))
         install_opener(mock_opener)

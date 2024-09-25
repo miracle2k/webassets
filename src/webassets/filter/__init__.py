@@ -532,7 +532,10 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                     with open(output_file.filename, 'rb') as f:
                         out.write(f.read().decode('utf-8'))
                 else:
-                    out.write(stdout.decode('utf-8'))
+                    if isinstance(stdout, bytes):
+                        out.write(stdout.decode('utf-8'))
+                    else:
+                        out.write(stdout)
         finally:
             if output_file.created:
                 os.unlink(output_file.filename)

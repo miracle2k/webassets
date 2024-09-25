@@ -13,7 +13,7 @@ from webassets import Bundle
 class TestEnvApi(object):
     """General Environment functionality."""
 
-    def setup(self):
+    def setup_method(self):
         self.m = Environment(None, None)
 
     def test_register_single_bundle(self):
@@ -186,7 +186,7 @@ class TestEnvConfig(object):
     """Custom config values through get_config/set_config.
     """
 
-    def setup(self):
+    def setup_method(self):
         self.m = Environment(None, None)
 
     def test_initial_values_override_defaults(self):
@@ -216,7 +216,7 @@ class TestSpecialProperties(object):
     as a string, and would receive object instances when accessing the property.
     """
 
-    def setup(self):
+    def setup_method(self):
         self.m = Environment('.', None)  # we won't create any files
 
     def test_versioner(self):

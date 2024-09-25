@@ -29,8 +29,8 @@ class BaseUrlsTester(TempEnvironmentHelper):
 
     default_files = {'a': '', 'b': '', 'c': '', '1': '', '2': ''}
 
-    def setup(self):
-        TempEnvironmentHelper.setup(self)
+    def setup_method(self):
+        super().setup_method()
 
         self.env.url_expire = False
 
@@ -282,8 +282,8 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
     """Test url generation in debug mode.
     """
 
-    def setup(self):
-        BaseUrlsTester.setup(self)
+    def setup_method(self):
+        super().setup_method()
         self.env.debug = True
 
     def test_simple_bundle(self):
@@ -427,8 +427,8 @@ class TestUrlsWithDebugTrue(BaseUrlsTester):
 
 class TestUrlsWithDebugMerge(BaseUrlsTester):
 
-    def setup(self):
-        BaseUrlsTester.setup(self)
+    def setup_method(self):
+        super().setup_method()
         self.env.debug = 'merge'
 
     def test_simple_bundle(self):

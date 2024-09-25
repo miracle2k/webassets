@@ -7,10 +7,7 @@ import os.path
 from subprocess import check_output
 from contextlib import contextmanager
 
-try:
-    from unittest.mock import patch, Mock, DEFAULT
-except ImportError:
-    from mock import patch, Mock, DEFAULT
+from unittest.mock import patch, Mock, DEFAULT
 
 from distutils.spawn import find_executable
 import re
@@ -177,7 +174,7 @@ class TestExternalToolClass(object):
             self.__class__.result = \
                 argv, data.getvalue() if data is not None else data
 
-    def setup(self):
+    def setup_method(self):
         if not hasattr(str, 'format'):
             # A large part of this functionality is not available on Python 2.5
             pytest.skip("test not for py 2.5")
@@ -186,7 +183,7 @@ class TestExternalToolClass(object):
         self.popen.return_value = Mock()
         self.popen.return_value.communicate = Mock()
 
-    def teardown(self):
+    def teardown_method(self):
         self.patcher.stop()
 
     def test_argv_variables(self):
@@ -609,9 +606,9 @@ class TestBuiltinFilters(TempEnvironmentHelper):
 
 class TestCSSPrefixer(TempEnvironmentHelper):
 
-    def setup(self):
+    def setup_method(self):
         cssprefixer = pytest.importorskip('cssprefixer')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test(self):
         self.create_files({'in': """a { border-radius: 1em; }"""})
@@ -626,10 +623,10 @@ class TestCSSPrefixer(TempEnvironmentHelper):
 
 class TestCoffeeScript(TempEnvironmentHelper):
 
-    def setup(self):
+    def setup_method(self):
         if not find_executable('coffee'):
             pytest.skip('no coffee')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test_default_options(self):
         self.create_files({'in': "alert \"I knew it!\" if elvis?"})
@@ -650,9 +647,9 @@ class TestCoffeeScript(TempEnvironmentHelper):
 
 class TestJinja2(TempEnvironmentHelper):
 
-    def setup(self):
+    def setup_method(self):
         jinja2 = pytest.importorskip('jinja')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test_default_options(self):
         self.create_files({'in': """Hi there, {{ name }}!"""})
@@ -678,9 +675,9 @@ class TestClosure(TempEnvironmentHelper):
         """
     }
 
-    def setup(self):
+    def setup_method(self):
         closure = pytest.importorskip('closure')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test_closure(self):
         self.mkbundle('foo.js', filters='closure_js', output='out.js').build()
@@ -801,10 +798,10 @@ class TestLess(TempEnvironmentHelper):
         'foo.less': "h1 { color: #FFFFFF; }",
     }
 
-    def setup(self):
+    def setup_method(self):
         if not find_executable('lessc'):
             pytest.skip('no lessc')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test(self):
         self.mkbundle('foo.less', filters='less', output='out.css').build()
@@ -897,14 +894,14 @@ class TestRubySass(TempEnvironmentHelper):
         """,
     }
 
-    def setup(self):
+    def setup_method(self):
         if not find_executable('sass'):
             pytest.skip('no sass')
 
         if "Ruby" not in check_output(["sass", "--version"]).decode('utf-8'):
             pytest.skip('no Ruby')
 
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test_sass(self):
         sass = get_filter('sass_ruby', debug_info=False)
@@ -1007,10 +1004,10 @@ class TestSass(TempEnvironmentHelper):
         """,
     }
 
-    def setup(self):
+    def setup_method(self):
         if not find_executable('sass'):
             pytest.skip('no sass')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test_sass(self):
         sass = get_filter('sass')
@@ -1068,13 +1065,13 @@ class TestPyScss(TempEnvironmentHelper):
         'bar.scss': 'h1{color:red}'
     }
 
-    def setup(self):
+    def setup_method(self):
         try:
             import scss
             self.scss = scss
         except ImportError:
             pytest.skip('no scss')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test(self):
         self.mkbundle('foo.scss', filters='pyscss', output='out.css').build()
@@ -1105,13 +1102,13 @@ class TestLibSass(TempEnvironmentHelper):
         'b.scss': '$foo: foo !default; .test {background-color: $foo;}'
     }
 
-    def setup(self):
+    def setup_method(self):
         try:
             import sass
             self.sass = sass
         except ImportError:
             pytest.skip('no sass')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test(self):
         self.mkbundle('foo.scss', filters='libsass', output='out.css').build()
@@ -1167,10 +1164,10 @@ class TestCompass(TempEnvironmentHelper):
         """
     }
 
-    def setup(self):
+    def setup_method(self):
         if not find_executable('compass'):
             pytest.skip('no compass')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test_compass(self):
         self.mkbundle('foo.sass', filters='compass', output='out.css').build()
@@ -1231,7 +1228,7 @@ class TestCompassConfig(object):
         }
     }
 
-    def setup(self):
+    def setup_method(self):
         self.compass_config = CompassConfig(self.config).to_string()
 
     def test_compass_config_is_unicode(self):
@@ -1263,8 +1260,8 @@ class TestJST(TempEnvironmentHelper):
         'templates/bar.html': "<div>Im an html jst template.  Go syntax highlighting!</div>"
     }
 
-    def setup(self):
-        TempEnvironmentHelper.setup(self)
+    def setup_method(self):
+        super().setup_method()
 
     def test_jst(self):
         self.mkbundle('templates/*', filters='jst', output='out.js').build()
@@ -1393,10 +1390,10 @@ class TestHandlebars(TempEnvironmentHelper):
             """
     }
 
-    def setup(self):
+    def setup_method(self):
         if not find_executable('handlebars'):
             pytest.skip('no handlebars')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test_basic(self):
         self.mkbundle('foo.html', 'dir/bar.html',
@@ -1430,9 +1427,9 @@ class TestJinja2JS(TempEnvironmentHelper):
         )
     }
 
-    def setup(self):
+    def setup_method(self):
         closure_soy = pytest.importorskip('closure_soy')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test(self):
         self.mkbundle('foo.soy', filters='closure_tmpl', output='out.js').build()
@@ -1456,10 +1453,10 @@ class TestTypeScript(TempEnvironmentHelper):
         'foo.ts': """class X { z: number; }"""
     }
 
-    def setup(self):
+    def setup_method(self):
         if not find_executable('tsc'):
             pytest.skip('no tsc')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test(self):
         self.mkbundle('foo.ts', filters='typescript', output='out.js').build()
@@ -1487,10 +1484,10 @@ define("script/utils",[],function(){return{debug:console.log}}),\
 define("script/app",["./utils"],function(e){e.debug("APP")});\
 '''
 
-    def setup(self):
+    def setup_method(self):
         if not find_executable('r.js'):
             pytest.skip('"r.js" executable not found')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
         self.env.config['requirejs_config'] = self.path('requirejs.json')
         self.env.config['requirejs_baseUrl'] = self.path('')
 
@@ -1539,10 +1536,10 @@ class TestClosureStylesheets(TempEnvironmentHelper):
         """
     }
 
-    def setup(self):
+    def setup_method(self):
         if not 'CLOSURE_STYLESHEETS_PATH' in os.environ:
             pytest.skip('no CLOSURE_STYLESHEETS_PATH in env')
-        TempEnvironmentHelper.setup(self)
+        super().setup_method()
 
     def test_compiler(self):
         self.mkbundle('test.css', filters = 'closure_stylesheets_compiler', output = 'output.css').build()
@@ -1567,8 +1564,8 @@ class TestAutoprefixer6Filter(TempEnvironmentHelper):
             self.mkbundle('test.css', filters='autoprefixer6', output='output.css').build()
         except FilterError as e:
             # postcss is not installed, that's ok.
-            if 'Program file not found' in e.message:
-                pytest.skip(e.message)
+            if 'Program file not found' in str(e):
+                pytest.skip(str(e))
             else:
                 raise
         out = self.get('output.css')
@@ -1587,7 +1584,7 @@ class TestBabel(TempEnvironmentHelper):
         except FilterError as e:
             # babel is not installed, that's ok.
             if 'Program file not found' in str(e):
-                pytest.skip(e.message)
+                pytest.skip(str(e))
             else:
                 raise
         assert "var x = function x" in self.get('output.js')
@@ -1598,8 +1595,8 @@ class TestBabel(TempEnvironmentHelper):
             self.mkbundle('test.es6', filters='babel', output='output.js').build()
         except FilterError as e:
             # babel is not installed, that's ok.
-            if 'Program file not found' in e.message:
-                pytest.skip(e.message)
+            if 'Program file not found' in str(e):
+                pytest.skip(str(e))
             else:
                 raise
         assert (self.get('output.js').strip() ==

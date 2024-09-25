@@ -14,7 +14,7 @@ from webassets.exceptions import EnvironmentError
 
 class TestYAML(object):
 
-    def setup(self):
+    def setup_method(self):
         yaml = pytest.importorskip("yaml")
 
     def loader(self, text, filename=None):
@@ -189,8 +189,8 @@ class TestPython(object):
 
 class TestYAMLCustomFilters(TestYAML):
 
-    def setup(self):
-        super(TestYAMLCustomFilters, self).setup()
+    def setup_method(self):
+        super().setup_method()
 
         # If zope.dottedname is not installed, that's OK
         pytest.importorskip("zope.dottedname.resolve")

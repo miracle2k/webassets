@@ -46,15 +46,17 @@ class ClosureJS(JavaTool):
     }
 
     def setup(self):
-        super(ClosureJS, self).setup()
+        super().setup()
+        self.jar = self.get_jar()
 
+    def get_jar(self):
         try:
-            self.jar = self.get_config('CLOSURE_COMPRESSOR_PATH',
-                                       what='Google Closure Compiler')
+            return self.get_config('CLOSURE_COMPRESSOR_PATH',
+                                   what='Google Closure Compiler')
         except EnvironmentError:
             try:
                 import closure
-                self.jar = closure.get_jar_filename()
+                return closure.get_jar_filename()
             except ImportError:
                 raise EnvironmentError(
                     "\nClosure Compiler jar can't be found."

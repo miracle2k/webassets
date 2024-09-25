@@ -473,8 +473,8 @@ class TestAutoBuild(TempEnvironmentHelper):
     generally everything involving the updater (as used by the build() method).
     """
 
-    def setup(self):
-        TempEnvironmentHelper.setup(self)
+    def setup_method(self):
+        super().setup_method()
 
         class CustomUpdater(BaseUpdater):
             allow = True
