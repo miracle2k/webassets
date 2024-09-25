@@ -1,0 +1,69 @@
+[tool.pdm]
+package-dir = "src"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.3",
+    "ruff>=0.6.7",
+    "sphinx>=8.0.2",
+    "tox-uv>=1.13.0",
+    "tox>=4.20.0",
+]
+
+[project]
+name = "webassets"
+version = "2.0"
+description = "Media asset management for Python, with glue code for various web frameworks"
+readme = "README.rst"
+authors = [
+    {name = "Michael Elsdoerfer", email = "michael@elsdoerfer.com"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries",
+]
+license = {text = "BSD"}
+requires-python = ">=3.10"
+dependencies = [
+    "zope-dottedname>=6.0",
+]
+
+[project.urls]
+Homepage = "http://github.com/miracle2k/webassets/"
+
+[project.scripts]
+webassets = "webassets.script:run"
+
+[project.optional-dependencies]
+jinja2 = [
+    "jinja2>=3.1.4",
+]
+cssutils = [
+    "cssutils>=2.11.1",
+]
+closure = [
+    "closure>=20191111",
+]
+slimit = [
+    "slimit>=0.8.1",
+]
+ply = [
+    "ply>=3.11",
+]
+sass = [
+    "libsass>=0.23.0",
+]
+rcssmin = [
+    "rcssmin>=1.1.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
