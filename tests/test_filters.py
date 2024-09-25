@@ -1554,10 +1554,15 @@ class TestAutoprefixer6Filter(TempEnvironmentHelper):
     default_files = {
         'test.css': """
         .shadow {
-            animation: blablabla
+            text-decoration-skip-ink: blablabla
         }
         """
     }
+
+    def setup_method(self):
+        super().setup_method()
+        if not shutil.which('autoprefixer'):
+            pytest.skip('no autoprefixer')
 
     def test_first(self):
         try:
@@ -1584,6 +1589,10 @@ class TestBabel(TempEnvironmentHelper):
         except FilterError as e:
             # babel is not installed, that's ok.
             if 'Program file not found' in str(e):
+                pytest.skip(str(e))
+
+            # the preset is missing
+            if "ERR_MODULE_NOT_FOUND" in str(e):
                 pytest.skip(str(e))
             else:
                 raise
