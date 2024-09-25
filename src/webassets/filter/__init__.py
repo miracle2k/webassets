@@ -42,7 +42,7 @@ def smartsplit(string, sep):
     """Split while allowing escaping.
 
     So far, this seems to do what I expect - split at the separator,
-    allow escaping via \, and allow the backslash itself to be escaped.
+    allow escaping via \\, and allow the backslash itself to be escaped.
 
     One problem is that it can raise a ValueError when given a backslash
     without a character to escape. I'd really like a smart splitter
