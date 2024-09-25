@@ -4,12 +4,12 @@ from __future__ import with_statement
 
 import os
 import os.path
+import shutil
 from subprocess import check_output
 from contextlib import contextmanager
 
 from unittest.mock import patch, Mock, DEFAULT
 
-from distutils.spawn import find_executable
 import re
 
 import pytest
@@ -492,19 +492,19 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         assert self.get('out.css') == """a {\n  color: #7f7f7f;\n}"""
 
     def test_uglifyjs_ascii(self):
-        if not find_executable('uglifyjs'):
+        if not shutil.which('uglifyjs'):
             pytest.skip('no uglifyjs')
         self.mkbundle('foo2.js', filters='uglifyjs', output='out.js').build()
         assert self.get('out.js') == 'more();'
 
     def test_uglifyjs_unicode(self):
-        if not find_executable('uglifyjs'):
+        if not shutil.which('uglifyjs'):
             pytest.skip('no uglifyjs')
         self.mkbundle('foo.js', filters='uglifyjs', output='out.js').build()
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}'
 
     def test_uglifyjs_ascii_and_unicode(self):
-        if not find_executable('uglifyjs'):
+        if not shutil.which('uglifyjs'):
             pytest.skip('no uglifyjs')
         self.mkbundle('foo.js', 'foo2.js', filters='uglifyjs', output='out.js').build()
         assert self.get('out.js') == 'function foo(bar){var dummy;document.write(bar);var a="Ünícôdè"}more();'
@@ -569,7 +569,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         assert self.get('out.css') == """h1{font-family:"Verdana";color:#fff}"""
 
     def test_cleancss(self):
-        if not find_executable('cleancss'):
+        if not shutil.which('cleancss'):
             pytest.skip('no cleancss')
         self.mkbundle('foo.css', filters='cleancss', output='out.css').build()
         assert self.get('out.css') in ('h1{font-family:Verdana;color:#FFF}', 'h1{font-family:Verdana;color:#fff}')
@@ -580,7 +580,7 @@ class TestBuiltinFilters(TempEnvironmentHelper):
         assert self.get('out.css') == 'h1{font-family:"Verdana";color:#FFF}'
 
     def test_stylus(self):
-        if not find_executable('stylus'):
+        if not shutil.which('stylus'):
             pytest.skip('no stylus')
         self.create_files({'in': """a\n  width:100px\n  height:(@width/2)"""})
         self.mkbundle('in', filters='stylus', output='out.css').build()
@@ -624,7 +624,7 @@ class TestCSSPrefixer(TempEnvironmentHelper):
 class TestCoffeeScript(TempEnvironmentHelper):
 
     def setup_method(self):
-        if not find_executable('coffee'):
+        if not shutil.which('coffee'):
             pytest.skip('no coffee')
         super().setup_method()
 
@@ -799,7 +799,7 @@ class TestLess(TempEnvironmentHelper):
     }
 
     def setup_method(self):
-        if not find_executable('lessc'):
+        if not shutil.which('lessc'):
             pytest.skip('no lessc')
         super().setup_method()
 
@@ -895,7 +895,7 @@ class TestRubySass(TempEnvironmentHelper):
     }
 
     def setup_method(self):
-        if not find_executable('sass'):
+        if not shutil.which('sass'):
             pytest.skip('no sass')
 
         if "Ruby" not in check_output(["sass", "--version"]).decode('utf-8'):
@@ -1005,7 +1005,7 @@ class TestSass(TempEnvironmentHelper):
     }
 
     def setup_method(self):
-        if not find_executable('sass'):
+        if not shutil.which('sass'):
             pytest.skip('no sass')
         super().setup_method()
 
@@ -1165,7 +1165,7 @@ class TestCompass(TempEnvironmentHelper):
     }
 
     def setup_method(self):
-        if not find_executable('compass'):
+        if not shutil.which('compass'):
             pytest.skip('no compass')
         super().setup_method()
 
@@ -1391,7 +1391,7 @@ class TestHandlebars(TempEnvironmentHelper):
     }
 
     def setup_method(self):
-        if not find_executable('handlebars'):
+        if not shutil.which('handlebars'):
             pytest.skip('no handlebars')
         super().setup_method()
 
@@ -1454,7 +1454,7 @@ class TestTypeScript(TempEnvironmentHelper):
     }
 
     def setup_method(self):
-        if not find_executable('tsc'):
+        if not shutil.which('tsc'):
             pytest.skip('no tsc')
         super().setup_method()
 
@@ -1485,7 +1485,7 @@ define("script/app",["./utils"],function(e){e.debug("APP")});\
 '''
 
     def setup_method(self):
-        if not find_executable('r.js'):
+        if not shutil.which('r.js'):
             pytest.skip('"r.js" executable not found')
         super().setup_method()
         self.env.config['requirejs_config'] = self.path('requirejs.json')
