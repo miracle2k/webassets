@@ -128,12 +128,12 @@ class TestFilterBaseClass(object):
         get_config = f.get_config
 
         with os_environ_sandbox():
-            os.environ['foo'] = 'one,two\,three'
+            os.environ['foo'] = r'one,two\,three'
             assert list(get_config(env='foo', type=list)) == ['one', 'two,three']
 
             # Make sure the split is not applied to env config values
-            m.config['foo'] = 'one,two\,three'
-            assert get_config(setting='foo', type=list) == 'one,two\,three'
+            m.config['foo'] = r'one,two\,three'
+            assert get_config(setting='foo', type=list) == r'one,two\,three'
 
     def test_equality(self):
         """Test the ``unique`` method used to determine equality.
@@ -1356,7 +1356,7 @@ class TestJST(TempEnvironmentHelper):
     def test_backslashes_escaped(self):
         """Test that JavaScript string literals are correctly escaped.
         """
-        self.create_files({'backslashes.jst': """<input type="text" pattern="\S*"/>"""})
+        self.create_files({'backslashes.jst': r"""<input type="text" pattern="\S*"/>"""})
         self.mkbundle('*.jst', filters='jst', output='out.js').build()
         assert r"""template("<input type=\"text\" pattern=\"\\S*\"/>")""" in self.get('out.js')
 
