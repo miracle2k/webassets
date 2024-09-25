@@ -1,4 +1,4 @@
-__version__ = (2, 0)
+__version__ = "3.0.0a1"
 
 
 # Make a couple frequently used things available right here.

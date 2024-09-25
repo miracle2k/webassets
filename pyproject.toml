@@ -11,7 +11,6 @@ dev-dependencies = [
 
 [project]
 name = "webassets"
-version = "2.0"
 description = "Media asset management for Python, with glue code for various web frameworks"
 readme = "README.rst"
 authors = [
@@ -34,6 +33,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "zope-dottedname>=6.0",
 ]
+dynamic = ["version"]
 
 [project.urls]
 Homepage = "http://github.com/miracle2k/webassets/"
@@ -70,3 +70,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/webassets"]
+
+[tool.hatch.version]
+path = "src/webassets/__init__.py"
