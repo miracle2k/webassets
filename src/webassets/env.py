@@ -1,8 +1,6 @@
 import os
 from os import path
 from itertools import chain
-from webassets import six
-from webassets.six.moves import map
 from webassets.utils import is_url
 
 try:
@@ -242,7 +240,7 @@ class Resolver(object):
         """
 
         # Pass through some things unscathed
-        if not isinstance(item, six.string_types):
+        if not isinstance(item, str):
             # Don't stand in the way of custom values.
             return item
         if is_url(item) or path.isabs(item):
@@ -308,7 +306,7 @@ class BundleRegistry(object):
         self._anon_bundles = []
 
     def __iter__(self):
-        return chain(six.itervalues(self._named_bundles), self._anon_bundles)
+        return chain(self._named_bundles.values(), self._anon_bundles)
 
     def __getitem__(self, name):
         return self._named_bundles[name]

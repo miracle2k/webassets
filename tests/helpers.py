@@ -1,4 +1,3 @@
-from __future__ import with_statement
 import re
 
 from webassets.test import TempDirHelper, TempEnvironmentHelper
