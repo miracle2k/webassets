@@ -14,7 +14,7 @@ class ReplaceFilter(Filter):
         Usage:
 
             replace_static_urls = ReplaceFilter(
-                pattern=r'\s*{{\s*STATIC_URL\s*}}\s*',
+                pattern=r'\\s*{{\\s*STATIC_URL\\s*}}\\s*',
                 repl=settings.STATIC_URL,
             )
     """

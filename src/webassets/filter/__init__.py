@@ -42,7 +42,7 @@ def smartsplit(string, sep):
     """Split while allowing escaping.
 
     So far, this seems to do what I expect - split at the separator,
-    allow escaping via \, and allow the backslash itself to be escaped.
+    allow escaping via \\, and allow the backslash itself to be escaped.
 
     One problem is that it can raise a ValueError when given a backslash
     without a character to escape. I'd really like a smart splitter
@@ -532,7 +532,10 @@ class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
                     with open(output_file.filename, 'rb') as f:
                         out.write(f.read().decode('utf-8'))
                 else:
-                    out.write(stdout.decode('utf-8'))
+                    if isinstance(stdout, bytes):
+                        out.write(stdout.decode('utf-8'))
+                    else:
+                        out.write(stdout)
         finally:
             if output_file.created:
                 os.unlink(output_file.filename)

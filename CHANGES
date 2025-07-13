@@ -1,3 +1,11 @@
+3.0 (2024-09)
+
+    Bumped to 3.0 because holy *shit* did this drop a bunch of versions and make changes!
+
+    - drop every Python version earlier than 3.11
+    - remove the now-obsolete "yui" compressor, since it's dead-dead-omgmalware-dead
+    - update tests so they validate that they work with babel 7, not 6
+
 2.0 (2019-12-20)
     Jump to 2.0 to leave alpha versioning and start doing semver. No actual breaking changes.
 

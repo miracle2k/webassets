@@ -38,8 +38,8 @@ class MockBundle(Bundle):
 
 class TestCLI(TempEnvironmentHelper):
 
-    def setup(self):
-        super(TestCLI, self).setup()
+    def setup_method(self):
+        super().setup_method()
         self.assets_env = self.env
         self.cmd_env = CommandLineEnvironment(self.assets_env, logging)
 
@@ -190,7 +190,7 @@ class TestWatchMixin(object):
 
     def stop_watching(self):
         """Stop the watch command thread."""
-        assert self.t.isAlive() # If it has already ended, something is wrong
+        assert self.t.is_alive() # If it has already ended, something is wrong
         self.stopped = True
         self.t.join(1)
 
@@ -210,8 +210,8 @@ class TestWatchCommand(TestWatchMixin, TestCLI):
 
     default_files = {'in': 'foo', 'out': 'bar'}
 
-    def setup(self):
-        super(TestWatchCommand, self).setup()
+    def setup_method(self):
+        super().setup_method()
 
         # Pay particular attention that the watch command works with auto_build
         # disabled (since normally this implies no use of the updater, but

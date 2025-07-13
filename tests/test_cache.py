@@ -89,8 +89,8 @@ class TestCacheIsUsed(TempEnvironmentHelper):
     """Ensure the cache is used during the build process.
     """
 
-    def setup(self):
-        TempEnvironmentHelper.setup(self)
+    def setup_method(self):
+        super().setup_method()
 
         class MyCache(BaseCache):
             def __init__(self):

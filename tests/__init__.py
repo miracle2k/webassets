@@ -1,4 +1,4 @@
-def setup():
+def setup_method():
     # For some strange reason (using Python 2.6.6), if a warning has
     # already been raised somewhere else before a test attempts to
     # capture and verify it using warnings.catch_warnings(), the warning

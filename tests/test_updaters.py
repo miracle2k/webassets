@@ -15,7 +15,7 @@ class TestBundleDefBaseUpdater(object):
     changes.
     """
 
-    def setup(self):
+    def setup_method(self):
         self.env = Environment(None, None)  # we won't create files
         self.env.cache = MemoryCache(capacity=100)
         self.bundle = Bundle(output="target")
@@ -65,8 +65,8 @@ class TestTimestampUpdater(TempEnvironmentHelper):
 
     default_files = {'in': '', 'out': ''}
 
-    def setup(self):
-        TempEnvironmentHelper.setup(self)
+    def setup_method(self):
+        super().setup_method()
 
         # Test the timestamp updater with cache disabled, so that the
         # BundleDefUpdater() base class won't interfere.
