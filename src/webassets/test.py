@@ -3,7 +3,6 @@
 This is included in the webassets package because it is useful for testing
 external libraries that use webassets (like the flask-assets wrapper).
 """
-from __future__ import print_function
 
 import tempfile
 import shutil
@@ -12,8 +11,6 @@ from os import path
 import time
 
 from webassets import Environment, Bundle
-from webassets.six.moves import map
-from webassets.six.moves import zip
 
 
 __all__ = ('TempDirHelper', 'TempEnvironmentHelper',)

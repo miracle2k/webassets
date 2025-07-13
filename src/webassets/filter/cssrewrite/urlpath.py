@@ -18,7 +18,6 @@
 # Scripts maintained at http://www.voidspace.org.uk/python/index.shtml
 # E-mail fuzzyman@voidspace.org.uk
 
-from __future__ import print_function
 import posixpath
 import os
 try:

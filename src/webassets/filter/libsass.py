@@ -6,9 +6,6 @@ This filter based on Jesús Jerez <jerezmoreno@gmail.com> code [1].
 [1] https://bitbucket.org/jhuss/webassets-libsass
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-
 from webassets.filter import Filter
 
 

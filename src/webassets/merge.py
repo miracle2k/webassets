@@ -1,6 +1,5 @@
 """Contains the core functionality that manages merging of assets.
 """
-from __future__ import with_statement
 import contextlib
 
 try:

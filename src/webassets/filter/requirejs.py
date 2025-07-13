@@ -1,5 +1,3 @@
-from __future__ import with_statement
-
 import shlex
 from os import path, getcwd
 
