@@ -1,8 +1,0 @@
-# Some additional dependencies that are currently not yet available on Python 3.
-
-pillow<4
-clevercss
-pyScss==1.1.5
-slimmer
-cssmin
-rjsmin>=1.0.12
