@@ -40,7 +40,7 @@ jobs:
       - name: Prepare tox
         run: |
           V=${{ matrix.python-version }}
-          echo TOX_PYTHON=py"$(echo $V | tr -d.)" >>"$GITHUB_ENV"
+          echo TOX_PYTHON=py"$(echo $V | tr -d '.')" >>"$GITHUB_ENV"
 
       - run: >
           uvx --with=tox-uv
