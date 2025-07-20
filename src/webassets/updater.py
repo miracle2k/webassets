@@ -47,7 +47,7 @@ enough to make this decision by itself.
 
 class BaseUpdater(metaclass=RegistryMetaclass(
     clazz=lambda: BaseUpdater, attribute='needs_rebuild',
-    desc='an updater implementation'))):
+    desc='an updater implementation')):
     """Base updater class.
 
     Child classes that define an ``id`` attribute are accessible via their
