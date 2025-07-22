@@ -16,7 +16,7 @@ __all__ = ('md5_constructor', 'pickle', 'set', 'StringIO',
            'common_path_prefix', 'working_directory', 'is_url')
 
 md5_constructor = hashlib.md5
-
+set = set
 
 def hash_func(data):
     from .cache import make_md5
