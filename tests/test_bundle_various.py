@@ -13,7 +13,6 @@ from urllib.request import \
 import pytest
 
 from webassets import Bundle
-from webassets.utils import set
 from webassets.bundle import get_all_bundle_files
 from webassets.env import Environment
 from webassets.exceptions import BundleError, BuildError
