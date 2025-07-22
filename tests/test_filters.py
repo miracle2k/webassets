@@ -1185,11 +1185,7 @@ class TestCompass(TempEnvironmentHelper):
 
         # It's very hard to test this with doctest_match
         # And by asserting that it's in the content this test is proven
-        from webassets.six import PY3
-        if PY3:
-            assert """content: "áé";""" in self.get('out.css')
-        else:
-            assert """content: "\xc3\xa1\xc3\xa9";""" in self.get('out.css')
+        assert """content: "áé";""" in self.get('out.css')
 
     def test_images_dir(self):
         # [bug] Make sure the compass plugin can reference images. It expects
@@ -1229,8 +1225,7 @@ class TestCompassConfig(object):
         self.compass_config = CompassConfig(self.config).to_string()
 
     def test_compass_config_is_unicode(self):
-        from webassets.six import text_type
-        assert isinstance(self.compass_config, text_type)
+        assert isinstance(self.compass_config, str)
 
     def test_string_value(self):
         assert "http_path = '/'" in self.compass_config
