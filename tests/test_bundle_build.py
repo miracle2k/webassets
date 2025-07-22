@@ -147,7 +147,7 @@ class TestBuildVarious(TempEnvironmentHelper):
 
     def test_with_custom_output(self):
         """build() method can write to a custom file object."""
-        from webassets.six import StringIO
+        from io import StringIO
         buffer = StringIO()
         self.mkbundle('in1', 'in2', output='out').build(output=buffer)
         assert buffer.getvalue() == 'A\nB'

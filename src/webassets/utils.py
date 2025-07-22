@@ -1,9 +1,13 @@
-from webassets import six
+import base64
 import contextlib
+import hashlib
 import os
+import pickle
 import sys
 import re
+from io import StringIO
 from itertools import takewhile
+from urllib import parse as urlparse
 
 from .exceptions import BundleError
 
@@ -11,47 +15,8 @@ from .exceptions import BundleError
 __all__ = ('md5_constructor', 'pickle', 'set', 'StringIO',
            'common_path_prefix', 'working_directory', 'is_url')
 
-
-import base64
-
-if sys.version_info >= (2, 5):
-    import hashlib
-    md5_constructor = hashlib.md5
-else:
-    import md5
-    md5_constructor = md5.new
-
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-
-
-try:
-    set
-except NameError:
-    from sets import Set as set
-else:
-    set = set
-
-
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
-else:
-    FileNotFoundError = FileNotFoundError
-
-
-from webassets.six import StringIO
-
-
-try:
-    from urllib import parse as urlparse
-except ImportError:     # Python 2
-    import urlparse
-    import urllib
+md5_constructor = hashlib.md5
+set = set
 
 def hash_func(data):
     from .cache import make_md5
@@ -149,7 +114,7 @@ def make_option_resolver(clazz=None, attribute=None, classes=None,
             return instantiate(option, env)
 
         # If it is a string
-        elif isinstance(option, six.string_types):
+        elif isinstance(option, str):
             parts = option.split(':', 1)
             key = parts[0]
             arg = parts[1] if len(parts) > 1 else None

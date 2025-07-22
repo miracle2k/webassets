@@ -9,13 +9,11 @@ from os import path
 import glob, fnmatch
 import inspect
 import types
-from webassets import six
 try:
     import yaml
 except ImportError:
     pass
 
-from webassets import six
 from webassets import Environment
 from webassets.bundle import Bundle
 from webassets.exceptions import EnvironmentError
@@ -53,7 +51,7 @@ class YAMLLoader(object):
         Each item yielded will be either a string representing a file path
         or a bundle."""
         contents = data.get('contents', [])
-        if isinstance(contents, six.string_types):
+        if isinstance(contents, str):
             contents = contents,
         for content in contents:
             if isinstance(content, dict):
@@ -74,7 +72,7 @@ class YAMLLoader(object):
     def _get_bundles(self, obj, known_bundles=None):
         """Return a dict that keys bundle names to bundles."""
         bundles = {}
-        for key, data in six.iteritems(obj):
+        for key, data in obj.items():
             if data is None:
                 data = {}
             bundles[key] = self._get_bundle(data)
@@ -100,7 +98,7 @@ class YAMLLoader(object):
 
         The filename can be False if it is unknown.
         """
-        if isinstance(self.file_or_filename, six.string_types):
+        if isinstance(self.file_or_filename, str):
             return open(self.file_or_filename), self.file_or_filename
 
         file = self.file_or_filename
@@ -244,7 +242,7 @@ class YAMLLoader(object):
 
             # Load bundles
             bundles = self._get_bundles(obj.get('bundles', {}))
-            for name, bundle in six.iteritems(bundles):
+            for name, bundle in bundles.items():
                 env.register(name, bundle)
 
             return env

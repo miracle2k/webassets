@@ -18,7 +18,6 @@ from os import path
 import errno
 import tempfile
 import warnings
-from webassets import six
 from webassets.merge import BaseHunk
 from webassets.filter import Filter, freezedicts
 from webassets.utils import md5_constructor, pickle
@@ -67,9 +66,9 @@ def make_md5(*data):
             yield obj.data().encode('utf-8')
         elif isinstance(obj, int):
             yield str(obj).encode('utf-8')
-        elif isinstance(obj, six.text_type):
+        elif isinstance(obj, str):
             yield obj.encode('utf-8')
-        elif isinstance(obj, six.binary_type):
+        elif isinstance(obj, bytes):
             yield obj
         elif hasattr(obj, "id"):
             for i in walk(obj.id()):

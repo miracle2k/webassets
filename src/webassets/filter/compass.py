@@ -32,7 +32,6 @@ import tempfile
 import shutil
 import subprocess
 from io import open
-from webassets import six
 
 from webassets.exceptions import FilterError
 from webassets.filter import Filter, option
@@ -49,13 +48,13 @@ class CompassConfig(dict):
             """ Determine the correct string rep for the config file """
             if isinstance(val, bool):
                 # True -> true and False -> false
-                return six.text_type(val).lower()
-            elif isinstance(val, six.string_types) and val.startswith(':'):
+                return str(val).lower()
+            elif isinstance(val, str) and val.startswith(':'):
                 # ruby symbols, like :nested, used for "output_style"
-                return six.text_type(val)
+                return str(val)
             elif isinstance(val, dict):
                 # ruby hashes, for "sass_options" for example
-                return u'{%s}' % ', '.join("'%s' => '%s'" % i for i in val.items())
+                return '{%s}' % ', '.join("'%s' => '%s'" % i for i in val.items())
             elif isinstance(val, tuple):
                 val = list(val)
             # works fine with strings and lists

@@ -4,7 +4,6 @@ implementations.
 
 import os
 import pickle
-from webassets import six
 
 from webassets.merge import FileHunk
 from webassets.utils import md5_constructor, RegistryMetaclass, is_url
@@ -19,9 +18,9 @@ class VersionIndeterminableError(Exception):
     pass
 
 
-class Version(six.with_metaclass(RegistryMetaclass(
+class Version(metaclass=RegistryMetaclass(
     clazz=lambda: Version, attribute='determine_version',
-    desc='a version implementation'))):
+    desc='a version implementation')):
     """A Version class that can be assigned to the ``Environment.versioner``
     attribute.
 
@@ -165,8 +164,8 @@ class HashVersion(Version):
         return hasher.hexdigest()[:self.length]
 
 
-class Manifest(six.with_metaclass(RegistryMetaclass(
-    clazz=lambda: Manifest, desc='a manifest implementation'))):
+class Manifest(metaclass=RegistryMetaclass(
+    clazz=lambda: Manifest, desc='a manifest implementation')):
     """Persists information about the versions bundles are at.
 
     The Manifest plays a role only if you insert the bundle version in your
