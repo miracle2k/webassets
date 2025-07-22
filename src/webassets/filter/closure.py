@@ -30,7 +30,6 @@ CLOSURE_EXTRA_ARGS
         ['--output_wrapper', 'foo: %output%']
 """
 
-from __future__ import absolute_import
 from webassets.filter import JavaTool
 
 

@@ -26,9 +26,6 @@ the cache is a superior solution for getting essentially the same speed
 increase as using the hash to reliably determine which bundles to skip.
 """
 
-from webassets import six
-from webassets.six.moves import map
-from webassets.six.moves import zip
 from webassets.exceptions import BundleError, BuildError
 from webassets.utils import RegistryMetaclass, is_url, hash_func
 
@@ -48,9 +45,9 @@ enough to make this decision by itself.
 """
 
 
-class BaseUpdater(six.with_metaclass(RegistryMetaclass(
+class BaseUpdater(metaclass=RegistryMetaclass(
     clazz=lambda: BaseUpdater, attribute='needs_rebuild',
-    desc='an updater implementation'))):
+    desc='an updater implementation')):
     """Base updater class.
 
     Child classes that define an ``id`` attribute are accessible via their

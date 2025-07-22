@@ -2,8 +2,6 @@
 contents (think minification, compression).
 """
 
-from __future__ import with_statement
-
 import os
 import subprocess
 import inspect
@@ -11,8 +9,6 @@ import shlex
 import tempfile
 import pkgutil
 from webassets import six
-from webassets.six.moves import map
-from webassets.six.moves import zip
 try:
     frozenset
 except NameError:
@@ -34,7 +30,7 @@ def freezedicts(obj):
     if isinstance(obj, (list, tuple)):
         return type(obj)([freezedicts(sub) for sub in obj])
     if isinstance(obj, dict):
-        return frozenset(six.iteritems(obj))
+        return frozenset(obj.items())
     return obj
 
 
@@ -50,19 +46,11 @@ def smartsplit(string, sep):
     be done.
     """
     assert string is not None   # or shlex will read from stdin
-    if not six.PY3:
-        # On 2.6, shlex fails miserably with unicode input
-        is_unicode = isinstance(string, unicode)
-        if is_unicode:
-            string = string.encode('utf8')
     l = shlex.shlex(string, posix=True)
     l.whitespace += ','
     l.whitespace_split = True
     l.quotes = ''
-    if not six.PY3 and is_unicode:
-        return map(lambda s: s.decode('utf8'), list(l))
-    else:
-        return list(l)
+    return list(l)
 
 
 class option(tuple):
@@ -204,9 +192,6 @@ class Filter(object):
         if value is None and not env is False:
             value = os.environ.get(env)
             if value is not None:
-                if not six.PY3:
-                    # TODO: What charset should we use? What does Python 3 use?
-                    value = value.decode('utf8')
                 if type == list:
                     value = smartsplit(value, ',')
 
@@ -623,7 +608,7 @@ def get_filter(f, *args, **kwargs):
         # Don't need to do anything.
         assert not args and not kwargs
         return f
-    elif isinstance(f, six.string_types):
+    elif isinstance(f, str):
         if f in _FILTERS:
             klass = _FILTERS[f]
         else:

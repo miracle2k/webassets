@@ -1,6 +1,5 @@
 # coding=utf-8
 
-from __future__ import print_function
 import os, subprocess
 from webassets.filter import Filter, register_filter
 from webassets.exceptions import FilterError

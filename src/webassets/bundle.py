@@ -2,8 +2,6 @@ from contextlib import contextmanager
 import os
 from os import path
 from webassets import six
-from webassets.six.moves import map
-from webassets.six.moves import zip
 
 from .filter import get_filter
 from .merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
@@ -161,12 +159,9 @@ class Bundle(object):
             self._filters = ()
             return
 
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             # 333: Simplify w/o condition?
-            if six.PY3:
-                filters = map(str.strip, value.split(','))
-            else:
-                filters = map(unicode.strip, unicode(value).split(','))
+            filters = map(str.strip, value.split(','))
         elif isinstance(value, (list, tuple)):
             filters = value
         else:
@@ -276,7 +271,7 @@ class Bundle(object):
     def _get_depends(self):
         return self._depends
     def _set_depends(self, value):
-        self._depends = [value] if isinstance(value, six.string_types) else value
+        self._depends = [value] if isinstance(value, str) else value
         self._resolved_depends = None
     depends = property(_get_depends, _set_depends, doc=
     """Allows you to define an additional set of files (glob syntax

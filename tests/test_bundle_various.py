@@ -3,8 +3,6 @@
 specific features/aspects, like "globbing" or "versions".
 """
 
-from __future__ import with_statement
-
 import copy
 from os import path
 import uuid

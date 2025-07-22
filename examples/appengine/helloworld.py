@@ -1,8 +1,3 @@
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
 # Import assets configuration
 from assets import bundle
 

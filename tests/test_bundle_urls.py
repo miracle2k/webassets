@@ -4,8 +4,6 @@ However, URL generation that is associated with a special feature is
 more likely` found in `test_bundle_various.py``.
 """
 
-from __future__ import with_statement
-
 import re
 
 import pytest
