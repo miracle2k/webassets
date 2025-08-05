@@ -4,21 +4,15 @@ specific features/aspects, like "globbing" or "versions".
 """
 
 import copy
+from io import StringIO
 from os import path
 import uuid
-try:
-    from urllib.request import \
-        HTTPHandler, build_opener, install_opener, addinfourl
-except ImportError: # Py2
-    from urllib2 import HTTPHandler, build_opener, install_opener, addinfourl
+from urllib.request import \
+     HTTPHandler, build_opener, install_opener, addinfourl
 
 import pytest
 
-from webassets.six import StringIO
-from webassets.six.moves import filter
-
 from webassets import Bundle
-from webassets.utils import set
 from webassets.bundle import get_all_bundle_files
 from webassets.env import Environment
 from webassets.exceptions import BundleError, BuildError

@@ -1,5 +1,5 @@
-from webassets.six import StringIO
 from contextlib import contextmanager
+from io import StringIO
 from webassets.filter import Filter
 
 try:

@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 import os
 from os import path
-from webassets import six
 
 from .filter import get_filter
 from .merge import (FileHunk, UrlHunk, FilterTool, merge, merge_filters,
