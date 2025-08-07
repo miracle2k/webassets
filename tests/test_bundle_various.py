@@ -5,6 +5,7 @@ specific features/aspects, like "globbing" or "versions".
 
 import copy
 from io import StringIO
+import os
 from os import path
 import uuid
 from urllib.request import \
@@ -21,7 +22,7 @@ from webassets.updater import TimestampUpdater, SKIP_CACHE
 from webassets.version import Manifest, Version, VersionIndeterminableError
 
 from .helpers import (
-    TempEnvironmentHelper, assert_raises_regex)
+    TempEnvironmentHelper, assert_raises_regex, normalize_paths)
 
 
 class TestBundleConfig(TempEnvironmentHelper):
@@ -403,9 +404,11 @@ class TestLoadPath(TempEnvironmentHelper):
         # Returns all files, even duplicate relative filenames in
         # multiple load paths (foo in this case).
         bundle = self.mkbundle('*', output='out')
-        assert set(get_all_bundle_files(bundle)) == set([
+        result = get_all_bundle_files(bundle)
+        expected = [
             self.path('a/foo'), self.path('b/foo'), self.path('b/bar')
-        ])
+        ]
+        assert normalize_paths(result) == normalize_paths(expected)
 
     def test_url_mapping(self):
         """Test mapping the load paths to urls works."""
@@ -446,15 +449,19 @@ class TestLoadPath(TempEnvironmentHelper):
 
         # With a non-globbed reference
         bundle = self.mkbundle('foo', output='out')
-        assert set(get_all_bundle_files(bundle)) == set([
+        result = get_all_bundle_files(bundle)
+        expected = [
             self.path('a/foo'), self.path('b/foo')
-        ])
+        ]
+        assert normalize_paths(result) == normalize_paths(expected)
 
         # With a globbed reference
         bundle = self.mkbundle('???', output='out')
-        assert set(get_all_bundle_files(bundle)) == set([
+        result = get_all_bundle_files(bundle)
+        expected = [
             self.path('a/foo'), self.path('b/foo'), self.path('dir/bar')
-        ])
+        ]
+        assert normalize_paths(result) == normalize_paths(expected)
 
 
 class TestGlobbing(TempEnvironmentHelper):
@@ -620,6 +627,7 @@ class TestUrlContents(TempEnvironmentHelper):
         bundle = self.mkbundle('http://foo', output='out')
         TimestampUpdater().needs_rebuild(bundle, bundle.env)
 
+    @pytest.mark.skipif(os.name == 'nt', reason="Colons not allowed in Windows filenames")
     def test_pyramid_asset_specs(self):
         """Make sure that pyramid asset specs (in the form of
         package:path) do not pass the url check."""
