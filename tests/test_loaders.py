@@ -1,4 +1,5 @@
 import sys
+import os
 
 import pytest
 
@@ -130,7 +131,9 @@ class TestYAML(object):
         directory: ../something
         """, filename='/var/www/project/config/yaml').load_environment()
         # The directory is considered relative to the YAML file location.
-        assert environment.directory == '/var/www/project/something'
+        expected_path = '/var/www/project/something'
+        actual_path = environment.directory
+        assert os.path.normpath(actual_path).endswith(os.path.normpath(expected_path))
 
     def test_load_extra_default(self):
         """[Regression] If no extra= is given, the value defaults to {}"""

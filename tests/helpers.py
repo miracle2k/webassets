@@ -1,15 +1,25 @@
 import re
+import os
 
 from webassets.test import TempDirHelper, TempEnvironmentHelper
 
 
 __all__ = ('TempDirHelper', 'TempEnvironmentHelper', 'noop',
-           'assert_raises_regex', 'check_warnings')
+           'assert_raises_regex', 'check_warnings', 'normalize_paths')
 
 
 # Define a noop filter; occasionally in tests we need to define
 # a filter to be able to test a certain piece of functionality,.
 noop = lambda _in, out: out.write(_in.read())
+
+
+def normalize_paths(paths):
+    """Normalize paths for cross-platform compatibility.
+    
+    This function normalizes file paths to handle differences between
+    platforms (e.g., backslashes on Windows vs forward slashes on Unix).
+    """
+    return set(os.path.normpath(p) for p in paths)
 
 
 from pytest import raises

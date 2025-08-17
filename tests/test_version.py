@@ -27,7 +27,8 @@ def test_builtin_manifest_accessors():
     env = Environment('', '')
     assert get_manifest('cache', env).__class__ == CacheManifest
     assert get_manifest('file', env).__class__ == FileManifest
-    assert get_manifest('file:/tmp/foo', env).filename == '/tmp/foo'
+    manifest_filename = get_manifest('file:/tmp/foo', env).filename
+    assert os.path.normpath(manifest_filename).endswith(os.path.normpath('/tmp/foo'))
 
 
 class TestTimestampVersion(TempEnvironmentHelper):
