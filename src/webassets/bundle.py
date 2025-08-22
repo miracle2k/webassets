@@ -278,20 +278,31 @@ class Bundle(object):
     rebuild is required.
     """)
 
-    def resolve_depends(self, ctx):
+    def resolve_depends(self, ctx, refresh=False):
         # TODO: Caching is as problematic here as it is in resolve_contents().
-        if not self.depends:
-            return []
-        if getattr(self, '_resolved_depends', None) is None:
+        if getattr(self, '_resolved_depends', None) is None or refresh:
             resolved = []
-            for item in self.depends:
-                try:
-                    result = ctx.resolver.resolve_source(ctx, item)
-                except IOError as e:
-                    raise BundleError(e)
-                if not isinstance(result, list):
-                    result = [result]
-                resolved.extend(result)
+            for filter_ in self.filters:
+                # get dependencies from filter
+                if hasattr(filter_, "find_dependencies"):
+                    filter_deps = filter_.find_dependencies()
+                    filter_hash = (filter_,"deps")
+                    if filter_deps is None:
+                        # if not yet resolved, load from cache
+                        filter_deps = ctx.cache.get(filter_hash) if ctx.cache else []
+                    elif ctx.cache:
+                        ctx.cache.set(filter_hash, filter_deps)
+                    if filter_deps:
+                        resolved.extend(filter_deps)
+            if self.depends:
+                for item in self.depends:
+                    try:
+                        result = ctx.resolver.resolve_source(ctx, item)
+                    except IOError as e:
+                        raise BundleError(e)
+                    if not isinstance(result, list):
+                        result = [result]
+                    resolved.extend(result)
             self._resolved_depends = resolved
         return self._resolved_depends
 
@@ -565,7 +576,13 @@ class Bundle(object):
         # it even required to consider them here with respect to the cache? We
         # might be able to run this operation with the cache on (the FilterTool
         # being possibly configured with cache reads off).
-        return filtertool.apply(final, selected_filters, 'output')
+        ret = filtertool.apply(final, selected_filters, 'output')
+        
+        # Resolve deps second time and after building - in case filter
+        # didn't know them before.
+        self.resolve_depends(ctx, True)
+        
+        return ret
 
     def _build(self, ctx, extra_filters=None, force=None, output=None,
                disable_cache=None):
