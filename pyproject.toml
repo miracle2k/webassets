@@ -51,8 +51,8 @@ cssutils = [
 closure = [
     "closure>=20191111",
 ]
-slimit = [
-    "slimit>=0.8.1",
+slimit3k = [
+    "slimit3k>=0.9.0",
 ]
 ply = [
     "ply>=3.11",
