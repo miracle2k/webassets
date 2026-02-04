@@ -8,7 +8,6 @@ import inspect
 import shlex
 import tempfile
 import pkgutil
-from webassets import six
 try:
     frozenset
 except NameError:
@@ -383,7 +382,7 @@ class ExternalToolMetaclass(type):
         return klass
 
 
-class ExternalTool(six.with_metaclass(ExternalToolMetaclass, Filter)):
+class ExternalTool(Filter, metaclass=ExternalToolMetaclass):
     """Subclass that helps creating filters that need to run an external
     program.
 
