@@ -46,6 +46,10 @@ urltag_re = re.compile(r"""
 url\(
   (\s*)                 # allow whitespace wrapping (and capture)
   (                     # capture actual url
+    "[^"\r\n]*"             # a double-quoted value (parens allowed inside)
+  |
+    '[^'\r\n]*'             # a single-quoted value (parens allowed inside)
+  |
     [^\)\\\r\n]*?           # don't allow newlines, closing paran, escape chars (1)
     (?:\\.                  # process all escapes here instead
         [^\)\\\r\n]*?           # proceed, with previous restrictions (1)

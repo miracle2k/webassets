@@ -765,6 +765,20 @@ class TestCssRewrite(TempEnvironmentHelper):
             background-image: url(data:image/png;base64,iVBORw0KGgoA);
         }'''
 
+    def test_not_touching_svg_data_uri(self):
+        """[Regression] A quoted SVG data uri containing parentheses (e.g.
+        rgba(...)) used to be truncated at the first paren."""
+        self.env.url = '/sub/dir'
+        svg = ('''h1 {
+            background-image: url("data:image/svg+xml;charset=utf8,'''
+            '''%3Csvg xmlns='http://www.w3.org/2000/svg'%3E'''
+            '''%3Cpath stroke='rgba(255, 255, 255, 0.5)' d='M4 7h22'/%3E'''
+            '''%3C/svg%3E");
+        }''')
+        self.create_files({'in.css': svg})
+        self.mkbundle('in.css', filters='cssrewrite', output='out.css').build()
+        assert self.get('out.css') == svg
+
 
 class TestDataUri(TempEnvironmentHelper):
 
