@@ -200,8 +200,8 @@ latex_documents = [
 
 intersphinx_mapping = {
     'python': ('http://docs.python.org/', None),
-    'flask': ('http://elsdoerfer.name/docs/flask-assets/', None),
-    'django': ('http://elsdoerfer.name/docs/django-assets/', None),
+    'flask': ('https://flask-assets.readthedocs.io/en/latest/', None),
+    'django': ('https://django-assets.readthedocs.io/en/latest/', None),
 }
 
-extlinks = {'django': ('http://elsdoerfer.name/docs/django-assets/%s.html', None)}
+extlinks = {'django': ('https://django-assets.readthedocs.io/en/latest/%s.html', None)}
