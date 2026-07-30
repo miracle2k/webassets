@@ -215,8 +215,12 @@ class Filter(object):
         and return a hashable object containing all the data unique
         to your current instance. This will allow your filter to be applied
         multiple times with differing values for those options.
+
+        By default, the values of all declared ``options`` are returned,
+        so that changing an option invalidates the cache.
         """
-        return False
+        return tuple(sorted(
+            (attr, getattr(self, attr, None)) for attr in self._options))
 
     def id(self):
         """Unique identifier for the filter instance.

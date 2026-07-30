@@ -171,3 +171,27 @@ class TestSpecialCases(TempEnvironmentHelper):
         self.create_files({'in1': 'bar'})
         bundle.build(force=True)
         assert self.get('out') == 'bar'
+
+    def test_filter_options_and_cache(self):
+        """[Regression] Changing a filter option used to be ignored, since
+        only the filter name, not its options, was part of the cache key.
+        """
+        self.env.cache = True   # use the filesystem cache
+
+        class OptionFilter(Filter):
+            name = 'optionfilter'
+            options = {'val': 'OPTIONFILTER_VAL'}
+            def output(self, _in, out, **kw):
+                out.write(self.val)
+
+        self.create_files({'in1': 'foo'})
+
+        bundle = self.mkbundle('in1', output='out',
+                               filters=OptionFilter(val='one'))
+        bundle.build(force=True)
+        assert self.get('out') == 'one'
+
+        bundle = self.mkbundle('in1', output='out',
+                               filters=OptionFilter(val='two'))
+        bundle.build(force=True)
+        assert self.get('out') == 'two'
